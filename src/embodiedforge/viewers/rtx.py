@@ -47,11 +47,11 @@ class RtxColorOutputMixin:
         from pxr import Gf, UsdGeom, UsdLux
 
         dome = UsdLux.DomeLight.Define(self.stage, "/root/StudioAmbient")
-        dome.CreateColorAttr(Gf.Vec3f(0.65, 0.73, 0.85))
+        dome.CreateColorAttr(Gf.Vec3f(0.55, 0.68, 0.85))
         dome.CreateIntensityAttr(500)
         for name, rotation, color, intensity in (
             ("Key", (35, -30, 0), (1.0, 0.95, 0.87), 1200),
-            ("Fill", (-25, 35, 0), (0.80, 0.88, 1.0), 600),
+            ("Fill", (-25, 35, 0), (0.86, 0.92, 1.0), 700),
         ):
             path = f"/root/Studio{name}"
             transform = UsdGeom.Xform.Define(self.stage, path)
@@ -59,7 +59,10 @@ class RtxColorOutputMixin:
             light = UsdLux.DistantLight.Define(self.stage, path + "/Light")
             light.CreateColorAttr(Gf.Vec3f(*color))
             light.CreateIntensityAttr(intensity)
-            light.CreateAngleAttr(5)
+            light.CreateAngleAttr(8 if name == "Key" else 15)
+            # A fill without a second cast shadow keeps the contact cue readable.
+            if name == "Fill":
+                UsdLux.ShadowAPI.Apply(light.GetPrim()).CreateShadowEnableAttr(False)
 
     def _render_and_display(self):
         import warp as wp

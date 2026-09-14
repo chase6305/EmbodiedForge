@@ -66,6 +66,8 @@ class NewtonViewer:
                         self.viewer.renderer._sun_direction = np.array(
                             (-0.4, -0.6, 0.7), dtype=np.float32
                         )
+                        self.viewer.renderer.ambient_sky = (0.95, 0.97, 1.0)
+                        self.viewer.renderer.ambient_ground = (0.42, 0.44, 0.48)
                 else:
                     from .rtx import RtxColorOutputMixin
 

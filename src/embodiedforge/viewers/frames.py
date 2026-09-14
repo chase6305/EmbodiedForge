@@ -106,8 +106,13 @@ class RasterFrames:
         )
         size = min(width, height)
         y, x = np.indices((size, size))
-        tile = (x * 12 // size + y * 12 // size) % 2
-        self.background = np.asarray([(28, 35, 46), (32, 40, 52)], dtype=np.uint8)[tile]
+        from .style import floor_texture
+
+        # Repeat the same surface reference across the fixed orthographic view.
+        texture = floor_texture()
+        self.background = texture[
+            (y * 3 * 128 // size) % 128, (x * 3 * 128 // size) % 128
+        ]
 
     def render(self, scene, observation, env_id, camera):
         self.renderer.sync(scene)
@@ -132,7 +137,15 @@ class MujocoFrames:
 
         self.mujoco = mujoco
         self.renderer = None
-        from .style import FLOOR_A, FLOOR_B, SKY_HORIZON, SKY_TOP, style_mujoco_lighting
+        from .style import (
+            FLOOR_A,
+            FLOOR_B,
+            SKY_HORIZON,
+            SKY_TOP,
+            floor_texture,
+            style_mujoco_lighting,
+            texture_pixels,
+        )
 
         def rgb(values):
             return " ".join(str(value) for value in values)
@@ -143,7 +156,7 @@ class MujocoFrames:
             rgb1="{rgb(SKY_TOP)}" rgb2="{rgb(SKY_HORIZON)}"/>
             <texture name="grid" type="2d" builtin="checker" width="128" height="128"
             rgb1="{rgb(FLOOR_A)}" rgb2="{rgb(FLOOR_B)}"/>
-            <material name="floor" texture="grid" texrepeat="1 1" texuniform="true"
+            <material name="floor" texture="grid" texrepeat="2 2" texuniform="true"
             specular=".1" shininess=".1" reflectance="0"/></asset>
           <worldbody><light pos="0 -2 4" dir="0 .4 -1"/>
             <geom type="plane" size="0 0 .1" material="floor"/>
@@ -153,6 +166,8 @@ class MujocoFrames:
               rgba=".25 .82 .47 1"/></body>
           </worldbody></mujoco>''')
         style_mujoco_lighting(self.model)
+        grid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_TEXTURE, "grid")
+        texture_pixels(self.model, grid)[..., :3] = floor_texture()
         self.data = mujoco.MjData(self.model)
         self.radius = scene.radius
         self.camera = mujoco.MjvCamera()

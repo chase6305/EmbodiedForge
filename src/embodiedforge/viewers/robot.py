@@ -165,10 +165,14 @@ class RobotFrames:
             mesh = f"/robot/mesh_{number}"
             floor_options = {}
             if key[0] == self.mujoco.mjtGeom.mjGEOM_PLANE:
-                from .style import floor_texture
+                from .style import floor_period, floor_texture
 
                 floor_options = {
-                    "uvs": wp.array(vertices[:, :2], dtype=wp.vec2, device="cpu"),
+                    "uvs": wp.array(
+                        vertices[:, :2] / floor_period(model),
+                        dtype=wp.vec2,
+                        device="cpu",
+                    ),
                     "texture": floor_texture(),
                     "roughness": 0.85,
                     "metallic": 0.0,
@@ -241,7 +245,10 @@ class RobotFrames:
                     basis = self.data.geom_xmat[i].reshape(3, 3)
                     delta = basis.T @ (np.asarray(camera.target) - position)
                     # Move by whole texture periods so tiles stay anchored in world space.
-                    delta[:2] = np.floor(delta[:2])
+                    from .style import floor_period
+
+                    period = floor_period(self.model)
+                    delta[:2] = np.floor(delta[:2] / period) * period
                     delta[2] = 0
                     position = position + basis @ delta
                 poses[row] = np.r_[position, np.roll(quaternion, -1)]

@@ -47,7 +47,7 @@ For environment and data APIs alone, install with `python -m pip install -e .`. 
 
 ## Shared Web visualization
 
-Point tasks, live Go1 control, and Go1/H1 replay share a blue-gray scene palette with a matte checker floor, directional lighting, and fill light. MuJoCo uses a gradient sky; RTX uses soft studio lighting. Floor tiles stay anchored in world space to help judge motion. Raster uses a simplified grid background. Styling applies only to viewers and does not change training observations or physics parameters; color and shadows still differ between renderers.
+Point tasks, live Go1 control, and Go1/H1 replay share a blue-gray scene palette with a matte, low-contrast tiled floor, directional lighting, and fill light. MuJoCo uses a gradient sky; RTX uses soft studio lighting. Floor tiles stay anchored in world space, using 0.5 m or 1 m cells according to robot size to help judge motion. Raster uses a simplified grid background. Styling applies only to viewers and does not change training observations or physics parameters; color and shadows still differ between renderers.
 
 Browser and native-window entry points use different options:
 
