@@ -1,0 +1,5 @@
+include README.md README.en.md
+recursive-include configs *.json *.txt
+recursive-include docs *.md *.png
+recursive-include examples *.py
+recursive-include benchmarks *.py

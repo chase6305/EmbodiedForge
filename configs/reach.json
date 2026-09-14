@@ -1,0 +1,12 @@
+{
+  "physics": "numpy",
+  "render": "raster",
+  "num_envs": 16,
+  "seed": 42,
+  "control_hz": 50,
+  "physics_hz": 200,
+  "camera_hz": 25,
+  "image_size": 64,
+  "max_steps": 100,
+  "channels": ["rgb", "depth", "instance_id"]
+}

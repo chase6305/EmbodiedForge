@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "embodiedforge"
+version = "0.1.0"
+description = "Composable physics, rendering and robot learning runtime"
+readme = "README.en.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24,<3"]
+
+[project.optional-dependencies]
+mujoco = ["mujoco>=3.2,<4"]
+mjbatch = ["mjbatch==0.1.0", "mujoco==3.11.0"]
+newton = ["newton @ https://github.com/newton-physics/newton/archive/refs/tags/v1.6.0rc1.zip"]
+train = ["torch>=2.2,<3"]
+viz = ["viser>=1.1,<2", "pillow>=10"]
+viz-web = ["pillow>=10"]
+viz-robot = ["pillow>=10", "mujoco>=3.11,<4"]
+viz-gl = [
+    "newton @ https://github.com/newton-physics/newton/archive/refs/tags/v1.6.0rc1.zip",
+    "pyglet>=2.1.6,<3",
+]
+viz-rtx = [
+    "newton @ https://github.com/newton-physics/newton/archive/refs/tags/v1.6.0rc1.zip",
+    "pyglet>=2.1.6,<3",
+    "usd-core>=25.5,<26.5", "ovrtx>=0.3",
+]
+viz-ui = ["imgui-bundle>=1.92.0,<1.93", "PyOpenGL>=3.1.7,<4"]
+test = ["pytest>=7", "ruff>=0.6"]
+
+[project.scripts]
+embodiedforge = "embodiedforge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"embodiedforge.locomotion" = ["*.xml", "LICENSE.*"]
+"embodiedforge.viewers" = ["*.html", "*.js"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_training.py" = ["E402"] # Optional torch must be skipped before trainer import.

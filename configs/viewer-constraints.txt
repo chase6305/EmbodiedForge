@@ -1,0 +1,10 @@
+# Verified on Linux x86_64 / Python 3.11.16 / RTX 5090 D v2.
+# Newton source tag remains pinned in pyproject.toml.
+numpy==2.2.6
+warp-lang==1.17.0
+ovrtx==0.5.0.377615
+usd-core==26.3
+pyglet==2.1.16
+pillow==12.3.0
+imgui-bundle==1.92.801
+PyOpenGL==3.1.10
