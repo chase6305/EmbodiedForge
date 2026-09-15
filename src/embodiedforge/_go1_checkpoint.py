@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import math
 from pathlib import Path
 
 _PROFILES = {
@@ -67,3 +68,106 @@ def load_recipe_checkpoint(request):
         sha256=request["input_checkpoint_sha256"],
         contract=contract,
     )
+
+
+def validate_go1_optimizer(optimizer, state):
+    """Validate complete Adam state against the parameters it will update."""
+    import torch
+
+    if not isinstance(state, dict) or not isinstance(state.get("state"), dict):
+        raise ValueError("Invalid Go1 optimizer state")
+    groups = state.get("param_groups")
+    if not isinstance(groups, list) or len(groups) != len(optimizer.param_groups):
+        raise ValueError("Go1 optimizer parameter groups differ")
+    parameters = {}
+    for saved, live in zip(groups, optimizer.param_groups, strict=True):
+        ids = saved.get("params") if isinstance(saved, dict) else None
+        if not isinstance(ids, list) or len(ids) != len(live["params"]):
+            raise ValueError("Go1 optimizer parameter count differs")
+        for name in ("lr", "eps", "weight_decay"):
+            value = saved.get(name)
+            if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+                raise ValueError(f"Invalid Go1 optimizer {name}")
+        betas = saved.get("betas")
+        if (
+            not isinstance(betas, (tuple, list))
+            or len(betas) != 2
+            or any(
+                type(v) not in (int, float) or not math.isfinite(v) or not 0 <= v < 1
+                for v in betas
+            )
+        ):
+            raise ValueError("Invalid Go1 optimizer betas")
+        # Training uses ordinary CPU Adam; loading flags must not silently select
+        # a different optimizer algorithm or require CUDA graph capture.
+        for name in (
+            "amsgrad",
+            "maximize",
+            "capturable",
+            "differentiable",
+            "fused",
+            "foreach",
+            "decoupled_weight_decay",
+        ):
+            value, expected = saved.get(name, live.get(name)), live.get(name)
+            if type(value) not in (bool, type(None)) or value != expected:
+                raise ValueError(f"Unsupported Go1 optimizer option: {name}")
+        for key, parameter in zip(ids, live["params"], strict=True):
+            if type(key) is not int or key in parameters:
+                raise ValueError("Invalid or duplicate Go1 optimizer parameter ID")
+            parameters[key] = parameter
+    slots = state["state"]
+    if any(type(key) is not int for key in slots) or set(slots) != set(parameters):
+        raise ValueError("Go1 optimizer state is incomplete or has extra parameters")
+    for key, parameter in parameters.items():
+        values = slots[key]
+        if not isinstance(values, dict) or set(values) != {
+            "step",
+            "exp_avg",
+            "exp_avg_sq",
+        }:
+            raise ValueError("Invalid Go1 optimizer Adam buffers")
+        step = values["step"]
+        if (
+            not isinstance(step, torch.Tensor)
+            or not step.is_floating_point()
+            or step.ndim != 0
+            or step.device.type != "cpu"
+            or not torch.isfinite(step)
+            or step < 0
+            or step != step.floor()
+        ):
+            raise ValueError("Invalid Go1 optimizer step")
+        for name in ("exp_avg", "exp_avg_sq"):
+            value = values[name]
+            if (
+                not isinstance(value, torch.Tensor)
+                or value.shape != parameter.shape
+                or value.dtype != parameter.dtype
+                or value.device != parameter.device
+                or not torch.isfinite(value).all()
+                or (name == "exp_avg_sq" and (value < 0).any())
+            ):
+                raise ValueError(f"Invalid Go1 optimizer {name} for parameter {key}")
+
+
+def restore_go1_optimizer(optimizer, state):
+    validate_go1_optimizer(optimizer, state)
+    optimizer.load_state_dict(state)
+
+
+def save_go1_checkpoint(path, checkpoint, *, optimizer):
+    """Publish only validated state; leave the last checkpoint intact on failure."""
+    import torch
+
+    from ._wuji_recipe import finite_tensors
+
+    validate_go1_optimizer(optimizer, checkpoint.get("optimizer_state_dict"))
+    finite_tensors(checkpoint)
+    path = Path(path)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    try:
+        torch.save(checkpoint, temporary)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
