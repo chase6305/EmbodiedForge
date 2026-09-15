@@ -8,6 +8,7 @@ const presets = {
   'cmd-turn-left': [.3, 0, .5], 'cmd-turn-right': [.3, 0, -.5], 'cmd-zero': [0, 0, 0],
 };
 let state = null, connected = false, stopped = false, stopping = false;
+let connectionEpoch = 0;
 let camera = {azimuth: -90, elevation: 45, distance: 3.5};
 let drag = null, lastCameraSend = -Infinity, cameraTimer = null, pendingCamera = null, scrubbing = false;
 let queuedCamera = null;
@@ -43,17 +44,23 @@ function send(command) {
     queuedCamera.body = body;
     return queuedCamera.promise;
   }
-  const request = {body};
+  const request = {body, epoch: connectionEpoch};
   queuedCamera = command.action === 'camera' ? request : null;
   chain = chain.catch(() => {}).then(() => {
     if (queuedCamera === request) queuedCamera = null;
+    // A recovered connection must not replay actions from before the outage.
+    // Requests already sent may still complete; only unsent work is canceled.
+    if (request.epoch !== connectionEpoch) throw Error('连接已中断，未发送的操作已取消');
     if (stopped || !connected) throw Error('连接不可用，请等待状态恢复后重新操作');
     return fetchJSON('/api/control', {
       method: 'POST', headers: {'Content-Type': 'application/json', 'X-Session-Token': token}, body: request.body,
     });
   });
   request.promise = chain;
-  chain.catch(e => error(e.name === 'AbortError' ? '请求超时，操作状态未知；请检查当前状态后重试' : e.message));
+  chain.catch(e => {
+    // Late failures from the previous connection must not replace new feedback.
+    if (request.epoch === connectionEpoch) error(e.name === 'AbortError' ? '请求超时，操作状态未知；请检查当前状态后重试' : e.message);
+  });
   return chain;
 }
 
@@ -380,10 +387,12 @@ async function poll() {
     renderState(s);
   } catch (e) {
     if (stopped) return;
+    if (connected) connectionEpoch++;
+    queuedCamera = null;
     connected = false; failures++;
     clearCameraTimer(); finishDrag(false); pendingCamera = null;
     $('dot').classList.remove('ready'); $('connection').textContent = '连接断开 · 正在重连';
-    $('camera-hint').textContent = '连接断开，当前为最后收到的画面'; controls();
+    $('camera-hint').textContent = '连接断开，显示最后画面；未发送操作已取消'; controls();
   } finally { if (!stopped) setTimeout(poll, Math.min(5000, 250 * 2 ** Math.min(failures, 5))); }
 }
 $('image').onerror = () => {

@@ -95,7 +95,7 @@ Use the actual dimensions reported by the page: Raster produces a square with si
 
 Go1 shortcuts: **W/S** forward/backward, **A/D** left/right, **Q/E** turn, and **X** zero the command. Each key press sets a persistent command; releasing the key does not clear it or start the simulation. **Space** pauses/resumes, **N** steps, **R** resets, and **F** restores the default view. Shortcuts are ignored while editing an input field.
 
-An unchanged paused view reuses its JPEG without repeated rendering or transmission; control state continues to update. Browsers share the session. On disconnection, controls are disabled and the browser reconnects automatically without replaying old actions or automatically pausing the server simulation. The stop button or Ctrl+C releases session resources.
+An unchanged paused view reuses its JPEG without repeated rendering or transmission; control state continues to update. Browsers share the session. On disconnection, controls are disabled, unsent browser actions are canceled, and the browser reconnects automatically. The server simulation is not automatically paused. Requests already sent may still complete; check the current state after reconnecting before repeating canceled actions. The stop button or Ctrl+C releases session resources.
 
 For remote access, run `ssh -L 8080:127.0.0.1:8080 user@server` on your client, then open the local address. Use different ports for separate sessions. See the [viewer documentation](docs/viewers.md) for dependencies, APIs, and frame-rate semantics.
 

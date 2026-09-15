@@ -6,7 +6,7 @@ const {test} = require('node:test');
 const vm = require('node:vm');
 
 function app() {
-  const elements = new Map(), requests = [], timers = new Map();
+  const elements = new Map(), requests = [], stateRequests = [], timers = new Map();
   let clock = 1000, timerId = 0;
   class Element {
     constructor() {
@@ -37,9 +37,10 @@ function app() {
     Option: function(text, value) { this.text = text; this.value = value; },
     setTimeout: (fn, delay) => { timers.set(++timerId, {fn, at: clock + delay}); return timerId; },
     clearTimeout: id => timers.delete(id),
-    fetch: (url, options) => new Promise(resolve => {
+    fetch: (url, options) => new Promise((resolve, reject) => {
       // Keep startup polling pending; tests publish explicit rendered states.
       if (url === '/api/control') requests.push({body: JSON.parse(options.body), resolve});
+      else stateRequests.push({resolve, reject});
     }),
   });
   const run = code => vm.runInContext(code, context);
@@ -68,13 +69,18 @@ function app() {
     requests[index].resolve({ok: true, json: async () => ({accepted: true, control_id: controlId})});
     await tick();
   }
+  async function disconnect() {
+    stateRequests.shift().reject(Error('network unavailable'));
+    await tick();
+    assert.equal(run('connected'), false);
+  }
   function advance(ms) {
     clock += ms;
     for (const [id, timer] of [...timers]) {
       if (timer.at <= clock) { timers.delete(id); timer.fn(); }
     }
   }
-  return {element, viewport, document, window, requests, state, run, pointer, snapshot, tick, accept, advance};
+  return {element, viewport, document, window, requests, state, run, pointer, snapshot, tick, accept, advance, disconnect};
 }
 
 test('only the active pointer moves the camera; release stops rotation outside the viewport', async () => {
@@ -236,4 +242,48 @@ test('interleaved orbit and wheel input flush one final pose with both changes',
   assert.equal(a.requests[1].body.azimuth, -104);
   assert.equal(a.requests[1].body.distance, latest.distance);
   assert(latest.distance < 3.5);
+});
+
+test('reconnection cancels old unsent controls instead of replaying them', async () => {
+  const a = app();
+  a.run('sendCamera()'); await a.tick();
+  // Keep the first HTTP response pending while later operations queue locally.
+  a.run("camera.azimuth = 40; sendCamera(); send({action: 'reset', env_id: 0}).catch(() => {})");
+  await a.disconnect();
+  a.state();
+  await a.accept(0, 1);
+  assert.equal(a.requests.length, 1, 'reconnecting must not send an old orbit or reset');
+  a.run('camera.azimuth = 15; sendCamera()'); await a.tick();
+  assert.equal(a.requests.length, 2);
+  assert.equal(a.requests[1].body.azimuth, 15);
+});
+
+test('new camera input after reconnect is not merged into a canceled request', async () => {
+  const a = app();
+  a.run('sendCamera()'); await a.tick();
+  a.run('camera.azimuth = 40; sendCamera()');
+  await a.disconnect();
+  a.state();
+  a.run('camera.azimuth = 15; sendCamera()');
+  await a.accept(0, 1);
+  assert.equal(a.requests.length, 2);
+  assert.equal(a.requests[1].body.azimuth, 15);
+  a.state({control_id: 1});
+  assert.equal(a.snapshot().azimuth, 15, 'old cancellation must not clear the new receipt');
+  await a.accept(1, 2);
+  a.state({control_id: 2, camera: a.snapshot()});
+  assert.equal(a.run('pendingCamera'), null);
+});
+
+test('a late error from before reconnect cannot overwrite current feedback', async () => {
+  const a = app();
+  a.run('sendCamera()'); await a.tick();
+  await a.disconnect(); a.state();
+  a.run("error('current operation feedback'); camera.azimuth = 15; sendCamera()");
+  a.requests[0].resolve({ok: false, json: async () => ({error: 'old failure'})});
+  await a.tick();
+  assert.equal(a.element('error').textContent, 'current operation feedback');
+  assert.equal(a.requests.length, 2);
+  assert.equal(a.requests[1].body.azimuth, 15);
+  a.state(); assert.equal(a.snapshot().azimuth, 15);
 });
