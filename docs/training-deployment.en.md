@@ -114,6 +114,8 @@ Resume and evaluation accept complete Go1 runs from either launch mode and keep 
 
 Each run still freezes this repository's implementation and records actual package versions and paths. `run.json` marks `source.kind=installed_packages`; it does not claim to have checked an upstream Git revision. This changes the launcher, not the task, rewards or PPO, and does not merge Go1 into the core `VectorEnv`.
 
+Go1 live Web control loads the task, configuration, policy network and scene from the training run's `implementation` snapshot after checking each recorded SHA256 and copying the files into a private session directory. Transport and asset verification use the current version. Damaged snapshots prevent startup; legacy runs with no snapshot record use current code with an explicit warning. Startup logs and policy metadata identify the loaded implementation. Keep the complete training directory; these fixed inputs do not guarantee identical trajectories across hardware, seeds or episode settings.
+
 Go1 training, resume, evaluation and live policy startup verify the published asset cache and compare robot/tree/archive identity with the training record when available. If `MENAGERIE_CACHE_DIR` is unset, standalone resume/evaluation and live control reuse the recorded cache when it still exists; an explicit cache choice is preserved and verified. Older `assets.json` records remain readable. `MENAGERIE_ROOT` local-checkout overrides are rejected because the cache verifier cannot verify that separate directory. Use `MENAGERIE_CACHE_DIR` for published assets. This checks robot assets; it does not guarantee identical simulation across code or dependency changes.
 
 ### Fixed SDK mode

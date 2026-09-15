@@ -17,9 +17,8 @@ class Go1LiveRuntime:
         import torch
 
         from ._go1_assets import verified_go1_assets
+        from ._go1_implementation import load_go1_implementation
         from ._wuji_recipe import finite_tensors
-        from .locomotion.go1 import CTRL_DT, Go1
-        from .locomotion.go1_ppo import ActorCritic
         from .recipes import sha256
 
         versions = {
@@ -36,6 +35,9 @@ class Go1LiveRuntime:
             raise ValueError("Checkpoint SHA256 mismatch in policy worker")
         torch.set_num_threads(request["threads"])
         assets = verified_go1_assets(request["contract"].get("assets"))
+        Go1, ActorCritic, control_dt, implementation = load_go1_implementation(
+            request.get("implementation")
+        )
         checkpoint = torch.load(
             request["checkpoint"], weights_only=True, map_location="cpu"
         )
@@ -64,7 +66,7 @@ class Go1LiveRuntime:
             reward_profile=result.get("reward_profile", "original"),
             command_profile=result.get("command_profile", "original"),
         )
-        self.dt = CTRL_DT
+        self.dt = control_dt
         self.command = np.zeros((request["num_envs"], 3))
         self.reward = np.zeros(request["num_envs"])
         self.done = np.zeros(request["num_envs"], bool)
@@ -73,6 +75,7 @@ class Go1LiveRuntime:
         self.env.command[:] = self.command
         mujoco.mj_saveModel(self.env.batch.model, request["model_path"])
         self.metadata = {
+            "implementation": implementation,
             "assets": assets,
             "versions": versions,
             "mujoco": mujoco.__version__,
@@ -115,7 +118,15 @@ class Go1LiveRuntime:
             if not np.isfinite(observation).all():
                 raise RuntimeError("Non-finite live policy observation")
             with torch.inference_mode():
-                action = self.policy.action_mean(torch.as_tensor(observation)).numpy()
+                observation = torch.as_tensor(observation)
+                # Older recorded learners expose only forward -> (mean, value).
+                # Keep their own normalization/mirroring implementation intact.
+                action_mean = getattr(self.policy, "action_mean", None)
+                action = (
+                    action_mean(observation)
+                    if callable(action_mean)
+                    else self.policy(observation)[0]
+                ).numpy()
             self.reward, self.done, self.fell, _ = self.env.step(action)
             self.env.batch.forward()  # Match the existing fixed-command evaluator.
             return self.snapshot()

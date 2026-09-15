@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from ._go1_assets import recorded_go1_assets, reuse_asset_cache
+from ._go1_implementation import copy_go1_implementation
 from ._live_channel import JsonChannel
 from .logging import get_logger, setup_logging
 from .recipes import checkpoint_input, sha256
@@ -63,8 +64,16 @@ class LivePolicyProcess:
         self.run = run.name
         self.model_path = Path(self.directory.name) / "model.mjb"
         self.contract = dict(manifest["result"])
-        self.contract["assets"] = recorded_go1_assets(run, self.contract)
         try:
+            self.contract["assets"] = recorded_go1_assets(run, self.contract)
+            implementation = copy_go1_implementation(
+                run, manifest, Path(self.directory.name) / "implementation"
+            )
+            if implementation is None:
+                get_logger(__name__).warning(
+                    "Run has no implementation snapshot; live policy uses current Go1 code. "
+                    "Training source consistency cannot be verified."
+                )
             copied = Path(self.directory.name) / "checkpoint.pt"
             shutil.copyfile(checkpoint, copied)
             if sha256(copied) != self.contract["checkpoint_sha256"]:
@@ -98,6 +107,7 @@ class LivePolicyProcess:
                     "sha256": self.contract["checkpoint_sha256"],
                     "model_path": str(self.model_path),
                     "contract": self.contract,
+                    "implementation": implementation,
                     "num_envs": num_envs,
                     "seed": seed,
                     "threads": threads,
@@ -106,6 +116,11 @@ class LivePolicyProcess:
             )
             result = self._receive()
             self.metadata, self.state = result["metadata"], result["state"]
+            get_logger(__name__).info(
+                "Live Go1 implementation: %s (task SHA256=%s)",
+                self.metadata["implementation"]["mode"],
+                self.metadata["implementation"]["task"]["sha256"],
+            )
             if self.metadata["mujoco"] != metadata.version("mujoco"):
                 raise ValueError(
                     "Policy and renderer require the same MuJoCo version for compiled models"

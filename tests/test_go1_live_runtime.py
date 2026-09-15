@@ -47,6 +47,7 @@ def runtime(tmp_path):
 
 def test_commands_reach_policy_observation_and_stats_stay_frozen(runtime):
     owner, _ = runtime
+    assert owner.metadata["implementation"]["mode"] == "current_code_legacy"
     before = {k: v.clone() for k, v in owner.policy.state_dict().items()}
     owner.execute({"action": "velocity", "env_id": 1, "value": [0.5, 0.2, -0.3]})
     np.testing.assert_array_equal(owner.env.obs()[0, 45:48], [0, 0, 0])
@@ -72,6 +73,28 @@ def test_terminal_freeze_and_selected_reset(runtime):
     assert owner.execute({"action": "step"}) == state
     owner.execute({"action": "reset", "env_id": 1})
     assert owner.execute({"action": "step"})["step"] == [1, 1]
+
+
+def test_legacy_forward_only_policy_keeps_deterministic_actions(runtime):
+    owner, request = runtime
+    reference = Go1LiveRuntime(request)
+
+    class ForwardOnly(torch.nn.Module):
+        def __init__(self, policy):
+            super().__init__()
+            self.policy = policy
+            self.calls = 0
+
+        def forward(self, observation):
+            self.calls += 1
+            return self.policy(observation)
+
+    owner.policy = ForwardOnly(owner.policy)
+    command = {"action": "velocity", "env_id": 0, "value": [0.2, 0, 0]}
+    owner.execute(command)
+    reference.execute(command)
+    assert owner.execute({"action": "step"}) == reference.execute({"action": "step"})
+    assert owner.policy.calls == 1
 
 
 @pytest.mark.parametrize(

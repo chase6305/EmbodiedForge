@@ -85,6 +85,17 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
     live = LivePolicyProcess(resume, num_envs=1, threads=1)
     try:
         assert live.metadata["assets"] == assets
+        implementation = live.metadata["implementation"]
+        assert implementation["mode"] == "training_snapshot"
+        assert (
+            implementation["task"]["sha256"]
+            == data["implementation"]["files"]["locomotion/go1.py"]
+        )
+        assert (
+            implementation["learner"]["sha256"]
+            == data["implementation"]["files"]["locomotion/go1_ppo.py"]
+        )
+        assert implementation["task"]["path"].startswith(live.directory.name + "/")
         live.request("velocity", env_id=0, value=[0.2, 0, 0])
         state = live.request("step")
         assert state["step"] == [1]
@@ -92,3 +103,10 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
         assert live.model_path.is_file()
     finally:
         live.close()
+
+    # A broken training snapshot must not silently switch to current task code.
+    (resume / "implementation/embodiedforge/locomotion/go1_scene.xml").write_text(
+        "<mujoco/>"
+    )
+    with pytest.raises(ValueError, match="Implementation snapshot differs"):
+        LivePolicyProcess(resume, num_envs=1, threads=1)
