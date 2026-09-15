@@ -660,6 +660,7 @@ def execute(args):
                 "_go1_metrics.py",
                 "_go1_assets.py",
                 "_go1_implementation.py",
+                "_go1_resume.py",
                 "_h1_motion.py",
                 "locomotion/go1.py",
                 "locomotion/go1_config.py",
@@ -715,6 +716,11 @@ def execute(args):
                 raise ValueError("Checkpoint changed during copy")
             request["checkpoint"] = str(target)
             manifest["input_sha256"] = sha256(target)
+            if args.task == "go1-joystick" and args.command == "train":
+                origin = output / "input-run.json"
+                write_json(origin, data)
+                request["input_run_manifest"] = str(origin)
+                request["input_run_manifest_sha256"] = sha256(origin)
         write_json(output / "request.json", request)
         command = [
             sys.executable if standalone else str(project / ".venv/bin/python"),
@@ -745,6 +751,33 @@ def execute(args):
                 request.get("prior_updates", 0) + result["completed_updates"]
             )
             write_json(output / "result.json", result)
+            if args.task == "go1-joystick" and previous:
+                report = json.loads((output / "resume-report.json").read_text())
+                if (
+                    sha256(output / "resume-report.json")
+                    != result["resume_report"]["sha256"]
+                ):
+                    raise ValueError("Resume report SHA256 mismatch")
+                if (
+                    sha256(output / "input-run.json")
+                    != request["input_run_manifest_sha256"]
+                ):
+                    raise ValueError("Resume input manifest SHA256 mismatch")
+                LOGGER.info(
+                    "Go1 resume code=%s; configuration changes=%s; dependency changes=%s; report: %s",
+                    report["code"]["status"],
+                    [
+                        k
+                        for k, v in report["configuration"].items()
+                        if v["status"] == "changed"
+                    ],
+                    [
+                        k
+                        for k, v in report["dependencies"].items()
+                        if v["status"] == "changed"
+                    ],
+                    output / "resume-report.json",
+                )
         manifest.update(status="complete", result=result)
         if args.command == "evaluate":
             acceptance = assess(result, criteria)

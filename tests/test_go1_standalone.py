@@ -48,6 +48,10 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
             "4",
             "--resume-run",
             str(train),
+            "--seed",
+            "7",
+            "--go1-learning-rate",
+            "0.0005",
             "--output",
             str(resume),
         ]
@@ -75,6 +79,31 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
         assert data["result"]["runtime"]["launch_mode"] == "installed_packages"
         assert data["result"]["assets"] == assets
     data = json.loads((resume / "run.json").read_text())
+    report = json.loads((resume / "resume-report.json").read_text())
+    origin = json.loads((resume / "input-run.json").read_text())
+    assert origin == json.loads((train / "run.json").read_text())
+    assert report["source_manifest"]["sha256"] == recipes.sha256(
+        resume / "input-run.json"
+    )
+    assert data["result"]["resume_report"]["sha256"] == recipes.sha256(
+        resume / "resume-report.json"
+    )
+    assert report["code"]["status"] == "unchanged"
+    assert report["configuration"]["seed"] == {
+        "before": 0,
+        "after": 7,
+        "status": "changed",
+    }
+    assert report["configuration"]["learning_rate_override"] == {
+        "before": None,
+        "after": 0.0005,
+        "status": "changed",
+    }
+    assert all(v["status"] == "unchanged" for v in report["dependencies"].values())
+    assert report["checkpoint_sha256"] == origin["result"]["checkpoint_sha256"]
+    assert report["start_iteration"] == 2
+    assert "optimizer_state" in report["continuation"]["restored"]
+    assert not (train / "resume-report.json").exists()
     evaluation_data = json.loads((evaluation / "run.json").read_text())
     evaluation_impl = evaluation_data["result"]["implementation"]
     assert evaluation_impl["mode"] == "training_snapshot"

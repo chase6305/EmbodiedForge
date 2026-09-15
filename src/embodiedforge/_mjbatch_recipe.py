@@ -131,6 +131,7 @@ def go1_train(request, owner):
     )
     optimizer = torch.optim.Adam(net.parameters(), lr=learner.LR)
     first_iteration = request.get("start_iteration", 0)
+    resume_report = None
     if request.get("checkpoint"):
         previous = torch.load(
             request["checkpoint"], weights_only=True, map_location="cpu"
@@ -160,6 +161,9 @@ def go1_train(request, owner):
             raise ValueError("Resume iteration does not match the input model")
         net.load_state_dict(previous["model_state_dict"], strict=True)
         optimizer.load_state_dict(previous["optimizer_state_dict"])
+        from embodiedforge._go1_resume import record_go1_resume
+
+        resume_report = record_go1_resume(request)
     start = time.perf_counter()
     history = []
     with Path("metrics.jsonl").open("w") as stream:
@@ -221,6 +225,7 @@ def go1_train(request, owner):
         raise ValueError("Incomplete Go1 training artifacts")
     tensors = finite_tensors(checkpoint)
     return {
+        **({"resume_report": resume_report} if resume_report else {}),
         "checkpoint": "model.pt",
         "learning_rate_override": request["go1_learning_rate"],
         "reward_profile": request["go1_reward_profile"],

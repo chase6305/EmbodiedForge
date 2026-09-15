@@ -120,6 +120,10 @@ Go1 evaluation also loads the training snapshot and checks dependency versions r
 
 Resume continues using the current repository's task and PPO and saves a new implementation snapshot so training fixes can take effect. It does not promise to preserve the previous training code or match uninterrupted training trajectories. Subsequent evaluation and live control use the resumed run's snapshot.
 
+Go1 resume retains the source run record as `input-run.json` and writes `resume-report.json` after successfully loading the policy and optimizer. The report compares recorded snapshot file hashes, environment count, rollout length, seed, thread count, task semantics, reward/command profiles, learning-rate override and actual dependency versions; missing historical evidence is marked `unknown`. Code comparison uses recorded hashes without revalidating or executing the old source, and does not infer behavioral impact. Report and source-record hashes are checked, and completion logs summarize changes. The report confirms that continuation state was loaded; `run.json.status` still determines whether training completed.
+
+Policy parameters, normalization statistics and optimizer state are restored. Simulation state, episodes and random generators are reinitialized; learning rate is computed from the resumed iteration and current override. Unchanged recorded inputs therefore do not imply equivalence to uninterrupted training.
+
 Go1 training, resume, evaluation and live policy startup verify the published asset cache and compare robot/tree/archive identity with the training record when available. If `MENAGERIE_CACHE_DIR` is unset, standalone resume/evaluation and live control reuse the recorded cache when it still exists; an explicit cache choice is preserved and verified. Older `assets.json` records remain readable. `MENAGERIE_ROOT` local-checkout overrides are rejected because the cache verifier cannot verify that separate directory. Use `MENAGERIE_CACHE_DIR` for published assets. This checks robot assets; it does not guarantee identical simulation across code or dependency changes.
 
 ### Fixed SDK mode
