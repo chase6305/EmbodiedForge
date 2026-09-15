@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ._go1_implementation import policy_action_mean
 from ._live_channel import JsonChannel
 
 
@@ -119,14 +120,7 @@ class Go1LiveRuntime:
                 raise RuntimeError("Non-finite live policy observation")
             with torch.inference_mode():
                 observation = torch.as_tensor(observation)
-                # Older recorded learners expose only forward -> (mean, value).
-                # Keep their own normalization/mirroring implementation intact.
-                action_mean = getattr(self.policy, "action_mean", None)
-                action = (
-                    action_mean(observation)
-                    if callable(action_mean)
-                    else self.policy(observation)[0]
-                ).numpy()
+                action = policy_action_mean(self.policy, observation).numpy()
             self.reward, self.done, self.fell, _ = self.env.step(action)
             self.env.batch.forward()  # Match the existing fixed-command evaluator.
             return self.snapshot()

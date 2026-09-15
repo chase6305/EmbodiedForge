@@ -659,6 +659,7 @@ def execute(args):
                 "_h1_metrics.py",
                 "_go1_metrics.py",
                 "_go1_assets.py",
+                "_go1_implementation.py",
                 "_h1_motion.py",
                 "locomotion/go1.py",
                 "locomotion/go1_config.py",
@@ -686,6 +687,26 @@ def execute(args):
             "path": str(implementation.relative_to(output)),
             **frozen,
         }
+        if previous and args.task == "go1-joystick" and args.command == "evaluate":
+            from ._go1_implementation import copy_go1_implementation
+
+            recorded = copy_go1_implementation(
+                args.run.resolve(), previous[1], output / "input-implementation"
+            )
+            request["input_implementation"] = recorded
+            request["input_versions"] = (
+                previous[1]["result"].get("runtime", {}).get("versions", {})
+            )
+            if recorded is None:
+                LOGGER.warning(
+                    "Run has no implementation snapshot; evaluation uses current Go1 code. "
+                    "Training source consistency cannot be verified."
+                )
+            else:
+                manifest["input_implementation"] = {
+                    **recorded,
+                    "path": str(Path(recorded["path"]).relative_to(output)),
+                }
         if previous:
             checkpoint, data = previous
             target = output / "input.pt"
@@ -712,6 +733,11 @@ def execute(args):
         result = json.loads((output / "result.json").read_text())
         validate_result(request, result, output)
         validate_snapshot(implementation, frozen, label="Run implementation snapshot")
+        if request.get("input_implementation"):
+            recorded = request["input_implementation"]
+            validate_snapshot(
+                Path(recorded["path"]), recorded, label="Input implementation snapshot"
+            )
         if project is not None:
             validate_snapshot(project, source)
         if args.command == "train":

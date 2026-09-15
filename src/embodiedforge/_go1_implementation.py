@@ -74,7 +74,7 @@ def copy_go1_implementation(run, manifest, destination):
     return {"path": str(destination), "files": files}
 
 
-def load_go1_implementation(record=None):
+def load_go1_modules(record=None):
     """Isolate relative task imports from the current installed locomotion code."""
     if record is None:
         task = importlib.import_module("embodiedforge.locomotion.go1")
@@ -112,4 +112,15 @@ def load_go1_implementation(record=None):
         ("scene", Path(task.THEME)),
     ):
         details[label] = {"path": str(path), "sha256": sha256(path)}
+    return task, learner, details
+
+
+def load_go1_implementation(record=None):
+    task, learner, details = load_go1_modules(record)
     return task.Go1, learner.ActorCritic, task.CTRL_DT, details
+
+
+def policy_action_mean(policy, observation):
+    """Use the recorded learner's inference API, including forward-only versions."""
+    action_mean = getattr(policy, "action_mean", None)
+    return action_mean(observation) if callable(action_mean) else policy(observation)[0]

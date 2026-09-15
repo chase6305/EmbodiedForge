@@ -1,8 +1,10 @@
 """Use installed Go1 dependencies without preparing an external SDK checkout."""
 
 import json
+import subprocess
 import sys
 
+import numpy as np
 import pytest
 
 pytest.importorskip("mjbatch")
@@ -73,6 +75,20 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
         assert data["result"]["runtime"]["launch_mode"] == "installed_packages"
         assert data["result"]["assets"] == assets
     data = json.loads((resume / "run.json").read_text())
+    evaluation_data = json.loads((evaluation / "run.json").read_text())
+    evaluation_impl = evaluation_data["result"]["implementation"]
+    assert evaluation_impl["mode"] == "training_snapshot"
+    assert (
+        evaluation_data["input_implementation"]["files"]
+        == data["implementation"]["files"]
+    )
+    assert (
+        evaluation_impl["task"]["sha256"]
+        == data["implementation"]["files"]["locomotion/go1.py"]
+    )
+    assert evaluation_impl["task"]["path"].startswith(
+        str(evaluation / "input-implementation") + "/"
+    )
     assert data["result"]["checkpoint_iteration"] == 2
     assert data["result"]["cumulative_updates"] == 3
     assert list(evaluation.glob("motion-*.npz"))
@@ -82,7 +98,7 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
     assert "/implementation/embodiedforge/" in runtime["environment"]["file"]
     from embodiedforge.go1_live import LivePolicyProcess
 
-    live = LivePolicyProcess(resume, num_envs=1, threads=1)
+    live = LivePolicyProcess(resume, num_envs=4, threads=1, episode_steps=6)
     try:
         assert live.metadata["assets"] == assets
         implementation = live.metadata["implementation"]
@@ -96,10 +112,20 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
             == data["implementation"]["files"]["locomotion/go1_ppo.py"]
         )
         assert implementation["task"]["path"].startswith(live.directory.name + "/")
-        live.request("velocity", env_id=0, value=[0.2, 0, 0])
-        state = live.request("step")
-        assert state["step"] == [1]
-        assert state["command"] == [[0.2, 0, 0]]
+        for env_id in range(4):
+            live.request("velocity", env_id=env_id, value=[0.5, 0, 0])
+        with np.load(
+            next(evaluation.glob("motion-*.npz")), allow_pickle=False
+        ) as motion:
+            for frame in range(5):
+                state = live.request("step")
+                assert state["step"] == [frame + 1] * 4
+                assert state["command"] == [[0.5, 0, 0]] * 4
+                # Motion archives intentionally store poses as float32.
+                np.testing.assert_array_equal(
+                    np.asarray(state["qpos"][0][7:], dtype=np.float32),
+                    motion["joints"][frame],
+                )
         assert live.model_path.is_file()
     finally:
         live.close()
@@ -110,3 +136,66 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
     )
     with pytest.raises(ValueError, match="Implementation snapshot differs"):
         LivePolicyProcess(resume, num_envs=1, threads=1)
+    failed = tmp_path / "eval-damaged"
+    with pytest.raises(ValueError, match="Implementation snapshot differs"):
+        recipes.main(
+            [
+                "evaluate",
+                *common,
+                "--run",
+                str(resume),
+                "--steps",
+                "1",
+                "--output",
+                str(failed),
+            ]
+        )
+    assert json.loads((failed / "run.json").read_text())["status"] == "failed"
+    assert not (failed / "runtime.json").exists(), (
+        "damaged source must fail before worker launch"
+    )
+
+    # The completed evaluation keeps its own valid copy after the input changes.
+    recipes.validate_snapshot(
+        evaluation / "input-implementation", evaluation_data["input_implementation"]
+    )
+
+    # Old runs that never recorded source are explicit about using current code.
+    data.pop("implementation")
+    recipes.write_json(resume / "run.json", data)
+    legacy = tmp_path / "eval-legacy"
+    recipes.main(
+        [
+            "evaluate",
+            *common,
+            "--run",
+            str(resume),
+            "--steps",
+            "1",
+            "--output",
+            str(legacy),
+        ]
+    )
+    legacy_data = json.loads((legacy / "run.json").read_text())
+    assert legacy_data["result"]["implementation"]["mode"] == "current_code_legacy"
+
+    data["result"]["runtime"]["versions"]["numpy"] = "0.0.0"
+    recipes.write_json(resume / "run.json", data)
+    mismatch = tmp_path / "eval-version-mismatch"
+    with pytest.raises(subprocess.CalledProcessError):
+        recipes.main(
+            [
+                "evaluate",
+                *common,
+                "--run",
+                str(resume),
+                "--steps",
+                "1",
+                "--output",
+                str(mismatch),
+            ]
+        )
+    assert (
+        "Training dependency mismatch for numpy"
+        in (mismatch / "console.log").read_text()
+    )

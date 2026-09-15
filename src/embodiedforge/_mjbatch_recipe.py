@@ -238,15 +238,15 @@ def go1_train(request, owner):
     }
 
 
-def go1_evaluate_case(request, owner):
+def go1_evaluate_case(request, owner, learner):
     import torch
 
+    from embodiedforge._go1_implementation import policy_action_mean
     from embodiedforge._go1_metrics import SWITCHING_SUITES
     from embodiedforge._h1_metrics import FirstEpisodeMetrics
     from embodiedforge._wuji_recipe import finite_tensors
 
     torch.set_num_threads(request["threads"])
-    from embodiedforge.locomotion.go1_ppo import ActorCritic
 
     env = owner.Go1(
         request["num_envs"],
@@ -257,7 +257,7 @@ def go1_evaluate_case(request, owner):
         reward_profile=request["go1_reward_profile"],
         command_profile=request["go1_command_profile"],
     )
-    net = ActorCritic().eval()
+    net = learner.ActorCritic().eval()
     data = torch.load(request["checkpoint"], weights_only=True, map_location="cpu")
     finite_tensors(data)
     if data.get("learning_rate_override") != request["input_learning_rate_override"]:
@@ -329,7 +329,7 @@ def go1_evaluate_case(request, owner):
                 command = metrics.command()
             env.command[:], env.until[:] = command, 2
             obs = env.obs()
-            action = net.action_mean(torch.as_tensor(obs)).numpy()
+            action = policy_action_mean(net, torch.as_tensor(obs)).numpy()
             check_finite(obs, action)
             _, _, fell, _ = env.step(action)
             # mj_step derived sensors lag by one physics substep. Refresh before
@@ -394,7 +394,7 @@ def go1_evaluate_case(request, owner):
     return result
 
 
-def go1_evaluate(request, owner):
+def go1_evaluate(request, owner, learner):
     from embodiedforge._go1_metrics import evaluation_commands
 
     commands = evaluation_commands(request.get("suite"), request.get("velocity"))
@@ -403,7 +403,9 @@ def go1_evaluate(request, owner):
     for seed in seeds:
         for name, command in commands.items():
             case = go1_evaluate_case(
-                {**request, "seed": seed, "velocity": command, "case": name}, owner
+                {**request, "seed": seed, "velocity": command, "case": name},
+                owner,
+                learner,
             )
             cases.append(case)
             write_json(Path(f"evaluation-seed-{seed}-{name}.json"), case)
@@ -543,14 +545,21 @@ def run(request):
             raise ValueError("MPC horizon must have at least two knots")
         return cartpole_solve(request)
     from embodiedforge._go1_assets import verified_go1_assets
-    from embodiedforge.locomotion import go1 as owner
 
     assets = verified_go1_assets(request.get("input_assets"))
     write_json(Path("assets.json"), assets)
-    result = (
-        go1_train(request, owner)
-        if request["command"] == "train"
-        else go1_evaluate(request, owner)
-    )
+    if request["command"] == "train":
+        from embodiedforge.locomotion import go1 as owner
+
+        result = go1_train(request, owner)
+    else:
+        from embodiedforge._go1_implementation import load_go1_modules
+
+        owner, learner, implementation = load_go1_modules(
+            request.get("input_implementation")
+        )
+        write_json(Path("evaluation-implementation.json"), implementation)
+        result = go1_evaluate(request, owner, learner)
+        result["implementation"] = implementation
     result["assets"] = assets
     return result

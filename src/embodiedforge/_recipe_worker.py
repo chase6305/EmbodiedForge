@@ -50,6 +50,12 @@ def main():
         versions["mujoco-menagerie"] = importlib.metadata.version("mujoco-menagerie")
         if versions["mujoco-menagerie"] != "2026.9.0":
             raise ValueError("Expected the pinned Menagerie 2026.9.0 assets registry")
+    if request["task"] == "go1-joystick" and request["command"] == "evaluate":
+        for key, expected in request.get("input_versions", {}).items():
+            if key in versions and versions[key] != expected:
+                raise ValueError(
+                    f"Training dependency mismatch for {key}: {versions[key]} != {expected}"
+                )
     module = importlib.import_module(
         "embodiedforge._wuji_recipe"
         if name == "wuji_unilab"
