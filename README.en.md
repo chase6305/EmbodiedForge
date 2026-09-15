@@ -2,13 +2,13 @@
 
 [简体中文](README.md) | **English**
 
-![EmbodiedForge concept illustration: robot simulation, parallel training, and Web visualization](docs/assets/embodiedforge-overview.png)
+![EmbodiedForge workflow: robot and task → native training → evaluation and recording → Web replay](docs/assets/embodiedforge-overview.png)
 
-*Project concept illustration generated with imagegen; see below for the actual interface and supported capabilities.*
+*Workflow diagram: native Go1 / H1 training uses MuJoCo, mjbatch, and PyTorch without IsaacLab; evaluation can record motions for Web replay. Live policy interaction currently supports Go1; H1 walking policies still need training and acceptance evaluation. External SDK tasks have separate entry points; see [current capabilities](#capabilities).*
 
 A modular platform for robot simulation, data collection, and training for RL and VLA experiments. Tasks, physics, rendering, sensors, and policies compose through separate interfaces. A shared Web viewer displays simulations, replays motion recordings, and controls live policies.
 
-The current implementation includes a CPU `VectorEnv` reference runtime, Go1 and native H1 task/PPO implementations maintained in this repository, and isolated training entry points for Microduck, H1, Wuji, and other tasks. The table below describes their scope; see the [architecture](docs/architecture.md) for the longer-term design.
+The current implementation includes a CPU `VectorEnv` reference runtime, Go1 and native H1 task/PPO implementations maintained in this repository, and isolated training entry points for Microduck, IsaacLab H1, Wuji, and other tasks. The table below describes their scope; see the [architecture](docs/architecture.md) for the longer-term design.
 
 **Quick links:** [Quick start](#quick-start) · [Training and deployment commands](docs/training-deployment.en.md) · [Web controls](#web-viewer) · [Live Go1](#go1-live) · [Motion replay](#robot-replay) · [Robot training](#robot-training) · [Troubleshooting](#troubleshooting) · [Documentation](#documentation)
 

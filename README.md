@@ -2,13 +2,13 @@
 
 **简体中文** | [English](README.en.md)
 
-![EmbodiedForge 概念图：机器人仿真、并行训练与 Web 可视化](docs/assets/embodiedforge-overview.png)
+![EmbodiedForge 工作流：机器人与任务 → 原生训练 → 评估与记录 → Web 回放](docs/assets/embodiedforge-overview.png)
 
-*由 imagegen 生成的项目概念图；实际界面与支持范围见下文。*
+*工作流示意图：Go1 / H1 原生训练使用 MuJoCo、mjbatch 与 PyTorch，不依赖 IsaacLab；评估后可记录运动并在 Web 中回放。在线策略交互目前支持 Go1，H1 行走策略仍需训练与验收。外部 SDK 任务使用独立入口，详见[能力范围](#capabilities)。*
 
 面向 RL 与 VLA 实验的模块化机器人仿真、数据与训练平台。任务、物理、渲染、传感器和策略通过独立接口组合；统一 Web 页面用于查看仿真、回放运动记录和控制在线策略。
 
-当前包含 CPU `VectorEnv` 参考运行时、本仓库维护的 Go1 任务与 PPO，以及 Microduck、H1、Wuji 等任务的独立训练入口。各部分的实现范围见下表，长期设计见 [架构文档](docs/architecture.md)。
+当前包含 CPU `VectorEnv` 参考运行时、本仓库维护的 Go1 与原生 H1 任务及 PPO，以及 Microduck、IsaacLab H1、Wuji 等任务的独立训练入口。各部分的实现范围见下表，长期设计见 [架构文档](docs/architecture.md)。
 
 **快速导航：** [快速运行](#quick-start) · [训练与部署命令](docs/training-deployment.md) · [Web 交互](#web-viewer) · [Go1 在线](#go1-live) · [运动回放](#robot-replay) · [机器人训练](#robot-training) · [常见问题](#troubleshooting) · [文档索引](#documentation)
 
