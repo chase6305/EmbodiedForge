@@ -354,6 +354,14 @@ class WebViewer:
             # remain available even when a client has filled the queue.
             if action == "stop":
                 self._commands.clear()
+            elif (
+                action == "camera"
+                and self._commands
+                and self._commands[-1]["action"] == "camera"
+            ):
+                # A slow render only needs the newest consecutive orbit pose.
+                # Other controls are ordering barriers and must stay in place.
+                self._commands.pop()
             elif len(self._commands) >= 128:
                 raise OverflowError("Control queue is full")
             self._submitted_control_id += 1

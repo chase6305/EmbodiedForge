@@ -9,7 +9,8 @@ const presets = {
 };
 let state = null, connected = false, stopped = false, stopping = false;
 let camera = {azimuth: -90, elevation: 45, distance: 3.5};
-let drag = null, lastCameraSend = 0, wheelTimer = null, cameraUntil = 0, scrubbing = false;
+let drag = null, lastCameraSend = 0, wheelTimer = null, pendingCamera = null, scrubbing = false;
+let queuedCamera = null;
 let pendingRenderer = null, pendingSelection = null, pendingVelocity = null, pendingReset = null, pendingPause = null;
 let rendererRequest = null, pendingSpeed = null, pendingFollow = null;
 let pendingResolution = null, pendingFPS = null;
@@ -37,12 +38,21 @@ async function fetchJSON(url, options = {}) {
 function send(command) {
   // Capture command arguments at the interaction, never from a later poll.
   const body = JSON.stringify(command);
+  // Keep the newest unsent pose without moving it across other controls.
+  if (command.action === 'camera' && queuedCamera) {
+    queuedCamera.body = body;
+    return queuedCamera.promise;
+  }
+  const request = {body};
+  queuedCamera = command.action === 'camera' ? request : null;
   chain = chain.catch(() => {}).then(() => {
+    if (queuedCamera === request) queuedCamera = null;
     if (stopped || !connected) throw Error('连接不可用，请等待状态恢复后重新操作');
     return fetchJSON('/api/control', {
-      method: 'POST', headers: {'Content-Type': 'application/json', 'X-Session-Token': token}, body,
+      method: 'POST', headers: {'Content-Type': 'application/json', 'X-Session-Token': token}, body: request.body,
     });
   });
+  request.promise = chain;
   chain.catch(e => error(e.name === 'AbortError' ? '请求超时，操作状态未知；请检查当前状态后重试' : e.message));
   return chain;
 }
@@ -169,16 +179,25 @@ $('follow').onchange = () => {
   tracked({action: 'follow', enabled: pending.enabled}, pending, () => { pendingFollow = null; });
 };
 
-function sendCamera() {
-  if (!connected || stopped || stopping) return;
-  cameraUntil = Date.now() + 700;
-  return send({action: 'camera', ...camera});
+function cameraEnabled() {
+  return connected && !stopped && !stopping && state?.ready && state.camera_control;
+}
+function clearWheel() {
+  clearTimeout(wheelTimer); wheelTimer = null;
+}
+function sendCamera(action = 'camera') {
+  clearWheel();
+  if (!cameraEnabled()) return;
+  const pending = pendingCamera = {accepted: false};
+  return send(action === 'camera_reset' ? {action} : {action, ...camera}).then(result => {
+    pending.control_id = result.control_id; pending.accepted = true;
+  }).catch(() => { if (pendingCamera === pending) pendingCamera = null; });
 }
 $('camera-reset').onclick = () => {
+  finishDrag(false);
   camera = {...state.default_camera};
   delete camera.target;
-  cameraUntil = Date.now() + 700;
-  send({action: 'camera_reset'});
+  sendCamera('camera_reset');
 };
 $('camera-top').onclick = () => { camera.elevation = 89; sendCamera(); };
 $('zoom-in').onclick = () => { camera.distance = Math.max(.3, camera.distance * .8); sendCamera(); };
@@ -200,32 +219,53 @@ $('stop').onclick = () => {
     $('dot').classList.remove('ready');
     $('status').textContent = '已停止';
     $('interaction-status').textContent = '已请求停止会话';
-    clearTimeout(wheelTimer); drag = null; controls();
+    clearWheel(); finishDrag(false); controls();
   }).catch(() => { stopping = false; feedback(); });
 };
 
 const viewport = $('viewport');
+function finishDrag(flush = true) {
+  if (!drag) return;
+  const {pointerId} = drag;
+  drag = null;
+  if (viewport.hasPointerCapture(pointerId)) viewport.releasePointerCapture(pointerId);
+  if (flush) sendCamera();
+}
 viewport.onpointerdown = e => {
-  if (!connected || stopped || stopping || !state?.camera_control || e.button !== 0) return;
+  if (!cameraEnabled() || drag || e.isPrimary === false || e.button !== 0) return;
+  e.preventDefault();
   viewport.focus({preventScroll: true});
-  drag = {x: e.clientX, y: e.clientY}; viewport.setPointerCapture(e.pointerId);
+  viewport.setPointerCapture(e.pointerId);
+  drag = {pointerId: e.pointerId, x: e.clientX, y: e.clientY};
 };
 viewport.onpointermove = e => {
-  if (!drag) return;
-  camera.azimuth = ((camera.azimuth - (e.clientX - drag.x) * .35 + 540) % 360) - 180;
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  if (!cameraEnabled()) { finishDrag(false); return; }
+  // A missed mouse-up must not turn hover movement into another rotation.
+  if (!(e.buttons & 1)) { finishDrag(); return; }
+  e.preventDefault();
+  camera.azimuth = ((camera.azimuth - (e.clientX - drag.x) * .35 + 180) % 360 + 360) % 360 - 180;
   camera.elevation = Math.max(5, Math.min(89, camera.elevation + (e.clientY - drag.y) * .25));
-  drag = {x: e.clientX, y: e.clientY};
-  if (Date.now() - lastCameraSend > 100) { lastCameraSend = Date.now(); sendCamera(); }
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (Date.now() - lastCameraSend >= 33) { lastCameraSend = Date.now(); sendCamera(); }
 };
 viewport.onpointerup = e => {
-  if (drag) { drag = null; sendCamera(); viewport.releasePointerCapture(e.pointerId); }
+  if (e.pointerId === drag?.pointerId && !(e.buttons & 1)) finishDrag();
 };
-viewport.onpointercancel = () => { drag = null; };
+viewport.onpointercancel = viewport.onlostpointercapture = e => {
+  if (e.pointerId === drag?.pointerId) finishDrag();
+};
+window.addEventListener('blur', () => { finishDrag(); if (wheelTimer !== null) sendCamera(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { finishDrag(); if (wheelTimer !== null) sendCamera(); }
+});
+viewport.ondragstart = e => e.preventDefault();
 viewport.addEventListener('wheel', e => {
-  if (!connected || stopped || stopping || !state?.camera_control) return;
+  if (!cameraEnabled()) return;
   e.preventDefault();
-  camera.distance = Math.max(.3, Math.min(20, camera.distance * Math.exp(e.deltaY * .001)));
-  cameraUntil = Date.now() + 700; clearTimeout(wheelTimer); wheelTimer = setTimeout(sendCamera, 100);
+  const pixels = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.clientHeight : 1);
+  camera.distance = Math.max(.3, Math.min(20, camera.distance * Math.exp(pixels * .001)));
+  clearWheel(); wheelTimer = setTimeout(() => sendCamera(), 100);
 }, {passive: false});
 document.onkeydown = e => {
   if (e.repeat || e.isComposing || e.ctrlKey || e.altKey || e.metaKey || !connected || stopped || stopping || !state?.ready) return;
@@ -298,7 +338,9 @@ function renderState(s) {
   $('env-label').textContent = `ENV ${s.env_id}`;
   $('status').textContent = s.paused ? '已暂停' : '运行中';
   $('camera-hint').textContent = s.camera_control ? '拖动旋转 · 滚轮缩放' : '正交调试画面';
-  if (!drag && Date.now() > cameraUntil) camera = {azimuth: s.camera.azimuth, elevation: s.camera.elevation, distance: s.camera.distance};
+  if (!s.camera_control) { clearWheel(); finishDrag(false); }
+  if (observed(pendingCamera, s)) pendingCamera = null;
+  if (!drag && wheelTimer === null && !pendingCamera) camera = {azimuth: s.camera.azimuth, elevation: s.camera.elevation, distance: s.camera.distance};
   $('time').textContent = s.time.toFixed(2) + ' s'; $('episode').textContent = s.episode + ' / ' + s.step;
   $('velocity').textContent = s.velocity.toFixed(3); $('reward').textContent = s.reward == null ? '—' : s.reward.toFixed(4);
   $('fps').textContent = s.render_idle ? '静止' : s.fps.toFixed(1);
@@ -332,7 +374,7 @@ async function poll() {
   } catch (e) {
     if (stopped) return;
     connected = false; failures++;
-    clearTimeout(wheelTimer); drag = null;
+    clearWheel(); finishDrag(false); pendingCamera = null;
     $('dot').classList.remove('ready'); $('connection').textContent = '连接断开 · 正在重连';
     $('camera-hint').textContent = '连接断开，当前为最后收到的画面'; controls();
   } finally { if (!stopped) setTimeout(poll, Math.min(5000, 250 * 2 ** Math.min(failures, 5))); }

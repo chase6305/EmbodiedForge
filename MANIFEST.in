@@ -3,3 +3,4 @@ recursive-include configs *.json *.txt
 recursive-include docs *.md *.png
 recursive-include examples *.py
 recursive-include benchmarks *.py
+include tests/web_camera.test.cjs

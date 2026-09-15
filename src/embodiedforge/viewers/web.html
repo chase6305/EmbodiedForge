@@ -13,6 +13,7 @@ main{display:grid;grid-template-columns:260px minmax(0,1fr);gap:22px;padding:24p
 
 :focus-visible{outline:2px solid #85ccff;outline-offset:3px}button[aria-pressed=true]{border-color:#56b6ff;background:#234769;color:#d8f0ff}input:invalid{border-color:#d98676}input:disabled,select:disabled{opacity:.5}.interaction-status{min-height:21px;margin-top:10px;color:#8bcbff;font-size:12px}.interaction-status[data-dirty=true]{color:#e4bd75}#live-model{overflow-wrap:anywhere;min-width:0}#workspace:fullscreen{background:#0b111a;padding:20px;overflow:auto}#workspace:fullscreen .viewport{height:60vh}#live-shortcuts{line-height:2}.workspace.disconnected .viewport img{opacity:.45}.workspace.disconnected #camera-hint{background:#432522;color:#ffd4ca}
 @media(max-width:480px){aside{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric strong{font-size:18px}.viewport{min-height:240px}.brand strong{font-size:14px}header{padding:0 12px}.connection{max-width:115px}.toolbar .row{gap:6px}.toolbar button{padding:9px}#live-panel input[type=number]{width:100px!important}}
+.viewport{user-select:none;-webkit-user-select:none}
 </style>
 <header><div class="brand"><div class="mark">EF</div><div><strong>EmbodiedForge</strong><div class="muted">SIMULATION STUDIO</div></div></div><div class="connection"><i id="dot" class="dot"></i><span id="connection">连接中</span></div></header>
 <main>

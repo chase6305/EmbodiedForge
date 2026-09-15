@@ -143,6 +143,37 @@ def test_control_token_and_queue_limit(session):
     assert viewer._steps == 0
 
 
+def test_camera_samples_coalesce_without_crossing_other_controls(session):
+    env, viewer = session
+    pose = {"action": "camera", "azimuth": 0, "elevation": 45, "distance": 3}
+    for angle in range(200):
+        viewer.submit({**pose, "azimuth": angle})
+    assert len(viewer._commands) == 1
+    assert viewer._commands[0]["azimuth"] == 199
+    viewer.submit({"action": "camera_reset"})
+    for angle in (10, 20, 30):
+        last = viewer.submit({**pose, "azimuth": angle})
+    assert [c["action"] for c in viewer._commands] == [
+        "camera",
+        "camera_reset",
+        "camera",
+    ]
+    viewer.is_running()
+    publish(env, viewer)
+    assert viewer._state["control_id"] == last
+    assert viewer.camera.azimuth == 30
+    # A full queue can still replace its last camera sample; other commands
+    # retain their normal capacity limit and reset remains an ordering barrier.
+    for _ in range(127):
+        viewer.submit({"action": "step"})
+    viewer.submit(pose)
+    viewer.submit({**pose, "azimuth": 77})
+    assert len(viewer._commands) == 128
+    assert viewer._commands[-1]["azimuth"] == 77
+    with pytest.raises(OverflowError):
+        viewer.submit({"action": "camera_reset"})
+
+
 def test_control_receipts_acknowledge_only_published_main_thread_state(session):
     env, viewer = session
     publish(env, viewer)
