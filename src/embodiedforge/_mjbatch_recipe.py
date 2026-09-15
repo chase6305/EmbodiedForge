@@ -42,11 +42,13 @@ def check_finite(*values):
 def go1_train(request, owner):
     import torch
 
+    from embodiedforge._go1_checkpoint import load_recipe_checkpoint
     from embodiedforge._wuji_recipe import finite_tensors
     from embodiedforge.locomotion import go1_ppo as learner
 
     torch.set_num_threads(request["threads"])
     torch.manual_seed(request["seed"])
+    previous = load_recipe_checkpoint(request) if request.get("checkpoint") else None
     configuration = {}
     for name in (
         "TIMESTEP",
@@ -110,6 +112,15 @@ def go1_train(request, owner):
             LR=request["go1_learning_rate"], LR_END=request["go1_learning_rate"]
         )
     write_json(Path("recipe-config.json"), configuration)
+    net = learner.ActorCritic()
+    optimizer = torch.optim.Adam(net.parameters(), lr=learner.LR)
+    first_iteration = request.get("start_iteration", 0)
+    resume_report = None
+    if previous is not None:
+        if previous["iteration"] + 1 != first_iteration:
+            raise ValueError("Resume iteration does not match the input model")
+        net.load_state_dict(previous["model_state_dict"], strict=True)
+        optimizer.load_state_dict(previous["optimizer_state_dict"])
     env = owner.Go1(
         request["num_envs"],
         seed=request["seed"],
@@ -118,7 +129,6 @@ def go1_train(request, owner):
         reward_profile=request["go1_reward_profile"],
         command_profile=request["go1_command_profile"],
     )
-    net = learner.ActorCritic()
     record_training_runtime(
         Path.cwd(),
         environment=env,
@@ -129,38 +139,7 @@ def go1_train(request, owner):
         core_vector_env=False,
         packages=["numpy", "torch", "mujoco", "mjbatch", "mujoco-menagerie"],
     )
-    optimizer = torch.optim.Adam(net.parameters(), lr=learner.LR)
-    first_iteration = request.get("start_iteration", 0)
-    resume_report = None
-    if request.get("checkpoint"):
-        previous = torch.load(
-            request["checkpoint"], weights_only=True, map_location="cpu"
-        )
-        finite_tensors(previous)
-        if (
-            previous.get("learning_rate_override")
-            != request["input_learning_rate_override"]
-        ):
-            raise ValueError("Go1 checkpoint learning rate differs from input run")
-        if (
-            previous.get("command_profile", "original")
-            != request["input_command_profile"]
-        ):
-            raise ValueError("Go1 checkpoint command profile differs from input run")
-        if (
-            previous.get("reward_profile", "original")
-            != request["input_reward_profile"]
-        ):
-            raise ValueError("Go1 checkpoint reward profile differs from input run")
-        if (
-            previous.get("task_semantics", "upstream-v1")
-            != request["input_task_semantics"]
-        ):
-            raise ValueError("Go1 checkpoint task semantics differs from input run")
-        if previous["iteration"] + 1 != first_iteration:
-            raise ValueError("Resume iteration does not match the input model")
-        net.load_state_dict(previous["model_state_dict"], strict=True)
-        optimizer.load_state_dict(previous["optimizer_state_dict"])
+    if previous is not None:
         from embodiedforge._go1_resume import record_go1_resume
 
         resume_report = record_go1_resume(request)
@@ -243,15 +222,17 @@ def go1_train(request, owner):
     }
 
 
-def go1_evaluate_case(request, owner, learner):
+def go1_evaluate_case(request, owner, learner, checkpoint):
     import torch
 
     from embodiedforge._go1_implementation import policy_action_mean
     from embodiedforge._go1_metrics import SWITCHING_SUITES
     from embodiedforge._h1_metrics import FirstEpisodeMetrics
-    from embodiedforge._wuji_recipe import finite_tensors
 
     torch.set_num_threads(request["threads"])
+
+    net = learner.ActorCritic().eval()
+    net.load_state_dict(checkpoint["model_state_dict"], strict=True)
 
     env = owner.Go1(
         request["num_envs"],
@@ -262,18 +243,6 @@ def go1_evaluate_case(request, owner, learner):
         reward_profile=request["go1_reward_profile"],
         command_profile=request["go1_command_profile"],
     )
-    net = learner.ActorCritic().eval()
-    data = torch.load(request["checkpoint"], weights_only=True, map_location="cpu")
-    finite_tensors(data)
-    if data.get("learning_rate_override") != request["input_learning_rate_override"]:
-        raise ValueError("Go1 checkpoint learning rate differs from input run")
-    if data.get("command_profile", "original") != request["input_command_profile"]:
-        raise ValueError("Go1 checkpoint command profile differs from input run")
-    if data.get("reward_profile", "original") != request["input_reward_profile"]:
-        raise ValueError("Go1 checkpoint reward profile differs from input run")
-    if data.get("task_semantics", "upstream-v1") != request["input_task_semantics"]:
-        raise ValueError("Go1 checkpoint task semantics differs from input run")
-    net.load_state_dict(data["model_state_dict"], strict=True)
     metrics = FirstEpisodeMetrics(request["num_envs"], request["steps"], owner.CTRL_DT)
     switching = request.get("suite") in SWITCHING_SUITES
     if switching:
@@ -400,8 +369,13 @@ def go1_evaluate_case(request, owner, learner):
 
 
 def go1_evaluate(request, owner, learner):
+    import torch
+
+    from embodiedforge._go1_checkpoint import load_recipe_checkpoint
     from embodiedforge._go1_metrics import evaluation_commands
 
+    torch.set_num_threads(request["threads"])
+    checkpoint = load_recipe_checkpoint(request)
     commands = evaluation_commands(request.get("suite"), request.get("velocity"))
     seeds = request.get("seeds") or [request["seed"]]
     cases = []
@@ -411,6 +385,7 @@ def go1_evaluate(request, owner, learner):
                 {**request, "seed": seed, "velocity": command, "case": name},
                 owner,
                 learner,
+                checkpoint,
             )
             cases.append(case)
             write_json(Path(f"evaluation-seed-{seed}-{name}.json"), case)

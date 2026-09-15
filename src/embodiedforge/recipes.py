@@ -619,6 +619,10 @@ def execute(args):
 
         input_run = args.run if args.command == "evaluate" else args.resume_run
         request["input_assets"] = recorded_go1_assets(input_run, previous[1]["result"])
+        request["input_checkpoint_iteration"] = previous[1]["result"][
+            "checkpoint_iteration"
+        ]
+        request["input_checkpoint_sha256"] = previous[1]["result"]["checkpoint_sha256"]
         request["input_learning_rate_override"] = previous[1]["result"].get(
             "learning_rate_override"
         )
@@ -661,6 +665,7 @@ def execute(args):
                 "_go1_assets.py",
                 "_go1_implementation.py",
                 "_go1_resume.py",
+                "_go1_checkpoint.py",
                 "_h1_motion.py",
                 "locomotion/go1.py",
                 "locomotion/go1_config.py",

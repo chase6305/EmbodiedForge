@@ -18,8 +18,8 @@ class Go1LiveRuntime:
         import torch
 
         from ._go1_assets import verified_go1_assets
+        from ._go1_checkpoint import load_go1_checkpoint
         from ._go1_implementation import load_go1_implementation
-        from ._wuji_recipe import finite_tensors
         from .recipes import sha256
 
         versions = {
@@ -32,32 +32,19 @@ class Go1LiveRuntime:
                 raise ValueError(
                     f"Training SDK version mismatch for {name}: {version} != {expected_versions[name]}"
                 )
-        if sha256(Path(request["checkpoint"])) != request["sha256"]:
-            raise ValueError("Checkpoint SHA256 mismatch in policy worker")
         torch.set_num_threads(request["threads"])
+        checkpoint = load_go1_checkpoint(
+            request["checkpoint"],
+            sha256=request["sha256"],
+            contract=request["contract"],
+        )
         assets = verified_go1_assets(request["contract"].get("assets"))
         Go1, ActorCritic, control_dt, implementation = load_go1_implementation(
             request.get("implementation")
         )
-        checkpoint = torch.load(
-            request["checkpoint"], weights_only=True, map_location="cpu"
-        )
-        finite_tensors(checkpoint)
         result = request["contract"]
-        for name, default in [
-            ("reward_profile", "original"),
-            ("command_profile", "original"),
-            ("task_semantics", "upstream-v1"),
-            ("learning_rate_override", None),
-        ]:
-            if checkpoint.get(name, default) != result.get(name, default):
-                raise ValueError(f"Checkpoint {name} differs from the managed run")
-        if checkpoint.get("iteration") != result["checkpoint_iteration"]:
-            raise ValueError("Checkpoint iteration differs from the managed run")
         self.policy = ActorCritic().eval()
         self.policy.load_state_dict(checkpoint["model_state_dict"], strict=True)
-        if (self.policy.var < 0).any() or self.policy.count <= 0:
-            raise ValueError("Invalid policy normalization statistics")
         self.env = Go1(
             request["num_envs"],
             seed=request["seed"],

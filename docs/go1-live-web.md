@@ -29,6 +29,7 @@ python -m embodiedforge live \
 
 输入必须是已完成的 `go1-joystick` 托管训练目录。启动时检查配方及源码 revision、
 checkpoint SHA256、迭代号、任务语义、指令/奖励配置、张量有限性和归一化统计。
+校验规则与 Go1 续训和评估共用；负方差、非正计数或与运行记录不符的迭代号会在创建仿真前被拒绝。
 同时核对训练记录中保存的 MuJoCo、mjbatch、Menagerie、Torch、NumPy 版本。
 校验通过只说明输入兼容，不表示该策略在所有指令下都能稳定行走。
 
