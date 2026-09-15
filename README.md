@@ -39,6 +39,7 @@ python -m embodiedforge.visualization --physics numpy --port 8080
 | 物理后端 | NumPy、MuJoCo、mjbatch 线程池、Newton **1.6.0rc1** | 核心后端使用 CPU 状态快照 |
 | 核心训练与数据 | PyTorch PPO、终止/超时 GAE、checkpoint 评估、episode 记录与窗口读取 | 核心 PPO 使用 proprio；训练与数据验证可独立运行 |
 | Go1 行走 | 任务、奖励、镜像策略、归一化和 PPO 已移植到本仓库；支持训练、续训、评估与在线控制 | 仍依赖 mjbatch、MuJoCo、Torch 和 Menagerie 资产；尚未纳入核心 `VectorEnv` |
+| H1 原生训练 | MJCF 模型、关节分组、批量命令、随机化、重置、力矩数据与 PPO | CPU MuJoCo/mjbatch，不依赖 IsaacLab；初步策略尚未通过行走跟踪验收。[说明](docs/h1-native.md) |
 | 其他机器人任务 | Microduck、IsaacLab H1、Wuji 重定向、Cartpole MPC、机械臂投掷联合优化 | 独立 SDK 环境中的上游流程与适配层，非完整移植 |
 | 统一 Web | Raster / MuJoCo / OpenGL / OVRTX、Go1 在线策略、Go1/H1 网格回放 | 查看器与物理后端独立选择；Web 画面不作为训练相机观测 |
 | VLA 接口 | 图像、语言、proprio 数据窗口及 action chunk 执行器 | 尚无预训练 VLA 模型接入或微调器 |
@@ -182,6 +183,7 @@ with VectorEnv(Config(physics="numpy", render="raster", channels=("rgb",))) as e
 | --- | --- | --- |
 | `python -m embodiedforge recipes` | Go1 PPO、Wuji / Wuji Light 重定向 PPO、Cartpole MPC、机械臂投掷 CEM | Go1 已移植；其他为固定源码快照加适配层。[任务配方](docs/recipes.md) |
 | `python -m embodiedforge.microduck` | Microduck 平地行走 PPO、评估、回放和 ONNX 导出 | 隔离运行上游 mjlab 流程。[Microduck](docs/microduck.md) |
+| `python -m embodiedforge h1-native` | H1 原生训练、续训、固定指令评估与运动记录 | 项目内 CPU 任务与 PPO。[原生 H1](docs/h1-native.md) |
 | `python -m embodiedforge h1` | H1 平地行走训练、续训、多种子固定指令评估 | 独立 IsaacLab / Newton / MuJoCo-Warp 配方。[H1](docs/h1-isaaclab.md) |
 
 Go1 托管训练示例（先将源码路径替换为文档要求的干净检出）：

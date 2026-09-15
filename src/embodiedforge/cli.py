@@ -17,6 +17,11 @@ from .rollout import DemonstrationPolicy, run_rollout
 
 def main() -> None:
     """Parse configuration, select a workflow and own its process-level resources."""
+    if sys.argv[1:2] == ["h1-native"]:
+        from .native_h1 import main as native_h1_main
+
+        native_h1_main(sys.argv[2:])
+        return
     if sys.argv[1:2] == ["live"]:
         from .go1_live import main as live_main
 
@@ -50,6 +55,7 @@ def main() -> None:
             "evaluate",
             "inspect",
             "h1",
+            "h1-native",
             "recipes",
             "replay",
             "live",
@@ -78,7 +84,8 @@ def main() -> None:
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--dataset", type=Path)
     parser.add_argument(
-        "--graphics", choices=("egl",),
+        "--graphics",
+        choices=("egl",),
         help="doctor only: render a test frame and report the actual EGL device",
     )
     parser.add_argument("--log-level", choices=("DEBUG", "INFO", "WARNING", "ERROR"))

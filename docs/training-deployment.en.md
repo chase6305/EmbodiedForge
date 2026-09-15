@@ -11,6 +11,7 @@ Choose the section for your task; installing every SDK is unnecessary. Run comma
 | `reach` / `hold` | Core CPU PPO with NumPy, MuJoCo, or other backends | Headless checkpoint evaluation and recording |
 | Go1 | Isolated mjbatch environment, CPU physics and PPO | Shared Web live policy and motion replay |
 | Microduck | Isolated mjlab environment, CUDA PPO | Native / Viser policy execution, ONNX export and comparison |
+| Native H1 | Project-owned MuJoCo/mjbatch CPU PPO; no IsaacLab | Fixed-command evaluation and shared Web motion replay |
 | H1 | Isolated IsaacLab, Newton / MuJoCo-Warp GPU PPO | Fixed-command evaluation, offline HTML / Web motion replay |
 | Wuji / Wuji Light | Isolated UniLab, GPU PPO | Sequential trial evaluation and video recording |
 | Cartpole / arm throwing | Isolated mjbatch, CPU MPC / CEM | Solver metrics and trajectories |
@@ -46,7 +47,7 @@ python -m embodiedforge.microduck check --repo /path/to/microduck_rl
 | Microduck | `53b8971b61baf5b7f3c16d135dd7cac37623de4b` | `.cache/microduck-venv` |
 | IsaacLab H1 | `2e44ddb2e19536579140496023b5ccb060bc4152` | Existing environment selected with `--environment` |
 
-H1 has no automatic `setup` subcommand. Prepare the isolated Python 3.12 / RSL-RL 5.0.1 environment described in the [H1 guide](h1-isaaclab.md) first. `--environment` takes the environment root, not its Python executable. Wuji, Microduck, and H1 require their respective CUDA stacks; Go1 and both solver tasks run on CPU. When customizing caches, pass the same `--cache` or Microduck `--env-dir` at every step.
+H1 has no automatic `setup` subcommand. Prepare the isolated Python 3.12 / RSL-RL 5.0.1 environment described in the [H1 guide](h1-isaaclab.md) first. `--environment` takes the environment root, not its Python executable. Wuji, Microduck, and IsaacLab H1 require their respective CUDA stacks; Go1 and both solver tasks run on CPU. When customizing caches, pass the same `--cache` or Microduck `--env-dir` at every step.
 
 <a id="core"></a>
 
@@ -157,6 +158,28 @@ Export includes observation normalization, with 61 input and 14 output dimension
 <a id="h1"></a>
 
 ## H1: IsaacLab training and replay
+
+### Native CPU workflow
+
+The independent `h1-native` entry point uses no IsaacLab, RSL-RL, or upstream trainer. Run it in a separate Python environment with the following dependencies; the original GPU workflow remains below.
+
+```bash
+python -m pip install -e '.[h1-native]'
+python -m embodiedforge h1-native train \
+  --model /path/to/unitree_h1/h1.xml --num-envs 128 --threads 4 --updates 500 \
+  --output runs/commands-h1-native
+python -m embodiedforge h1-native train \
+  --resume runs/commands-h1-native --num-envs 128 --threads 4 --updates 1000 \
+  --output runs/commands-h1-native-resumed
+python -m embodiedforge h1-native evaluate \
+  --run runs/commands-h1-native-resumed --steps 500 --velocity 0.5 0 0 \
+  --record-motion --min-survival 0.8 --max-planar-rmse 0.3 --max-yaw-rmse 0.3 \
+  --output runs/commands-h1-native-eval
+```
+
+Use the resumed run’s `model.mjb` and evaluation `motion.npz` with the shared `replay` command in `ef-viewer`. See [native H1](h1-native.en.md) for reset/torque contracts and acceptance limits. These checkpoints are incompatible with the IsaacLab workflow.
+
+### IsaacLab GPU workflow
 
 Use the prepared pinned IsaacLab checkout and isolated environment. Run a smoke test, then add training updates. Keep `--repo` and `--environment` consistent across commands.
 

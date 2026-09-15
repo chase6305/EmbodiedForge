@@ -11,6 +11,7 @@
 | `reach` / `hold` | 核心 CPU PPO，NumPy / MuJoCo 等后端 | checkpoint 无窗口评估、数据记录 |
 | Go1 | 独立 mjbatch 环境，CPU 物理与 PPO | 统一 Web 在线策略、运动回放 |
 | Microduck | 独立 mjlab 环境，CUDA PPO | 原生 / Viser 策略运行、ONNX 导出与对照 |
+| H1 原生 | 项目内 MuJoCo/mjbatch CPU PPO，无 IsaacLab 依赖 | 固定指令评估、统一 Web 运动回放 |
 | H1 | 独立 IsaacLab，Newton / MuJoCo-Warp GPU PPO | 固定指令评估、离线 HTML / Web 记录回放 |
 | Wuji / Wuji Light | 独立 UniLab，GPU PPO | 顺序试验评估、视频记录 |
 | Cartpole / 机械臂投掷 | 独立 mjbatch，CPU MPC / CEM | 求解指标与轨迹 |
@@ -46,7 +47,7 @@ python -m embodiedforge.microduck check --repo /path/to/microduck_rl
 | Microduck | `53b8971b61baf5b7f3c16d135dd7cac37623de4b` | `.cache/microduck-venv` |
 | IsaacLab H1 | `2e44ddb2e19536579140496023b5ccb060bc4152` | 已有环境，通过 `--environment` 指定 |
 
-H1 没有自动 `setup` 子命令，需要先准备 [H1 文档](h1-isaaclab.md) 中的 Python 3.12 / RSL-RL 5.0.1 独立环境。`--environment` 接收环境根目录，不是 Python 可执行文件。Wuji、Microduck 和 H1 需要对应 CUDA 环境；Go1 与两个求解任务使用 CPU。自定义缓存时，每一步需传入相同的 `--cache` 或 Microduck `--env-dir`。
+H1 没有自动 `setup` 子命令，需要先准备 [H1 文档](h1-isaaclab.md) 中的 Python 3.12 / RSL-RL 5.0.1 独立环境。`--environment` 接收环境根目录，不是 Python 可执行文件。Wuji、Microduck 和 IsaacLab H1 需要对应 CUDA 环境；Go1 与两个求解任务使用 CPU。自定义缓存时，每一步需传入相同的 `--cache` 或 Microduck `--env-dir`。
 
 <a id="core"></a>
 
@@ -157,6 +158,28 @@ python -m embodiedforge.microduck evaluate --repo /path/to/microduck_rl \
 <a id="h1"></a>
 
 ## H1：IsaacLab 训练与回放
+
+### 原生 CPU 训练
+
+新增 `h1-native` 入口，不依赖 IsaacLab、RSL-RL 或上游训练器。可在独立 Python 环境安装以下依赖；原 GPU 配方继续保留在下方。
+
+```bash
+python -m pip install -e '.[h1-native]'
+python -m embodiedforge h1-native train \
+  --model /path/to/unitree_h1/h1.xml --num-envs 128 --threads 4 --updates 500 \
+  --output runs/commands-h1-native
+python -m embodiedforge h1-native train \
+  --resume runs/commands-h1-native --num-envs 128 --threads 4 --updates 1000 \
+  --output runs/commands-h1-native-resumed
+python -m embodiedforge h1-native evaluate \
+  --run runs/commands-h1-native-resumed --steps 500 --velocity 0.5 0 0 \
+  --record-motion --min-survival 0.8 --max-planar-rmse 0.3 --max-yaw-rmse 0.3 \
+  --output runs/commands-h1-native-eval
+```
+
+在 `ef-viewer` 中，用续训目录的 `model.mjb` 和评估目录的 `motion.npz` 运行统一 `replay` 命令。接口、力矩与验收边界见[原生 H1](h1-native.md)。原生 checkpoint 与 IsaacLab 流程不兼容。
+
+### IsaacLab GPU 配方
 
 使用已准备好的固定版本 IsaacLab 与独立环境。先短测，再追加训练；以下命令的 `--repo` 和 `--environment` 每次保持一致。
 

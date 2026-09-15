@@ -8,7 +8,7 @@
 
 A modular platform for robot simulation, data collection, and training for RL and VLA experiments. Tasks, physics, rendering, sensors, and policies compose through separate interfaces. A shared Web viewer displays simulations, replays motion recordings, and controls live policies.
 
-The current implementation includes a CPU `VectorEnv` reference runtime, a Go1 task and PPO implementation maintained in this repository, and isolated training entry points for Microduck, H1, Wuji, and other tasks. The table below describes their scope; see the [architecture](docs/architecture.md) for the longer-term design.
+The current implementation includes a CPU `VectorEnv` reference runtime, Go1 and native H1 task/PPO implementations maintained in this repository, and isolated training entry points for Microduck, H1, Wuji, and other tasks. The table below describes their scope; see the [architecture](docs/architecture.md) for the longer-term design.
 
 **Quick links:** [Quick start](#quick-start) · [Training and deployment commands](docs/training-deployment.en.md) · [Web controls](#web-viewer) · [Live Go1](#go1-live) · [Motion replay](#robot-replay) · [Robot training](#robot-training) · [Troubleshooting](#troubleshooting) · [Documentation](#documentation)
 
@@ -39,6 +39,7 @@ For environment and data APIs alone, install with `python -m pip install -e .`. 
 | Physics backends | NumPy, MuJoCo, mjbatch thread pool, Newton **1.6.0rc1** | Core backends use CPU state snapshots |
 | Core training and data | PyTorch PPO, termination/timeout-aware GAE, checkpoint evaluation, episode recording, windowed reading | Core PPO uses proprioception; training and dataset validation can run separately |
 | Go1 locomotion | Task, rewards, mirrored policy, normalization, and PPO ported into this repository; training, resume, evaluation, and live control | Still depends on mjbatch, MuJoCo, Torch, and Menagerie assets; not yet part of the core `VectorEnv` |
+| Native H1 | MJCF model, named joint groups, batched commands, randomization, resets, torque data, and PPO | CPU MuJoCo/mjbatch; no IsaacLab runtime. Initial policy has not passed walking tracking acceptance. [Guide](docs/h1-native.en.md) |
 | Other robot tasks | Microduck, IsaacLab H1, Wuji reorientation, Cartpole MPC, arm throwing co-design | Upstream workflows and adapters in isolated SDK environments, rather than complete ports |
 | Shared Web viewer | Raster / MuJoCo / OpenGL / OVRTX, live Go1 policies, Go1/H1 mesh replay | Viewer and physics backends are selected independently; Web frames are not training camera observations |
 | VLA interfaces | Image, language, and proprioception data windows; action-chunk executor | No pretrained VLA model integration or fine-tuning trainer yet |
@@ -182,6 +183,7 @@ Robot training SDKs use isolated environments to avoid conflicting Warp, Torch, 
 | --- | --- | --- |
 | `python -m embodiedforge recipes` | Go1 PPO, Wuji / Wuji Light reorientation PPO, Cartpole MPC, arm throwing CEM | Go1 is ported; other tasks use pinned source snapshots and adapters. [Task recipes](docs/recipes.md) |
 | `python -m embodiedforge.microduck` | Microduck flat-ground walking PPO, evaluation, playback, and ONNX export | Runs the upstream mjlab workflow in isolation. [Microduck](docs/microduck.md) |
+| `python -m embodiedforge h1-native` | Native H1 training, resume, fixed-command evaluation and motion recording | Project-owned CPU task/PPO. [Native H1](docs/h1-native.en.md) |
 | `python -m embodiedforge h1` | H1 flat-ground walking training, resume, and multi-seed fixed-command evaluation | Isolated IsaacLab / Newton / MuJoCo-Warp recipe. [H1](docs/h1-isaaclab.md) |
 
 Example managed Go1 training workflow; first replace the source path with a clean checkout as required by the task guide:
