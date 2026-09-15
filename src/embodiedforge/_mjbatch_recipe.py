@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
+from embodiedforge._training_runtime import record_training_runtime
 from embodiedforge.recipes import write_json
 
 
@@ -118,6 +119,16 @@ def go1_train(request, owner):
         command_profile=request["go1_command_profile"],
     )
     net = learner.ActorCritic()
+    record_training_runtime(
+        Path.cwd(),
+        environment=env,
+        task=env,
+        learner=learner.update,
+        physics_adapter=env.batch,
+        physics="mujoco/mjbatch",
+        core_vector_env=False,
+        packages=["numpy", "torch", "mujoco", "mjbatch", "mujoco-menagerie"],
+    )
     optimizer = torch.optim.Adam(net.parameters(), lr=learner.LR)
     first_iteration = request.get("start_iteration", 0)
     if request.get("checkpoint"):

@@ -40,6 +40,12 @@ def test_ppo_checkpoint_roundtrip(tmp_path, task, features):
         tmp_path / "train",
     )
     restored = load_policy(tmp_path / "train/checkpoint.pt")
+    runtime = json.loads((tmp_path / "train/training-runtime.json").read_text())
+    assert runtime["core_vector_env"] is True
+    assert runtime["environment"]["module"] == "embodiedforge.env"
+    assert runtime["learner"]["symbol"] == "train_ppo"
+    assert runtime["task"]["project_namespace"]
+    assert runtime["physics"] == "numpy"
     obs = {"proprio": np.ones((2, features), dtype=np.float32)}
     np.testing.assert_allclose(model.act(obs), restored.act(obs))
     assert np.isfinite(restored.act(obs)).all()

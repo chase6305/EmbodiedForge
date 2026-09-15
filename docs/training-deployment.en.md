@@ -8,15 +8,19 @@ Choose the section for your task; installing every SDK is unnecessary. Run comma
 
 | Task | Training / solver runtime | Available execution or export |
 | --- | --- | --- |
-| `reach` / `hold` | Core CPU PPO with NumPy, MuJoCo, or other backends | Headless checkpoint evaluation and recording |
-| Go1 | Isolated mjbatch environment, CPU physics and PPO | Shared Web live policy and motion replay |
-| Microduck | Isolated mjlab environment, CUDA PPO | Native / Viser policy execution, ONNX export and comparison |
+| `reach` / `hold` | Project-owned VectorEnv + CPU PPO; NumPy, MuJoCo, or other physics backends | Headless checkpoint evaluation and recording |
+| Go1 | Project-owned Go1 environment + PPO; CPU MuJoCo/mjbatch in an isolated SDK | Shared Web live policy and motion replay |
+| Microduck | External Microduck/mjlab task and training stack; CUDA PPO | Native / Viser policy execution, ONNX export and comparison |
 | Native H1 | Project-owned MuJoCo/mjbatch CPU PPO; no IsaacLab | Fixed-command evaluation and shared Web motion replay |
-| H1 | Isolated IsaacLab, Newton / MuJoCo-Warp GPU PPO | Fixed-command evaluation, offline HTML / Web motion replay |
-| Wuji / Wuji Light | Isolated UniLab, GPU PPO | Sequential trial evaluation and video recording |
-| Cartpole / arm throwing | Isolated mjbatch, CPU MPC / CEM | Solver metrics and trajectories |
+| H1 | External IsaacLab environment + RSL-RL; Newton / MuJoCo-Warp GPU physics | Fixed-command evaluation, offline HTML / Web motion replay |
+| Wuji / Wuji Light | External Wuji/UniLab environment and training stack; GPU PPO | Sequential trial evaluation and video recording |
+| Cartpole / arm throwing | External mjbatch examples, adapted CPU MPC / CEM | Solver metrics and trajectories |
 
 Deployment here means running policies in simulation, serving viewers, and exporting models. There is currently no unified hardware deployment command or generic Go1/H1 ONNX export entry point.
+
+**Which implementation trains the policy?** `train` uses the core `VectorEnv`. Go1 and `h1-native` use robot environments and PPO maintained in this repository, but are not yet integrated into `VectorEnv`; MuJoCo/mjbatch remains the physics engine. The Go1 recipe launcher still requires its pinned mjbatch SDK checkout. The `h1` command uses IsaacLab, while `h1-native` does not. The shared Web viewer is a separate visualization path, not the training environment.
+
+New core PPO, Go1 PPO and native H1 training runs write `training-runtime.json` in their output directory, including resumed Go1/H1 runs. It records the actual loaded environment, task, learner and physics adapter, their module/file paths, Python source hashes, package versions, interpreter, CPU execution and whether the core `VectorEnv` is used. Go1 paths point to the run's implementation snapshot. This records entry-point provenance, not every transitive dependency, a checkpoint compatibility lock or policy quality. Older runs and external workflows do not gain this file retroactively.
 
 <a id="setup"></a>
 

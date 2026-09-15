@@ -7,6 +7,8 @@ import shutil
 import time
 from pathlib import Path
 
+from ._training_runtime import record_training_runtime
+
 
 def write_json(path, value):
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -133,6 +135,16 @@ def train(args):
     began = time.monotonic()
     try:
         env = H1(model, args.num_envs, seed=args.seed, threads=args.threads)
+        record_training_runtime(
+            root,
+            environment=env,
+            task=env,
+            learner=optimize,
+            physics_adapter=env.batch,
+            physics="mujoco/mjbatch",
+            core_vector_env=False,
+            packages=["numpy", "torch", "mujoco", "mjbatch"],
+        )
         metadata["joint_names"] = list(env.robot.names)
         metadata["joint_groups"] = {
             k: [env.robot.names[i] for i in ids] for k, ids in env.groups.items()

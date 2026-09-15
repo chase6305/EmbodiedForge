@@ -8,15 +8,19 @@
 
 | 任务 | 训练 / 求解位置 | 当前运行或导出入口 |
 | --- | --- | --- |
-| `reach` / `hold` | 核心 CPU PPO，NumPy / MuJoCo 等后端 | checkpoint 无窗口评估、数据记录 |
-| Go1 | 独立 mjbatch 环境，CPU 物理与 PPO | 统一 Web 在线策略、运动回放 |
-| Microduck | 独立 mjlab 环境，CUDA PPO | 原生 / Viser 策略运行、ONNX 导出与对照 |
+| `reach` / `hold` | 本仓库 VectorEnv + CPU PPO；NumPy / MuJoCo 等物理后端 | checkpoint 无窗口评估、数据记录 |
+| Go1 | 本仓库 Go1 环境 + PPO；独立 SDK 中的 CPU MuJoCo/mjbatch | 统一 Web 在线策略、运动回放 |
+| Microduck | 外部 Microduck/mjlab 任务与训练实现，CUDA PPO | 原生 / Viser 策略运行、ONNX 导出与对照 |
 | H1 原生 | 项目内 MuJoCo/mjbatch CPU PPO，无 IsaacLab 依赖 | 固定指令评估、统一 Web 运动回放 |
-| H1 | 独立 IsaacLab，Newton / MuJoCo-Warp GPU PPO | 固定指令评估、离线 HTML / Web 记录回放 |
-| Wuji / Wuji Light | 独立 UniLab，GPU PPO | 顺序试验评估、视频记录 |
-| Cartpole / 机械臂投掷 | 独立 mjbatch，CPU MPC / CEM | 求解指标与轨迹 |
+| H1 | 外部 IsaacLab 环境 + RSL-RL；Newton / MuJoCo-Warp GPU 物理 | 固定指令评估、离线 HTML / Web 记录回放 |
+| Wuji / Wuji Light | 外部 Wuji/UniLab 环境与训练实现，GPU PPO | 顺序试验评估、视频记录 |
+| Cartpole / 机械臂投掷 | 外部 mjbatch example，适配 CPU MPC / CEM | 求解指标与轨迹 |
 
 这里的部署指仿真策略运行、查看器服务和模型导出。当前没有统一实机部署命令，也没有 Go1/H1 的通用 ONNX 导出入口。
+
+**训练实际使用哪份实现？** `train` 使用核心 `VectorEnv`。Go1 和 `h1-native` 使用本仓库维护的机器人环境与 PPO，但尚未接入核心 `VectorEnv`；MuJoCo/mjbatch 仍负责底层物理计算。Go1 配方启动器目前还要求固定版本的 mjbatch SDK 检出。`h1` 命令使用 IsaacLab，`h1-native` 不使用。统一 Web 查看器是独立可视化入口，不是训练环境。
+
+新启动的核心 PPO、Go1 PPO 和原生 H1 训练会在输出目录写入 `training-runtime.json`，Go1/H1 续训也会单独记录。文件包含实际加载的环境、任务、训练函数和物理适配器、模块及文件路径、Python 源文件哈希、依赖版本、解释器、CPU 执行位置和是否使用核心 `VectorEnv`。Go1 的路径指向该次运行的实现快照。这是入口来源记录，不是全部间接依赖清单、checkpoint 兼容锁或策略质量证明；旧运行和外部训练流程不会补写此文件。
 
 <a id="setup"></a>
 

@@ -9,6 +9,7 @@ import torch
 from torch import nn
 from torch.distributions import Normal
 
+from ._training_runtime import record_training_runtime
 from .core import Array, Config, Observation
 from .env import VectorEnv
 
@@ -225,6 +226,25 @@ def train_ppo(
         + "\n"
     )
     with VectorEnv(env_config) as env, (root / "metrics.jsonl").open("w") as metrics:
+        record_training_runtime(
+            root,
+            environment=env,
+            task=env.task,
+            learner=train_ppo,
+            physics_adapter=env.physics,
+            physics=env_config.physics,
+            core_vector_env=True,
+            packages=[
+                "numpy",
+                "torch",
+                *{
+                    "numpy": [],
+                    "mujoco": ["mujoco"],
+                    "mjbatch": ["mujoco", "mjbatch"],
+                    "newton": ["newton", "warp-lang"],
+                }[env_config.physics],
+            ],
+        )
         spec = env.spec
         model = ActorCritic(
             proprio_dim=spec["proprio_shape"][0],

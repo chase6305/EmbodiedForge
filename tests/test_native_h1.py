@@ -214,6 +214,12 @@ main(sys.argv[1:])
             timeout=60,
         )
     report = json.loads((resumed / "run.json").read_text())
+    for path in (run, resumed):
+        runtime = json.loads((path / "training-runtime.json").read_text())
+        assert runtime["core_vector_env"] is False
+        assert runtime["environment"]["module"] == "embodiedforge.locomotion.h1_native"
+        assert runtime["learner"]["module"] == "embodiedforge.locomotion.h1_ppo"
+        assert runtime["physics_adapter"]["module"].startswith("mjbatch")
     assert report["updates"] == 3 and report["initial_updates"] == 2
     assert report["status"] == "complete"
     assert (evaluation / "motion.npz").is_file()

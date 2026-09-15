@@ -625,6 +625,7 @@ def execute(args):
                 "_wuji_recipe.py",
                 "_wuji_diagnostics.py",
                 "_mjbatch_recipe.py",
+                "_training_runtime.py",
                 "_h1_metrics.py",
                 "_go1_metrics.py",
                 "_h1_motion.py",
@@ -778,7 +779,7 @@ def go1_training_progress(run, manifest):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description="Isolated Wuji and mjbatch task recipes"
+        description="Project-owned Go1 PPO and external Wuji/MPC recipes in isolated SDKs"
     )
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list")

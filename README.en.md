@@ -44,6 +44,8 @@ For environment and data APIs alone, install with `python -m pip install -e .`. 
 | Shared Web viewer | Raster / MuJoCo / OpenGL / OVRTX, live Go1 policies, Go1/H1 mesh replay | Viewer and physics backends are selected independently; Web frames are not training camera observations |
 | VLA interfaces | Image, language, and proprioception data windows; action-chunk executor | No pretrained VLA model integration or fine-tuning trainer yet |
 
+Training currently uses three paths: core `VectorEnv` + PPO, project-owned Go1/native H1 environments + PPO, and external SDK workflows. Go1/H1 robot training has not yet been unified under `VectorEnv`. New core, Go1 and native H1 training runs record loaded components in `training-runtime.json`; see the [training implementation guide](docs/training-deployment.en.md).
+
 <a id="web-viewer"></a>
 
 ## Shared Web visualization

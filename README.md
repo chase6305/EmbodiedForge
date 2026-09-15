@@ -44,6 +44,8 @@ python -m embodiedforge.visualization --physics numpy --port 8080
 | 统一 Web | Raster / MuJoCo / OpenGL / OVRTX、Go1 在线策略、Go1/H1 网格回放 | 查看器与物理后端独立选择；Web 画面不作为训练相机观测 |
 | VLA 接口 | 图像、语言、proprio 数据窗口及 action chunk 执行器 | 尚无预训练 VLA 模型接入或微调器 |
 
+当前训练有三条路径：核心 `VectorEnv` + PPO、本仓库 Go1/原生 H1 环境 + PPO、外部 SDK 流程。Go1/H1 机器人训练尚未统一到 `VectorEnv`。新启动的核心、Go1 和原生 H1 训练会用 `training-runtime.json` 记录实际加载的实现，详见[训练实现说明](docs/training-deployment.md)。
+
 <a id="web-viewer"></a>
 
 ## 统一 Web 可视化
