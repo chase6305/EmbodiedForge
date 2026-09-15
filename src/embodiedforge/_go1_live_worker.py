@@ -16,6 +16,7 @@ class Go1LiveRuntime:
         import mujoco
         import torch
 
+        from ._go1_assets import verified_go1_assets
         from ._wuji_recipe import finite_tensors
         from .locomotion.go1 import CTRL_DT, Go1
         from .locomotion.go1_ppo import ActorCritic
@@ -34,6 +35,7 @@ class Go1LiveRuntime:
         if sha256(Path(request["checkpoint"])) != request["sha256"]:
             raise ValueError("Checkpoint SHA256 mismatch in policy worker")
         torch.set_num_threads(request["threads"])
+        assets = verified_go1_assets(request["contract"].get("assets"))
         checkpoint = torch.load(
             request["checkpoint"], weights_only=True, map_location="cpu"
         )
@@ -71,6 +73,7 @@ class Go1LiveRuntime:
         self.env.command[:] = self.command
         mujoco.mj_saveModel(self.env.batch.model, request["model_path"])
         self.metadata = {
+            "assets": assets,
             "versions": versions,
             "mujoco": mujoco.__version__,
             "torch": torch.__version__,

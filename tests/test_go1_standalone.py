@@ -12,7 +12,7 @@ pytest.importorskip("torch")
 from embodiedforge import recipes
 
 
-def test_train_resume_evaluate_and_live_without_checkout(tmp_path):
+def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
     cache = tmp_path / "absent-sdk-cache"
     train, resume, evaluation = [
         tmp_path / name for name in ("train", "resume", "eval")
@@ -33,6 +33,9 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path):
     recipes.main(
         ["train", *common, "--updates", "2", "--horizon", "4", "--output", str(train)]
     )
+    assets = json.loads((train / "assets.json").read_text())
+    # A viewer or resumed process need not inherit the original shell's cache.
+    monkeypatch.delenv("MENAGERIE_CACHE_DIR", raising=False)
     recipes.main(
         [
             "train",
@@ -68,6 +71,7 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path):
         assert data["command"][0] == sys.executable
         assert data["request"]["project"] is None
         assert data["result"]["runtime"]["launch_mode"] == "installed_packages"
+        assert data["result"]["assets"] == assets
     data = json.loads((resume / "run.json").read_text())
     assert data["result"]["checkpoint_iteration"] == 2
     assert data["result"]["cumulative_updates"] == 3
@@ -80,6 +84,7 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path):
 
     live = LivePolicyProcess(resume, num_envs=1, threads=1)
     try:
+        assert live.metadata["assets"] == assets
         live.request("velocity", env_id=0, value=[0.2, 0, 0])
         state = live.request("step")
         assert state["step"] == [1]

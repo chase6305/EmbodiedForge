@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ._go1_assets import recorded_go1_assets, reuse_asset_cache
 from ._live_channel import JsonChannel
 from .logging import get_logger, setup_logging
 from .recipes import checkpoint_input, sha256
@@ -61,7 +62,8 @@ class LivePolicyProcess:
         self.closed = False
         self.run = run.name
         self.model_path = Path(self.directory.name) / "model.mjb"
-        self.contract = manifest["result"]
+        self.contract = dict(manifest["result"])
+        self.contract["assets"] = recorded_go1_assets(run, self.contract)
         try:
             copied = Path(self.directory.name) / "checkpoint.pt"
             shutil.copyfile(checkpoint, copied)
@@ -70,6 +72,7 @@ class LivePolicyProcess:
             self.socket, child = socket.socketpair()
             self.socket.settimeout(120)
             environment = dict(os.environ)
+            reuse_asset_cache(environment, self.contract.get("assets"))
             environment["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
             try:
                 self.process = subprocess.Popen(

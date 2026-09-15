@@ -615,6 +615,10 @@ def execute(args):
         start_iteration=0,
     )
     if previous and args.task == "go1-joystick":
+        from ._go1_assets import recorded_go1_assets
+
+        input_run = args.run if args.command == "evaluate" else args.resume_run
+        request["input_assets"] = recorded_go1_assets(input_run, previous[1]["result"])
         request["input_learning_rate_override"] = previous[1]["result"].get(
             "learning_rate_override"
         )
@@ -654,6 +658,7 @@ def execute(args):
                 "_training_runtime.py",
                 "_h1_metrics.py",
                 "_go1_metrics.py",
+                "_go1_assets.py",
                 "_h1_motion.py",
                 "locomotion/go1.py",
                 "locomotion/go1_config.py",
@@ -698,7 +703,12 @@ def execute(args):
         ]
         manifest["command"] = command
         write_json(output / "run.json", manifest)
-        run_process(command, output, child_environment(project), args.timeout)
+        environment = child_environment(project)
+        if standalone:
+            from ._go1_assets import reuse_asset_cache
+
+            reuse_asset_cache(environment, request.get("input_assets"))
+        run_process(command, output, environment, args.timeout)
         result = json.loads((output / "result.json").read_text())
         validate_result(request, result, output)
         validate_snapshot(implementation, frozen, label="Run implementation snapshot")

@@ -114,6 +114,8 @@ python -m embodiedforge live --run runs/commands-go1-native-resumed \
 
 每次运行仍保存本仓库实现快照，以及实际依赖版本和加载路径。`run.json` 用 `source.kind=installed_packages` 标识该模式，不会虚构已检查某个上游 Git revision。这次仅改变启动方式，不改变任务、奖励或 PPO，也没有把 Go1 合并到核心 `VectorEnv`。
 
+Go1 训练、续训、评估和在线策略启动都会校验已发布的资产缓存；运行记录包含资产信息时，还会核对机器人、tree 和 archive 标识。未设置 `MENAGERIE_CACHE_DIR` 时，独立模式的续训/评估及在线控制会复用仍存在的训练缓存；显式指定的缓存会保留并接受校验。旧版 `assets.json` 记录仍可读取。`MENAGERIE_ROOT` 本地检出覆盖会被拒绝，因为缓存校验器不能验证那个独立目录；请用 `MENAGERIE_CACHE_DIR` 选择已发布资产。这只核对机器人资产，不保证更换代码或依赖后仿真逐步等价。
+
 ### 固定 SDK 模式
 
 先完成 mjbatch setup。续训写入新目录，`--updates` 为本次追加更新数；以下超时均为秒，可按机器速度增加。

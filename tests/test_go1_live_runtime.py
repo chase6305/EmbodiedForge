@@ -137,3 +137,24 @@ def test_worker_rejects_negative_normalization_variance(runtime):
     torch.save(state, checkpoint)
     with pytest.raises(ValueError, match="normalization statistics"):
         Go1LiveRuntime({**request, "sha256": sha256(checkpoint)})
+
+
+def test_live_rejects_modified_asset_files_in_an_alternate_cache(
+    runtime, tmp_path, monkeypatch
+):
+    import shutil
+
+    import mujoco_menagerie as menagerie
+
+    owner, request = runtime
+    robot = menagerie.get("unitree_go1")
+    original = menagerie.Cache().model_path(robot)
+    alternate = menagerie.Cache(dir=tmp_path / "alternate-cache")
+    copied = alternate.model_path(robot)
+    shutil.copytree(original, copied)
+    xml = next(copied.glob("*.xml"))
+    xml.write_bytes(xml.read_bytes() + b"\n<!-- changed after training -->\n")
+    monkeypatch.setenv("MENAGERIE_CACHE_DIR", str(alternate.dir))
+    contract = {**request["contract"], "assets": owner.metadata["assets"]}
+    with pytest.raises(ValueError, match="asset cache differs"):
+        Go1LiveRuntime({**request, "contract": contract})

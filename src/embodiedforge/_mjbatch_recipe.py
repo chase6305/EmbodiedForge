@@ -542,25 +542,15 @@ def run(request):
         if request["horizon"] < 2:
             raise ValueError("MPC horizon must have at least two knots")
         return cartpole_solve(request)
-    import mujoco_menagerie as menagerie
-
+    from embodiedforge._go1_assets import verified_go1_assets
     from embodiedforge.locomotion import go1 as owner
 
-    robot = menagerie.get("unitree_go1")
-    asset_path = robot.path()
-    if menagerie.Cache().verify(robot):
-        raise ValueError("Go1 asset cache differs from its recorded hashes")
-    write_json(
-        Path("assets.json"),
-        {
-            "robot": robot.name,
-            "tree_id": robot.oid,
-            "archive_sha256": robot.sha256,
-            "path": str(asset_path),
-        },
-    )
-    return (
+    assets = verified_go1_assets(request.get("input_assets"))
+    write_json(Path("assets.json"), assets)
+    result = (
         go1_train(request, owner)
         if request["command"] == "train"
         else go1_evaluate(request, owner)
     )
+    result["assets"] = assets
+    return result
