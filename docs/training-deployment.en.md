@@ -128,6 +128,19 @@ Go1 resume, evaluation and live control share checkpoint validation: the hash co
 
 Before creating the simulation, resume also checks Adam state against the current parameters: parameter groups, complete and unique parameter mappings, moment shapes/dtypes, nonnegative second moments, valid step counters and hyperparameters. Incompatible optimizer modes are rejected to avoid silently changing algorithms. Checkpoints are still saved every 25 updates and at training completion: optimizer state and tensor finiteness are checked before writing a temporary file and replacing the checkpoint. Validation or write failures preserve the previously saved file and mark the run as failed.
 
+New Go1 runs also commit `recovery.json` at each successful save, recording an independent checkpoint's hash, saved progress, configuration, dependencies and assets. `checkpoints/` retains the two most recent snapshots; `model.pt` remains the standard completed-run artifact. Once stopped, runs marked `interrupted`, `timed_out` or `failed` can be resumed with `--resume-run`, which verifies the recovery record, request, implementation snapshot and checkpoint hash. Resume starts from the saved iteration; later unsaved updates are not counted. The original run status is preserved and the resume report identifies the recovery source; the new directory's `input-run.json` is augmented with the verified saved-checkpoint result and a `checkpoint_origin` marker.
+
+For example, after the standalone training above stops through Ctrl+C or a timeout, inspect `recoverable_checkpoint` and resume into a new directory:
+
+```bash
+python -m embodiedforge recipes status --run runs/commands-go1-native
+python -m embodiedforge recipes train --task go1-joystick --standalone \
+  --resume-run runs/commands-go1-native --num-envs 128 --horizon 24 \
+  --updates 100 --threads 4 --timeout 1200 --output runs/commands-go1-native-recovered
+```
+
+Runs without a successfully saved checkpoint, older interrupted runs without a recovery record, and directories still marked `running` are not recovered automatically. `status` reports `recovery_error` for stopped runs that cannot be recovered. Evaluation and live control still require a completed training directory; use the new directory after resumed training succeeds.
+
 Go1 training, resume, evaluation and live policy startup verify the published asset cache and compare robot/tree/archive identity with the training record when available. If `MENAGERIE_CACHE_DIR` is unset, standalone resume/evaluation and live control reuse the recorded cache when it still exists; an explicit cache choice is preserved and verified. Older `assets.json` records remain readable. `MENAGERIE_ROOT` local-checkout overrides are rejected because the cache verifier cannot verify that separate directory. Use `MENAGERIE_CACHE_DIR` for published assets. This checks robot assets; it does not guarantee identical simulation across code or dependency changes.
 
 ### Fixed SDK mode

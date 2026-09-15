@@ -478,12 +478,21 @@ def setup(args):
     LOGGER.info("Prepared %s at %s", name, project)
 
 
-def checkpoint_input(run: Path, recipe: str) -> tuple[Path, dict]:
+def checkpoint_input(
+    run: Path, recipe: str, *, allow_recovery=False
+) -> tuple[Path, dict]:
     data = json.loads((run / "run.json").read_text())
     if (
         data.get("schema") != 1
         or data.get("workflow") != "recipe_train"
-        or data.get("status") != "complete"
+        or (
+            data.get("status") != "complete"
+            and not (
+                allow_recovery
+                and recipe == "go1-joystick"
+                and data.get("status") in {"interrupted", "timed_out", "failed"}
+            )
+        )
         or data.get("recipe") != recipe
         or not (
             data.get("source", {}).get("revision") == SOURCES[RECIPES[recipe]["source"]]
@@ -495,6 +504,14 @@ def checkpoint_input(run: Path, recipe: str) -> tuple[Path, dict]:
         raise ValueError(
             "Input must be a completed training run for this recipe/version"
         )
+    if data["status"] != "complete":
+        from ._go1_recovery import recovery_result
+
+        data = {
+            **data,
+            "result": recovery_result(run, data),
+            "checkpoint_origin": "recovery.json",
+        }
     artifact = data["result"]
     path = (run / artifact["checkpoint"]).resolve()
     if not path.is_relative_to(run) or not path.is_file():
@@ -586,7 +603,15 @@ def execute(args):
         else None
     )
     if args.command == "train" and getattr(args, "resume_run", None):
-        previous = checkpoint_input(args.resume_run.resolve(), args.task)
+        previous = checkpoint_input(
+            args.resume_run.resolve(), args.task, allow_recovery=True
+        )
+        if previous[1].get("checkpoint_origin"):
+            LOGGER.info(
+                "Recovering Go1 checkpoint at iteration %s from %s run",
+                previous[1]["result"]["checkpoint_iteration"],
+                previous[1]["status"],
+            )
     if args.task == "go1-joystick":
         args.go1_learning_rate = resolve_go1_learning_rate(
             getattr(args, "go1_learning_rate", None),
@@ -666,6 +691,7 @@ def execute(args):
                 "_go1_implementation.py",
                 "_go1_resume.py",
                 "_go1_checkpoint.py",
+                "_go1_recovery.py",
                 "_h1_motion.py",
                 "locomotion/go1.py",
                 "locomotion/go1_config.py",
@@ -1015,6 +1041,23 @@ def main(argv=None):
         progress = go1_training_progress(args.run, data)
         if progress is not None:
             summary["progress"] = progress
+        if (
+            data.get("recipe") == "go1-joystick"
+            and data.get("status")
+            in {
+                "interrupted",
+                "timed_out",
+                "failed",
+            }
+            and data.get("workflow") == "recipe_train"
+        ):
+            try:
+                _, recovered = checkpoint_input(
+                    args.run.resolve(), "go1-joystick", allow_recovery=True
+                )
+                summary["recoverable_checkpoint"] = recovered["result"]
+            except (ValueError, OSError, KeyError) as error:
+                summary["recovery_error"] = str(error)
         print(json.dumps(summary, indent=2))
         return
     previous_handler = signal.getsignal(signal.SIGTERM)

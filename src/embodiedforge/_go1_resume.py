@@ -75,6 +75,8 @@ def build_resume_report(previous, current, runtime):
     return {
         "schema_version": 1,
         "source_run": request["resume_run"],
+        "source_status": previous.get("status"),
+        "checkpoint_origin": previous.get("checkpoint_origin", "completed_run"),
         "source_manifest": {
             "path": "input-run.json",
             "sha256": request["input_run_manifest_sha256"],

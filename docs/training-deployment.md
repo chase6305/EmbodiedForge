@@ -128,6 +128,19 @@ Go1 续训、评估与在线控制使用同一 checkpoint 校验：哈希对应�
 
 续训还会在创建仿真前检查 Adam 状态与当前参数是否匹配，包括参数组、完整且无重复的参数映射、动量形状/类型、非负二阶矩、有效步数和超参数。不兼容的优化器模式会被拒绝，避免加载时悄悄切换算法。保存仍每 25 次更新及训练结束时进行：先校验优化器状态和张量有限性，再写临时文件并替换 checkpoint；校验或写入失败时保留上一份已保存文件，运行按失败记录。
 
+新 Go1 训练每次成功保存时还会提交 `recovery.json`，其中包含独立 checkpoint 的哈希、保存进度、配置、依赖和资产记录。`checkpoints/` 保留最近两份快照，`model.pt` 继续作为完成运行的标准产物。正常停止后，状态为 `interrupted`、`timed_out` 或 `failed` 的目录可直接通过 `--resume-run` 恢复；启动时核对恢复记录、请求、实现快照和权重哈希。续训从已保存的迭代继续，未保存的后续更新不会计入。原运行状态保持不变，续训报告标明恢复来源；新目录的 `input-run.json` 会附带已验证的保存点结果和 `checkpoint_origin` 标记。
+
+例如，上面的独立训练因 Ctrl+C 或超时停止后，先检查 `recoverable_checkpoint`，再写入新的续训目录：
+
+```bash
+python -m embodiedforge recipes status --run runs/commands-go1-native
+python -m embodiedforge recipes train --task go1-joystick --standalone \
+  --resume-run runs/commands-go1-native --num-envs 128 --horizon 24 \
+  --updates 100 --threads 4 --timeout 1200 --output runs/commands-go1-native-recovered
+```
+
+没有成功保存过 checkpoint、缺少新恢复记录的旧中断运行，以及仍标为 `running` 的目录不会自动恢复。`status` 会为已停止但无法恢复的运行给出 `recovery_error`。评估和在线控制仍要求完成的训练目录；恢复续训成功后可照常使用新目录。
+
 Go1 训练、续训、评估和在线策略启动都会校验已发布的资产缓存；运行记录包含资产信息时，还会核对机器人、tree 和 archive 标识。未设置 `MENAGERIE_CACHE_DIR` 时，独立模式的续训/评估及在线控制会复用仍存在的训练缓存；显式指定的缓存会保留并接受校验。旧版 `assets.json` 记录仍可读取。`MENAGERIE_ROOT` 本地检出覆盖会被拒绝，因为缓存校验器不能验证那个独立目录；请用 `MENAGERIE_CACHE_DIR` 选择已发布资产。这只核对机器人资产，不保证更换代码或依赖后仿真逐步等价。
 
 ### 固定 SDK 模式

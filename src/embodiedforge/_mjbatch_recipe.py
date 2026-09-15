@@ -45,8 +45,8 @@ def go1_train(request, owner):
     from embodiedforge._go1_checkpoint import (
         load_recipe_checkpoint,
         restore_go1_optimizer,
-        save_go1_checkpoint,
     )
+    from embodiedforge._go1_recovery import publish_training_checkpoint
     from embodiedforge._wuji_recipe import finite_tensors
     from embodiedforge.locomotion import go1_ppo as learner
 
@@ -182,8 +182,7 @@ def go1_train(request, owner):
             stream.flush()
             history.append(row)
             if (iteration + 1) % 25 == 0 or offset == request["updates"] - 1:
-                save_go1_checkpoint(
-                    Path("model.pt"),
+                publish_training_checkpoint(
                     {
                         "model_state_dict": net.state_dict(),
                         "optimizer_state_dict": optimizer.state_dict(),
@@ -196,6 +195,7 @@ def go1_train(request, owner):
                         "seed": request["seed"],
                     },
                     optimizer=optimizer,
+                    request=request,
                 )
                 print(json.dumps(row, allow_nan=False), flush=True)
     checkpoint = torch.load("model.pt", map_location="cpu", weights_only=True)
