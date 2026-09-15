@@ -533,6 +533,18 @@ class WebViewer:
                 self.reconfigured = True
                 self._frame_times.clear()
                 candidate = None
+                reconfigure_started = time.monotonic()
+                LOGGER.info(
+                    "Reconfiguring renderer: %s %dx%d -> %s %dx%d "
+                    "(control_id=%d); preparing first frame",
+                    self.backend,
+                    self.width,
+                    self.height,
+                    name,
+                    width,
+                    height,
+                    self._processed_control_id,
+                )
                 try:
                     candidate = create_frame_renderer(
                         name, self.scene, self.config, width, height
@@ -556,6 +568,13 @@ class WebViewer:
                     previous, self.renderer = self.renderer, candidate
                     self.backend, self._error = name, None
                     self.width, self.height = width, height
+                    LOGGER.info(
+                        "Renderer ready: %s %dx%d (%.2f s)",
+                        name,
+                        width,
+                        height,
+                        time.monotonic() - reconfigure_started,
+                    )
                     try:
                         previous.close()
                     except Exception:
