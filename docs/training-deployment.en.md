@@ -9,7 +9,7 @@ Choose the section for your task; installing every SDK is unnecessary. Run comma
 | Task | Training / solver runtime | Available execution or export |
 | --- | --- | --- |
 | `reach` / `hold` | Project-owned VectorEnv + CPU PPO; NumPy, MuJoCo, or other physics backends | Headless checkpoint evaluation and recording |
-| Go1 | Project-owned Go1 environment + PPO; CPU MuJoCo/mjbatch in an isolated SDK | Shared Web live policy and motion replay |
+| Go1 | Project-owned Go1 environment + PPO; CPU MuJoCo/mjbatch via installed packages or a pinned SDK | Shared Web live policy and motion replay |
 | Microduck | External Microduck/mjlab task and training stack; CUDA PPO | Native / Viser policy execution, ONNX export and comparison |
 | Native H1 | Project-owned MuJoCo/mjbatch CPU PPO; no IsaacLab | Fixed-command evaluation and shared Web motion replay |
 | H1 | External IsaacLab environment + RSL-RL; Newton / MuJoCo-Warp GPU physics | Fixed-command evaluation, offline HTML / Web motion replay |
@@ -18,7 +18,7 @@ Choose the section for your task; installing every SDK is unnecessary. Run comma
 
 Deployment here means running policies in simulation, serving viewers, and exporting models. There is currently no unified hardware deployment command or generic Go1/H1 ONNX export entry point.
 
-**Which implementation trains the policy?** `train` uses the core `VectorEnv`. Go1 and `h1-native` use robot environments and PPO maintained in this repository, but are not yet integrated into `VectorEnv`; MuJoCo/mjbatch remains the physics engine. The Go1 recipe launcher still requires its pinned mjbatch SDK checkout. The `h1` command uses IsaacLab, while `h1-native` does not. The shared Web viewer is a separate visualization path, not the training environment.
+**Which implementation trains the policy?** `train` uses the core `VectorEnv`. Go1 and `h1-native` use robot environments and PPO maintained in this repository, but are not yet integrated into `VectorEnv`; MuJoCo/mjbatch remains the physics engine. Go1 supports `--standalone` with installed packages; its default mode retains the pinned mjbatch SDK checkout. The `h1` command uses IsaacLab, while `h1-native` does not. The shared Web viewer is a separate visualization path, not the training environment.
 
 New core PPO, Go1 PPO and native H1 training runs write `training-runtime.json` in their output directory, including resumed Go1/H1 runs. It records the actual loaded environment, task, learner and physics adapter, their module/file paths, Python source hashes, package versions, interpreter, CPU execution and whether the core `VectorEnv` is used. Go1 paths point to the run's implementation snapshot. This records entry-point provenance, not every transitive dependency, a checkpoint compatibility lock or policy quality. Older runs and external workflows do not gain this file retroactively.
 
@@ -85,6 +85,36 @@ python benchmarks/check_learning.py runs/commands-hold/checkpoint.pt --num-envs 
 <a id="go1"></a>
 
 ## Go1: train → resume → evaluate → run live
+
+### Installed-package mode: no upstream checkout
+
+Add `--standalone` to Go1 train, resume and evaluation commands. The launcher uses the current Python interpreter with MuJoCo 3.11.0, mjbatch 0.1.0, PyTorch 2.9.0 (CPU or CUDA wheel) and Menagerie 2026.9.0. Physics and learning run on CPU. It requires no `recipes setup`, IsaacLab, upstream examples or SDK source checkout; `--cache` is unused in this mode. Menagerie still supplies robot assets and may download them on first use; `MENAGERIE_CACHE_DIR` selects an existing asset cache.
+
+```bash
+conda create -n ef-go1-native python=3.12 pip -y
+conda activate ef-go1-native
+python -m pip install -e '.[go1-native]'
+python -m embodiedforge recipes train --task go1-joystick --standalone \
+  --num-envs 128 --horizon 24 --updates 1000 --threads 4 \
+  --timeout 1200 --output runs/commands-go1-native
+python -m embodiedforge recipes train --task go1-joystick --standalone \
+  --resume-run runs/commands-go1-native --num-envs 128 --horizon 24 \
+  --updates 100 --threads 4 --timeout 1200 --output runs/commands-go1-native-resumed
+python -m embodiedforge recipes evaluate --task go1-joystick --standalone \
+  --run runs/commands-go1-native-resumed --velocity 0.5 0 0 \
+  --num-envs 8 --steps 500 --record-motion --timeout 1200 \
+  --min-survival-fraction 0.8 --max-planar-rmse 0.3 --max-yaw-rmse 0.3 \
+  --output runs/commands-go1-native-eval
+conda activate ef-viewer
+python -m embodiedforge live --run runs/commands-go1-native-resumed \
+  --render-backend rtx --port 8081
+```
+
+Resume and evaluation accept complete Go1 runs from either launch mode and keep checkpoint hashes and task/profile checks. Continue passing `--standalone` when using the installed-package environment. Live Web control selects the training interpreter recorded in the run; the viewer environment still needs its rendering dependencies. Evaluation thresholds can reject an insufficiently trained policy; inspect the report before live diagnosis. An existing directory is never overwritten.
+
+Each run still freezes this repository's implementation and records actual package versions and paths. `run.json` marks `source.kind=installed_packages`; it does not claim to have checked an upstream Git revision. This changes the launcher, not the task, rewards or PPO, and does not merge Go1 into the core `VectorEnv`.
+
+### Fixed SDK mode
 
 Complete mjbatch setup first. Resume writes to a new directory, and `--updates` specifies additional updates for that invocation. Timeouts below are in seconds; increase them for slower machines.
 

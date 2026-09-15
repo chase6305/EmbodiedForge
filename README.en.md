@@ -46,6 +46,8 @@ For environment and data APIs alone, install with `python -m pip install -e .`. 
 
 Training currently uses three paths: core `VectorEnv` + PPO, project-owned Go1/native H1 environments + PPO, and external SDK workflows. Go1/H1 robot training has not yet been unified under `VectorEnv`. New core, Go1 and native H1 training runs record loaded components in `training-runtime.json`; see the [training implementation guide](docs/training-deployment.en.md).
 
+Go1 also supports `recipes train/evaluate --task go1-joystick --standalone`: install `.[go1-native]` in a Python 3.12 environment to use this repository's task and PPO without an upstream checkout or `recipes setup`. MuJoCo/mjbatch, Torch and Menagerie assets remain dependencies. See the [standalone commands](docs/training-deployment.en.md#go1).
+
 <a id="web-viewer"></a>
 
 ## Shared Web visualization

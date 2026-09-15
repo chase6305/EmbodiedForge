@@ -46,6 +46,8 @@ python -m embodiedforge.visualization --physics numpy --port 8080
 
 当前训练有三条路径：核心 `VectorEnv` + PPO、本仓库 Go1/原生 H1 环境 + PPO、外部 SDK 流程。Go1/H1 机器人训练尚未统一到 `VectorEnv`。新启动的核心、Go1 和原生 H1 训练会用 `training-runtime.json` 记录实际加载的实现，详见[训练实现说明](docs/training-deployment.md)。
 
+Go1 新增 `recipes train/evaluate --task go1-joystick --standalone`：在 Python 3.12 环境安装 `.[go1-native]`，即可使用本仓库任务和 PPO，无需上游仓库检出或 `recipes setup`；仍需 MuJoCo/mjbatch、Torch 和 Menagerie 资产。见[独立训练指令](docs/training-deployment.md#go1)。
+
 <a id="web-viewer"></a>
 
 ## 统一 Web 可视化

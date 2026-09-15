@@ -9,7 +9,7 @@
 | 任务 | 训练 / 求解位置 | 当前运行或导出入口 |
 | --- | --- | --- |
 | `reach` / `hold` | 本仓库 VectorEnv + CPU PPO；NumPy / MuJoCo 等物理后端 | checkpoint 无窗口评估、数据记录 |
-| Go1 | 本仓库 Go1 环境 + PPO；独立 SDK 中的 CPU MuJoCo/mjbatch | 统一 Web 在线策略、运动回放 |
+| Go1 | 本仓库 Go1 环境 + PPO；已安装依赖或固定 SDK 中的 CPU MuJoCo/mjbatch | 统一 Web 在线策略、运动回放 |
 | Microduck | 外部 Microduck/mjlab 任务与训练实现，CUDA PPO | 原生 / Viser 策略运行、ONNX 导出与对照 |
 | H1 原生 | 项目内 MuJoCo/mjbatch CPU PPO，无 IsaacLab 依赖 | 固定指令评估、统一 Web 运动回放 |
 | H1 | 外部 IsaacLab 环境 + RSL-RL；Newton / MuJoCo-Warp GPU 物理 | 固定指令评估、离线 HTML / Web 记录回放 |
@@ -18,7 +18,7 @@
 
 这里的部署指仿真策略运行、查看器服务和模型导出。当前没有统一实机部署命令，也没有 Go1/H1 的通用 ONNX 导出入口。
 
-**训练实际使用哪份实现？** `train` 使用核心 `VectorEnv`。Go1 和 `h1-native` 使用本仓库维护的机器人环境与 PPO，但尚未接入核心 `VectorEnv`；MuJoCo/mjbatch 仍负责底层物理计算。Go1 配方启动器目前还要求固定版本的 mjbatch SDK 检出。`h1` 命令使用 IsaacLab，`h1-native` 不使用。统一 Web 查看器是独立可视化入口，不是训练环境。
+**训练实际使用哪份实现？** `train` 使用核心 `VectorEnv`。Go1 和 `h1-native` 使用本仓库维护的机器人环境与 PPO，但尚未接入核心 `VectorEnv`；MuJoCo/mjbatch 仍负责底层物理计算。Go1 可使用 `--standalone` 从已安装依赖启动；默认模式仍使用固定版本的 mjbatch SDK 检出。`h1` 命令使用 IsaacLab，`h1-native` 不使用。统一 Web 查看器是独立可视化入口，不是训练环境。
 
 新启动的核心 PPO、Go1 PPO 和原生 H1 训练会在输出目录写入 `training-runtime.json`，Go1/H1 续训也会单独记录。文件包含实际加载的环境、任务、训练函数和物理适配器、模块及文件路径、Python 源文件哈希、依赖版本、解释器、CPU 执行位置和是否使用核心 `VectorEnv`。Go1 的路径指向该次运行的实现快照。这是入口来源记录，不是全部间接依赖清单、checkpoint 兼容锁或策略质量证明；旧运行和外部训练流程不会补写此文件。
 
@@ -85,6 +85,36 @@ python benchmarks/check_learning.py runs/commands-hold/checkpoint.pt --num-envs 
 <a id="go1"></a>
 
 ## Go1：训练 → 续训 → 验收 → 在线运行
+
+### 已安装依赖模式：无需外部仓库检出
+
+Go1 训练、续训和评估加上 `--standalone`，使用当前 Python 解释器中的 MuJoCo 3.11.0、mjbatch 0.1.0、PyTorch 2.9.0（CPU/CUDA wheel 均可）和 Menagerie 2026.9.0，物理与学习都在 CPU 上执行。无需 `recipes setup`、IsaacLab、上游 example 或 SDK 源码检出；该模式不使用 `--cache`。机器人资产仍来自 Menagerie，首次使用可能下载；可通过 `MENAGERIE_CACHE_DIR` 复用现有资产缓存。
+
+```bash
+conda create -n ef-go1-native python=3.12 pip -y
+conda activate ef-go1-native
+python -m pip install -e '.[go1-native]'
+python -m embodiedforge recipes train --task go1-joystick --standalone \
+  --num-envs 128 --horizon 24 --updates 1000 --threads 4 \
+  --timeout 1200 --output runs/commands-go1-native
+python -m embodiedforge recipes train --task go1-joystick --standalone \
+  --resume-run runs/commands-go1-native --num-envs 128 --horizon 24 \
+  --updates 100 --threads 4 --timeout 1200 --output runs/commands-go1-native-resumed
+python -m embodiedforge recipes evaluate --task go1-joystick --standalone \
+  --run runs/commands-go1-native-resumed --velocity 0.5 0 0 \
+  --num-envs 8 --steps 500 --record-motion --timeout 1200 \
+  --min-survival-fraction 0.8 --max-planar-rmse 0.3 --max-yaw-rmse 0.3 \
+  --output runs/commands-go1-native-eval
+conda activate ef-viewer
+python -m embodiedforge live --run runs/commands-go1-native-resumed \
+  --render-backend rtx --port 8081
+```
+
+续训和评估可读取两种启动模式下已完成的 Go1 训练，保留 checkpoint 哈希与任务/配置检查。在已安装依赖的环境中继续传 `--standalone`。Web 在线控制自动选用运行记录中的训练解释器；查看器环境仍需安装渲染依赖。策略训练不足时评估门槛会拒绝通过，应先检查报告再在线诊断。输出目录不可覆盖。
+
+每次运行仍保存本仓库实现快照，以及实际依赖版本和加载路径。`run.json` 用 `source.kind=installed_packages` 标识该模式，不会虚构已检查某个上游 Git revision。这次仅改变启动方式，不改变任务、奖励或 PPO，也没有把 Go1 合并到核心 `VectorEnv`。
+
+### 固定 SDK 模式
 
 先完成 mjbatch setup。续训写入新目录，`--updates` 为本次追加更新数；以下超时均为秒，可按机器速度增加。
 

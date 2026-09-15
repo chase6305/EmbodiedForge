@@ -16,7 +16,7 @@
 
 2026-09-13 已将 Go1 的模型构建、reset、观测、奖励、镜像策略、归一化、rollout、GAE 和 PPO 更新移植到 `embodiedforge.locomotion`，训练入口不再导入上游 `go1_joystick.py` 或 `window.py`。Wuji、MPC 和机械臂仍是固定版本源码快照加适配层。原生 `mjbatch` 后端实现了 EmbodiedForge 的物理接口。
 
-Go1 的任务和训练代码由本仓库维护，仍依赖 MuJoCo、mjbatch、Torch 和 Menagerie 机器人资产。受管 `recipes` 入口继续使用原来的固定版本 SDK 环境及源码完整性检查；这不等于整个 SDK 已移植，也不等于 Go1 已接入现有平面任务的 `VectorEnv`。
+Go1 的任务和训练代码由本仓库维护，仍依赖 MuJoCo、mjbatch、Torch 和 Menagerie 机器人资产。`recipes train/evaluate --task go1-joystick --standalone` 可直接使用当前解释器的已安装依赖，无需外部仓库检出或 setup，详见[独立训练指令](training-deployment.md#go1)。省略 `--standalone` 时继续使用原来的固定版本 SDK 环境及源码完整性检查；这不等于整个 SDK 已移植，也不等于 Go1 已接入现有平面任务的 `VectorEnv`。
 
 ## Go1 移植范围与直接调用
 

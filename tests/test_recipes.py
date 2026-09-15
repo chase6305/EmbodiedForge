@@ -513,3 +513,46 @@ def test_native_snapshot_rejects_nested_output_and_symlinks(tmp_path):
     with pytest.raises(ValueError, match="symlinks"):
         recipes.snapshot_implementation(source, tmp_path / "snapshot")
     assert not (tmp_path / "snapshot").exists()
+
+
+def test_standalone_environment_uses_current_python_and_keeps_asset_cache(monkeypatch):
+    monkeypatch.setenv("PYTHONPATH", "wrong")
+    monkeypatch.setenv("VIRTUAL_ENV", "wrong")
+    monkeypatch.setenv("MENAGERIE_CACHE_DIR", "/asset-cache")
+    result = recipes.child_environment(None)
+    assert "PYTHONPATH" not in result and "VIRTUAL_ENV" not in result
+    assert result["MENAGERIE_CACHE_DIR"] == "/asset-cache"
+    assert result["CUDA_VISIBLE_DEVICES"] == ""
+    assert result["PATH"].split(os.pathsep)[0] == os.path.dirname(sys.executable)
+
+
+def test_standalone_rejects_external_tasks_before_touching_cache(tmp_path):
+    with pytest.raises(ValueError, match="Go1 only"):
+        recipes.execute(argparse.Namespace(task="wuji-reorient", standalone=True))
+
+
+def test_standalone_checkpoint_contract_and_hash_are_required(tmp_path):
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_bytes(b"model")
+    data = {
+        "schema": 1,
+        "workflow": "recipe_train",
+        "status": "complete",
+        "recipe": "go1-joystick",
+        "source": dict(recipes.GO1_STANDALONE_SOURCE),
+        "result": {
+            "checkpoint": "model.pt",
+            "checkpoint_sha256": recipes.sha256(checkpoint),
+        },
+    }
+    recipes.write_json(tmp_path / "run.json", data)
+    assert recipes.checkpoint_input(tmp_path, "go1-joystick")[0] == checkpoint
+    data["source"]["contract_version"] = 999
+    recipes.write_json(tmp_path / "run.json", data)
+    with pytest.raises(ValueError, match="completed training"):
+        recipes.checkpoint_input(tmp_path, "go1-joystick")
+    data["source"] = dict(recipes.GO1_STANDALONE_SOURCE)
+    recipes.write_json(tmp_path / "run.json", data)
+    checkpoint.write_bytes(b"modified")
+    with pytest.raises(ValueError, match="SHA256"):
+        recipes.checkpoint_input(tmp_path, "go1-joystick")

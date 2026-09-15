@@ -10,6 +10,7 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -61,6 +62,11 @@ RECIPES = {
 }
 WORKER = Path(__file__).with_name("_recipe_worker.py")
 LOGGER = get_logger("recipes")
+GO1_STANDALONE_SOURCE = {
+    "kind": "installed_packages",
+    "implementation": "embodiedforge.locomotion.go1+go1_ppo",
+    "contract_version": 1,
+}
 
 
 class EvaluationRejected(RuntimeError):
@@ -378,7 +384,7 @@ def snapshot_implementation(package: Path, destination: Path) -> dict:
     return {"files": hashes}
 
 
-def child_environment(project: Path) -> dict:
+def child_environment(project: Path | None) -> dict:
     env = os.environ.copy()
     for key in ("PYTHONPATH", "PYTHONHOME", "CONDA_PREFIX", "VIRTUAL_ENV"):
         env.pop(key, None)
@@ -388,10 +394,16 @@ def child_environment(project: Path) -> dict:
         PYTHONUNBUFFERED="1",
         WANDB_MODE="disabled",
         MUJOCO_GL="egl",
-        VIRTUAL_ENV=str(project / ".venv"),
         OMP_NUM_THREADS="1",
         MKL_NUM_THREADS="1",
     )
+    if project is None:
+        env["CUDA_VISIBLE_DEVICES"] = ""
+        env["PATH"] = (
+            str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+        )
+        return env
+    env["VIRTUAL_ENV"] = str(project / ".venv")
     env["MENAGERIE_CACHE_DIR"] = str(project / "assets-cache")
     if project.name == "mjbatch":
         env["CUDA_VISIBLE_DEVICES"] = ""
@@ -473,7 +485,12 @@ def checkpoint_input(run: Path, recipe: str) -> tuple[Path, dict]:
         or data.get("workflow") != "recipe_train"
         or data.get("status") != "complete"
         or data.get("recipe") != recipe
-        or data.get("source", {}).get("revision") != SOURCES[RECIPES[recipe]["source"]]
+        or not (
+            data.get("source", {}).get("revision") == SOURCES[RECIPES[recipe]["source"]]
+            or (
+                recipe == "go1-joystick" and data.get("source") == GO1_STANDALONE_SOURCE
+            )
+        )
     ):
         raise ValueError(
             "Input must be a completed training run for this recipe/version"
@@ -489,6 +506,9 @@ def checkpoint_input(run: Path, recipe: str) -> tuple[Path, dict]:
 
 def execute(args):
     recipe = RECIPES[args.task]
+    standalone = getattr(args, "standalone", False)
+    if standalone and args.task != "go1-joystick":
+        raise ValueError("--standalone currently supports Go1 only")
     if (
         getattr(args, "go1_learning_rate", None) is not None
         and args.task != "go1-joystick"
@@ -546,16 +566,20 @@ def execute(args):
             raise ValueError(
                 f"num-envs * horizon must be divisible by {minibatches} and at least {2 * minibatches}"
             )
-    project = args.cache.resolve() / recipe["source"]
-    source = json.loads((project / "source.json").read_text())
-    ready = json.loads((project / "ready.json").read_text())
-    if (
-        source["revision"] != SOURCES[recipe["source"]]
-        or ready["revision"] != source["revision"]
-        or ready["lock_sha256"] != source["files"]["uv.lock"]
-    ):
-        raise ValueError("Environment source mismatch; run recipes setup")
-    validate_snapshot(project, source)
+    if standalone:
+        project = None
+        source = dict(GO1_STANDALONE_SOURCE)
+    else:
+        project = args.cache.resolve() / recipe["source"]
+        source = json.loads((project / "source.json").read_text())
+        ready = json.loads((project / "ready.json").read_text())
+        if (
+            source["revision"] != SOURCES[recipe["source"]]
+            or ready["revision"] != source["revision"]
+            or ready["lock_sha256"] != source["files"]["uv.lock"]
+        ):
+            raise ValueError("Environment source mismatch; run recipes setup")
+        validate_snapshot(project, source)
     previous = (
         checkpoint_input(args.run.resolve(), args.task)
         if args.command == "evaluate"
@@ -586,7 +610,9 @@ def execute(args):
         k: str(v.resolve()) if isinstance(v, Path) else v for k, v in vars(args).items()
     }
     request.update(
-        project=str(project), upstream_task=recipe["task"], start_iteration=0
+        project=str(project) if project else None,
+        upstream_task=recipe["task"] if project else None,
+        start_iteration=0,
     )
     if previous and args.task == "go1-joystick":
         request["input_learning_rate_override"] = previous[1]["result"].get(
@@ -665,7 +691,7 @@ def execute(args):
             manifest["input_sha256"] = sha256(target)
         write_json(output / "request.json", request)
         command = [
-            str(project / ".venv/bin/python"),
+            sys.executable if standalone else str(project / ".venv/bin/python"),
             "-I",
             str(implementation / WORKER.name),
             str(output / "request.json"),
@@ -676,7 +702,8 @@ def execute(args):
         result = json.loads((output / "result.json").read_text())
         validate_result(request, result, output)
         validate_snapshot(implementation, frozen, label="Run implementation snapshot")
-        validate_snapshot(project, source)
+        if project is not None:
+            validate_snapshot(project, source)
         if args.command == "train":
             result["cumulative_updates"] = (
                 request.get("prior_updates", 0) + result["completed_updates"]
@@ -799,6 +826,11 @@ def main(argv=None):
         child.add_argument("--num-envs", type=int, default=32)
         child.add_argument("--threads", type=int, default=4)
         if mode in ("train", "evaluate"):
+            child.add_argument(
+                "--standalone",
+                action="store_true",
+                help="Go1 only: use installed packages in the current Python; no SDK checkout/setup",
+            )
             child.add_argument(
                 "--go1-semantics",
                 choices=["transition-v2", "upstream-v1"],

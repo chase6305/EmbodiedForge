@@ -15,13 +15,17 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from embodiedforge.recipes import sha256, write_json
 
-    project = Path(request["project"])
+    standalone = request.get("standalone", False)
+    if standalone and request["task"] != "go1-joystick":
+        raise ValueError("Standalone execution supports Go1 only")
     name = "wuji_unilab" if request["task"].startswith("wuji-") else "mjbatch"
     package = importlib.import_module(name)
     path = Path(package.__file__).resolve()
-    if not path.is_relative_to(project / "src"):
+    if not standalone and not path.is_relative_to(Path(request["project"]) / "src"):
         raise ValueError(f"{name} loaded from unexpected source: {path}")
     required = {"mujoco": "3.11.0", "torch": "2.9.0+cu128", "mjbatch": "0.1.0"}
+    if standalone:
+        required["torch"] = "2.9.0"
     if name == "wuji_unilab":
         required = {
             "unilab": "1.2.0",
@@ -34,7 +38,10 @@ def main():
             "rsl-rl-lib": "5.0.1",
         }
     versions = {key: importlib.metadata.version(key) for key in required}
-    if versions != required:
+    checked = dict(versions)
+    if standalone:
+        checked["torch"] = checked["torch"].split("+")[0]
+    if checked != required:
         raise ValueError(
             f"Recipe dependency mismatch: expected {required}, got {versions}"
         )
@@ -60,6 +67,7 @@ def main():
             "executable": sys.executable,
             "source_import": str(path),
             "adapter_import": str(adapter_path),
+            "launch_mode": "installed_packages" if standalone else "sdk_checkout",
             "versions": versions,
         },
     )
