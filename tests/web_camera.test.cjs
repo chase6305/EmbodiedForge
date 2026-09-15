@@ -153,13 +153,19 @@ test('slow network coalesces camera samples but preserves reset ordering', async
 test('pending wheel input survives polls and reset cancels its delayed command', async () => {
   const a = app();
   a.viewport.listeners.wheel({deltaY: -3, deltaMode: 1, preventDefault() {}});
+  await a.tick(); await a.accept(0, 1);
+  const first = a.snapshot();
+  a.advance(10);
+  a.viewport.listeners.wheel({deltaY: -3, deltaMode: 1, preventDefault() {}});
   const zoom = a.snapshot().distance;
   assert(zoom < 3.5);
-  a.state(); assert.equal(a.snapshot().distance, zoom);
+  a.state({control_id: 1, camera: first}); assert.equal(a.snapshot().distance, zoom);
   a.element('camera-reset').onclick();
   a.advance(200); await a.tick();
-  assert.equal(a.requests.length, 1);
-  assert.deepEqual(a.requests[0].body, {action: 'camera_reset'});
+  assert.equal(a.requests.length, 2);
+  assert.deepEqual(a.requests[1].body, {action: 'camera_reset'});
+  await a.accept(1, 2); a.advance(200); await a.tick();
+  assert.equal(a.requests.length, 2, 'reset must cancel the trailing wheel pose');
   assert.equal(a.snapshot().distance, 3.5);
 });
 
@@ -176,4 +182,58 @@ test('disabled camera and secondary buttons cannot start a drag; large deltas st
   assert.equal(a.snapshot().elevation, 5);
   a.state({camera_control: false});
   assert.equal(a.viewport.captures.size, 0);
+});
+
+test('continuous wheel input updates the renderer before scrolling stops', async () => {
+  const a = app();
+  for (let i = 0; i < 12; i++) {
+    a.viewport.listeners.wheel({deltaY: -2, deltaMode: 0, preventDefault() {}});
+    a.advance(16);
+    await a.tick();
+  }
+  assert(a.requests.length > 0, 'continuous scrolling must not starve rendering');
+  const latest = a.snapshot();
+  a.advance(40); await a.tick();
+  await a.accept(0, 1);
+  assert.equal(a.requests.at(-1).body.distance, latest.distance);
+});
+
+test('the last small drag movement is rendered while the button is still held', async () => {
+  const a = app();
+  a.pointer('down');
+  a.pointer('move', {clientX: 120}); await a.tick();
+  await a.accept(0, 1);
+  a.advance(10);
+  a.pointer('move', {clientX: 130});
+  const latest = a.snapshot();
+  a.advance(40); await a.tick();
+  assert.equal(a.requests.length, 2, 'flush the trailing pose without requiring mouse-up');
+  assert.equal(a.requests[1].body.azimuth, latest.azimuth);
+  assert(a.viewport.hasPointerCapture(1));
+});
+
+test('switching to a renderer without orbit cancels a trailing camera update', async () => {
+  const a = app();
+  a.pointer('down'); a.pointer('move', {clientX: 120});
+  await a.tick(); await a.accept(0, 1);
+  a.advance(10); a.pointer('move', {clientX: 130});
+  a.state({camera_control: false});
+  a.advance(100); await a.tick();
+  assert.equal(a.requests.length, 1);
+  assert.equal(a.viewport.captures.size, 0);
+});
+
+test('interleaved orbit and wheel input flush one final pose with both changes', async () => {
+  const a = app();
+  a.pointer('down'); a.pointer('move', {clientX: 120});
+  await a.tick(); await a.accept(0, 1);
+  a.advance(10);
+  a.viewport.listeners.wheel({deltaY: -120, deltaMode: 0, preventDefault() {}});
+  a.pointer('move', {clientX: 140});
+  const latest = a.snapshot();
+  a.advance(40); await a.tick();
+  assert.equal(a.requests.length, 2);
+  assert.equal(a.requests[1].body.azimuth, -104);
+  assert.equal(a.requests[1].body.distance, latest.distance);
+  assert(latest.distance < 3.5);
 });

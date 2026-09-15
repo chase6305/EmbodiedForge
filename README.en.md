@@ -87,7 +87,7 @@ For OpenGL alone, install `.[viz-robot,viz-gl]`. Select point-task physics with 
 | Renderer selection | Validates the candidate's first frame before replacing the renderer; keeps the previous view on failure |
 | Resolution | 360p, 540p, 720p, and 1080p; preserves simulation state, with a brief wait while rebuilding the renderer |
 | Target frame rate | 1–60 FPS, default 30; displays actual frame rate, image dimensions, and frame size |
-| Camera and fullscreen | Drag to orbit, scroll to zoom, default view, robot following, fullscreen, and snapshots; enabled according to backend capabilities |
+| Camera and fullscreen | Left-drag to orbit, continuous scrolling to zoom, default view, robot following, fullscreen, and snapshots; enabled according to backend capabilities |
 | Go1 velocity commands | Buttons or numeric inputs, with Enter to submit; drafts are saved per environment, with pending and applied status |
 | Robot replay | Seek on the timeline, switch recordings, retain the last frame, and return to the start |
 

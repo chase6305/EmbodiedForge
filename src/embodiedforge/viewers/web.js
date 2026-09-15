@@ -9,7 +9,7 @@ const presets = {
 };
 let state = null, connected = false, stopped = false, stopping = false;
 let camera = {azimuth: -90, elevation: 45, distance: 3.5};
-let drag = null, lastCameraSend = 0, wheelTimer = null, pendingCamera = null, scrubbing = false;
+let drag = null, lastCameraSend = -Infinity, cameraTimer = null, pendingCamera = null, scrubbing = false;
 let queuedCamera = null;
 let pendingRenderer = null, pendingSelection = null, pendingVelocity = null, pendingReset = null, pendingPause = null;
 let rendererRequest = null, pendingSpeed = null, pendingFollow = null;
@@ -182,12 +182,19 @@ $('follow').onchange = () => {
 function cameraEnabled() {
   return connected && !stopped && !stopping && state?.ready && state.camera_control;
 }
-function clearWheel() {
-  clearTimeout(wheelTimer); wheelTimer = null;
+function clearCameraTimer() {
+  clearTimeout(cameraTimer); cameraTimer = null;
+}
+function scheduleCamera() {
+  // Send during continuous input and flush its trailing pose, at most 30 Hz.
+  const delay = Math.max(0, 1000 / 30 - (Date.now() - lastCameraSend));
+  if (!delay) sendCamera();
+  else if (cameraTimer === null) cameraTimer = setTimeout(() => sendCamera(), delay);
 }
 function sendCamera(action = 'camera') {
-  clearWheel();
+  clearCameraTimer();
   if (!cameraEnabled()) return;
+  lastCameraSend = Date.now();
   const pending = pendingCamera = {accepted: false};
   return send(action === 'camera_reset' ? {action} : {action, ...camera}).then(result => {
     pending.control_id = result.control_id; pending.accepted = true;
@@ -219,7 +226,7 @@ $('stop').onclick = () => {
     $('dot').classList.remove('ready');
     $('status').textContent = '已停止';
     $('interaction-status').textContent = '已请求停止会话';
-    clearWheel(); finishDrag(false); controls();
+    clearCameraTimer(); finishDrag(false); controls();
   }).catch(() => { stopping = false; feedback(); });
 };
 
@@ -247,7 +254,7 @@ viewport.onpointermove = e => {
   camera.azimuth = ((camera.azimuth - (e.clientX - drag.x) * .35 + 180) % 360 + 360) % 360 - 180;
   camera.elevation = Math.max(5, Math.min(89, camera.elevation + (e.clientY - drag.y) * .25));
   drag.x = e.clientX; drag.y = e.clientY;
-  if (Date.now() - lastCameraSend >= 33) { lastCameraSend = Date.now(); sendCamera(); }
+  scheduleCamera();
 };
 viewport.onpointerup = e => {
   if (e.pointerId === drag?.pointerId && !(e.buttons & 1)) finishDrag();
@@ -255,9 +262,9 @@ viewport.onpointerup = e => {
 viewport.onpointercancel = viewport.onlostpointercapture = e => {
   if (e.pointerId === drag?.pointerId) finishDrag();
 };
-window.addEventListener('blur', () => { finishDrag(); if (wheelTimer !== null) sendCamera(); });
+window.addEventListener('blur', () => { finishDrag(); if (cameraTimer !== null) sendCamera(); });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { finishDrag(); if (wheelTimer !== null) sendCamera(); }
+  if (document.hidden) { finishDrag(); if (cameraTimer !== null) sendCamera(); }
 });
 viewport.ondragstart = e => e.preventDefault();
 viewport.addEventListener('wheel', e => {
@@ -265,7 +272,7 @@ viewport.addEventListener('wheel', e => {
   e.preventDefault();
   const pixels = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.clientHeight : 1);
   camera.distance = Math.max(.3, Math.min(20, camera.distance * Math.exp(pixels * .001)));
-  clearWheel(); wheelTimer = setTimeout(() => sendCamera(), 100);
+  scheduleCamera();
 }, {passive: false});
 document.onkeydown = e => {
   if (e.repeat || e.isComposing || e.ctrlKey || e.altKey || e.metaKey || !connected || stopped || stopping || !state?.ready) return;
@@ -338,9 +345,9 @@ function renderState(s) {
   $('env-label').textContent = `ENV ${s.env_id}`;
   $('status').textContent = s.paused ? '已暂停' : '运行中';
   $('camera-hint').textContent = s.camera_control ? '拖动旋转 · 滚轮缩放' : '正交调试画面';
-  if (!s.camera_control) { clearWheel(); finishDrag(false); }
+  if (!s.camera_control) { clearCameraTimer(); finishDrag(false); }
   if (observed(pendingCamera, s)) pendingCamera = null;
-  if (!drag && wheelTimer === null && !pendingCamera) camera = {azimuth: s.camera.azimuth, elevation: s.camera.elevation, distance: s.camera.distance};
+  if (!drag && cameraTimer === null && !pendingCamera) camera = {azimuth: s.camera.azimuth, elevation: s.camera.elevation, distance: s.camera.distance};
   $('time').textContent = s.time.toFixed(2) + ' s'; $('episode').textContent = s.episode + ' / ' + s.step;
   $('velocity').textContent = s.velocity.toFixed(3); $('reward').textContent = s.reward == null ? '—' : s.reward.toFixed(4);
   $('fps').textContent = s.render_idle ? '静止' : s.fps.toFixed(1);
@@ -374,7 +381,7 @@ async function poll() {
   } catch (e) {
     if (stopped) return;
     connected = false; failures++;
-    clearWheel(); finishDrag(false); pendingCamera = null;
+    clearCameraTimer(); finishDrag(false); pendingCamera = null;
     $('dot').classList.remove('ready'); $('connection').textContent = '连接断开 · 正在重连';
     $('camera-hint').textContent = '连接断开，当前为最后收到的画面'; controls();
   } finally { if (!stopped) setTimeout(poll, Math.min(5000, 250 * 2 ** Math.min(failures, 5))); }
