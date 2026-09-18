@@ -1,100 +1,152 @@
 # Microduck RL
 
+直接开始正式训练、续训和部署，见 [机械鸭快捷命令](microduck-quickstart.md)。
+
+模型参数量、权重体积、预训练与后训练流程，以及已有结果和消融实验设计，见 [机械鸭模型与实验详解](microduck-model-training-ablation.md)。
+
 按步骤执行安装、训练、续训、评估和运行，见 [训练与部署命令](training-deployment.md)（[English](training-deployment.en.md)）。
 
-EmbodiedForge 提供独立进程入口，运行 [Microduck 上游](https://github.com/pollen-robotics/microduck_rl/tree/53b8971b61baf5b7f3c16d135dd7cac37623de4b) 的平地行走 PPO 配方。机器人 MJCF、接触、BAM XL330 执行器、奖励、域随机化和网络均来自上游，未移植到当前 `VectorEnv` 或 Newton 点质量适配器。
+EmbodiedForge 现在维护 Microduck **平地行走任务的本地移植**：任务配置、奖励与观测、对称增强、BAM 执行器扩展、机器人 MJCF 和 38 个网格资产均位于 `src/embodiedforge/locomotion/microduck/`。默认运行不再导入或读取 `3rdparty/microduck_rl`。训练仍使用 mjlab / MuJoCo-Warp / BAM / RSL-RL，不属于核心 `VectorEnv` 或 Newton 点质量适配器。
 
-固定版本为 `53b8971b61baf5b7f3c16d135dd7cac37623de4b`。上游要求 Python 3.12、mjlab 1.3.0、Warp 1.12.0、PyTorch 2.9.1；安装严格使用它的 `uv.lock`，包括 BAM 的 Git 提交及依赖覆盖规则。现有 `ef-viewer` 使用 Warp 1.17.0，因此训练使用独立环境，不添加到 EmbodiedForge 的安装 extras。
+移植基线是 Microduck `53b8971b61baf5b7f3c16d135dd7cac37623de4b`。保留 Apache-2.0 许可证，`NOTICE` 与 `UPSTREAM.json` 记录改动、源文件及原始散列。当前只注册平地行走任务；共享 MDP 辅助代码及其 RewardManager/PPO 扩展暂时保留，其他上游任务、HF Jobs 和实机控制程序不在此次范围内。
+
+主入口继续使用 `ef`。Python 3.12 工作环境独立安装 mjlab 1.3.0、Warp 1.12.0、PyTorch 2.9.1 和固定提交的 BAM；仓库中的 `requirements.txt` 从基线 `uv.lock` 导出，排除了原仓库的任务插件。`check` 输出实际任务、执行器、runner、资产路径和实现散列，以区分本地实现与历史上游运行。
 
 ## 安装与检查
 
-从 EmbodiedForge 根目录执行；需要 `uv`、Git 和支持 CUDA 的 NVIDIA GPU。`--repo` 指向用户已有的干净源码检出，不会自动 checkout 或覆盖它。
+从 EmbodiedForge 根目录执行；需要 `uv`、Git 和支持 CUDA 的 NVIDIA GPU。默认无需 `--repo` 或上游源码检出。
 
 ```bash
 conda activate ef
-python -m embodiedforge.microduck setup \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl
-python -m embodiedforge.microduck check \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl
+python -m embodiedforge.microduck setup
+python -m embodiedforge.microduck check
 ```
 
-默认环境位于当前目录的 `.cache/microduck-venv`；从其他目录执行时，为所有命令添加相同的绝对 `--env-dir`。首次安装需要下载 Python 和数 GiB CUDA/PyTorch 依赖。`check` 验证 Python/SDK 版本、CUDA 可用性及实际 GPU 矩阵运算，并输出环境包版本。入口本身不在调用者 Python 中导入训练 SDK。
+默认环境位于当前目录的 `.cache/microduck-native-venv`；从其他目录执行时，为所有命令添加相同的绝对 `--env-dir`。首次安装需要下载 Python 和数 GiB CUDA/PyTorch 依赖。`check` 验证 Python/SDK 版本、CUDA 可用性及实际 GPU 矩阵运算，并输出环境包版本。入口本身不在调用者 Python 中导入训练 SDK。
 
-## 先运行小规模验证
+## 无窗口训练（headless）
+
+`train` 和续训 默认采用 headless，也可显式添加 `--headless`。启动器在导入训练 SDK 前清除子进程的 `DISPLAY` / `WAYLAND_DISPLAY`，设置 `MUJOCO_GL=egl` 和 `PYOPENGL_PLATFORM=egl`，并明确关闭训练视频。无需桌面、X11、Wayland 或 Xvfb，不启动原生窗口或 Viser 服务；父终端环境不受影响。
 
 ```bash
-python -m embodiedforge.microduck smoke \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
-  --output runs/microduck-smoke
+python -m embodiedforge.microduck train --headless --quiet --seed 0 \
+  --num-envs 512 --iterations 4000 --output runs/microduck-headless
 ```
 
-该命令依次执行 CUDA 检查、64 个环境的 5 次 PPO 迭代、TensorBoard 指标检查、上游官方 ONNX 导出，以及 ONNX Runtime CPU 推理检查。指标检查要求完成指定次数的更新、标量全部有限、NaN 状态终止数为零，结果保存在 `metrics.validation.json`。导出必须包含上游观测归一化；验证 actor 输入为 61 维、动作输出为 14 维，且零输入和随机输入都产生有限值。启用上游 NaN guard。首次运行需要编译 Warp 内核。
+`run.json.execution` 记录 `headless`、查看器、训练视频及 GL 后端。`runtime.json.process_environment` 记录工作进程实际看到的显示服务变量、GL 后端和 CUDA 设备选择，`gpu_memory` 记录检查当时的空闲/总显存（不是训练峰值估计）。训练日志与 checkpoint 正常保存，可另开终端运行 `progress`。headless 保留训练所需的仿真与传感器计算，仍需要 CUDA 和足够显存；它不能解决显存不足。交互查看策略使用独立的 `play` 命令。
 
-输出目录必须不存在，避免混入旧 checkpoint。`run.json` 记录源码提交、锁文件散列、执行参数、状态和 checkpoint 路径；`runtime.json` 记录实际环境；`logs/rsl_rl/microduck/` 保存上游参数 YAML、TensorBoard 事件和模型。成功的 smoke 另外生成 `policy.onnx` 与 `policy.validation.json`。发生错误或 Ctrl+C 时保留已产生的模型，并更新运行状态。
+## 训练输出
 
-这只验证训练/导出链路，5 次迭代不能证明已经学会稳定行走，也不能证明实机部署效果。
+输出目录必须不存在，避免混入旧 checkpoint。
+
+本地训练仅保存 checkpoint，不在每次保存时自动导出 ONNX。需要部署模型时，使用独立的 `export` 命令。
+
+本地 TensorBoard 训练保存 checkpoint 时，先写同目录临时文件，成功后原子替换正式 `model_*.pt`。常规异常或中断会清理临时文件，旧完整模型保留；SIGKILL 可能留下 `.tmp`，进度查询和模型选择不会读取它们。这不是断电持久性保证。
+
+本地训练和评估启动前会将当前 EmbodiedForge 包的源代码与资产复制到 `implementation/embodiedforge/`，并逐文件核对启动时记录的散列；复制期间源文件变化会立即失败。后续工作进程从这份快照加载任务，因此开发期间修改工作区不会改变正在运行的任务或后续导出。多种子评估只保存一份快照；独立 SDK 依赖仍使用固定环境，不复制到运行目录。显式 `--repo` 的历史模式仍使用原先的固定检出检查。
+
+`train` 和 `evaluate` 支持 `--quiet`：工作进程的 stdout/stderr 直接写入日志文件，终端只显示启动器的阶段信息，无需额外的日志转发线程。默认情况下，各阶段的 stdout/stderr 同时输出到终端并保存为 `00-check.log`、`01-train.log` 等文件；续训多一个 checkpoint 检查，序号会相应变化。`run.json.logs` 保存实际列表，`phase` / `active_log` 指向当前阶段与日志。失败时保存 `failed_phase`；CUDA 等运行前检查失败时额外保存 `runtime.failure.json`，并将诊断写入运行记录。`run.json` 记录移植基线提交、依赖清单与本地实现散列、执行参数、状态和 checkpoint 路径；`runtime.json` 记录实际环境；`logs/rsl_rl/microduck/` 保存上游参数 YAML、TensorBoard 事件和模型。发生错误或 Ctrl+C 时保留已产生的模型，并更新运行状态。
 
 ## 训练、回放与导出
 
-smoke 通过后，再设置正式训练预算，例如：
+直接设置训练预算，例如：
 
 ```bash
 python -m embodiedforge.microduck train \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
   --num-envs 4096 --iterations 4000 \
   --output runs/microduck-walk
 ```
 
-`--iterations` 必填，避免意外使用上游 50,000 次迭代默认值。使用本地 TensorBoard logger；未启用 W&B 上传或 Hugging Face Jobs。GPU 选择沿用上游约定与 `CUDA_VISIBLE_DEVICES`。环境数需要按可用显存调整，4096 只是训练配置示例。
+`--iterations` 必填，避免意外使用上游 50,000 次迭代默认值。`train` 和续训 支持 `--seed`（默认 0，范围 0 到 `2**32-1`），并将其写入运行记录；续训 seed 控制重建环境的随机状态，不是恢复原进程的全部 RNG。使用本地 TensorBoard logger；未启用 W&B 上传或 Hugging Face Jobs。GPU 选择沿用上游约定与 `CUDA_VISIBLE_DEVICES`。环境数需要按可用显存调整，4096 只是训练配置示例。
 
 训练期间可从另一个终端读取已落盘进度：
 
 ```bash
 python -m embodiedforge.microduck progress \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
   --run runs/microduck-walk
 ```
 
-该命令在隔离环境中读取 TensorBoard 事件，不加载模型或使用 CUDA。输出本次已记录的更新数、最新迭代编号、最近 checkpoint、标量有限性、NaN 状态、奖励和吞吐。剩余时间按最近 20 次已记录迭代的采样与学习耗时中位数估计，不包括启动和最终导出。`run_status` 来自运行记录；应结合 `seconds_since_last_event` 判断日志是否仍在更新，它不是进程存活检查。事件尚未写入时，无法判断的指标为 `null`。
+该命令在隔离环境中读取 TensorBoard 事件，不加载模型或使用 CUDA。本地工作进程的 `progress`、指标检查、checkpoint 元数据读取和 ONNX 推理检查均跳过任务注册，不再加载 mjlab、MuJoCo、Warp 或 BAM；训练和导出仍正常注册任务。输出本次已记录的更新数、最新迭代编号、最近 checkpoint、标量有限性、NaN 状态、奖励和吞吐。剩余时间按最近 20 次已记录迭代的采样与学习耗时中位数估计，不包括启动和最终导出。`run_status` 来自运行记录；应结合 `seconds_since_last_event` 判断日志是否仍在更新，它不是进程存活检查。另有 `launcher_status` 在同一 Linux 主机上结合 PID、进程启动时间和系统启动标识检查启动器；旧记录、跨主机或无法读取 `/proc` 时为未知。它只检查启动器，不保证训练正在推进；应同时看状态、最新事件时间和阶段日志。事件尚未写入时，无法判断的指标为 `null`。
 
-从 `run.json` 读取实际 checkpoint 路径，替换下面的 `PATH_TO_MODEL.pt`：
+`progress` 只需要运行目录，以及所选 `--env-dir` 中可用的 Python 和 TensorBoard；不检查当前任务源码、上游仓库或训练环境版本戳。源码和依赖更新后仍可查看旧日志，旧上游仓库也不必保留。
+
+新训练在创建 `run.json` 时即保存 `num_envs` 与 `iterations`，准备阶段也能从 `progress` 输出的 `requested_updates` 查看目标更新数。续训时该数值表示本次追加的预算；旧记录仍从已保存的训练命令读取，尚无训练命令时返回 `null`。
+
+剩余时间仅使用有对应 PPO 更新记录的耗时。迭代编号必须从本次起点连续增长且不超出预算；缺失、错位或超出预算时，仍展示已读到的更新数，但剩余时间返回 `null`。
+
+`progress` 保留原记录的 `run_status`，另给出 `effective_status`：如果记录仍为 `running`，但本机进程身份检查已确认启动器退出，则为 `orphaned`，剩余时间返回 `null`。跨主机或无法确认进程身份时不会推断进程已死，仍需结合 `launcher_status` 判断。检查、导出、指标验证等非训练阶段不估算训练剩余时间；原记录不会被查询修改。
+
+`latest_checkpoint` 只从运行目录内的规范 `model_<数字>.pt` 文件中选择，忽略临时文件、异常名称、同名目录及目录外链接。TensorBoard 日志与 checkpoint 必须属于同一个训练会话；即使两者各只有一个目录，只要目录不同，也会拒绝混合展示。`checkpoint_validation=not_performed` 表示只找到了候选文件，未加载验证其内容；续训入口仍会检查完整 checkpoint、学习率和课程计数。
+
+训练完成后，`play`、`evaluate`、`export` 可直接传 `--run`，自动选择运行记录中的 checkpoint：
 
 ```bash
 python -m embodiedforge.microduck play \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
-  --checkpoint PATH_TO_MODEL.pt --viewer native
+  --run runs/microduck-walk --viewer native
 
 python -m embodiedforge.microduck export \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
-  --checkpoint PATH_TO_MODEL.pt --output runs/microduck-policy.onnx
+  --run runs/microduck-walk --output runs/microduck-policy.onnx
 ```
 
-回放使用 mjlab 的 MuJoCo 原生查看器，也支持 `--viewer viser`。它与 EmbodiedForge 的点质量 RTX 示例是不同的入口。导出调用上游 `mjlab_microduck.export`，随后执行相同的 ONNX 推理验证；拒绝覆盖已有文件。
+回放使用 mjlab 的 MuJoCo 原生查看器，也支持 `--viewer viser`。它与 EmbodiedForge 的点质量 RTX 示例是不同的入口。
+
+独立 `export` 默认 headless，清除桌面显示变量并使用 EGL，仍需 CUDA；可加 `--quiet` 只保存工作进程日志。`--output` 必须以 `.onnx` 结尾。导出先冻结当前本地代码、资产和输入 checkpoint，再调用本地 exporter 与 mjlab runner，并验证 ONNX 的 61 维输入、14 维输出和有限推理结果。`--run` 使用该运行的 checkpoint，导出实现取本次启动时的本地代码。
+
+关节元数据由本地 exporter 按动作管理器的实际目标顺序生成，仅包含受控关节；默认角和逐关节缩放保留完整浮点精度。任务加载不再全局替换 SDK 的元数据函数。动作转换与硬件接口边界见 [模型与实验详解](microduck-model-training-ablation.md#66-从网络动作到关节目标)。
+
+只有验证成功后才发布 ONNX 和同名 `.validation.json`；已有模型或验证报告均拒绝覆盖，包括并发导出的同名输出。导出或验证失败、正常处理的中断不会留下最终模型，可用同一条命令重试。每次尝试在输出旁保留独立的 `.<文件名>.export-<随机串>/` 目录，内含 `run.json`、代码/模型快照、阶段日志和临时产物；启动日志打印其路径。成功报告记录模型及 checkpoint 的 SHA256，并指向这次导出记录。发布通过同一文件系统上的硬链接完成，输出目录所在文件系统需支持硬链接；强制断电或 SIGKILL 不保证回滚。
+
+最终导出记录保存失败或此时收到中断，也会撤回本次发布的 ONNX 和验证报告，保留尝试目录供排查，并允许使用同一输出路径重试。
+若文件权限等问题导致回滚删除失败，日志会列出未能删除的路径；仍会尝试清理另一个文件，并保留原始导出异常或中断。重试前需处理这些残留文件，输出覆盖保护仍然有效。
+
+`--run` 接受已完成的 `train` 目录，并核对任务、源码 revision 和锁文件哈希。
+入口只使用记录中的模型，不扫描选择最大文件名；训练仍在进行、运行失败、模型丢失或已记录
+SHA256 不匹配时会拒绝。新训练记录保存 `checkpoint_relative` 和 `checkpoint_sha256`。
+旧记录仍兼容，但缺少历史哈希时会提示 `unverified_legacy`，只记录当前文件的哈希。
+完整训练目录搬迁后，模型从新目录内解析，不会回退到记录里的旧绝对路径。
+
+仍可用 `--checkpoint PATH_TO_MODEL.pt` 指定历史模型；它与 `--run` 二选一。
+续训对应 `--resume` 或 `--resume-run`，同样互斥。通过运行目录发起的评估和续训会保存
+`source_run`，包含来源 manifest 与模型哈希；加载后的模型哈希与选定来源不一致会将运行标为失败。
+这些检查不代替行走效果验收，也不改变原来的 CUDA 训练环境或实机支持范围。
 
 原生回放支持按步数结束，便于检查模型和窗口启动：
 
 ```bash
 python -m embodiedforge.microduck play \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
   --checkpoint PATH_TO_MODEL.pt --viewer native --steps 250 --seed 0
 ```
 
-`--steps` 是仿真步数停止阈值，暂停时不会增加；退出时打印实际步数和是否被中断。不传该选项则持续回放到关闭窗口或 Ctrl+C。原生回放现在与无窗口评估共用模型加载和环境清理逻辑，默认 seed 为 0。Viser 保持上游入口及 checkpoint 浏览/切换功能，不接受 `--steps` 或非默认 `--seed`。
+`--steps` 是仿真步数停止阈值，暂停时不会增加；退出时打印实际步数和是否被中断。不传该选项则持续回放到关闭窗口或 Ctrl+C。原生回放现在与无窗口评估共用模型加载和环境清理逻辑，默认 seed 为 0。Viser 使用 mjlab 查看器并注册本地任务，保留 checkpoint 浏览/切换功能，不接受 `--steps` 或非默认 `--seed`。
 
 MuJoCo 3.10.0 的 passive viewer 在守护线程内渲染，`Handle.close()` 只请求退出。本项目的局部子类等待本次创建的渲染线程结束，再释放环境并退出进程，避免 GLFW 的进程退出清理与窗口销毁并发。该适配使用固定版本的私有线程入口标识，启动前检查 MuJoCo 版本；没有修改上游安装文件或屏蔽警告。
 
-Linux 启动器为子任务创建独立进程组：第一次 Ctrl+C 转发 SIGINT，并给予最多 10 秒清理时间；再次 Ctrl+C 或清理超时才强制结束。中断退出码保持 130，训练/评估运行记录保持 `interrupted`。
+Linux 启动器为子任务创建独立进程组：第一次 Ctrl+C 转发 SIGINT，并给予最多 10 秒清理时间；再次 Ctrl+C 或清理超时才强制结束。SIGTERM 和未被忽略的 SIGHUP 也走同一清理路径；退出码分别为 143、129，Ctrl+C 为 130。运行记录保存 `interrupted` 和 `interrupt_signal`，保留此前已写出的 checkpoint，不把未完成训练标为成功。继承的 `nohup` SIGHUP 忽略设置保持有效。
+
+后台运行可使用：
+
+```bash
+nohup python -m embodiedforge.microduck train --headless --seed 0 \
+  --num-envs 512 --iterations 4000 --output runs/microduck-background \
+  > microduck-background.log 2>&1 &
+echo $!  # 记录本次启动器 PID
+```
+
+停止本次任务时，对记录的启动器 PID 执行 `kill -TERM PID`。正常中断后可直接用 `--resume-run 原运行目录` 续训，也可从 `progress` 报告的 `latest_checkpoint` 通过 `--resume PATH` 显式选择模型。SIGKILL 无法执行清理，也无法保证更新运行状态；仍标为 `running` 的目录不自动恢复。
 
 ## 断点续训
 
 ```bash
 python -m embodiedforge.microduck train \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
-  --resume PATH_TO_MODEL.pt --num-envs 4096 --iterations 1000 \
+  --resume-run runs/microduck-walk --num-envs 4096 --iterations 1000 \
   --output runs/microduck-resumed
 ```
 
 `--iterations` 表示**追加**的 PPO 更新数。入口在新运行目录复制输入 checkpoint，记录 SHA-256、原始路径、课程计数与学习率；原训练目录不被覆盖。仅支持当前上游格式的完整训练 checkpoint，需要 actor、critic、优化器和环境课程计数。
+
+`--resume-run` 接受已完成的训练，也接受具有 `finished_at` 的 `interrupted` / `failed` 训练。恢复中断/失败运行时，只从其 `run.json.checkpoints` 清单中按迭代编号选择最新模型，不扫描目录里的其他文件，不读取 `.tmp`；若选定模型丢失、清单跨多个会话、编号重复、路径越出运行目录，或已确认原启动器仍存活，则拒绝自动恢复。选中的 checkpoint 损坏时会失败，不静默回退到较旧模型；可用 `--resume PATH` 明确选择其他保存点。整个运行目录迁移后仍从新目录解析记录路径。
+
+恢复来源写入新运行的 `source_run`，包含原状态、选择方式与 SHA256。已有历史哈希会被核对；没有历史哈希的中断保存点标记 `verification=recorded_at_recovery`，表示哈希在恢复时取得，不声称验证了历史内容。复制后的模型再次核对哈希，并检查完整训练状态。`play` / `evaluate` / `export` 的 `--run` 仍要求训练已完成。
 
 上游恢复网络、归一化、优化器及 `common_step_counter`。本入口额外从优化器读取学习率，写入上游 `TrainConfig.agent.algorithm.learning_rate`，使 RSL-RL 的独立自适应学习率变量也从保存值启动。指标验证按实际起始编号检查：上游从保存的编号重新编号，例如 `model_4.pt` 追加 2 次更新，日志编号为 4、5，最终保存 `model_5.pt`，课程计数仍增加 48 个控制步。不要仅按文件名推断累计更新次数。
 
@@ -108,7 +160,6 @@ python -m embodiedforge.microduck train \
 
 ```bash
 python -m embodiedforge.microduck evaluate \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
   --checkpoint PATH_TO_MODEL.pt --num-envs 16 --steps 250 --seed 0 \
   --output runs/microduck-evaluation
 ```
@@ -121,7 +172,6 @@ python -m embodiedforge.microduck evaluate \
 
 ```bash
 python -m embodiedforge.microduck evaluate \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
   --checkpoint PATH_TO_MODEL.pt --onnx PATH_TO_POLICY.onnx \
   --velocity 0.2 0 0 --no-pushes \
   --num-envs 16 --steps 250 --seed 0 \
@@ -133,6 +183,16 @@ python -m embodiedforge.microduck evaluate \
 `--onnx` 每步选一个环境（步号对环境数取余），将策略收到的原始 61 维观测同时送入 ONNX CPU 推理，与 PyTorch 裁剪前的 14 维确定性动作比较。这能发现导出模型错配、归一化遗漏等问题。对照模式关闭 TF32，使用完整 FP32，逐元素容差为 `abs(onnx - torch) <= 1e-4 + 1e-4 * abs(torch)`。仿真仍由 PyTorch 动作驱动；这是实际观测抽样对照，不能替代 ONNX 独立闭环或实机验收。
 
 报告新增 `conditions`（指令、推扰、计算精度、指令检查次数）及 `onnx_parity`（模型散列、样本数、最大绝对误差、容差）。失败退出码非零，`run.json` 标为失败，worker 的具体错误写入 `evaluation.failure.json`。比较策略时应保持条件与精度一致，覆盖多个种子；奖励权重受课程影响，不能只用平均奖励判断步态质量。相同种子也不保证 GPU 仿真逐位一致。
+
+若磁盘写满等问题导致收尾时无法更新 `run.json`，启动器会保留原始失败或中断，并在日志中提示记录保存失败；此时文件可能仍是上一次保存的状态。任务正常完成但最终记录写入失败时，命令仍报错退出。
+
+ONNX 对照报告必须满足 `samples == steps_per_env`，每步按环境编号轮换采样；推理后端为 `CPUExecutionProvider`，PyTorch 策略使用完整 FP32，`atol` 和 `rtol` 均为 `1e-4`。在线完成检查、离线验收和策略对比都会拒绝缺失/不足的样本、改写的对照配置，以及非有限或负的最大绝对误差。报告中的 ONNX 路径也须与运行命令一致。最大绝对误差用于汇总，不能单独与 `atol` 比较判定成功，因为逐元素允许误差还包含相对容差项。
+
+`evaluate` 与 `export` 均默认 headless，也接受显式 `--headless`。评估在启动 CUDA 检查和任务工作进程前清除 `DISPLAY`、`WAYLAND_DISPLAY`，覆盖继承的 `MUJOCO_GL` / `PYOPENGL_PLATFORM` 为 `egl`；无需桌面或 Xvfb。`--video` 使用离屏渲染，可与 `--headless --quiet` 同时使用，多种子评估保持相同设置。单次和批量 `run.json` 的 `execution` 记录 headless、录像与 GL 配置，各种子的 `runtime.json` 记录检查工作进程实际环境；交互式 `play` 保留查看器设置。
+
+评估工作进程报错时，具体异常保存在 `evaluation.failure.json`，并关联到同目录 `run.json` 的 `evaluation_failure`。例如 ONNX 对照失败会保留步骤、环境编号和动作误差；多种子评估查看对应 `seed-N/`。若工作进程未能生成该文件，则查看阶段日志及记录的退出错误。
+
+评估在 GPU 检查前将 checkpoint 和可选 ONNX 复制到运行目录的 `inputs/`，核对复制前后的 SHA256；`--run` 还核对所选训练记录的模型哈希。多种子评估只复制一次，所有种子共用同一份输入，启动后替换或删除外部源模型不会影响本次评估。各次评估开始前检查快照完整性，结束后核对报告中的 checkpoint / ONNX 哈希。`run.json.input_snapshot` 保存原路径、实际快照路径和哈希；离线 `assess` / `compare` 也检查报告与快照记录是否一致。快照会占用一份模型存储空间。
 
 步态评估还会输出以下指标，无需新增参数：
 
@@ -148,7 +208,7 @@ python -m embodiedforge.microduck evaluate \
 
 比较不同训练阶段的 checkpoint 时，添加相同的 `--curriculum-step 0`（或其他非负整数），将两者的**评估课程起点**统一。否则，即使速度和种子相同，保存的课程计数不同仍会改变其他随机化与奖励条件。该参数在首次 reset 前生效，报告记录实际起点及其来自 checkpoint 还是显式覆盖；其他课程随后仍随评估步数推进。
 
-添加 `--video` 可同时将环境 0 录制为评估目录中的 `policy.mp4`；多种子运行在各 `seed-N/` 中分别保存。视频为 640 × 480、按仿真控制频率播放（当前 50 fps），帧数等于 `--steps`，摄像机跟踪机器人。录像使用上游 MuJoCo 离屏渲染器和隔离环境已有的 FFmpeg，逐帧编码，默认选择 EGL；若设置了 `MUJOCO_GL` 则保留该选择。无需桌面窗口，仍需要可用的 GL 渲染环境。
+添加 `--video` 可同时将环境 0 录制为评估目录中的 `policy.mp4`；多种子运行在各 `seed-N/` 中分别保存。视频为 640 × 480、按仿真控制频率播放（当前 50 fps），帧数等于 `--steps`，摄像机跟踪机器人。录像使用上游 MuJoCo 离屏渲染器和隔离环境已有的 FFmpeg，逐帧编码。评估入口统一设置 EGL，不继承终端中的 GLFW/GLX 选择。无需桌面窗口，仍需要可用的 GL 渲染环境。
 
 `evaluation.json.video` 记录帧数、帧率、文件散列、OpenGL 厂商/设备/版本和采样方式。CUDA 与 EGL 可能选择不同的 GPU，应以这里的 OpenGL 信息判断实际渲染设备。视频在每次控制步后采样，包含自动重置后的画面；速度与终止统计仍取重置前的 metrics 回调。录像只展示环境 0，不能代替全部环境的统计；启用录像的运行耗时也不适合与纯训练吞吐直接比较。退出或中断时关闭编码器和渲染器，失败运行中保留的部分视频不代表评估已完成。
 
@@ -156,7 +216,6 @@ python -m embodiedforge.microduck evaluate \
 
 ```bash
 python -m embodiedforge.microduck evaluate \
-  --repo /home/ubuntu/workspace/3rdparty/microduck_rl \
   --checkpoint PATH_TO_MODEL.pt --onnx PATH_TO_POLICY.onnx \
   --velocity 0.2 0 0 --no-pushes \
   --num-envs 8 --steps 250 --seeds 0 1 2 \
@@ -169,7 +228,9 @@ python -m embodiedforge.microduck evaluate \
 
 每个速度轴同时汇总 `mean_command`、`mean_actual` 和 `bias`（实际均值减指令均值）。均值能区分站立与实际前进，但正负摆动可能相互抵消，必须与 RMSE 一起阅读，不能用较小的平均偏差代替逐步跟踪误差。
 
-汇总要求 checkpoint 内容、任务、环境数、步数、评估条件、精度和 ONNX 对照配置一致，且每次报告的样本数完整、指标有限。批次开始时记录 checkpoint 散列，后续模型替换会导致失败。中途失败或 Ctrl+C 会保留已经完成的种子和失败诊断，根目录状态标为失败或中断，不生成完整汇总，也不会覆盖已有输出目录。
+汇总要求 checkpoint 内容、任务、环境数、步数、评估条件、精度和 ONNX 对照配置一致，且每次报告的样本数完整、指标有限。批次开始时冻结 checkpoint 和可选 ONNX，替换外部源模型不影响本次运行；修改运行目录内的模型快照会导致完整性检查失败。中途失败或 Ctrl+C 会保留已经完成的种子和失败诊断，根目录状态标为失败或中断，不生成完整汇总，也不会覆盖已有输出目录。
+
+单次评估、多种子评估和离线验收共用报告校验：核对任务、checkpoint、种子、环境数、步数、速度指令、推扰、ONNX 与课程设置，并检查样本完整性和指标有限性。即使不指定行为阈值，也不会将参数不符、缺少指标、NaN/Infinity 或 JSON 数值溢出的报告标记为成功。在线校验失败时保留原始 `evaluation.json`，`run.json` 标记 `status=failed`、`failed_phase=validate`，命令退出码为 1；多种子评估不会继续执行下一组。完整但未达到行为阈值的结果仍标记 `rejected`，退出码为 3。
 
 为单种子或多种子评估指定验收阈值，可添加以下参数：
 
@@ -215,6 +276,8 @@ python -m embodiedforge.microduck compare \
 
 两次评估须使用相同的上游提交、锁文件、任务、种子集合、环境数、时长、精度、指令、推扰和课程起点。ONNX 文件可以不同，但对照采样方式和容差须一致；种子顺序可以不同，会按编号配对。旧报告未记录课程起点时，需要重新评估。与 `assess` 一样，该命令不依赖训练 SDK 或 GPU，并保存原始输入快照。
 
+本地移植模式还要求两次评估的 `implementation_sha256` 和 `requirements_sha256` 相同，防止将任务、奖励或物理实现变化误算为模型改进。实现哈希涵盖运行时保存的整个 EmbodiedForge 包代码与资产，因此修改启动器或报告代码也会改变它；代码更新后，应在同一版本下重新评估两个 checkpoint 再比较。不同实现种类、本地实现信息缺失或哈希不同时，`compare` 在创建输出前退出并提示重新评估。`comparison.json` 和 `run.json` 的 `source_verification` 记录核对字段；本地记录为 `local_implementation_and_requirements`，两份旧上游记录为 `upstream_baseline_only`，后者不宣称核对了本地实现。
+
 `comparison.json` 给出各指标的 before/after 值、逐种子变化及变化的平均值与样本标准差。变化统一定义为 `after - before`：RMSE 为负通常表示误差下降，存活数为正表示增加。不推断统计显著性或自动给出总体胜负；使用 `assess` 对候选模型执行具体验收要求。
 
 ## Newton 原生移植范围
@@ -231,4 +294,14 @@ python -m embodiedforge.microduck compare \
 
 本轮 2,000 次追加训练、同条件模型对比、录像及未达标原因见 [2026-09-12 优化结果](microduck-optimization-20260912.md)。
 
-初期 smoke、续训、固定指令与多种子验收记录见 [2026-09-11 验证记录](microduck-validation-20260911.md)。
+早期验证、续训、固定指令与多种子验收记录见 [2026-09-11 验证记录](microduck-validation-20260911.md)。
+
+## 迁移兼容模式
+
+仅在需要复核历史行为时显式传入 `--repo /home/ubuntu/workspace/3rdparty/microduck_rl`。该模式继续验证原仓库的固定提交和干净状态，默认使用旧 `.cache/microduck-venv`。两种模式的依赖环境分别保存，避免 mjlab 自动加载旧任务插件并覆盖本地注册；本地 worker 会拒绝包含 `mjlab-microduck` 分发包的环境。
+
+同一基线任务的历史 checkpoint 可直接用于本地 `--run` / `--resume-run`。这些检查核对任务与依赖基线，不要求历史 manifest 已经含有本地实现散列；新运行记录保存当前实现的实际文件散列。源码修改后无需重装依赖；修改依赖清单后必须重新 `setup`。
+
+迁移验证记录见 [本地移植验证](microduck-port-20260916.md)。
+
+本轮工程改进与续训对照见 [一小时优化记录](microduck-hour-optimization-20260916.md)。

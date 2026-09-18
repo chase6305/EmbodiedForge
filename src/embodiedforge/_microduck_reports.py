@@ -7,10 +7,8 @@ import statistics
 from pathlib import Path
 
 
-def load_evaluation_run(directory: Path) -> tuple[list[dict], dict, dict[str, bytes]]:
-    """Read a completed evaluation once; retain exact inputs for an offline audit."""
-    directory = directory.expanduser().resolve()
-    inputs = {}
+def decode_evaluation_json(raw):
+    """Reject non-object JSON and nonfinite values, including exponent overflow."""
 
     def finite_float(value):
         result = float(value)
@@ -21,13 +19,87 @@ def load_evaluation_run(directory: Path) -> tuple[list[dict], dict, dict[str, by
     def invalid_constant(value):
         raise ValueError(f"Invalid JSON constant: {value}")
 
+    value = json.loads(raw, parse_float=finite_float, parse_constant=invalid_constant)
+    if not isinstance(value, dict):
+        raise ValueError("Expected JSON object for evaluation")
+    return value
+
+
+def validate_evaluation_report(report, manifest):
+    """Use the same report contract before completion and during offline audits."""
+    try:
+        commands = [
+            command
+            for command in manifest["commands"]
+            if len(command) >= 10 and command[3] == "evaluate"
+        ]
+        if len(commands) != 1:
+            raise ValueError("Missing or ambiguous evaluation command")
+        command = commands[0]
+        for key, value in (
+            ("seed", int(command[7])),
+            ("num_envs", int(command[5])),
+            ("steps_per_env", int(command[6])),
+            ("checkpoint", command[4]),
+        ):
+            if report[key] != value:
+                raise ValueError(
+                    f"Evaluation report disagrees with run manifest: {key}"
+                )
+        options = manifest["evaluation_options"]
+        if json.loads(command[9]) != options:
+            raise ValueError("Evaluation options disagree with recorded command")
+        conditions = report["conditions"]
+        if conditions["velocity_body_frame"] != options["velocity"]:
+            raise ValueError("Reported velocity differs from requested velocity")
+        if options["no_pushes"] and conditions["pushes_enabled"]:
+            raise ValueError("Reported pushes differ from requested settings")
+        if bool(options["onnx"]) != (report["onnx_parity"] is not None):
+            raise ValueError("Reported ONNX check differs from requested settings")
+        if options["onnx"] and report["onnx_parity"].get("onnx") != options["onnx"]:
+            raise ValueError("Reported ONNX path differs from requested model")
+        if (
+            options.get("curriculum_step") is not None
+            and conditions.get("curriculum_start_step") != options["curriculum_step"]
+        ):
+            raise ValueError("Reported curriculum differs from requested settings")
+        if "curriculum_start_step" in conditions:
+            override = options.get("curriculum_step")
+            expected = (
+                report["checkpoint_metadata"]["common_step_counter"]
+                if override is None
+                else override
+            )
+            actual = conditions["curriculum_start_step"]
+            if (
+                type(actual) is not int
+                or actual < 0
+                or actual != expected
+                or conditions.get("curriculum_source")
+                != ("checkpoint" if override is None else "override")
+            ):
+                raise ValueError(
+                    "Reported curriculum source or counter is inconsistent"
+                )
+        if report["task"] != manifest["task"]:
+            raise ValueError("Reported task differs from run manifest")
+        if "input_snapshot" in manifest:
+            from ._microduck_inputs import verify_report_inputs
+
+            verify_report_inputs(report, manifest["input_snapshot"])
+    except (KeyError, TypeError, IndexError, AttributeError) as exc:
+        raise ValueError(f"Incomplete evaluation manifest/report: {exc}") from exc
+    aggregate_evaluations([report])
+
+
+def load_evaluation_run(directory: Path) -> tuple[list[dict], dict, dict[str, bytes]]:
+    """Read a completed evaluation once; retain exact inputs for an offline audit."""
+    directory = directory.expanduser().resolve()
+    inputs = {}
+
     def read(relative):
         raw = (directory / relative).read_bytes()
-        value = json.loads(
-            raw, parse_float=finite_float, parse_constant=invalid_constant
-        )
-        if not isinstance(value, dict):
-            raise ValueError(f"Expected JSON object: {relative}")
+        value = decode_evaluation_json(raw)
         inputs[relative] = raw
         return value
 
@@ -45,63 +117,7 @@ def load_evaluation_run(directory: Path) -> tuple[list[dict], dict, dict[str, by
         completed(manifest, "evaluate")
         report = read(prefix + "evaluation.json")
         read(prefix + "runtime.json")
-        try:
-            commands = [
-                command
-                for command in manifest["commands"]
-                if len(command) >= 10 and command[3] == "evaluate"
-            ]
-            if len(commands) != 1:
-                raise ValueError("Missing or ambiguous evaluation command")
-            command = commands[0]
-            for key, value in (
-                ("seed", int(command[7])),
-                ("num_envs", int(command[5])),
-                ("steps_per_env", int(command[6])),
-                ("checkpoint", command[4]),
-            ):
-                if report[key] != value:
-                    raise ValueError(
-                        f"Evaluation report disagrees with run manifest: {key}"
-                    )
-            options = manifest["evaluation_options"]
-            if json.loads(command[9]) != options:
-                raise ValueError("Evaluation options disagree with recorded command")
-            conditions = report["conditions"]
-            if conditions["velocity_body_frame"] != options["velocity"]:
-                raise ValueError("Reported velocity differs from requested velocity")
-            if options["no_pushes"] and conditions["pushes_enabled"]:
-                raise ValueError("Reported pushes differ from requested settings")
-            if bool(options["onnx"]) != (report["onnx_parity"] is not None):
-                raise ValueError("Reported ONNX check differs from requested settings")
-            if (
-                options.get("curriculum_step") is not None
-                and conditions.get("curriculum_start_step")
-                != options["curriculum_step"]
-            ):
-                raise ValueError("Reported curriculum differs from requested settings")
-            if "curriculum_start_step" in conditions:
-                override = options.get("curriculum_step")
-                expected = (
-                    report["checkpoint_metadata"]["common_step_counter"]
-                    if override is None
-                    else override
-                )
-                actual = conditions["curriculum_start_step"]
-                if (
-                    type(actual) is not int
-                    or actual < 0
-                    or actual != expected
-                    or conditions.get("curriculum_source")
-                    != ("checkpoint" if override is None else "override")
-                ):
-                    raise ValueError(
-                        "Reported curriculum source or counter is inconsistent"
-                    )
-            if report["task"] != manifest["task"]:
-                raise ValueError("Reported task differs from run manifest")
-        except (KeyError, TypeError, IndexError) as exc:
-            raise ValueError(f"Incomplete evaluation manifest/report: {exc}") from exc
+        validate_evaluation_report(report, manifest)
         return report
 
     manifest = read("run.json")
@@ -126,6 +142,11 @@ def load_evaluation_run(directory: Path) -> tuple[list[dict], dict, dict[str, by
             for key in ("source", "task", "evaluation_options"):
                 if child.get(key) != manifest.get(key):
                     raise ValueError(f"Child run disagrees with batch: {key}")
+            if (
+                "input_snapshot" in manifest
+                and child.get("input_snapshot") != manifest["input_snapshot"]
+            ):
+                raise ValueError("Child input snapshot disagrees with batch")
             report = read_seed(prefix, child)
             if report["seed"] != seed or report.get("checkpoint_metadata", {}).get(
                 "sha256"
@@ -165,6 +186,59 @@ def validate_criteria(criteria: dict) -> dict:
         ):
             raise ValueError(f"Invalid evaluation criterion {name}: {value}")
     return dict(criteria)
+
+
+def compare_sources(before, after):
+    """Require comparable evaluation code, while identifying legacy provenance."""
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        raise ValueError("Comparison source information is missing")
+    fields = {}
+    for key in ("revision", "uv_lock_sha256"):
+        if (
+            not isinstance(before.get(key), str)
+            or not before[key]
+            or before[key] != after.get(key)
+        ):
+            raise ValueError(f"Comparison upstream source differs or is missing: {key}")
+        fields[key] = before[key]
+    kinds = (before.get("kind"), after.get("kind"))
+    if kinds == (None, None):
+        # Historical fixed upstream checkouts did not record local package hashes.
+        if any(
+            key in source
+            for source in (before, after)
+            for key in (
+                "implementation",
+                "implementation_sha256",
+                "requirements_sha256",
+            )
+        ):
+            raise ValueError(
+                "Comparison local source is missing its implementation kind"
+            )
+        return {"level": "upstream_baseline_only", "fields": fields}
+    if kinds != ("repository_owned", "repository_owned"):
+        raise ValueError(
+            "Comparison implementation kinds differ or are unsupported; reevaluate both policies with the same implementation"
+        )
+    if before.get("implementation") != "embodiedforge.locomotion.microduck" or before[
+        "implementation"
+    ] != after.get("implementation"):
+        raise ValueError("Comparison local implementation differs or is missing")
+    fields["implementation"] = before["implementation"]
+    for key in ("implementation_sha256", "requirements_sha256"):
+        value = before.get(key)
+        if (
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(c not in "0123456789abcdef" for c in value)
+            or value != after.get(key)
+        ):
+            raise ValueError(
+                f"Comparison local source differs or is missing: {key}; reevaluate both policies with the same implementation"
+            )
+        fields[key] = value
+    return {"level": "local_implementation_and_requirements", "fields": fields}
 
 
 def compare_evaluations(before: list[dict], after: list[dict]) -> dict:
@@ -367,6 +441,40 @@ def _validate_per_environment(tracking: dict, num_envs: int, steps: int) -> None
         close(value, math.hypot(*row[:2]))
 
 
+def _validate_onnx_parity(report):
+    parity = report["onnx_parity"]
+    if parity is None:
+        return
+    if not isinstance(parity, dict):
+        raise ValueError("Invalid ONNX parity report")
+    if (
+        type(parity.get("samples")) is not int
+        or parity["samples"] != report["steps_per_env"]
+    ):
+        raise ValueError(
+            "Incomplete ONNX sample count; expected one comparison per step"
+        )
+    for name in ("atol", "rtol", "max_absolute_error"):
+        value = parity.get(name)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or value < 0
+        ):
+            raise ValueError(f"Invalid ONNX {name}")
+    if parity["atol"] != 1e-4 or parity["rtol"] != 1e-4:
+        raise ValueError("ONNX tolerances differ from the evaluation contract")
+    if parity.get("provider") != "CPUExecutionProvider":
+        raise ValueError("Unexpected ONNX execution provider")
+    if parity.get("sampling") != "one environment per step, index = step % num_envs":
+        raise ValueError("Unexpected ONNX sampling rule")
+    if report["conditions"].get("policy_matmul_precision") != "ieee":
+        raise ValueError("ONNX comparison requires full FP32 policy precision")
+    # The maximum absolute error alone cannot establish elementwise parity:
+    # allowed error also depends on each reference action's magnitude.
+
+
 def _aggregate(reports: list[dict]) -> dict:
     first = reports[0]
     invariants = (
@@ -413,6 +521,7 @@ def _aggregate(reports: list[dict]) -> dict:
 
     rows = []
     for report in reports:
+        _validate_onnx_parity(report)
         for key in invariants:
             if report[key] != first[key]:
                 raise ValueError(f"Incompatible evaluation reports: {key}")

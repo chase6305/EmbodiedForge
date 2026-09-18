@@ -10,7 +10,7 @@ Choose the section for your task; installing every SDK is unnecessary. Run comma
 | --- | --- | --- |
 | `reach` / `hold` | Project-owned VectorEnv + CPU PPO; NumPy, MuJoCo, or other physics backends | Headless checkpoint evaluation and recording |
 | Go1 | Project-owned Go1 environment + PPO; CPU MuJoCo/mjbatch via installed packages or a pinned SDK | Shared Web live policy and motion replay |
-| Microduck | External Microduck/mjlab task and training stack; CUDA PPO | Native / Viser policy execution, ONNX export and comparison |
+| Microduck | Repository-owned flat walking task/assets; mjlab CUDA PPO | Native / Viser policy execution, ONNX export and comparison |
 | Native H1 | Project-owned MuJoCo/mjbatch CPU PPO; no IsaacLab | Fixed-command evaluation and shared Web motion replay |
 | H1 | External IsaacLab environment + RSL-RL; Newton / MuJoCo-Warp GPU physics | Fixed-command evaluation, offline HTML / Web motion replay |
 | Wuji / Wuji Light | External Wuji/UniLab environment and training stack; GPU PPO | Sequential trial evaluation and video recording |
@@ -33,22 +33,22 @@ python -m pip install -e '.[viz-robot]' 'mujoco==3.11.0'
 python -m embodiedforge recipes list
 ```
 
-Keep training SDKs isolated. Recipe and Microduck setup require Git, `uv`, and network access. Run only the setup commands you need. Sources must be clean checkouts at the pinned revisions; these commands do not switch the revision of your source repository.
+Keep training SDKs isolated. Recipe and Microduck setup require Git, `uv`, and network access. Run only the setup commands you need. External recipe sources must be clean checkouts at the pinned revisions; these commands do not switch the revision of your source repository.
 
 ```bash
 python -m embodiedforge recipes setup --source mjbatch \
   --repo /path/to/mjbatch --python 3.12 --timeout 1200
 python -m embodiedforge recipes setup --source wuji_unilab \
   --repo /path/to/wuji_unilab --python 3.12 --timeout 1200
-python -m embodiedforge.microduck setup --repo /path/to/microduck_rl
-python -m embodiedforge.microduck check --repo /path/to/microduck_rl
+python -m embodiedforge.microduck setup
+python -m embodiedforge.microduck check
 ```
 
 | Source | Pinned revision | Environment location |
 | --- | --- | --- |
 | mjbatch | `b84c0c20aedbdf048122cbc47f554e9b93cc4754` | `.cache/external/mjbatch/.venv` |
 | Wuji UniLab | `91ccfa0ec8c129b300865bd36c59dc9eed56a744` | `.cache/external/wuji_unilab/.venv` |
-| Microduck | `53b8971b61baf5b7f3c16d135dd7cac37623de4b` | `.cache/microduck-venv` |
+| Microduck | `53b8971b61baf5b7f3c16d135dd7cac37623de4b` | `.cache/microduck-native-venv` |
 | IsaacLab H1 | `2e44ddb2e19536579140496023b5ccb060bc4152` | Existing environment selected with `--environment` |
 
 H1 has no automatic `setup` subcommand. Prepare the isolated Python 3.12 / RSL-RL 5.0.1 environment described in the [H1 guide](h1-isaaclab.md) first. `--environment` takes the environment root, not its Python executable. Wuji, Microduck, and IsaacLab H1 require their respective CUDA stacks; Go1 and both solver tasks run on CPU. When customizing caches, pass the same `--cache` or Microduck `--env-dir` at every step.
@@ -182,41 +182,46 @@ This transition example reports metrics without acceptance thresholds. See [task
 
 ## Microduck: training, export, and policy execution
 
-Complete Microduck setup/check first. Smoke tests 64 environments, five updates, and ONNX export. Use a separate directory for the larger training run.
+After the initial Microduck setup, start training directly. Training and resume are headless by default; `--headless` is also accepted explicitly. No desktop or Xvfb is needed. CUDA and sufficient GPU memory are still required. The default uses the local port without an upstream checkout; optional `--repo` selects the legacy implementation and its separate environment.
 
 ```bash
-python -m embodiedforge.microduck smoke --repo /path/to/microduck_rl \
-  --output runs/commands-microduck-smoke
-python -m embodiedforge.microduck train --repo /path/to/microduck_rl \
+python -m embodiedforge.microduck train --headless \
   --num-envs 4096 --iterations 4000 --output runs/commands-microduck
-python -m embodiedforge.microduck progress --repo /path/to/microduck_rl \
+python -m embodiedforge.microduck progress \
   --run runs/commands-microduck
 ```
 
-Read the actual model path from the `checkpoint` field in `runs/commands-microduck/run.json` and substitute it for `/path/to/microduck/model.pt`. Do not infer filenames from iteration counts. Run resume, native playback, or Viser playback as needed:
+Training/evaluation retain an implementation snapshot and per-stage logs. Workspace edits do not affect an already-started local task. `progress` reports the phase, log path, and verifiable launcher status. Training accepts `--seed` (default 0); SIGTERM preserves saved checkpoints and records interruption.
+
+
+Pass a completed training directory directly; the launcher selects the checkpoint recorded in `run.json`. For training only, `--resume-run` also accepts finalized `interrupted` or `failed` runs and selects the latest checkpoint from their recorded list. It refuses running jobs, ambiguous lists or missing selected models; the original directory is preserved. Run resume, native playback, or Viser playback as needed:
 
 ```bash
-python -m embodiedforge.microduck train --repo /path/to/microduck_rl \
-  --resume /path/to/microduck/model.pt --num-envs 4096 --iterations 1000 \
+python -m embodiedforge.microduck train --headless \
+  --resume-run runs/commands-microduck --num-envs 4096 --iterations 1000 \
   --output runs/commands-microduck-resumed
-python -m embodiedforge.microduck play --repo /path/to/microduck_rl \
-  --checkpoint /path/to/microduck/model.pt --viewer native --steps 500 --seed 0
-python -m embodiedforge.microduck play --repo /path/to/microduck_rl \
-  --checkpoint /path/to/microduck/model.pt --viewer viser
+python -m embodiedforge.microduck play \
+  --run runs/commands-microduck --viewer native --steps 500 --seed 0
+python -m embodiedforge.microduck play \
+  --run runs/commands-microduck --viewer viser
 ```
 
 Viser uses the upstream page, separate from the shared Go1/H1 Web viewer, and does not support the native mode’s `--steps` option. Export the same checkpoint, then compare ONNX and Torch actions on actual observations:
 
 ```bash
-python -m embodiedforge.microduck export --repo /path/to/microduck_rl \
-  --checkpoint /path/to/microduck/model.pt --output runs/commands-microduck.onnx
-python -m embodiedforge.microduck evaluate --repo /path/to/microduck_rl \
-  --checkpoint /path/to/microduck/model.pt --onnx runs/commands-microduck.onnx \
+python -m embodiedforge.microduck export \
+  --run runs/commands-microduck --output runs/commands-microduck.onnx
+python -m embodiedforge.microduck evaluate \
+  --run runs/commands-microduck --onnx runs/commands-microduck.onnx \
   --velocity 0.2 0 0 --no-pushes --num-envs 16 --steps 500 --seeds 0 1 2 \
   --output runs/commands-microduck-eval
 ```
 
-Export includes observation normalization, with 61 input and 14 output dimensions. Torch actions still drive simulation during comparison; this is not independent ONNX closed-loop or hardware validation. No behavioral thresholds are set in this example; add RMSE or survival requirements as described in the [Microduck guide](microduck.md).
+Export runs headless by default and includes observation normalization, with 61 input and 14 output dimensions. The ONNX file is published only after inference validation; logs and snapshots remain in a separate hidden directory beside the output, including on failure. Export supports `--quiet` and refuses to overwrite either an existing model or validation report. Torch actions still drive simulation during comparison; this is not independent ONNX closed-loop or hardware validation. No behavioral thresholds are set in this example; add RMSE or survival requirements as described in the [Microduck guide](microduck.md).
+
+Evaluation also runs headless by default and accepts `--headless --quiet --video`. Video uses offscreen EGL without a desktop or Xvfb; multi-seed runs save `policy.mp4` inside each `seed-N/` directory.
+
+Evaluation copies the checkpoint and optional ONNX model into the run's `inputs/` directory once for all seeds. Replacing external files after capture does not change the evaluation. `run.json.input_snapshot` records source paths and SHA256 hashes, which are checked against evaluation reports during execution and offline assessment.
 
 <a id="h1"></a>
 
@@ -271,6 +276,14 @@ The larger training command has no extra timeout; add `--timeout` to bound wall-
 <a id="wuji"></a>
 
 ## Wuji / Wuji Light: reorientation training
+
+Training is headless by default (`--headless` is also accepted). For either Wuji task,
+add `--no-headless --viewer-port 8083 --viewer-fps 10` to preview training environment 0
+at `http://127.0.0.1:8083`. This shows exploratory rollout actions with a fixed camera
+and no goal overlay. Rendering adds overhead and requires working EGL/OpenGL drivers.
+Closing the browser does not stop training; the preview server exits with training.
+Go1 also supports `--no-headless`. TensorBoard remains a separate service.
+See the [complete Wuji walkthrough (Chinese)](wuji-training.md).
 
 Complete wuji_unilab setup first. Standard and Light are different tasks: use separate run directories and preserve `--task` for resume and evaluation. The small budgets below validate the workflow:
 
@@ -379,7 +392,7 @@ python -m embodiedforge live --run /path/to/runs/go1-trained \
   --render-backend mujoco --port 8080
 ```
 
-After installation, the CLI works independently of the source working directory. The wheel includes Web HTML/JavaScript, the Go1 scene XML, and the port’s license. Keep `--worker-python` pointed at the virtual environment entry point rather than resolving its symlink to a generic Python binary. The wheel contains EmbodiedForge code; external SDKs, pinned source records, and robot assets must still be prepared as described above. OVRTX also requires its viewer dependencies and driver.
+After installation, the CLI works independently of the source working directory. The wheel includes Web HTML/JavaScript, the Go1 scene XML, and the port’s license. Keep `--worker-python` pointed at the virtual environment entry point rather than resolving its symlink to a generic Python binary. The wheel contains EmbodiedForge code plus Microduck walking assets and license; external SDKs and other tasks’ assets must still be prepared as described above. OVRTX also requires its viewer dependencies and driver.
 
 A source checkout remains useful for development and reproducing examples. Source distributions additionally include bilingual documentation, the illustration, configuration, examples, and benchmark scripts; training artifacts and caches are excluded. After a version change, substitute the actual built wheel filename above.
 

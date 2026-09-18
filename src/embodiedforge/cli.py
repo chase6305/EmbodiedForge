@@ -17,6 +17,11 @@ from .rollout import DemonstrationPolicy, run_rollout
 
 def main() -> None:
     """Parse configuration, select a workflow and own its process-level resources."""
+    if sys.argv[1:2] == ["act"]:
+        from .act import main as act_main
+
+        act_main(sys.argv[2:])
+        return
     if sys.argv[1:2] == ["h1-native"]:
         from .native_h1 import main as native_h1_main
 
@@ -59,6 +64,7 @@ def main() -> None:
             "recipes",
             "replay",
             "live",
+            "act",
         ],
     )
     parser.add_argument("--config", type=Path)

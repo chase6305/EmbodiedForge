@@ -8,7 +8,7 @@
 
 面向 RL 与 VLA 实验的模块化机器人仿真、数据与训练平台。任务、物理、渲染、传感器和策略通过独立接口组合；统一 Web 页面用于查看仿真、回放运动记录和控制在线策略。
 
-当前包含 CPU `VectorEnv` 参考运行时、本仓库维护的 Go1 与原生 H1 任务及 PPO，以及 Microduck、IsaacLab H1、Wuji 等任务的独立训练入口。各部分的实现范围见下表，长期设计见 [架构文档](docs/architecture.md)。
+当前包含 CPU `VectorEnv` 参考运行时、本仓库维护的 Go1 与原生 H1 任务及 PPO，基于 mjlab 的本地 Microduck 行走任务，以及 IsaacLab H1、Wuji 等任务的独立训练入口。各部分的实现范围见下表，长期设计见 [架构文档](docs/architecture.md)。
 
 **快速导航：** [快速运行](#quick-start) · [训练与部署命令](docs/training-deployment.md) · [Web 交互](#web-viewer) · [Go1 在线](#go1-live) · [运动回放](#robot-replay) · [机器人训练](#robot-training) · [常见问题](#troubleshooting) · [文档索引](#documentation)
 
@@ -40,9 +40,11 @@ python -m embodiedforge.visualization --physics numpy --port 8080
 | 核心训练与数据 | PyTorch PPO、终止/超时 GAE、checkpoint 评估、episode 记录与窗口读取 | 核心 PPO 使用 proprio；训练与数据验证可独立运行 |
 | Go1 行走 | 任务、奖励、镜像策略、归一化和 PPO 已移植到本仓库；支持训练、续训、评估与在线控制 | 仍依赖 mjbatch、MuJoCo、Torch 和 Menagerie 资产；尚未纳入核心 `VectorEnv` |
 | H1 原生训练 | MJCF 模型、关节分组、批量命令、随机化、重置、力矩数据与 PPO | CPU MuJoCo/mjbatch，不依赖 IsaacLab；初步策略尚未通过行走跟踪验收。[说明](docs/h1-native.md) |
-| 其他机器人任务 | Microduck、IsaacLab H1、Wuji 重定向、Cartpole MPC、机械臂投掷联合优化 | 独立 SDK 环境中的上游流程与适配层，非完整移植 |
+| Microduck 行走 | 本地任务、MDP 辅助代码、执行器扩展、MJCF 与网格 | 独立环境中的 mjlab / MuJoCo-Warp / BAM / RSL-RL |
+| 其他机器人任务 | IsaacLab H1、Wuji 重定向、Cartpole MPC、机械臂投掷联合优化 | 独立 SDK 环境中的上游流程与适配层，非完整移植 |
 | 统一 Web | Raster / MuJoCo / OpenGL / OVRTX、Go1 在线策略、Go1/H1 网格回放 | 查看器与物理后端独立选择；Web 画面不作为训练相机观测 |
 | VLA 接口 | 图像、语言、proprio 数据窗口及 action chunk 执行器 | 尚无预训练 VLA 模型接入或微调器 |
+| ACT 模仿学习 | LeRobot 数据导出、ACT 训练、闭环评估、实验比较与推理打包 | 依赖已安装的 LeRobot 包；模型/训练器未移植。独立 Python 3.12+ 环境，见 [ACT 指南](docs/act.md) |
 
 当前训练有三条路径：核心 `VectorEnv` + PPO、本仓库 Go1/原生 H1 环境 + PPO、外部 SDK 流程。Go1/H1 机器人训练尚未统一到 `VectorEnv`。新启动的核心、Go1 和原生 H1 训练会用 `training-runtime.json` 记录实际加载的实现，详见[训练实现说明](docs/training-deployment.md)。
 
@@ -179,6 +181,13 @@ with VectorEnv(Config(physics="numpy", render="raster", channels=("rgb",))) as e
 
 ## 机器人训练与上游接入
 
+Go1 新增 [Light Loco Parkour 实验性后端](docs/light-loco-parkour.md)：
+`--standalone --go1-learner light-loco` 接入上游 PPO 损失与 GAE，支持续训、评估和在线控制。
+训练默认 `--headless`，使用 `--no-headless` 开启训练画面；尚未包含多技能跑酷和蒸馏。
+
+灵巧手见 [Wuji 完整训练流程](docs/wuji-training.md)：默认 headless，训练时加
+`--no-headless` 可在浏览器观察真实采样动作，并可用 TensorBoard 查看训练曲线。
+
 按任务复制安装、训练、续训、评估、模型导出和远程 Web 运行命令，见 [训练与部署命令手册](docs/training-deployment.md)。覆盖 reach/hold、Go1、Microduck、H1、Wuji/Light、Cartpole MPC 和机械臂 CEM；列明各任务实际支持的运行与部署方式。
 
 机器人训练 SDK 使用独立环境，避免不同 Warp、Torch、MuJoCo 版本相互覆盖。安装前按任务文档准备固定 revision 的源码检出；本机路径、缓存和 GPU 要求均在对应文档中说明。
@@ -186,7 +195,7 @@ with VectorEnv(Config(physics="numpy", render="raster", channels=("rgb",))) as e
 | 入口 | 任务与方法 | 实现方式与文档 |
 | --- | --- | --- |
 | `python -m embodiedforge recipes` | Go1 PPO、Wuji / Wuji Light 重定向 PPO、Cartpole MPC、机械臂投掷 CEM | Go1 已移植；其他为固定源码快照加适配层。[任务配方](docs/recipes.md) |
-| `python -m embodiedforge.microduck` | Microduck 平地行走 PPO、评估、回放和 ONNX 导出 | 隔离运行上游 mjlab 流程。[Microduck](docs/microduck.md) |
+| `python -m embodiedforge.microduck` | Microduck 平地行走 PPO、评估、回放和 ONNX 导出 | 本地行走任务与资产，隔离运行 mjlab 训练。[Microduck](docs/microduck.md) |
 | `python -m embodiedforge h1-native` | H1 原生训练、续训、固定指令评估与运动记录 | 项目内 CPU 任务与 PPO。[原生 H1](docs/h1-native.md) |
 | `python -m embodiedforge h1` | H1 平地行走训练、续训、多种子固定指令评估 | 独立 IsaacLab / Newton / MuJoCo-Warp 配方。[H1](docs/h1-isaaclab.md) |
 
@@ -257,7 +266,7 @@ python -m ruff check src tests
 | 训练与部署命令 | [按任务运行手册](docs/training-deployment.md) · [English](docs/training-deployment.en.md) |
 | 架构与接口 | [目标架构](docs/architecture.md) · [接口与模块](docs/interfaces.md) · [实现与扩展](docs/implementation.md) |
 | 查看器 | [安装与后端](docs/viewers.md) · [机器人回放](docs/robot-web-replay.md) · [Go1 在线控制](docs/go1-live-web.md) |
-| 训练入口 | [任务配方](docs/recipes.md) · [Microduck](docs/microduck.md) · [IsaacLab H1](docs/h1-isaaclab.md) |
+| 训练入口 | [任务配方](docs/recipes.md) · [Microduck](docs/microduck.md) · [机械鸭模型与实验](docs/microduck-model-training-ablation.md) · [IsaacLab H1](docs/h1-isaaclab.md) |
 | Go1 实验 | [转向精度](docs/go1-yaw-study.md) · [横移与急停](docs/go1-response-study.md) · [复合指令](docs/go1-maneuver-study.md) · [能力保留](docs/go1-preservation-study.md) · [响应与计算优化](docs/go1-fast-response-study.md) |
 | 工程说明 | [Newton 兼容范围](docs/newton.md) · [日志设计](docs/logging.md) |
 

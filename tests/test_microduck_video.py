@@ -98,12 +98,16 @@ def test_disabled_video_needs_no_environment_or_renderer():
         assert info is None
 
 
-def test_video_streams_frames_and_finalizes_before_renderer(recorder):
-    env, path, process, _, events = recorder
+def test_video_streams_frames_and_finalizes_before_renderer(recorder, monkeypatch):
+    env, path, process, renderer, events = recorder
+    frame = np.arange(480 * 640 * 3, dtype=np.uint8).reshape(480, 640, 3)
+    frames = iter((frame, frame[::-1]))
+    monkeypatch.setattr(renderer, "render", lambda self: next(frames))
     with worker.evaluation_video(env, path) as (capture, info):
         capture()
         capture()
         assert process.stdin.tell() == 2 * 480 * 640 * 3
+        assert process.stdin.getvalue() == frame.tobytes() + frame[::-1].tobytes()
     assert info["frames"] == 2 and info["fps"] == 50
     assert len(info["sha256"]) == 64
     assert process.stdin.closed

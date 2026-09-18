@@ -7,6 +7,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
+from microduck_report_fixture import evaluation_report
 
 from embodiedforge import microduck
 
@@ -63,16 +64,22 @@ def test_source_changes_rejected(tmp_path):
 
 
 @pytest.mark.parametrize("interrupt", [False, True])
-def test_failed_run_preserves_status_and_checkpoints(tmp_path, monkeypatch, interrupt):
+def test_failed_run_preserves_status_and_checkpoints(
+    tmp_path, monkeypatch, caplog, interrupt
+):
     output = tmp_path / "run"
-    args = Namespace(command="smoke", output=output)
+    args = Namespace(command="train", num_envs=64, iterations=5, output=output)
 
-    def fail(command, *, cwd, env):
+    def fail(command, *, cwd, env, log_path=None, echo=True):
         if "mjlab_microduck.train_cli" not in command:
             return
         checkpoint = cwd / "logs/rsl_rl/microduck/first/model_0.pt"
         checkpoint.parent.mkdir(parents=True)
         checkpoint.touch()
+        (checkpoint.parent / "model_backup.pt").touch()
+        (checkpoint.parent / "model_900.pt").mkdir()
+        (checkpoint.parent / "model_999.pt").symlink_to(Path(__file__).resolve())
+        (checkpoint.parent / "model_1000.pt.partial.tmp").touch()
         if interrupt:
             raise KeyboardInterrupt
         raise subprocess.CalledProcessError(7, command)
@@ -87,50 +94,116 @@ def test_failed_run_preserves_status_and_checkpoints(tmp_path, monkeypatch, inte
     manifest = json.loads((output / "run.json").read_text())
     assert manifest["status"] == ("interrupted" if interrupt else "failed")
     assert len(manifest["checkpoints"]) == 1
+    assert manifest["checkpoints"][0].endswith("model_0.pt")
+    if not interrupt:
+        assert "exit status 7" in manifest["error"]
     assert "finished_at" in manifest
     with pytest.raises(FileExistsError):
         microduck.train_run(args, Path("/isolated/bin/python"), {}, {})
 
+    write_json = microduck.write_json
 
-def test_smoke_exports_latest_checkpoint_and_requires_validation(tmp_path, monkeypatch):
+    def fail_final_write(path, value):
+        if "finished_at" in value:
+            raise OSError("disk full")
+        write_json(path, value)
+
+    monkeypatch.setattr(microduck, "write_json", fail_final_write)
+    args.output = tmp_path / "unwritable-final-record"
+    with pytest.raises(
+        KeyboardInterrupt if interrupt else subprocess.CalledProcessError
+    ):
+        microduck.train_run(args, Path("/isolated/bin/python"), {}, {})
+    assert "Could not finalize run record" in caplog.text
+    assert "disk full" in caplog.text
+
+
+def test_train_selects_latest_checkpoint_without_automatic_export(
+    tmp_path, monkeypatch
+):
     output = tmp_path / "output with spaces"
     calls = []
 
-    def execute(command, *, cwd, env):
+    def execute(command, *, cwd, env, log_path=None, echo=True):
         calls.append(command)
         if "mjlab_microduck.train_cli" in command:
             folder = cwd / "logs/rsl_rl/microduck/first"
             folder.mkdir(parents=True)
             for iteration in (2, 10):
                 (folder / f"model_{iteration}.pt").touch()
-        elif "mjlab_microduck.export" in command:
-            assert command[command.index("--checkpoint-file") + 1].endswith(
-                "model_10.pt"
-            )
-        elif "onnx" in command:
-            raise RuntimeError("invalid actor observation shape")
+            (folder / "model_backup.pt").touch()
+            (folder / "model_900.pt").mkdir()
+        elif "metrics" in command:
+            assert command[4].endswith("model_10.pt")
+            assert command[5] == "12"
 
     monkeypatch.setattr(microduck, "run", execute)
-    with pytest.raises(RuntimeError, match="invalid actor"):
+    microduck.train_run(
+        Namespace(command="train", output=output, num_envs=128, iterations=12),
+        Path("/isolated/bin/python"),
+        {},
+        {},
+    )
+    manifest = json.loads((output / "run.json").read_text())
+    assert manifest["status"] == "complete"
+    assert manifest["checkpoint"].endswith("model_10.pt")
+    assert "onnx" not in manifest
+    assert len(calls) == 3
+    train = calls[1]
+    assert train[train.index("--env.scene.num-envs") + 1] == "128"
+    assert train[train.index("--agent.max-iterations") + 1] == "12"
+    assert train[train.index("--agent.logger") + 1] == "tensorboard"
+
+    write_json = microduck.write_json
+
+    def fail_final_write(path, value):
+        if "finished_at" in value:
+            raise OSError("disk full")
+        write_json(path, value)
+
+    monkeypatch.setattr(microduck, "write_json", fail_final_write)
+    with pytest.raises(OSError, match="disk full"):
         microduck.train_run(
-            Namespace(command="smoke", output=output),
+            Namespace(
+                command="train", output=tmp_path / "unsaved", num_envs=128, iterations=12
+            ),
             Path("/isolated/bin/python"),
             {},
             {},
         )
+
+
+def test_ambiguous_training_checkpoints_preserve_failure_record(tmp_path, monkeypatch):
+    output = tmp_path / "run"
+
+    def execute(command, **kwargs):
+        if "mjlab_microduck.train_cli" in command:
+            for session in ("first", "second"):
+                checkpoint = output / f"logs/rsl_rl/microduck/{session}/model_1.pt"
+                checkpoint.parent.mkdir(parents=True)
+                checkpoint.touch()
+
+    monkeypatch.setattr(microduck, "run", execute)
+    with pytest.raises(ValueError, match="Ambiguous checkpoint directories"):
+        microduck.train_run(
+            Namespace(command="train", output=output, num_envs=64, iterations=5),
+            Path("/isolated/python"),
+            {},
+            {},
+        )
     manifest = json.loads((output / "run.json").read_text())
-    assert manifest["status"] == "failed"
-    train = calls[1]
-    assert train[train.index("--env.scene.num-envs") + 1] == "64"
-    assert train[train.index("--agent.max-iterations") + 1] == "5"
-    assert train[train.index("--agent.logger") + 1] == "tensorboard"
+    assert manifest["status"] == "failed" and manifest["finished_at"]
+    assert len(manifest["checkpoints"]) == 2
+    assert "checkpoint" not in manifest
 
 
 def test_missing_checkpoint_is_not_reported_as_success(tmp_path, monkeypatch):
     monkeypatch.setattr(microduck, "run", lambda *a, **kw: None)
     with pytest.raises(RuntimeError, match="without producing a checkpoint"):
         microduck.train_run(
-            Namespace(command="smoke", output=tmp_path / "empty"),
+            Namespace(
+                command="train", num_envs=64, iterations=5, output=tmp_path / "empty"
+            ),
             Path("/isolated/bin/python"),
             {},
             {},
@@ -150,7 +223,9 @@ def test_resume_snapshots_input_and_validates_offset(tmp_path, monkeypatch, bad_
     output = tmp_path / "resumed"
     calls = []
 
-    def execute(command, *, cwd, env):
+    def execute(command, *, cwd, env, log_path=None, echo=True):
+        assert "DISPLAY" not in env and "WAYLAND_DISPLAY" not in env
+        assert env["MUJOCO_GL"] == env["PYOPENGL_PLATFORM"] == "egl"
         calls.append(command)
         if "checkpoint" in command:
             snapshot = Path(command[-2])
@@ -184,7 +259,12 @@ def test_resume_snapshots_input_and_validates_offset(tmp_path, monkeypatch, bad_
 
     monkeypatch.setattr(microduck, "run", execute)
     args = Namespace(
-        command="train", output=output, resume=source, num_envs=64, iterations=2
+        command="train",
+        output=output,
+        resume=source,
+        num_envs=64,
+        iterations=2,
+        source_run={"checkpoint_sha256": "snapshot-sha"},
     )
     if bad_audit:
         with pytest.raises(RuntimeError, match="initialization disagrees"):
@@ -196,6 +276,13 @@ def test_resume_snapshots_input_and_validates_offset(tmp_path, monkeypatch, bad_
     microduck.train_run(args, Path("/isolated/bin/python"), {}, {})
     manifest = json.loads((output / "run.json").read_text())
     assert manifest["status"] == "complete"
+    assert manifest["source_run"] == args.source_run
+    from embodiedforge._microduck_run import checkpoint_digest
+
+    assert manifest["checkpoint_sha256"] == checkpoint_digest(
+        Path(manifest["checkpoint"])
+    )
+    assert output / manifest["checkpoint_relative"] == Path(manifest["checkpoint"])
     assert manifest["resume"]["iteration"] == 42
     assert manifest["resume"]["learning_rate"] == 0.00003
     assert manifest["resume_initialization"]["counter_at_first_reset"] == 1032
@@ -238,7 +325,15 @@ def test_evaluation_failure_preserves_status(tmp_path, monkeypatch):
         onnx=None,
     )
 
+    failure = {
+        "error_type": "RuntimeError",
+        "error": "Parity failed at step 3, environment 1: ONNX action mismatch",
+    }
+
     def fail(command, **kwargs):
+        if command[3] == "check":
+            return
+        (output / "evaluation.failure.json").write_text(json.dumps(failure))
         raise subprocess.CalledProcessError(1, command)
 
     monkeypatch.setattr(microduck, "run", fail)
@@ -246,6 +341,8 @@ def test_evaluation_failure_preserves_status(tmp_path, monkeypatch):
         microduck.evaluate_run(args, Path("/isolated/bin/python"), {}, {})
     manifest = json.loads((output / "run.json").read_text())
     assert manifest["status"] == "failed"
+    assert manifest["failed_phase"] == "evaluate"
+    assert manifest["evaluation_failure"] == failure
     assert "finished_at" in manifest
     with pytest.raises(FileExistsError):
         microduck.evaluate_run(args, Path("/isolated/bin/python"), {}, {})
@@ -291,10 +388,10 @@ def test_evaluation_options_reach_worker_and_manifest(tmp_path, monkeypatch):
             assert options == {
                 "velocity": args.velocity,
                 "no_pushes": True,
-                "onnx": str(onnx),
+                "onnx": str(args.output / "inputs/policy.onnx"),
                 "curriculum_step": None,
             }
-            Path(command[8]).write_text("{}")
+            Path(command[8]).write_text(json.dumps(evaluation_report(command)))
 
     monkeypatch.setattr(microduck, "run", complete)
     microduck.evaluate_run(args, Path("/isolated/bin/python"), {}, {})

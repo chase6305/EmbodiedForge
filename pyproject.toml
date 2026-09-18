@@ -15,6 +15,7 @@ mujoco = ["mujoco>=3.2,<4"]
 mjbatch = ["mjbatch==0.1.0", "mujoco==3.11.0"]
 newton = ["newton @ https://github.com/newton-physics/newton/archive/refs/tags/v1.6.0rc1.zip"]
 train = ["torch>=2.2,<3"]
+light-loco = ["light-loco-parkour @ git+https://github.com/lucidrains/light-loco-parkour.git@963a6ec3b8b42eb29dd6b9dfed34ededd3c64c7b"]
 h1-native = ["mujoco==3.11.0", "mjbatch==0.1.0", "torch>=2.2,<3"]
 go1-native = ["mujoco==3.11.0", "mjbatch==0.1.0", "torch==2.9.0", "mujoco-menagerie==2026.9.0"]
 viz = ["viser>=1.1,<2", "pillow>=10"]
@@ -39,6 +40,7 @@ embodiedforge = "embodiedforge.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
+"embodiedforge.locomotion.microduck" = ["LICENSE", "NOTICE", "UPSTREAM.json", "requirements.txt", "robot/microduck/*.xml", "robot/microduck/assets/*.stl"]
 "embodiedforge.locomotion" = ["*.xml", "LICENSE.*"]
 "embodiedforge.viewers" = ["*.html", "*.js"]
 
