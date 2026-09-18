@@ -91,13 +91,20 @@ def test_runtime_command_guard_detects_reset_or_curriculum_changes():
         command_manager=SimpleNamespace(get_command=commands.__getitem__)
     )
     verify_fixed_commands(env, [0.2, 0, 0])
-    commands["twist"][1, 0] = 0
-    with pytest.raises(RuntimeError, match="changed: twist"):
-        verify_fixed_commands(env, [0.2, 0, 0])
+    for value in (0.0, float("nan"), float("inf")):
+        commands["twist"][1, 0] = value
+        with pytest.raises(RuntimeError, match="changed: twist"):
+            verify_fixed_commands(env, [0.2, 0, 0])
     commands["twist"][1, 0] = 0.2
     commands["head_pose"][0, 1] = 0.1
+    commands["body_pose"][0, 0] = float("nan")
     with pytest.raises(RuntimeError, match="changed: head_pose"):
         verify_fixed_commands(env, [0.2, 0, 0])
+    commands["head_pose"].zero_()
+    with pytest.raises(RuntimeError, match="changed: body_pose"):
+        verify_fixed_commands(env, [0.2, 0, 0])
+    commands["body_pose"][0, 0] = 0.5e-6
+    verify_fixed_commands(env, [0.2, 0, 0])
 
 
 @pytest.fixture
@@ -167,7 +174,8 @@ def test_all_velocity_axes_and_units_are_independent(metric_env):
     data.root_link_lin_vel_b[:, 2] = 999  # Vertical speed is not yaw rate.
     data.root_link_ang_vel_b[:, 2] = -2
     metric = EvaluationMetrics(None, env)
-    metric(env)
+    instantaneous_error = metric(env)
+    assert instantaneous_error.tolist() == [5.0, 5.0]
     report = metric.report(steps=1, step_dt=0.02)["velocity_tracking"]
     assert report["mean_actual"] == [-3, 4, -2]
     assert report["mae"] == [3, 4, 2]
@@ -284,6 +292,8 @@ def test_checkpoint_curriculum_counter_is_set_before_wrapper_reset(
         return instance
 
     def restore_checkpoint(*args, **kwargs):
+        assert kwargs["load_cfg"] == {"actor": True}
+        assert kwargs["map_location"] == "cpu"
         env.common_step_counter = 48000
 
     runner = SimpleNamespace(

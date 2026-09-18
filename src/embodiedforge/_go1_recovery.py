@@ -21,6 +21,7 @@ def publish_training_checkpoint(checkpoint, *, optimizer, request):
     save_go1_checkpoint(path, checkpoint, optimizer=optimizer)
     completed = iteration - request["start_iteration"] + 1
     result = {
+        "learner_backend": checkpoint.get("learner_backend", "native"),
         "checkpoint": path.as_posix(),
         "checkpoint_sha256": sha256(path),
         "checkpoint_iteration": iteration,
@@ -122,6 +123,8 @@ def recovery_result(run, manifest):
     ):
         if field not in result or result[field] != request.get(option):
             raise ValueError(f"Go1 recovery {field} differs from the training request")
+    if result.get("learner_backend", "native") != request.get("go1_learner", "native"):
+        raise ValueError("Go1 recovery learner backend differs from the training request")
     for name in ("runtime", "assets"):
         if result.get(name) != json.loads((run / f"{name}.json").read_text()):
             raise ValueError(f"Go1 recovery {name} differs from the training record")

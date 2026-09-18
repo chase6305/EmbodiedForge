@@ -1,4 +1,4 @@
-"""Run the pinned upstream Microduck recipe in an isolated Python environment.
+"""Run repository-owned Microduck walking in an isolated Python environment.
 
 This is a process integration, not an implementation of Microduck in VectorEnv.
 No training or simulation SDK is imported into the EmbodiedForge process.
@@ -14,15 +14,32 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ._microduck_export import export_run
+from ._microduck_inputs import (
+    snapshot_inputs,
+    verify_input_snapshot,
+)
+from ._microduck_native import native_command, snapshot_command, snapshot_runtime
+from ._microduck_worker import launcher_identity
+from ._microduck_worker import training_checkpoints as checkpoints
 from .logging import get_logger, setup_logging
 
 REVISION = "53b8971b61baf5b7f3c16d135dd7cac37623de4b"
 TASK = "Mjlab-Velocity-Flat-MicroDuck"
 WORKER = Path(__file__).with_name("_microduck_worker.py")
 LOGGER = get_logger("microduck")
+
+
+def worker_for(env):
+    if env.get("EF_MICRODUCK_NATIVE") == "1":
+        from ._microduck_native import WORKER as native_worker
+
+        return native_worker
+    return WORKER
 
 
 class EvaluationRejected(RuntimeError):
@@ -107,33 +124,38 @@ def assess_run(args) -> None:
     except EvaluationRejected as exc:
         manifest.update(status="rejected", error=str(exc))
         raise
-    except KeyboardInterrupt:
-        manifest["status"] = "interrupted"
+    except KeyboardInterrupt as exc:
+        manifest.update(
+            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
+        )
         raise
     except Exception as exc:
         manifest.update(status="failed", error=str(exc))
         raise
     finally:
-        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-        write_json(output / "run.json", manifest)
+        finish_run(output, manifest)
 
 
 def compare_runs(args) -> None:
-    from ._microduck_reports import compare_evaluations, load_evaluation_run
+    from ._microduck_reports import (
+        compare_evaluations,
+        compare_sources,
+        load_evaluation_run,
+    )
 
     before, before_info, before_inputs = load_evaluation_run(args.before)
     after, after_info, after_inputs = load_evaluation_run(args.after)
-    for key in ("revision", "uv_lock_sha256"):
-        if not (before_info.get("source") or {}).get(key) or before_info["source"][
-            key
-        ] != (after_info.get("source") or {}).get(key):
-            raise ValueError(f"Comparison upstream source differs or is missing: {key}")
+    source_verification = compare_sources(
+        before_info.get("source"), after_info.get("source")
+    )
     comparison = compare_evaluations(before, after)
+    comparison["source_verification"] = source_verification
     output = args.output.expanduser().resolve()
     output.mkdir(parents=True, exist_ok=False)
     manifest = {
         "schema": 1,
         "workflow": "compare",
+        "source_verification": source_verification,
         "before": before_info,
         "after": after_info,
         "status": "running",
@@ -148,21 +170,28 @@ def compare_runs(args) -> None:
                 snapshot.write_bytes(raw)
         write_json(output / "comparison.json", comparison)
         manifest["status"] = "complete"
-    except KeyboardInterrupt:
-        manifest["status"] = "interrupted"
+    except KeyboardInterrupt as exc:
+        manifest.update(
+            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
+        )
         raise
     except Exception as exc:
         manifest.update(status="failed", error=str(exc))
         raise
     finally:
-        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-        write_json(output / "run.json", manifest)
+        finish_run(output, manifest)
 
 
 def child_environment() -> dict[str, str]:
     env = os.environ.copy()
     # The caller may be running from ef/ef-viewer or a source PYTHONPATH.
-    for key in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV"):
+    for key in (
+        "PYTHONPATH",
+        "PYTHONHOME",
+        "VIRTUAL_ENV",
+        "EF_MICRODUCK_NATIVE",
+        "EF_MICRODUCK_SNAPSHOT_WORKER",
+    ):
         env.pop(key, None)
     env.update(
         PYTHONNOUSERSITE="1",
@@ -179,35 +208,33 @@ def write_json(path: Path, value: dict) -> None:
     temporary.replace(path)
 
 
-def run(command: list[str], *, cwd: Path, env: dict[str, str]) -> None:
+def training_environment(env: dict[str, str]) -> dict[str, str]:
+    """Select offscreen GL before SDK imports, without inheriting a desktop."""
+    result = env.copy()
+    for key in ("DISPLAY", "WAYLAND_DISPLAY"):
+        result.pop(key, None)
+    result.update(MUJOCO_GL="egl", PYOPENGL_PLATFORM="egl")
+    return result
+
+
+def run(
+    command: list[str], *, cwd: Path, env: dict[str, str], log_path=None, echo=True
+) -> None:
+    from ._microduck_process import run_process
+
     LOGGER.info("Running %s", command)
-    # A separate process group receives one forwarded SIGINT. subprocess.run()
-    # otherwise kills an interrupted child before its render thread can finish.
-    with subprocess.Popen(command, cwd=cwd, env=env, start_new_session=True) as process:
-
-        def send(sig):
-            try:
-                os.killpg(process.pid, sig)
-            except ProcessLookupError:
-                pass
-
-        try:
-            returncode = process.wait()
-        except KeyboardInterrupt:
-            send(signal.SIGINT)
-            try:
-                process.wait(timeout=10)
-            except (subprocess.TimeoutExpired, KeyboardInterrupt):
-                send(signal.SIGKILL)
-                process.wait()
-            raise
-        if returncode:
-            raise subprocess.CalledProcessError(returncode, command)
+    if log_path is not None:
+        LOGGER.info("Worker log: %s", log_path)
+    run_process(command, cwd=cwd, env=env, log_path=log_path, echo=echo)
 
 
-def training_command(python: Path, *, num_envs: int, iterations: int) -> list[str]:
+def training_command(
+    python: Path, *, num_envs: int, iterations: int, native=False, seed=0
+) -> list[str]:
     if num_envs <= 0 or iterations <= 0:
         raise ValueError("Environment and iteration counts must be positive")
+    if not 0 <= seed < 2**32:
+        raise ValueError("--seed must be between 0 and 2**32 - 1")
     command = [
         str(python),
         "-I",
@@ -225,15 +252,19 @@ def training_command(python: Path, *, num_envs: int, iterations: int) -> list[st
         "--agent.run-name",
         "embodiedforge",
         "--agent.seed",
-        "0",
+        str(seed),
         "--enable-nan-guard",
         "True",
+        "--video",
+        "False",
     ]
-    return command
+    return native_command(command) if native else command
 
 
-def export_command(python: Path, checkpoint: Path, output: Path) -> list[str]:
-    return [
+def export_command(
+    python: Path, checkpoint: Path, output: Path, *, native=False
+) -> list[str]:
+    command = [
         str(python),
         "-I",
         "-m",
@@ -246,18 +277,37 @@ def export_command(python: Path, checkpoint: Path, output: Path) -> list[str]:
         "--num-envs",
         "1",
     ]
+    return native_command(command) if native else command
 
 
-def checkpoints(output: Path) -> list[Path]:
-    return sorted(
-        output.glob("logs/rsl_rl/microduck/*/model_*.pt"),
-        key=lambda path: int(path.stem.removeprefix("model_")),
-    )
+def record_worker_failure(output, manifest):
+    name = "evaluation" if manifest.get("phase") == "evaluate" else "runtime"
+    try:
+        failure = json.loads((output / f"{name}.failure.json").read_text())
+    except (OSError, ValueError):
+        return
+    if isinstance(failure, dict):
+        manifest[f"{name}_failure"] = failure
+
+
+def finish_run(output, manifest, *, include_checkpoints=False):
+    """Save final state without replacing an active failure or interrupt."""
+    original_error = sys.exc_info()[1]
+    manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
+    try:
+        if include_checkpoints:
+            manifest["checkpoints"] = [str(path) for path in checkpoints(output)]
+        write_json(output / "run.json", manifest)
+    except OSError as exc:
+        if original_error is None or manifest.get("status") == "complete":
+            raise
+        LOGGER.warning("Could not finalize run record %s: %s", output / "run.json", exc)
 
 
 def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
+    env = training_environment(env)
     output = args.output.expanduser().resolve()
-    smoke = args.command == "smoke"
+    seed = getattr(args, "seed", 0)
     resume = getattr(args, "resume", None)
     if resume is not None:
         resume = resume.expanduser().resolve()
@@ -265,13 +315,25 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
             raise ValueError(f"Resume checkpoint not found: {resume}")
     command = training_command(
         python,
-        num_envs=64 if smoke else args.num_envs,
-        iterations=5 if smoke else args.iterations,
+        num_envs=args.num_envs,
+        iterations=args.iterations,
+        native=env.get("EF_MICRODUCK_NATIVE") == "1",
+        seed=seed,
     )
     output.mkdir(parents=True, exist_ok=False)
     manifest = {
         "schema": 1,
+        "launcher": launcher_identity(),
         "workflow": args.command,
+        "seed": seed,
+        "num_envs": args.num_envs,
+        "iterations": args.iterations,
+        "execution": {
+            "headless": True,
+            "viewer": None,
+            "video": False,
+            "mujoco_gl": env["MUJOCO_GL"],
+        },
         "task": TASK,
         "source": identity,
         "python": str(python),
@@ -279,14 +341,41 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
         "status": "running",
         "commands": [],
     }
+    if getattr(args, "source_run", None) is not None:
+        manifest["source_run"] = args.source_run
 
-    def execute(command: list[str]) -> None:
+    def execute(command: list[str], phase: str) -> None:
+        command = snapshot_command(command, env)
+        log_path = output / f"{len(manifest['commands']):02d}-{phase}.log"
+        manifest["phase"] = phase
+        manifest["active_log"] = log_path.name
+        manifest.setdefault("logs", []).append(log_path.name)
         manifest["commands"].append(command)
         write_json(output / "run.json", manifest)
-        run(command, cwd=output, env=env)
+        run(
+            command,
+            cwd=output,
+            env=env,
+            log_path=log_path,
+            echo=not getattr(args, "quiet", False),
+        )
 
     try:
-        execute([str(python), "-I", str(WORKER), "check", str(output / "runtime.json")])
+        manifest["phase"] = "snapshot"
+        write_json(output / "run.json", manifest)
+        env, source_snapshot = snapshot_runtime(output, identity, env)
+        if source_snapshot is not None:
+            manifest["implementation_snapshot"] = str(source_snapshot)
+        execute(
+            [
+                str(python),
+                "-I",
+                str(worker_for(env)),
+                "check",
+                str(output / "runtime.json"),
+            ],
+            "check",
+        )
         start_iteration = 0
         if resume is not None:
             snapshot = output / "logs/rsl_rl/microduck/resume_source/checkpoint.pt"
@@ -296,33 +385,43 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
                 [
                     str(python),
                     "-I",
-                    str(WORKER),
+                    str(worker_for(env)),
                     "checkpoint",
                     str(snapshot),
                     str(output / "resume.json"),
-                ]
+                ],
+                "checkpoint",
             )
             metadata = json.loads((output / "resume.json").read_text())
+            if (
+                getattr(args, "source_run", None) is not None
+                and metadata["sha256"] != args.source_run["checkpoint_sha256"]
+            ):
+                raise RuntimeError(
+                    "Selected training run checkpoint changed before resume"
+                )
             start_iteration = metadata["iteration"]
             # The worker adds startup/reset events to the upstream TrainConfig.
             # Its startup restores curricula before the wrapper resets the env.
             command = [
                 str(python),
                 "-I",
-                str(WORKER),
+                str(worker_for(env)),
                 "resume-train",
                 str(snapshot),
                 "--env.scene.num-envs",
                 str(args.num_envs),
                 "--agent.max-iterations",
                 str(args.iterations),
+                "--seed",
+                str(seed),
             ]
             manifest["resume"] = {
                 "original": str(resume),
                 "snapshot": str(snapshot),
                 **metadata,
             }
-        execute(command)
+        execute(command, "train")
         if resume is not None:
             audit = json.loads((output / "resume.initialization.json").read_text())
             if (
@@ -335,35 +434,41 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
         models = checkpoints(output)
         if not models:
             raise RuntimeError("Training exited without producing a checkpoint")
+        if len({path.parent for path in models}) > 1:
+            raise ValueError("Ambiguous checkpoint directories")
         manifest["checkpoint"] = str(models[-1])
+        from ._microduck_run import checkpoint_digest
+
+        manifest["checkpoint_relative"] = models[-1].relative_to(output).as_posix()
+        manifest["checkpoint_sha256"] = checkpoint_digest(models[-1])
         execute(
             [
                 str(python),
                 "-I",
-                str(WORKER),
+                str(worker_for(env)),
                 "metrics",
                 str(models[-1]),
-                str(5 if smoke else args.iterations),
+                str(args.iterations),
                 str(output / "metrics.validation.json"),
                 str(start_iteration),
-            ]
+            ],
+            "metrics",
         )
-        if smoke:
-            policy = output / "policy.onnx"
-            execute(export_command(python, models[-1], policy))
-            execute([str(python), "-I", str(WORKER), "onnx", str(policy)])
-            manifest["onnx"] = str(policy)
         manifest["status"] = "complete"
-    except KeyboardInterrupt:
-        manifest["status"] = "interrupted"
+        manifest["phase"] = "complete"
+    except KeyboardInterrupt as exc:
+        manifest.update(
+            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
+        )
         raise
     except Exception as exc:
-        manifest.update(status="failed", error=str(exc))
+        record_worker_failure(output, manifest)
+        manifest.update(
+            status="failed", failed_phase=manifest.get("phase"), error=str(exc)
+        )
         raise
     finally:
-        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-        manifest["checkpoints"] = [str(path) for path in checkpoints(output)]
-        write_json(output / "run.json", manifest)
+        finish_run(output, manifest, include_checkpoints=True)
     LOGGER.info("Microduck %s completed: %s", args.command, output)
 
 
@@ -373,6 +478,8 @@ def evaluation_inputs(args) -> tuple[Path, dict]:
     checkpoint = args.checkpoint.expanduser().resolve()
     if not checkpoint.is_file():
         raise ValueError(f"Checkpoint not found: {checkpoint}")
+    if not 0 <= args.seed < 2**32:
+        raise ValueError("--seed must be between 0 and 2**32 - 1")
     if args.velocity is not None and not all(map(math.isfinite, args.velocity)):
         raise ValueError("--velocity values must be finite")
     curriculum_step = getattr(args, "curriculum_step", None)
@@ -392,7 +499,10 @@ def evaluation_inputs(args) -> tuple[Path, dict]:
     return checkpoint, options
 
 
-def evaluate_once(args, python: Path, identity: dict, env: dict[str, str]) -> None:
+def evaluate_once(
+    args, python: Path, identity: dict, env: dict[str, str], *, input_snapshot=None
+) -> dict:
+    env = training_environment(env)
     checkpoint, options = evaluation_inputs(args)
     criteria = evaluation_criteria(args)
     output = args.output.expanduser().resolve()
@@ -400,7 +510,7 @@ def evaluate_once(args, python: Path, identity: dict, env: dict[str, str]) -> No
     command = [
         str(python),
         "-I",
-        str(WORKER),
+        str(worker_for(env)),
         "evaluate",
         str(checkpoint),
         str(args.num_envs),
@@ -411,44 +521,105 @@ def evaluate_once(args, python: Path, identity: dict, env: dict[str, str]) -> No
     ]
     manifest = {
         "schema": 1,
+        "launcher": launcher_identity(),
         "workflow": "evaluate",
+        "python": str(python),
+        "execution": {
+            "headless": True,
+            "viewer": None,
+            "video": bool(options.get("video")),
+            "mujoco_gl": env["MUJOCO_GL"],
+        },
         "evaluation_options": options,
         "acceptance_criteria": criteria,
         "task": TASK,
         "source": identity,
         "status": "running",
         "commands": [
-            [str(python), "-I", str(WORKER), "check", str(output / "runtime.json")],
+            [
+                str(python),
+                "-I",
+                str(worker_for(env)),
+                "check",
+                str(output / "runtime.json"),
+            ],
             command,
         ],
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
+    if getattr(args, "source_run", None) is not None:
+        manifest["source_run"] = args.source_run
     write_json(output / "run.json", manifest)
     try:
-        for step in manifest["commands"]:
-            run(step, cwd=output, env=env)
+        manifest["phase"] = "inputs"
+        write_json(output / "run.json", manifest)
+        if input_snapshot is None:
+            input_snapshot = snapshot_inputs(
+                output, checkpoint, options, getattr(args, "source_run", None)
+            )
+        verify_input_snapshot(input_snapshot)
+        manifest["input_snapshot"] = input_snapshot
+        manifest["checkpoint_sha256"] = input_snapshot["checkpoint"]["sha256"]
+        command[4] = input_snapshot["checkpoint"]["path"]
+        options["onnx"] = input_snapshot.get("onnx", {}).get("path")
+        command[9] = json.dumps(options, allow_nan=False)
+        manifest["phase"] = "snapshot"
+        write_json(output / "run.json", manifest)
+        env, source_snapshot = snapshot_runtime(output, identity, env)
+        if source_snapshot is not None:
+            manifest["implementation_snapshot"] = str(source_snapshot)
+        manifest["commands"] = [
+            snapshot_command(step, env) for step in manifest["commands"]
+        ]
+        write_json(output / "run.json", manifest)
+        for index, step in enumerate(manifest["commands"]):
+            phase = "check" if index == 0 else "evaluate"
+            log_path = output / f"{index:02d}-{phase}.log"
+            manifest.update(phase=phase, active_log=log_path.name)
+            manifest.setdefault("logs", []).append(log_path.name)
+            write_json(output / "run.json", manifest)
+            run(
+                step,
+                cwd=output,
+                env=env,
+                log_path=log_path,
+                echo=not getattr(args, "quiet", False),
+            )
         if not (output / "evaluation.json").is_file():
             raise RuntimeError("Evaluation exited without a report")
+        manifest["phase"] = "validate"
+        write_json(output / "run.json", manifest)
+        from ._microduck_reports import (
+            decode_evaluation_json,
+            validate_evaluation_report,
+        )
+
+        report = decode_evaluation_json((output / "evaluation.json").read_bytes())
+        validate_evaluation_report(report, manifest)
         if criteria:
-            save_acceptance(
-                output, [json.loads((output / "evaluation.json").read_text())], criteria
-            )
-        manifest["status"] = "complete"
+            save_acceptance(output, [report], criteria)
+        manifest.update(status="complete", phase="complete")
     except EvaluationRejected as exc:
         manifest.update(status="rejected", error=str(exc))
         raise
-    except KeyboardInterrupt:
-        manifest["status"] = "interrupted"
+    except KeyboardInterrupt as exc:
+        manifest.update(
+            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
+        )
         raise
     except Exception as exc:
-        manifest.update(status="failed", error=str(exc))
+        record_worker_failure(output, manifest)
+        manifest.update(
+            status="failed", failed_phase=manifest.get("phase"), error=str(exc)
+        )
         raise
     finally:
-        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-        write_json(output / "run.json", manifest)
+        finish_run(output, manifest)
+    return report
 
 
 def evaluate_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
+    env = training_environment(env)
     seeds = getattr(args, "seeds", None)
     if seeds is None:
         evaluate_once(args, python, identity, env)
@@ -461,18 +632,21 @@ def evaluate_run(args, python: Path, identity: dict, env: dict[str, str]) -> Non
         raise ValueError("--seeds must contain distinct seeds")
     if any(seed < 0 or seed >= 2**32 for seed in seeds):
         raise ValueError("--seeds values must be between 0 and 2**32 - 1")
-    digest = hashlib.sha256()
-    with checkpoint.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
     output = args.output.expanduser().resolve()
     output.mkdir(parents=True, exist_ok=False)
     manifest = {
         "schema": 1,
+        "launcher": launcher_identity(),
         "workflow": "evaluate_seeds",
+        "python": str(python),
+        "execution": {
+            "headless": True,
+            "viewer": None,
+            "video": bool(options.get("video")),
+            "mujoco_gl": env["MUJOCO_GL"],
+        },
         "source": identity,
         "task": TASK,
-        "checkpoint_sha256": digest.hexdigest(),
         "evaluation_options": options,
         "acceptance_criteria": criteria,
         "seeds": seeds,
@@ -480,59 +654,76 @@ def evaluate_run(args, python: Path, identity: dict, env: dict[str, str]) -> Non
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
+    if getattr(args, "source_run", None) is not None:
+        manifest["source_run"] = args.source_run
     write_json(output / "run.json", manifest)
     reports = []
     try:
+        manifest["phase"] = "inputs"
+        write_json(output / "run.json", manifest)
+        input_snapshot = snapshot_inputs(
+            output, checkpoint, options, getattr(args, "source_run", None)
+        )
+        manifest["input_snapshot"] = input_snapshot
+        manifest["checkpoint_sha256"] = input_snapshot["checkpoint"]["sha256"]
+        options["onnx"] = input_snapshot.get("onnx", {}).get("path")
+        manifest["phase"] = "snapshot"
+        write_json(output / "run.json", manifest)
+        env, source_snapshot = snapshot_runtime(output, identity, env)
+        if source_snapshot is not None:
+            manifest["implementation_snapshot"] = str(source_snapshot)
+        write_json(output / "run.json", manifest)
         for seed in seeds:
             child = argparse.Namespace(**vars(args))
             child.seed, child.seeds, child.output = seed, None, output / f"seed-{seed}"
+            child.checkpoint = Path(input_snapshot["checkpoint"]["path"])
+            child.onnx = Path(options["onnx"]) if options["onnx"] else None
             # Complete all requested seed runs before assessing the batch.
             for name in criteria:
                 setattr(child, name, None)
             LOGGER.info(
                 "Evaluating seed %s (%s/%s)", seed, len(reports) + 1, len(seeds)
             )
-            evaluate_once(child, python, identity, env)
-            report = json.loads((child.output / "evaluation.json").read_text())
-            if (
-                report.get("checkpoint_metadata", {}).get("sha256")
-                != digest.hexdigest()
-            ):
-                raise RuntimeError("Checkpoint changed during multi-seed evaluation")
-            if report.get("seed") != seed:
-                raise RuntimeError(
-                    "Evaluation report seed does not match requested seed"
-                )
+            manifest.update(phase="evaluate", active_seed=seed)
+            write_json(output / "run.json", manifest)
+            report = evaluate_once(
+                child, python, identity, env, input_snapshot=input_snapshot
+            )
+            if reports:
+                # Previous reports already passed; compare only the new seed.
+                aggregate_evaluations([reports[0], report])
             reports.append(report)
-            aggregate_evaluations(reports)  # Reject incompatible/invalid reports early.
             manifest["completed_seeds"].append(seed)
             write_json(output / "run.json", manifest)
         summary = aggregate_evaluations(reports)
         summary["reports"] = [f"seed-{seed}/evaluation.json" for seed in seeds]
         write_json(output / "summary.json", summary)
         save_acceptance(output, reports, criteria)
-        manifest["status"] = "complete"
+        manifest.update(status="complete", phase="complete")
+        manifest.pop("active_seed", None)
     except EvaluationRejected as exc:
         manifest.update(status="rejected", error=str(exc))
         raise
-    except KeyboardInterrupt:
-        manifest["status"] = "interrupted"
+    except KeyboardInterrupt as exc:
+        manifest.update(
+            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
+        )
         raise
     except Exception as exc:
-        manifest.update(status="failed", error=str(exc))
+        manifest.update(
+            status="failed", failed_phase=manifest.get("phase"), error=str(exc)
+        )
         raise
     finally:
-        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-        write_json(output / "run.json", manifest)
+        finish_run(output, manifest)
 
 
-def main(argv: list[str] | None = None) -> None:
+def _main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     for command in (
         "setup",
         "check",
-        "smoke",
         "train",
         "evaluate",
         "play",
@@ -544,10 +735,14 @@ def main(argv: list[str] | None = None) -> None:
         sub = commands.add_parser(command)
         if command not in ("assess", "compare"):
             sub.add_argument(
-                "--repo", type=Path, required=True, help="Clean upstream checkout"
+                "--repo",
+                type=Path,
+                help="Optional legacy upstream checkout; default: repository-owned walking task",
             )
             sub.add_argument(
-                "--env-dir", type=Path, default=Path(".cache/microduck-venv")
+                "--env-dir",
+                type=Path,
+                help="Defaults to .cache/microduck-native-venv (legacy: .cache/microduck-venv)",
             )
         elif command == "assess":
             sub.add_argument(
@@ -567,15 +762,41 @@ def main(argv: list[str] | None = None) -> None:
             sub.add_argument(
                 "--run", type=Path, required=True, help="Training run directory"
             )
-        if command in ("smoke", "train", "evaluate", "export", "assess", "compare"):
+        if command in ("train", "evaluate", "export", "assess", "compare"):
             sub.add_argument("--output", type=Path, required=True)
+        if command in ("train", "evaluate", "export"):
+            sub.add_argument(
+                "--quiet",
+                action="store_true",
+                help="Save worker output to stage logs without echoing it to the terminal",
+            )
+        if command == "train":
+            sub.add_argument(
+                "--seed",
+                type=int,
+                default=0,
+                help="Training/reset random seed (default: 0)",
+            )
+        if command in ("train", "evaluate", "export"):
+            sub.add_argument(
+                "--headless",
+                action="store_true",
+                default=True,
+                help="Run without a desktop or viewer (always enabled); evaluation video uses offscreen EGL",
+            )
         if command == "train":
             sub.add_argument("--num-envs", type=int, default=4096)
             sub.add_argument("--iterations", type=int, required=True)
-            sub.add_argument(
+            resume_source = sub.add_mutually_exclusive_group()
+            resume_source.add_argument(
                 "--resume",
                 type=Path,
                 help="Checkpoint; iterations are additional updates",
+            )
+            resume_source.add_argument(
+                "--resume-run",
+                type=Path,
+                help="Completed, interrupted or failed training run; uses recorded checkpoints and adds iterations",
             )
         if command == "evaluate":
             sub.add_argument("--num-envs", type=int, default=16)
@@ -630,7 +851,11 @@ def main(argv: list[str] | None = None) -> None:
                 help="Minimum fraction of initial episodes surviving the full horizon, per seed",
             )
         if command in ("play", "evaluate", "export"):
-            sub.add_argument("--checkpoint", type=Path, required=True)
+            checkpoint_source = sub.add_mutually_exclusive_group(required=True)
+            checkpoint_source.add_argument("--checkpoint", type=Path)
+            checkpoint_source.add_argument(
+                "--run", type=Path, help="Completed training run"
+            )
         if command == "play":
             sub.add_argument("--viewer", choices=("native", "viser"), default="native")
             sub.add_argument(
@@ -650,14 +875,73 @@ def main(argv: list[str] | None = None) -> None:
         if args.command == "compare":
             compare_runs(args)
             return
-        repo = args.repo.expanduser().resolve()
-        env_dir = args.env_dir.expanduser().resolve()
-        identity = source_identity(repo)
+        native = args.repo is None
+        repo = args.repo.expanduser().resolve() if args.repo else None
+        env_dir = (
+            (
+                args.env_dir
+                or Path(
+                    ".cache/microduck-native-venv"
+                    if native
+                    else ".cache/microduck-venv"
+                )
+            )
+            .expanduser()
+            .resolve()
+        )
         python = env_dir / "bin/python"
         env = child_environment()
+        if args.command == "progress":
+            if not python.is_file():
+                raise ValueError("Microduck environment is not ready; run setup first")
+            run(
+                [
+                    str(python),
+                    "-I",
+                    str(WORKER),
+                    "progress",
+                    str(args.run.expanduser().resolve()),
+                ],
+                cwd=Path.cwd(),
+                env=env,
+            )
+            return
+        if native:
+            from ._microduck_native import REQUIREMENTS, dependency_identity
+            from ._microduck_native import source_identity as native_identity
+
+            identity = native_identity()
+            expected_stamp = dependency_identity()
+        else:
+            identity = source_identity(repo)
+            expected_stamp = identity
+        if native:
+            env["EF_MICRODUCK_NATIVE"] = "1"
         stamp = env_dir / "embodiedforge-source.json"
         if args.command == "setup":
             stamp.unlink(missing_ok=True)
+            if native:
+                if not python.is_file():
+                    run(
+                        ["uv", "venv", "--python", "3.12", str(env_dir)],
+                        cwd=Path.cwd(),
+                        env=env,
+                    )
+                run(
+                    [
+                        "uv",
+                        "pip",
+                        "sync",
+                        "--python",
+                        str(python),
+                        str(REQUIREMENTS),
+                    ],
+                    cwd=Path.cwd(),
+                    env=env,
+                )
+                write_json(stamp, expected_stamp)
+                LOGGER.info("Native Microduck environment ready: %s", env_dir)
+                return
             env["UV_PROJECT_ENVIRONMENT"] = str(env_dir)
             run(
                 ["uv", "sync", "--locked", "--python", "3.12", "--project", str(repo)],
@@ -673,25 +957,39 @@ def main(argv: list[str] | None = None) -> None:
             return
         if not python.is_file() or not stamp.is_file():
             raise ValueError("Microduck environment is not ready; run setup first")
-        if json.loads(stamp.read_text()) != identity:
+        if json.loads(stamp.read_text()) != expected_stamp:
             raise ValueError(
-                "Environment source differs from checkout; run setup again"
+                "Environment dependencies differ from the requested implementation; run setup again"
             )
+        selected_run = (
+            getattr(args, "resume_run", None)
+            if args.command == "train"
+            else getattr(args, "run", None)
+            if args.command in ("play", "evaluate", "export")
+            else None
+        )
+        if selected_run is not None:
+            from ._microduck_run import resolve_run_checkpoint
+
+            checkpoint, args.source_run = resolve_run_checkpoint(
+                selected_run, identity, TASK, allow_incomplete=args.command == "train"
+            )
+            if args.source_run["verification"] == "unverified_legacy":
+                LOGGER.warning(
+                    "Legacy run has no saved checkpoint hash; recording current bytes only"
+                )
+            LOGGER.info("Selected recorded checkpoint: %s", checkpoint)
+            if args.command == "train":
+                args.resume = checkpoint
+            else:
+                args.checkpoint = checkpoint
         if args.command == "check":
-            run([str(python), "-I", str(WORKER), "check"], cwd=Path.cwd(), env=env)
-        elif args.command == "progress":
             run(
-                [
-                    str(python),
-                    "-I",
-                    str(WORKER),
-                    "progress",
-                    str(args.run.expanduser().resolve()),
-                ],
+                [str(python), "-I", str(worker_for(env)), "check"],
                 cwd=Path.cwd(),
                 env=env,
             )
-        elif args.command in ("smoke", "train"):
+        elif args.command == "train":
             train_run(args, python, identity, env)
         elif args.command == "evaluate":
             evaluate_run(args, python, identity, env)
@@ -705,7 +1003,7 @@ def main(argv: list[str] | None = None) -> None:
                 command = [
                     str(python),
                     "-I",
-                    str(WORKER),
+                    str(worker_for(env)),
                     "play",
                     str(checkpoint),
                     args.viewer,
@@ -731,27 +1029,35 @@ def main(argv: list[str] | None = None) -> None:
                         "--viewer",
                         "viser",
                     ]
-                run(command, cwd=Path.cwd(), env=env)
-            else:
-                output = args.output.expanduser().resolve()
-                if output.exists():
-                    raise FileExistsError(f"Refusing to overwrite {output}")
-                output.parent.mkdir(parents=True, exist_ok=True)
-                run(export_command(python, checkpoint, output), cwd=Path.cwd(), env=env)
                 run(
-                    [str(python), "-I", str(WORKER), "onnx", str(output)],
+                    native_command(command)
+                    if env.get("EF_MICRODUCK_NATIVE") == "1"
+                    else command,
                     cwd=Path.cwd(),
                     env=env,
                 )
-    except KeyboardInterrupt:
-        LOGGER.info("Microduck interrupted")
-        raise SystemExit(130) from None
+            else:
+                export_run(args, python, identity, env)
+    except KeyboardInterrupt as exc:
+        signum = getattr(exc, "signum", signal.SIGINT)
+        LOGGER.info("Microduck interrupted by signal %s", signum)
+        raise SystemExit(128 + signum) from None
     except EvaluationRejected as exc:
         LOGGER.error("Microduck acceptance criteria not met: %s", exc)
         raise SystemExit(3) from None
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
         LOGGER.error("Microduck failed: %s", exc)
         raise SystemExit(1) from None
+
+
+def main(argv: list[str] | None = None) -> None:
+    from ._microduck_process import ProcessInterrupted, termination_signals
+
+    try:
+        with termination_signals():
+            _main(argv)
+    except ProcessInterrupted as exc:
+        raise SystemExit(128 + exc.signum) from None
 
 
 if __name__ == "__main__":

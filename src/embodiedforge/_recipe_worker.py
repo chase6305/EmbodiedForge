@@ -46,6 +46,14 @@ def main():
             f"Recipe dependency mismatch: expected {required}, got {versions}"
         )
     versions["numpy"] = importlib.metadata.version("numpy")
+    if request.get("go1_learner") == "light-loco" and request["command"] == "train":
+        for dependency in (
+            "light-loco-parkour",
+            "assoc-scan",
+            "torch-einops-utils",
+            "einx",
+        ):
+            versions[dependency] = importlib.metadata.version(dependency)
     if name == "mjbatch":
         versions["mujoco-menagerie"] = importlib.metadata.version("mujoco-menagerie")
         if versions["mujoco-menagerie"] != "2026.9.0":

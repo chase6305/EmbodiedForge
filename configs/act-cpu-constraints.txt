@@ -1,0 +1,9 @@
+# Tested CPU-only ACT integration environment, Python 3.12.
+# Install torch/torchvision from https://download.pytorch.org/whl/cpu first.
+torch==2.9.0+cpu
+torchvision==0.24.0+cpu
+torchcodec==0.8.1
+numpy==2.2.6
+datasets==4.8.5
+# 0.70.19 calls an RLock method absent in the local Python 3.12.0 build.
+multiprocess==0.70.16

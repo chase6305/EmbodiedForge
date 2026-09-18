@@ -54,10 +54,15 @@ def test_resumed_metrics_use_checkpoint_iteration(events):
         validate_metrics(checkpoint, 2)
 
 
-@pytest.mark.parametrize("steps", [[42], [42, 44], [41, 42, 43]])
+@pytest.mark.parametrize("steps", [[42], [42, 44], list(range(1000))])
 def test_missing_or_unexpected_updates_rejected(events, steps):
-    with pytest.raises(RuntimeError, match="PPO updates"):
+    with pytest.raises(RuntimeError, match="PPO updates") as error:
         validate_metrics(events(steps), 2, start_iteration=42)
+    message = str(error.value)
+    assert "steps 42..43" in message
+    assert f"missing {len({42, 43} - set(steps))}" in message
+    assert f"unexpected {len(set(steps) - {42, 43})}" in message
+    assert len(message) < 400
 
 
 @pytest.mark.parametrize(
@@ -73,7 +78,7 @@ def test_invalid_metrics_rejected(events, kwargs, match):
         validate_metrics(events([0, 1], **kwargs), 2)
 
 
-def test_checkpoint_learning_rate_and_provenance(tmp_path):
+def test_checkpoint_learning_rate_and_provenance(tmp_path, monkeypatch):
     torch = pytest.importorskip("torch")
     path = tmp_path / "model.pt"
     state = {
@@ -89,7 +94,19 @@ def test_checkpoint_learning_rate_and_provenance(tmp_path):
     assert before["common_step_counter"] == 1032
     assert before["learning_rate"] == 3e-5
     state["optimizer_state_dict"]["param_groups"][0]["lr"] = 1e-5
-    torch.save(state, path)
+    replacement = tmp_path / "replacement.pt"
+    torch.save(state, replacement)
+    load = torch.load
+
+    def load_then_publish(*args, **kwargs):
+        checkpoint = load(*args, **kwargs)
+        replacement.replace(path)
+        return checkpoint
+
+    # Publishing a new checkpoint during inspection must not mix two versions.
+    with monkeypatch.context() as patch:
+        patch.setattr(torch, "load", load_then_publish)
+        assert checkpoint_metadata(path) == before
     after = checkpoint_metadata(path)
     assert after["learning_rate"] == 1e-5
     assert after["sha256"] != before["sha256"]
@@ -97,6 +114,14 @@ def test_checkpoint_learning_rate_and_provenance(tmp_path):
     torch.save(state, path)
     with pytest.raises(ValueError, match="positive PPO learning rate"):
         checkpoint_metadata(path)
+    for payload, message in (
+        ({"actor_state_dict": state["actor_state_dict"]}, "critic_state_dict"),
+        ({**state, "infos": {}}, "curriculum counter"),
+        (torch.ones(1), "full PPO training checkpoint dictionary"),
+    ):
+        torch.save(payload, path)
+        with pytest.raises(ValueError, match=message):
+            checkpoint_metadata(path)
 
 
 def test_training_progress_resumed_offsets_and_eta(events):

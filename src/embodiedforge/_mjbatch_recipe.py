@@ -40,6 +40,8 @@ def check_finite(*values):
 
 
 def go1_train(request, owner):
+    from contextlib import nullcontext
+
     import torch
 
     from embodiedforge._go1_checkpoint import (
@@ -49,6 +51,15 @@ def go1_train(request, owner):
     from embodiedforge._go1_recovery import publish_training_checkpoint
     from embodiedforge._wuji_recipe import finite_tensors
     from embodiedforge.locomotion import go1_ppo as learner
+
+    backend = request.get("go1_learner", "native")
+    algorithm = learner
+    if backend == "light-loco":
+        from embodiedforge.locomotion import go1_light_loco as algorithm
+
+        write_json(Path("light-loco-source.json"), algorithm.verify_source())
+    elif backend != "native":
+        raise ValueError("Unknown Go1 learner backend")
 
     torch.set_num_threads(request["threads"])
     torch.manual_seed(request["seed"])
@@ -104,6 +115,8 @@ def go1_train(request, owner):
         HORIZON=request["horizon"],
         EPISODE=500,
         implementation="embodiedforge.locomotion.go1+go1_ppo",
+        learner_backend=backend,
+        algorithm_implementation=algorithm.__name__,
         task_semantics=request["go1_semantics"],
         seed=request["seed"],
         learner="cpu",
@@ -137,11 +150,16 @@ def go1_train(request, owner):
         Path.cwd(),
         environment=env,
         task=env,
-        learner=learner.update,
+        learner=algorithm.update,
         physics_adapter=env.batch,
         physics="mujoco/mjbatch",
         core_vector_env=False,
-        packages=["numpy", "torch", "mujoco", "mjbatch", "mujoco-menagerie"],
+        packages=["numpy", "torch", "mujoco", "mjbatch", "mujoco-menagerie"]
+        + (
+            ["light-loco-parkour", "assoc-scan", "torch-einops-utils", "einx"]
+            if backend == "light-loco"
+            else []
+        ),
     )
     if previous is not None:
         from embodiedforge._go1_resume import record_go1_resume
@@ -149,7 +167,12 @@ def go1_train(request, owner):
         resume_report = record_go1_resume(request)
     start = time.perf_counter()
     history = []
-    with Path("metrics.jsonl").open("w") as stream:
+    preview = nullcontext()
+    if not request.get("headless", True):
+        from embodiedforge._go1_training_viewer import training_preview
+
+        preview = training_preview(env, request)
+    with Path("metrics.jsonl").open("w") as stream, preview:
         for offset in range(request["updates"]):
             iteration = first_iteration + offset
             optimizer.param_groups[0]["lr"] = float(
@@ -163,8 +186,8 @@ def go1_train(request, owner):
                 net, env, horizon=request["horizon"], record_policy=True
             )
             finite_tensors(batch)
-            diagnostics = learner.update(
-                net, optimizer, batch, *learner.gae(batch), diagnostics=True
+            diagnostics = algorithm.update(
+                net, optimizer, batch, *algorithm.gae(batch), diagnostics=True
             )
             finite_tensors(net.state_dict())
             row = {
@@ -188,6 +211,7 @@ def go1_train(request, owner):
                         "optimizer_state_dict": optimizer.state_dict(),
                         "iteration": iteration,
                         "recipe": "go1-joystick",
+                        "learner_backend": backend,
                         "learning_rate_override": request["go1_learning_rate"],
                         "reward_profile": request["go1_reward_profile"],
                         "command_profile": request["go1_command_profile"],
@@ -209,6 +233,7 @@ def go1_train(request, owner):
     return {
         **({"resume_report": resume_report} if resume_report else {}),
         "checkpoint": "model.pt",
+        "learner_backend": backend,
         "learning_rate_override": request["go1_learning_rate"],
         "reward_profile": request["go1_reward_profile"],
         "command_profile": request["go1_command_profile"],

@@ -53,7 +53,10 @@ def test_wrong_counter_fails_before_training_can_claim_correct_initialization(tm
     assert not (tmp_path / "audit.json").exists()
 
 
-def test_resume_uses_upstream_launcher_and_preserves_recipe(tmp_path, monkeypatch):
+@pytest.mark.parametrize("seed", [0, 42])
+def test_resume_uses_upstream_launcher_and_preserves_recipe(
+    tmp_path, monkeypatch, seed
+):
     monkeypatch.chdir(tmp_path)
     snapshot = tmp_path / "logs/rsl_rl/microduck/resume_source/checkpoint.pt"
     snapshot.parent.mkdir(parents=True)
@@ -67,6 +70,7 @@ def test_resume_uses_upstream_launcher_and_preserves_recipe(tmp_path, monkeypatc
         env: object
         agent: object
         enable_nan_guard: bool = False
+        video: bool = True  # Resume must override SDK defaults explicitly.
 
         @staticmethod
         def from_task(task):
@@ -74,11 +78,12 @@ def test_resume_uses_upstream_launcher_and_preserves_recipe(tmp_path, monkeypatc
             return Config(env_cfg, agent)
 
     def launch(task, cfg):
+        assert cfg.video is False
         assert cfg.enable_nan_guard and cfg.env.events["bam"] is marker
         assert cfg.env.scene.num_envs == 64 and cfg.agent.max_iterations == 5
         assert cfg.agent.algorithm.learning_rate == 3e-5
         assert cfg.agent.resume and cfg.agent.logger == "tensorboard"
-        assert cfg.agent.seed == 0
+        assert cfg.agent.seed == seed
         startup = cfg.env.events["ef_resume_counter"]
         audit = cfg.env.events["ef_resume_audit"]
         assert startup.mode == "startup" and audit.mode == "reset"
@@ -104,6 +109,6 @@ def test_resume_uses_upstream_launcher_and_preserves_recipe(tmp_path, monkeypatc
             "sha256": "sha",
         },
     )
-    result = worker.resume_training(snapshot, 64, 5)
+    result = worker.resume_training(snapshot, 64, 5, seed=seed)
     assert result["checkpoint_sha256"] == "sha"
     assert result["counter_at_first_reset"] == 24048

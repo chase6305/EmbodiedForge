@@ -92,10 +92,17 @@ def run(request):
             f"algo.max_iterations={request['updates']}",
             f"algo.num_steps_per_env={request['horizon']}",
             f"algo.seed={request['seed']}",
+            "training.no_play=true",
         ]
         if request.get("checkpoint"):
             sys.argv += ["--checkpoint-file", request["checkpoint"]]
-        train_main()
+        if not request.get("headless", True):
+            from embodiedforge._wuji_training_viewer import training_preview
+
+            with training_preview(request):
+                train_main()
+        else:
+            train_main()
         return verify_training(request)
     from wuji_unilab import eval as owner
 

@@ -14,7 +14,12 @@ pytest.importorskip("torch")
 from embodiedforge import recipes
 
 
-def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
+@pytest.mark.parametrize("backend", ["native", "light-loco"])
+def test_train_resume_evaluate_and_live_without_checkout(
+    tmp_path, monkeypatch, backend
+):
+    if backend == "light-loco":
+        pytest.importorskip("light_loco_parkour")
     cache = tmp_path / "absent-sdk-cache"
     train, resume, evaluation = [
         tmp_path / name for name in ("train", "resume", "eval")
@@ -33,7 +38,18 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
         "60",
     ]
     recipes.main(
-        ["train", *common, "--updates", "2", "--horizon", "4", "--output", str(train)]
+        [
+            "train",
+            *common,
+            "--go1-learner",
+            backend,
+            "--updates",
+            "2",
+            "--horizon",
+            "4",
+            "--output",
+            str(train),
+        ]
     )
     assets = json.loads((train / "assets.json").read_text())
     # A viewer or resumed process need not inherit the original shell's cache.
@@ -79,6 +95,22 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
         assert data["result"]["runtime"]["launch_mode"] == "installed_packages"
         assert data["result"]["assets"] == assets
     data = json.loads((resume / "run.json").read_text())
+    assert data["result"]["learner_backend"] == backend
+    assert data["request"]["go1_learner"] == backend
+    with pytest.raises(ValueError, match="cannot switch learner"):
+        recipes.main(
+            [
+                "train",
+                *common,
+                "--resume-run",
+                str(train),
+                "--go1-learner",
+                "native" if backend == "light-loco" else "light-loco",
+                "--output",
+                str(tmp_path / "wrong-backend"),
+            ]
+        )
+    assert not (tmp_path / "wrong-backend").exists()
     report = json.loads((resume / "resume-report.json").read_text())
     origin = json.loads((resume / "input-run.json").read_text())
     assert origin == json.loads((train / "run.json").read_text())
@@ -123,7 +155,8 @@ def test_train_resume_evaluate_and_live_without_checkout(tmp_path, monkeypatch):
     assert list(evaluation.glob("motion-*.npz"))
     runtime = json.loads((resume / "training-runtime.json").read_text())
     assert runtime["environment"]["module"] == "embodiedforge.locomotion.go1"
-    assert runtime["learner"]["module"] == "embodiedforge.locomotion.go1_ppo"
+    module = "go1_light_loco" if backend == "light-loco" else "go1_ppo"
+    assert runtime["learner"]["module"] == "embodiedforge.locomotion." + module
     assert "/implementation/embodiedforge/" in runtime["environment"]["file"]
     from embodiedforge.go1_live import LivePolicyProcess
 

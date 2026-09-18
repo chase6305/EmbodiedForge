@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | `reach` / `hold` | 本仓库 VectorEnv + CPU PPO；NumPy / MuJoCo 等物理后端 | checkpoint 无窗口评估、数据记录 |
 | Go1 | 本仓库 Go1 环境 + PPO；已安装依赖或固定 SDK 中的 CPU MuJoCo/mjbatch | 统一 Web 在线策略、运动回放 |
-| Microduck | 外部 Microduck/mjlab 任务与训练实现，CUDA PPO | 原生 / Viser 策略运行、ONNX 导出与对照 |
+| Microduck | 本仓库平地行走任务与资产，mjlab CUDA PPO | 原生 / Viser 策略运行、ONNX 导出与对照 |
 | H1 原生 | 项目内 MuJoCo/mjbatch CPU PPO，无 IsaacLab 依赖 | 固定指令评估、统一 Web 运动回放 |
 | H1 | 外部 IsaacLab 环境 + RSL-RL；Newton / MuJoCo-Warp GPU 物理 | 固定指令评估、离线 HTML / Web 记录回放 |
 | Wuji / Wuji Light | 外部 Wuji/UniLab 环境与训练实现，GPU PPO | 顺序试验评估、视频记录 |
@@ -33,22 +33,22 @@ python -m pip install -e '.[viz-robot]' 'mujoco==3.11.0'
 python -m embodiedforge recipes list
 ```
 
-训练 SDK 保持隔离；`recipes setup` 和 Microduck setup 需要 Git、`uv` 与网络。只运行所需来源的安装命令。源码必须为干净的固定版本检出，命令不会替你切换用户仓库的版本。
+训练 SDK 保持隔离；`recipes setup` 和 Microduck setup 需要 Git、`uv` 与网络。只运行所需来源的安装命令。外部配方源码必须为干净的固定版本检出，命令不会替你切换用户仓库的版本。
 
 ```bash
 python -m embodiedforge recipes setup --source mjbatch \
   --repo /path/to/mjbatch --python 3.12 --timeout 1200
 python -m embodiedforge recipes setup --source wuji_unilab \
   --repo /path/to/wuji_unilab --python 3.12 --timeout 1200
-python -m embodiedforge.microduck setup --repo /path/to/microduck_rl
-python -m embodiedforge.microduck check --repo /path/to/microduck_rl
+python -m embodiedforge.microduck setup
+python -m embodiedforge.microduck check
 ```
 
 | 来源 | 固定 revision | 环境位置 |
 | --- | --- | --- |
 | mjbatch | `b84c0c20aedbdf048122cbc47f554e9b93cc4754` | `.cache/external/mjbatch/.venv` |
 | Wuji UniLab | `91ccfa0ec8c129b300865bd36c59dc9eed56a744` | `.cache/external/wuji_unilab/.venv` |
-| Microduck | `53b8971b61baf5b7f3c16d135dd7cac37623de4b` | `.cache/microduck-venv` |
+| Microduck | `53b8971b61baf5b7f3c16d135dd7cac37623de4b` | `.cache/microduck-native-venv` |
 | IsaacLab H1 | `2e44ddb2e19536579140496023b5ccb060bc4152` | 已有环境，通过 `--environment` 指定 |
 
 H1 没有自动 `setup` 子命令，需要先准备 [H1 文档](h1-isaaclab.md) 中的 Python 3.12 / RSL-RL 5.0.1 独立环境。`--environment` 接收环境根目录，不是 Python 可执行文件。Wuji、Microduck 和 IsaacLab H1 需要对应 CUDA 环境；Go1 与两个求解任务使用 CPU。自定义缓存时，每一步需传入相同的 `--cache` 或 Microduck `--env-dir`。
@@ -85,6 +85,9 @@ python benchmarks/check_learning.py runs/commands-hold/checkpoint.pt --num-envs 
 <a id="go1"></a>
 
 ## Go1：训练 → 续训 → 验收 → 在线运行
+
+默认训练无画面；加 `--no-headless --viewer-port 8083 --viewer-fps 10` 可预览环境 0。
+实验性 `--go1-learner light-loco` 的安装、训练和验证见 [Light Loco Parkour 接入](light-loco-parkour.md)。
 
 ### 已安装依赖模式：无需外部仓库检出
 
@@ -182,41 +185,48 @@ python -m embodiedforge recipes evaluate --task go1-joystick \
 
 ## Microduck：训练、导出与策略运行
 
-先完成 Microduck setup/check。smoke 检查 64 环境、5 次更新及 ONNX 导出链路；正式训练另起目录。
+首次完成 Microduck setup 后直接训练。训练和续训默认无窗口，也支持显式 `--headless`；无需桌面或 Xvfb，仍需 CUDA 和足够显存。默认使用本地移植，无需上游检出；可选 `--repo` 切回独立环境中的历史实现。
 
 ```bash
-python -m embodiedforge.microduck smoke --repo /path/to/microduck_rl \
-  --output runs/commands-microduck-smoke
-python -m embodiedforge.microduck train --repo /path/to/microduck_rl \
+python -m embodiedforge.microduck train --headless \
   --num-envs 4096 --iterations 4000 --output runs/commands-microduck
-python -m embodiedforge.microduck progress --repo /path/to/microduck_rl \
+python -m embodiedforge.microduck progress \
   --run runs/commands-microduck
 ```
 
-从 `runs/commands-microduck/run.json` 的 `checkpoint` 字段读取实际模型路径，替换下面的 `/path/to/microduck/model.pt`。不要按训练轮数猜测文件名。续训、原生运行和 Viser 运行可按需要分别执行：
+训练/评估会保存实现快照和阶段日志，源码修改不影响已启动的本地任务。`progress` 显示阶段、日志位置和可验证的启动器状态；训练支持 `--seed`，默认 0。使用 SIGTERM 停止时保留已写出的模型并记录中断。
+
+
+训练完成后可直接传运行目录，入口按 `run.json` 选择记录中的模型，不需要手工提取路径。
+训练的 `--resume-run` 还支持已记录结束时间的 `interrupted` / `failed` 目录，只选择其清单中最新的 checkpoint；仍在运行、清单不明确或选定模型丢失时拒绝恢复，原目录保持不变。
+续训、原生运行和 Viser 运行可按需要分别执行：
 
 ```bash
-python -m embodiedforge.microduck train --repo /path/to/microduck_rl \
-  --resume /path/to/microduck/model.pt --num-envs 4096 --iterations 1000 \
+python -m embodiedforge.microduck train --headless \
+  --resume-run runs/commands-microduck --num-envs 4096 --iterations 1000 \
   --output runs/commands-microduck-resumed
-python -m embodiedforge.microduck play --repo /path/to/microduck_rl \
-  --checkpoint /path/to/microduck/model.pt --viewer native --steps 500 --seed 0
-python -m embodiedforge.microduck play --repo /path/to/microduck_rl \
-  --checkpoint /path/to/microduck/model.pt --viewer viser
+python -m embodiedforge.microduck play \
+  --run runs/commands-microduck --viewer native --steps 500 --seed 0
+python -m embodiedforge.microduck play \
+  --run runs/commands-microduck --viewer viser
 ```
 
 Viser 使用上游页面，不是统一 Go1/H1 Web 页面；不支持上述原生模式的 `--steps`。下面导出同一个 checkpoint，再在实际观测上对照 ONNX 与 Torch 动作：
 
 ```bash
-python -m embodiedforge.microduck export --repo /path/to/microduck_rl \
-  --checkpoint /path/to/microduck/model.pt --output runs/commands-microduck.onnx
-python -m embodiedforge.microduck evaluate --repo /path/to/microduck_rl \
-  --checkpoint /path/to/microduck/model.pt --onnx runs/commands-microduck.onnx \
+python -m embodiedforge.microduck export \
+  --run runs/commands-microduck --output runs/commands-microduck.onnx
+python -m embodiedforge.microduck evaluate \
+  --run runs/commands-microduck --onnx runs/commands-microduck.onnx \
   --velocity 0.2 0 0 --no-pushes --num-envs 16 --steps 500 --seeds 0 1 2 \
   --output runs/commands-microduck-eval
 ```
 
-导出包括观测归一化；输入为 61 维、输出为 14 维。对照仍由 Torch 动作推进仿真，不能当作 ONNX 独立闭环或实机部署验证。这里的评估未设行为门槛；可按 [Microduck 文档](microduck.md) 添加 RMSE / 存活率要求。
+导出默认 headless，包含观测归一化；输入为 61 维、输出为 14 维。ONNX 通过推理验证后才发布，失败日志和快照保留在输出旁的独立隐藏目录；支持 `--quiet`，拒绝覆盖已有模型或验证报告。对照仍由 Torch 动作推进仿真，不能当作 ONNX 独立闭环或实机部署验证。这里的评估未设行为门槛；可按 [Microduck 文档](microduck.md) 添加 RMSE / 存活率要求。
+
+评估同样默认 headless，支持 `--headless --quiet --video`；录像通过 EGL 离屏渲染，无需桌面或 Xvfb。多种子评估会在各 `seed-N/` 下保存 `policy.mp4`。
+
+评估会将 checkpoint 和可选 ONNX 保存到运行目录的 `inputs/`，所有种子共用这一份模型快照。启动后替换外部文件不会改变本次评估；模型来源与 SHA256 保存在 `run.json.input_snapshot`，评估报告和离线验收均核对这些哈希。
 
 <a id="h1"></a>
 
@@ -271,6 +281,10 @@ python -m embodiedforge h1 replay \
 <a id="wuji"></a>
 
 ## Wuji / Wuji Light：重定向训练
+
+安装、训练画面、TensorBoard、远程访问和验收见 [灵巧手完整训练流程](wuji-training.md)。
+训练默认 headless；Wuji 可加 `--no-headless --viewer-port 8083 --viewer-fps 10`
+预览环境 0 的真实训练动作，也可显式使用 `--headless`。关闭页面不停止训练，训练结束后预览退出。
 
 先完成 wuji_unilab setup。标准与 Light 是不同任务，使用不同运行目录，续训和评估必须保持相同 `--task`。以下小规模预算用于入口验证：
 
@@ -379,7 +393,7 @@ python -m embodiedforge live --run /path/to/runs/go1-trained \
   --render-backend mujoco --port 8080
 ```
 
-安装后 CLI 不依赖源码工作目录；Web 的 HTML/JavaScript、Go1 场景 XML 与移植许可证随 wheel 分发。`--worker-python` 必须保留虚拟环境入口路径，不要解析成底层通用 Python。wheel 只包含 EmbodiedForge 代码；各任务的外部 SDK、固定版本来源记录与机器人资产仍需按前文准备。OVRTX 还需要相应查看器依赖与驱动。
+安装后 CLI 不依赖源码工作目录；Web 的 HTML/JavaScript、Go1 场景 XML 与移植许可证随 wheel 分发。`--worker-python` 必须保留虚拟环境入口路径，不要解析成底层通用 Python。wheel 包含 EmbodiedForge 代码及 Microduck 行走资产和许可证；外部 SDK 与其他任务的资产仍需按前文准备。OVRTX 还需要相应查看器依赖与驱动。
 
 开发与示例复现仍建议使用源码检出；源码分发包还包含中英文文档、配图、配置、示例和基准脚本，训练产物和缓存不打包。版本变更后，将上面的 wheel 文件名换成实际构建产物。
 

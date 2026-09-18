@@ -177,7 +177,7 @@ def policy_kl(old_mean, old_log_std, new_mean, new_log_std):
     ).sum(-1)
 
 
-def update(net, opt, batch, adv, ret, *, diagnostics=False):
+def update(net, opt, batch, adv, ret, *, diagnostics=False, loss_function=None):
     shape = batch["obs"].shape
     if (
         len(shape) != 3
@@ -233,17 +233,20 @@ def update(net, opt, batch, adv, ret, *, diagnostics=False):
         gradient_norms = []
     for _ in range(EPOCHS):
         for i in torch.randperm(obs.shape[0]).chunk(MINIBATCHES):
-            mean, val = net(obs[i])
-            logp = log_density((act[i] - mean) / net.log_std.exp(), net.log_std)
-            ratio = (logp - logp_old[i]).exp()
-            surrogate = torch.min(
-                ratio * adv[i], ratio.clamp(1 - CLIP, 1 + CLIP) * adv[i]
-            )
-            loss = (
-                -surrogate.mean()
-                + 0.5 * (val - ret[i]).pow(2).mean()
-                - ENT_COEF * net.log_std.sum()
-            )
+            if loss_function is None:
+                mean, val = net(obs[i])
+                logp = log_density((act[i] - mean) / net.log_std.exp(), net.log_std)
+                ratio = (logp - logp_old[i]).exp()
+                surrogate = torch.min(
+                    ratio * adv[i], ratio.clamp(1 - CLIP, 1 + CLIP) * adv[i]
+                )
+                loss = (
+                    -surrogate.mean()
+                    + 0.5 * (val - ret[i]).pow(2).mean()
+                    - ENT_COEF * net.log_std.sum()
+                )
+            else:
+                loss = loss_function(obs[i], act[i], logp_old[i], adv[i], ret[i])
             if not torch.isfinite(loss):
                 raise ValueError("Non-finite Go1 PPO loss")
             opt.zero_grad(set_to_none=True)

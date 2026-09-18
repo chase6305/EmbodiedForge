@@ -5,6 +5,8 @@ import importlib.metadata
 import json
 import math
 import os
+import re
+import socket
 import subprocess
 import sys
 import threading
@@ -12,9 +14,99 @@ from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 
-def check() -> dict:
-    import torch
+def _process_state(pid):
+    # comm may contain spaces and parentheses; fields after its final ')' start
+    # at field 3. starttime is field 22, in kernel clock ticks since boot.
+    fields = (
+        Path(f"/proc/{pid}/stat").read_text(errors="replace").rsplit(")", 1)[1].split()
+    )
+    return fields[0], int(fields[19])
 
+
+def launcher_identity():
+    identity = {"pid": os.getpid(), "hostname": socket.gethostname()}
+    try:
+        identity["start_ticks"] = _process_state(identity["pid"])[1]
+        identity["boot_id"] = (
+            Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+        )
+    except (OSError, ValueError, IndexError):
+        pass
+    return identity
+
+
+def launcher_status(identity):
+    """Report local launcher liveness without mistaking a reused PID for the job."""
+    if not isinstance(identity, dict):
+        return {"alive": None, "reason": "not_recorded"}
+    if identity.get("hostname") != socket.gethostname():
+        return {"alive": None, "reason": "different_host"}
+    if (
+        type(identity.get("pid")) is not int
+        or identity["pid"] <= 0
+        or type(identity.get("start_ticks")) is not int
+        or not identity.get("boot_id")
+    ):
+        return {"alive": None, "reason": "incomplete_identity"}
+    try:
+        boot_id = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+        if boot_id != identity["boot_id"]:
+            return {"alive": False, "reason": "different_boot"}
+        state, start = _process_state(identity["pid"])
+    except FileNotFoundError:
+        if not Path("/proc/self/stat").exists():
+            return {"alive": None, "reason": "proc_unavailable"}
+        return {"alive": False, "reason": "exited"}
+    except (OSError, ValueError, IndexError):
+        return {"alive": None, "reason": "proc_unreadable"}
+    if start != identity["start_ticks"]:
+        return {"alive": False, "reason": "pid_reused"}
+    if state in ("Z", "X"):
+        return {"alive": False, "reason": "exited"}
+    return {"alive": True, "reason": "identity_matches"}
+
+
+def process_environment():
+    return {
+        "executable": sys.executable,
+        "display_present": bool(os.environ.get("DISPLAY")),
+        "wayland_display_present": bool(os.environ.get("WAYLAND_DISPLAY")),
+        "mujoco_gl": os.environ.get("MUJOCO_GL"),
+        "pyopengl_platform": os.environ.get("PYOPENGL_PLATFORM"),
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+    }
+
+
+def write_failure_report(output, exc, **context):
+    failure = {"error_type": type(exc).__name__, "error": str(exc), **context}
+    try:
+        output.with_suffix(".failure.json").write_text(
+            json.dumps(failure, indent=2) + "\n"
+        )
+    except OSError as write_error:
+        if hasattr(exc, "add_note"):
+            exc.add_note(f"Could not save failure report: {write_error}")
+
+
+def runtime_check(output=None):
+    """Retain a structured reason when preflight fails before runtime.json exists."""
+    try:
+        report = check()
+    except Exception as exc:
+        if output is not None:
+            write_failure_report(
+                output,
+                exc,
+                stage="runtime_check",
+                process_environment=process_environment(),
+            )
+        raise
+    if output is not None:
+        output.write_text(json.dumps(report, indent=2) + "\n")
+    return report
+
+
+def check() -> dict:
     if sys.version_info[:2] != (3, 12):
         raise RuntimeError("Microduck requires Python 3.12")
     expected = {"mjlab": "1.3.0", "warp-lang": "1.12.0", "torch": "2.9.1"}
@@ -22,28 +114,46 @@ def check() -> dict:
     for name, version in versions.items():
         if version.split("+")[0] != expected[name]:
             raise RuntimeError(f"Unexpected {name} version: {version}")
+    import torch
+
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is unavailable in the Microduck environment")
     value = torch.ones((16, 16), device="cuda")
     if not torch.isfinite(value @ value).all().item():
         raise RuntimeError("CUDA matrix multiplication produced nonfinite values")
-    return {
+    result = {
         "python": sys.version,
         "packages": versions,
         "cuda": torch.version.cuda,
         "gpu": torch.cuda.get_device_name(),
         "cuda_check": "passed",
+        "process_environment": process_environment(),
         "installed_packages": {
             distribution.metadata["Name"]: distribution.version
             for distribution in importlib.metadata.distributions()
         },
     }
+    try:
+        free, total = torch.cuda.mem_get_info()
+        result["gpu_memory"] = {"free_bytes": int(free), "total_bytes": int(total)}
+    except (RuntimeError, OSError) as exc:
+        result["gpu_memory"] = {"unavailable_reason": str(exc)}
+    if os.environ.get("EF_MICRODUCK_NATIVE") == "1":
+        from embodiedforge._microduck_native import native_runtime
+
+        result["implementation"] = native_runtime()
+    return result
 
 
 def onnx_session(path: Path):
     import onnxruntime as ort
 
-    session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+    # A single 61D observation does not need a machine-wide inference thread pool.
+    options = ort.SessionOptions()
+    options.intra_op_num_threads = 1
+    session = ort.InferenceSession(
+        str(path), sess_options=options, providers=["CPUExecutionProvider"]
+    )
     inputs, outputs = session.get_inputs(), session.get_outputs()
     if len(inputs) != 1 or inputs[0].shape != [1, 61]:
         raise RuntimeError(f"Expected one 61D actor input, got {inputs}")
@@ -124,12 +234,18 @@ def configure_evaluation(cfg, velocity, no_pushes: bool) -> None:
 def verify_fixed_commands(env, velocity) -> None:
     import torch
 
-    for name, expected in (("twist", velocity), ("head_pose", 0.0), ("body_pose", 0.0)):
+    names = ("twist", "head_pose", "body_pose")
+    checks = []
+    for name, expected in zip(names, (velocity, 0.0, 0.0), strict=True):
         actual = env.command_manager.get_command(name)
         target = torch.as_tensor(expected, dtype=actual.dtype, device=actual.device)
-        if not torch.isfinite(actual).all() or not torch.allclose(
-            actual, target.expand_as(actual), atol=1e-6, rtol=0.0
-        ):
+        checks.append(
+            torch.isfinite(actual).all()
+            & torch.isclose(actual, target.expand_as(actual), atol=1e-6, rtol=0.0).all()
+        )
+    # Read all three results together instead of synchronizing each reduction.
+    for name, valid in zip(names, torch.stack(checks).tolist(), strict=True):
+        if not valid:
             raise RuntimeError(f"Fixed evaluation command changed: {name}")
 
 
@@ -172,10 +288,11 @@ class EvaluationMetrics:
         command = env.command_manager.get_command("twist").double()
         self.finite &= torch.isfinite(actual).all() & torch.isfinite(command).all()
         error = actual - command
+        squared_error = error.square()
         self.sums[0] += command
         self.sums[1] += actual
         self.sums[2] += error.abs()
-        self.sums[3] += error.square()
+        self.sums[3] += squared_error
         terminated, time_out = env.reset_terminated.bool(), env.reset_time_outs.bool()
         done = terminated | time_out
         self.steps += 1
@@ -183,14 +300,15 @@ class EvaluationMetrics:
         self.completed[0] += done.sum()
         self.completed[1] += torch.where(done, self.lengths, 0).sum()
         self.lengths.masked_fill_(done, 0)
-        self.first_steps += (~self.first_ended).long()
-        first_done = ~self.first_ended & done
+        first_active = ~self.first_ended
+        self.first_steps += first_active.long()
+        first_done = first_active & done
         self.first_terminated |= first_done & terminated
         self.first_time_limit |= first_done & time_out & ~terminated
         self.first_ended |= done
         for index, name in enumerate(self.term_names):
             self.term_counts[index] += env.termination_manager.get_term(name).sum()
-        return error[:, :2].square().sum(dim=1).sqrt().float()
+        return squared_error[:, :2].sum(dim=1).sqrt().float()
 
     def report(self, *, steps: int, step_dt: float) -> dict:
         import torch
@@ -273,9 +391,15 @@ def validate_metrics(
     accumulator.Reload()
     scalars = {tag: accumulator.Scalars(tag) for tag in accumulator.Tags()["scalars"]}
     steps = {event.step for event in scalars.get("Loss/value", [])}
-    if steps != set(range(start_iteration, start_iteration + iterations)):
+    expected = set(range(start_iteration, start_iteration + iterations))
+    if steps != expected:
+        missing = sorted(expected - steps)
+        unexpected = sorted(steps - expected)
         raise RuntimeError(
-            f"Expected {iterations} PPO updates, found steps {sorted(steps)}"
+            f"Expected {iterations} PPO updates at steps "
+            f"{start_iteration}..{start_iteration + iterations - 1}, found {len(steps)}; "
+            f"missing {len(missing)} (first 10): {missing[:10]}; "
+            f"unexpected {len(unexpected)} (first 10): {unexpected[:10]}"
         )
     for tag, events in scalars.items():
         if any(not math.isfinite(event.value) for event in events):
@@ -294,6 +418,21 @@ def validate_metrics(
     }
 
 
+def training_checkpoints(directory: Path) -> list[Path]:
+    """Find saved model files without loading them or including temporary files."""
+    directory = directory.resolve()
+    return sorted(
+        (
+            path
+            for path in directory.glob("logs/rsl_rl/microduck/*/model_*.pt")
+            if re.fullmatch(r"model_[0-9]+\.pt", path.name)
+            and path.is_file()
+            and path.resolve().is_relative_to(directory)
+        ),
+        key=lambda path: int(path.stem.removeprefix("model_")),
+    )
+
+
 def training_progress(directory: Path) -> dict:
     """Read flushed TensorBoard events without loading a policy or accessing CUDA."""
     import statistics
@@ -303,22 +442,35 @@ def training_progress(directory: Path) -> dict:
 
     directory = directory.expanduser().resolve()
     manifest = json.loads((directory / "run.json").read_text())
-    if manifest.get("workflow") not in ("train", "smoke"):
-        raise ValueError("progress requires a train or smoke run directory")
+    if manifest.get("workflow") not in ("train", "smoke"):  # Read historical records.
+        raise ValueError("progress requires a training run directory")
     commands = [
         command
         for command in manifest.get("commands", [])
         if "--agent.max-iterations" in command
     ]
-    requested = (
-        int(commands[-1][commands[-1].index("--agent.max-iterations") + 1])
-        if commands
-        else None
-    )
+    requested = manifest.get("iterations")
+    # New runs record the budget before launching any worker. Legacy records
+    # expose it only once the training command has been written.
+    if requested is None and commands:
+        requested = int(commands[-1][commands[-1].index("--agent.max-iterations") + 1])
     start = manifest.get("resume", {}).get("iteration", 0)
+    launcher = launcher_status(manifest.get("launcher"))
+    effective_status = manifest["status"]
+    if effective_status == "running" and launcher["alive"] is False:
+        effective_status = "orphaned"
     report = {
         "run": str(directory),
         "run_status": manifest["status"],
+        "launcher_status": launcher,
+        "effective_status": effective_status,
+        "phase": manifest.get("phase"),
+        "active_log": manifest.get("active_log"),
+        "execution": manifest.get("execution"),
+        "failed_phase": manifest.get("failed_phase"),
+        "error": manifest.get("error"),
+        "runtime_failure": manifest.get("runtime_failure"),
+        "interrupt_signal": manifest.get("interrupt_signal"),
         "requested_updates": requested,
         "start_iteration": start,
         "observed_updates": 0,
@@ -333,22 +485,21 @@ def training_progress(directory: Path) -> dict:
         path.parent
         for path in directory.glob("logs/rsl_rl/microduck/*/events.out.tfevents.*")
     }
-    if len(logs) > 1:
-        raise ValueError("Ambiguous training log directories")
-    checkpoints = list(directory.glob("logs/rsl_rl/microduck/*/model_*.pt"))
-    report["latest_checkpoint"] = (
-        str(max(checkpoints, key=lambda path: int(path.stem.removeprefix("model_"))))
-        if checkpoints
-        else None
-    )
+    checkpoints = training_checkpoints(directory)
+    # Metrics and the advertised recovery checkpoint must belong to one session.
+    if len(logs | {path.parent for path in checkpoints}) > 1:
+        raise ValueError("Ambiguous training session directories")
+    report["latest_checkpoint"] = str(checkpoints[-1]) if checkpoints else None
+    # Discovery is file-only; resume performs the actual torch checkpoint checks.
+    report["checkpoint_validation"] = "not_performed" if checkpoints else None
     if not logs:
         return report
     accumulator = EventAccumulator(str(logs.pop()), size_guidance={"scalars": 0})
     accumulator.Reload()
     scalars = {tag: accumulator.Scalars(tag) for tag in accumulator.Tags()["scalars"]}
     losses = scalars.get("Loss/value", [])
+    steps = {event.step for event in losses}
     if losses:
-        steps = {event.step for event in losses}
         report["observed_updates"] = len(steps)
         report["latest_iteration"] = max(steps)
         report["seconds_since_last_event"] = max(
@@ -382,14 +533,27 @@ def training_progress(directory: Path) -> dict:
     learning = {
         event.step: event.value for event in scalars.get("Perf/learning_time", [])
     }
-    paired = sorted(collection.keys() & learning.keys())[-20:]
-    if paired and requested is not None and report["all_recorded_scalars_finite"]:
+    paired = sorted(collection.keys() & learning.keys() & steps)[-20:]
+    if (
+        paired
+        and requested is not None
+        and report["all_recorded_scalars_finite"]
+        and all(collection[step] >= 0 and learning[step] >= 0 for step in paired)
+    ):
         median = statistics.median(collection[step] + learning[step] for step in paired)
         report["median_iteration_seconds_last_20"] = median
-        if manifest["status"] in ("running", "complete"):
+        if (
+            effective_status == "running"
+            and manifest.get("phase") in (None, "train")
+            and min(steps) == start
+            and max(steps) - start + 1 == len(steps)
+            and len(steps) <= requested
+        ):
             report["estimated_remaining_seconds"] = (
                 max(0, requested - report["observed_updates"]) * median
             )
+        elif effective_status == "complete":
+            report["estimated_remaining_seconds"] = 0.0
     # JSON must remain valid even when diagnostics discover a corrupt metric.
     report["latest_metrics"] = {
         tag: value if math.isfinite(value) else None
@@ -401,9 +565,31 @@ def training_progress(directory: Path) -> dict:
 def checkpoint_metadata(path: Path) -> dict:
     import torch
 
-    checkpoint = torch.load(path, map_location="cpu", weights_only=True)
-    iteration = checkpoint["iter"]
-    counter = checkpoint["infos"]["env_state"]["common_step_counter"]
+    # Keep one file open so atomic checkpoint replacement cannot mix versions.
+    with path.open("rb") as stream:
+        checkpoint = torch.load(stream, map_location="cpu", weights_only=True)
+        stream.seek(0)
+        digest = hashlib.sha256()
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    if not isinstance(checkpoint, dict):
+        raise ValueError("Expected a full PPO training checkpoint dictionary")
+    for key in ("actor_state_dict", "critic_state_dict", "optimizer_state_dict"):
+        if not isinstance(checkpoint.get(key), dict) or not checkpoint[key]:
+            raise ValueError(
+                f"Checkpoint has no valid {key}; use a full PPO training checkpoint"
+            )
+    try:
+        iteration = checkpoint["iter"]
+        counter = checkpoint["infos"]["env_state"]["common_step_counter"]
+        rates = [
+            group["lr"] for group in checkpoint["optimizer_state_dict"]["param_groups"]
+        ]
+    except (KeyError, TypeError) as exc:
+        raise ValueError(
+            "Expected a full PPO training checkpoint with iteration, "
+            "curriculum counter and optimizer learning rates"
+        ) from exc
     if (
         type(iteration) is not int
         or iteration < 0
@@ -411,20 +597,10 @@ def checkpoint_metadata(path: Path) -> dict:
         or counter < 0
     ):
         raise ValueError("Invalid checkpoint iteration or curriculum counter")
-    for key in ("actor_state_dict", "critic_state_dict", "optimizer_state_dict"):
-        if not checkpoint.get(key):
-            raise ValueError(f"Checkpoint has no {key}")
-    rates = [
-        group["lr"] for group in checkpoint["optimizer_state_dict"]["param_groups"]
-    ]
     if not rates or any(
         not math.isfinite(rate) or rate <= 0 or rate != rates[0] for rate in rates
     ):
         raise ValueError("Expected a single positive PPO learning rate")
-    with path.open("rb") as stream:
-        digest = hashlib.sha256()
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
     return {
         "iteration": iteration,
         "common_step_counter": counter,
@@ -461,7 +637,9 @@ def audit_training_reset(env, env_ids, *, counter, report_path, checkpoint_sha25
     env._ef_resume_audited = True
 
 
-def resume_training(checkpoint: Path, num_envs: int, iterations: int) -> dict:
+def resume_training(
+    checkpoint: Path, num_envs: int, iterations: int, seed: int = 0
+) -> dict:
     """Use the upstream launcher with local startup/reset events for restoration."""
     from dataclasses import replace
 
@@ -475,11 +653,15 @@ def resume_training(checkpoint: Path, num_envs: int, iterations: int) -> dict:
         raise ValueError("Resume training requires the launcher's checkpoint snapshot")
     metadata = checkpoint_metadata(checkpoint)
     cfg = replace(
-        TrainConfig.from_task("Mjlab-Velocity-Flat-MicroDuck"), enable_nan_guard=True
+        TrainConfig.from_task("Mjlab-Velocity-Flat-MicroDuck"),
+        enable_nan_guard=True,
+        video=False,
     )
     cfg.env.scene.num_envs = num_envs
     cfg.agent.max_iterations = iterations
-    cfg.agent.seed = 0
+    if not 0 <= seed < 2**32:
+        raise ValueError("--seed must be between 0 and 2**32 - 1")
+    cfg.agent.seed = seed
     cfg.agent.logger = "tensorboard"
     cfg.agent.experiment_name = "microduck"
     cfg.agent.run_name = "embodiedforge"
@@ -559,7 +741,7 @@ def policy_environment(
             str(checkpoint),
             load_cfg={"actor": True},
             strict=True,
-            map_location="cuda:0",
+            map_location="cpu",
         )
         # runner.load also restores the saved counter, including actor-only loads.
         env.common_step_counter = start_counter
@@ -713,7 +895,11 @@ def evaluation_video(env, path: Path | None):
             def capture():
                 renderer.update(env.sim.data)
                 frame = renderer.render()
-                process.stdin.write(frame.tobytes())
+                # MuJoCo returns contiguous RGB arrays: pass their buffer
+                # directly instead of copying a full frame into Python bytes.
+                process.stdin.write(
+                    memoryview(frame) if frame.flags.c_contiguous else frame.tobytes()
+                )
                 info["frames"] += 1
 
             yield capture, info
@@ -765,8 +951,11 @@ def evaluate(
     if num_envs <= 0 or steps <= 0:
         raise ValueError("Environment and step counts must be positive")
     if video:
-        # This worker owns the process; select headless GL before importing MuJoCo.
+        # Fallback for direct legacy worker calls. The public launcher sets both
+        # GL variables before spawning, since native task registration imports
+        # MuJoCo before this function runs.
         os.environ.setdefault("MUJOCO_GL", "egl")
+        os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
     session = onnx_session(Path(onnx)) if onnx else None
     parity = None
     if session is not None:
@@ -873,9 +1062,7 @@ def evaluate(
 
 if __name__ == "__main__":
     if sys.argv[1] == "check":
-        report = check()
-        if len(sys.argv) > 2:
-            Path(sys.argv[2]).write_text(json.dumps(report, indent=2) + "\n")
+        report = runtime_check(Path(sys.argv[2]) if len(sys.argv) > 2 else None)
     elif sys.argv[1] == "onnx":
         report = validate_onnx(Path(sys.argv[2]))
         Path(sys.argv[2]).with_suffix(".validation.json").write_text(
@@ -904,8 +1091,11 @@ if __name__ == "__main__":
         parser.add_argument(
             "--agent.max-iterations", dest="iterations", type=int, required=True
         )
+        parser.add_argument("--seed", type=int, default=0)
         args = parser.parse_args(sys.argv[2:])
-        report = resume_training(args.checkpoint, args.num_envs, args.iterations)
+        report = resume_training(
+            args.checkpoint, args.num_envs, args.iterations, args.seed
+        )
     elif sys.argv[1] == "evaluate":
         try:
             options = json.loads(sys.argv[7]) if len(sys.argv) > 7 else {}
@@ -919,12 +1109,7 @@ if __name__ == "__main__":
                 **options,
             )
         except Exception as exc:
-            Path(sys.argv[6]).with_suffix(".failure.json").write_text(
-                json.dumps(
-                    {"error_type": type(exc).__name__, "error": str(exc)}, indent=2
-                )
-                + "\n"
-            )
+            write_failure_report(Path(sys.argv[6]), exc)
             raise
         Path(sys.argv[6]).write_text(json.dumps(report, indent=2) + "\n")
     elif sys.argv[1] == "play":

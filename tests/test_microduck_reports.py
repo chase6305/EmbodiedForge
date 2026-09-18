@@ -28,6 +28,7 @@ def report(seed=0, *, checkpoint_hash="abc", rmse=3.0):
         "conditions": {
             "velocity_body_frame": [0.2, 0, 0],
             "policy_matmul_precision": "ieee",
+            "pushes_enabled": False,
         },
         "num_envs": 2,
         "steps_per_env": 4,
@@ -130,10 +131,12 @@ def test_different_onnx_models_cannot_be_combined():
     first, second = report(), report(1)
     first["onnx_parity"] = {
         "sha256": "a",
-        "provider": "CPU",
+        "provider": "CPUExecutionProvider",
         "atol": 1e-4,
         "rtol": 1e-4,
-        "sampling": "rotating environment",
+        "sampling": "one environment per step, index = step % num_envs",
+        "samples": 4,
+        "max_absolute_error": 0.0,
     }
     second["onnx_parity"] = dict(first["onnx_parity"], sha256="b")
     with pytest.raises(ValueError, match="ONNX"):
@@ -162,8 +165,10 @@ def batch(tmp_path, monkeypatch):
             return
         seed = int(command[7])
         calls.append(seed)
-        digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
-        Path(command[8]).write_text(json.dumps(report(seed, checkpoint_hash=digest)))
+        digest = hashlib.sha256(Path(command[4]).read_bytes()).hexdigest()
+        result = report(seed, checkpoint_hash=digest)
+        result["checkpoint"] = command[4]
+        Path(command[8]).write_text(json.dumps(result))
 
     monkeypatch.setattr(microduck, "run", run)
     return args, calls, run
@@ -178,39 +183,54 @@ def test_batch_preserves_individual_results_and_refuses_overwrite(batch):
     assert manifest["status"] == "complete"
     assert manifest["completed_seeds"] == [0, 1, 2]
     assert summary["seed_count"] == 3
+    expected = aggregate_evaluations(
+        [json.loads((args.output / path).read_text()) for path in summary["reports"]]
+    )
+    assert summary == {**expected, "reports": summary["reports"]}
     for path in summary["reports"]:
         assert (args.output / path).is_file()
     with pytest.raises(FileExistsError):
         microduck.evaluate_run(args, Path("/isolated/python"), {}, {})
 
 
-@pytest.mark.parametrize("interrupt", [False, True])
+@pytest.mark.parametrize("failure", ["worker", "interrupt", "incompatible"])
 def test_batch_failure_preserves_completed_seeds_without_summary(
-    batch, monkeypatch, interrupt
+    batch, monkeypatch, failure
 ):
     args, calls, run = batch
 
     def fail(command, **kwargs):
         if command[3] == "evaluate" and command[7] == "1":
-            if interrupt:
+            if failure == "interrupt":
                 raise KeyboardInterrupt
+            if failure == "incompatible":
+                run(command, **kwargs)
+                path = Path(command[8])
+                result = json.loads(path.read_text())
+                result["sim_seconds_per_env"] *= 2
+                path.write_text(json.dumps(result))
+                return
             raise subprocess.CalledProcessError(1, command)
         run(command, **kwargs)
 
     monkeypatch.setattr(microduck, "run", fail)
     with pytest.raises(
-        KeyboardInterrupt if interrupt else subprocess.CalledProcessError
+        {
+            "worker": subprocess.CalledProcessError,
+            "interrupt": KeyboardInterrupt,
+            "incompatible": ValueError,
+        }[failure]
     ):
         microduck.evaluate_run(args, Path("/isolated/python"), {}, {})
     manifest = json.loads((args.output / "run.json").read_text())
-    assert manifest["status"] == ("interrupted" if interrupt else "failed")
+    assert manifest["status"] == ("interrupted" if failure == "interrupt" else "failed")
     assert manifest["completed_seeds"] == [0]
     assert not (args.output / "summary.json").exists()
     assert (args.output / "seed-0/evaluation.json").is_file()
     assert not (args.output / "seed-2").exists()
 
 
-def test_checkpoint_change_stops_batch(batch, monkeypatch):
+def test_external_checkpoint_change_does_not_change_batch(batch, monkeypatch):
     args, calls, run = batch
 
     def mutate(command, **kwargs):
@@ -219,10 +239,85 @@ def test_checkpoint_change_stops_batch(batch, monkeypatch):
         run(command, **kwargs)
 
     monkeypatch.setattr(microduck, "run", mutate)
-    with pytest.raises(RuntimeError, match="Checkpoint changed"):
+    microduck.evaluate_run(args, Path("/isolated/python"), {}, {})
+    assert calls == [0, 1, 2]
+    manifest = json.loads((args.output / "run.json").read_text())
+    snapshot = manifest["input_snapshot"]["checkpoint"]
+    assert Path(snapshot["path"]).read_bytes() == b"test checkpoint"
+    assert snapshot["source"] == str(args.checkpoint)
+    assert manifest["status"] == "complete"
+    for seed in calls:
+        child = json.loads((args.output / f"seed-{seed}/run.json").read_text())
+        assert child["input_snapshot"] == manifest["input_snapshot"]
+        assert not (args.output / f"seed-{seed}/inputs").exists()
+
+
+def test_snapshot_tampering_stops_before_next_seed_gpu_work(batch, monkeypatch):
+    args, calls, run = batch
+
+    def mutate(command, **kwargs):
+        run(command, **kwargs)
+        if command[3] == "evaluate":
+            Path(command[4]).write_bytes(b"changed snapshot")
+
+    monkeypatch.setattr(microduck, "run", mutate)
+    with pytest.raises(ValueError, match="snapshot SHA256 mismatch"):
         microduck.evaluate_run(args, Path("/isolated/python"), {}, {})
-    assert calls == [0, 1]
+    assert calls == [0]
     assert not (args.output / "summary.json").exists()
+
+
+def test_batch_freezes_onnx_once_even_if_source_disappears(batch, monkeypatch):
+    args, calls, run = batch
+    args.onnx = args.checkpoint.with_suffix(".onnx")
+    args.onnx.write_bytes(b"original ONNX")
+
+    def execute(command, **kwargs):
+        run(command, **kwargs)
+        if command[3] != "evaluate":
+            return
+        args.onnx.unlink(missing_ok=True)
+        frozen = Path(json.loads(command[9])["onnx"])
+        assert frozen == args.output / "inputs/policy.onnx"
+        assert frozen.read_bytes() == b"original ONNX"
+        path = Path(command[8])
+        result = json.loads(path.read_text())
+        result["onnx_parity"] = {
+            "onnx": str(frozen),
+            "sha256": hashlib.sha256(frozen.read_bytes()).hexdigest(),
+            "provider": "CPUExecutionProvider",
+            "atol": 1e-4,
+            "rtol": 1e-4,
+            "sampling": "one environment per step, index = step % num_envs",
+            "samples": 4,
+            "max_absolute_error": 0.0,
+        }
+        path.write_text(json.dumps(result))
+
+    monkeypatch.setattr(microduck, "run", execute)
+    microduck.evaluate_run(args, Path("/isolated/python"), {}, {})
+    assert calls == [0, 1, 2]
+
+
+@pytest.mark.parametrize("kind", ["checkpoint", "onnx", "child"])
+def test_offline_rejects_report_snapshot_disagreement(saved_evaluation, kind):
+    paths = [
+        saved_evaluation / "run.json",
+        *sorted(saved_evaluation.glob("seed-*/run.json")),
+    ]
+    for path in paths:
+        manifest = json.loads(path.read_text())
+        snapshot = {"checkpoint": {"sha256": "abc"}}
+        if kind == "checkpoint":
+            snapshot["checkpoint"]["sha256"] = "unexpected checkpoint"
+        elif kind == "onnx":
+            snapshot["onnx"] = {"sha256": "missing ONNX comparison"}
+        elif path.parent.name == "seed-1":
+            snapshot["checkpoint"]["sha256"] = "other snapshot"
+        manifest["input_snapshot"] = snapshot
+        path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="snapshot"):
+        load_evaluation_run(saved_evaluation)
 
 
 @pytest.mark.parametrize("seeds", [[1, 1], [-1], [2**32], []])
@@ -389,6 +484,11 @@ def test_cli_returns_distinct_code_for_policy_rejection(batch, monkeypatch, tmp_
                 "4",
                 "--max-planar-rmse",
                 "2",
+                "--velocity",
+                "0.2",
+                "0",
+                "0",
+                "--no-pushes",
             ]
         )
     assert exc.value.code == 3
@@ -645,10 +745,12 @@ def test_comparison_allows_each_checkpoints_own_onnx_export():
     before, after = comparable(0), comparable(0, checkpoint_hash="new")
     parity = {
         "sha256": "old-onnx",
-        "provider": "CPU",
+        "provider": "CPUExecutionProvider",
         "atol": 1e-4,
         "rtol": 1e-4,
-        "sampling": "rotating",
+        "sampling": "one environment per step, index = step % num_envs",
+        "samples": 4,
+        "max_absolute_error": 0.0,
     }
     before["onnx_parity"] = parity
     after["onnx_parity"] = dict(parity, sha256="new-onnx")

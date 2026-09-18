@@ -1,0 +1,12 @@
+# Algorithm dependencies exercised by the Go1 integration, 2026-09-16.
+# Combine with .[go1-native,light-loco,viz-robot]; this is not a full lock file.
+assoc-scan==0.0.5
+accelerated-scan==0.3.1
+beartype==0.22.9
+einops==0.8.2
+einx==0.4.3
+env-ssl-wrapper==0.4.4
+hl-gauss-pytorch==0.3.0
+mean-conc-beta==0.1.4
+torch-einops-utils==0.1.25
+x-mlps-pytorch==0.5.1

@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 
 _PROFILES = {
+    "learner_backend": "native",
     "reward_profile": "original",
     "command_profile": "original",
     "task_semantics": "upstream-v1",
@@ -61,7 +62,12 @@ def load_go1_checkpoint(path, *, sha256, contract):
 
 
 def load_recipe_checkpoint(request):
-    contract = {name: request["input_" + name] for name in _PROFILES}
+    contract = {
+        name: request["input_" + name]
+        for name in _PROFILES
+        if name != "learner_backend"
+    }
+    contract["learner_backend"] = request.get("input_learner_backend", "native")
     contract["checkpoint_iteration"] = request["input_checkpoint_iteration"]
     return load_go1_checkpoint(
         request["checkpoint"],

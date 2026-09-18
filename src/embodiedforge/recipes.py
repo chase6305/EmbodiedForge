@@ -523,6 +523,19 @@ def checkpoint_input(
 
 def execute(args):
     recipe = RECIPES[args.task]
+    if getattr(args, "go1_learner", None) and args.task != "go1-joystick":
+        raise ValueError("--go1-learner applies to Go1 only")
+    if not getattr(args, "headless", True) and not (
+        args.task.startswith("wuji-") or args.task == "go1-joystick"
+    ):
+        raise ValueError(
+            "Training --no-headless currently supports Wuji and Go1 tasks only"
+        )
+    if not getattr(args, "headless", True):
+        LOGGER.info(
+            "Training preview: http://127.0.0.1:%s (available after the first rollout step)",
+            args.viewer_port,
+        )
     standalone = getattr(args, "standalone", False)
     if standalone and args.task != "go1-joystick":
         raise ValueError("--standalone currently supports Go1 only")
@@ -613,6 +626,27 @@ def execute(args):
                 previous[1]["status"],
             )
     if args.task == "go1-joystick":
+        inherited_backend = (
+            previous[1]["result"].get("learner_backend", "native")
+            if previous
+            else "native"
+        )
+        requested_backend = getattr(args, "go1_learner", None)
+        if (
+            previous
+            and requested_backend is not None
+            and requested_backend != inherited_backend
+        ):
+            raise ValueError("Go1 resume cannot switch learner backend")
+        args.go1_learner = requested_backend or inherited_backend
+        if (
+            args.command == "train"
+            and args.go1_learner == "light-loco"
+            and not standalone
+        ):
+            raise ValueError(
+                "Light Loco training requires --standalone in an environment with the light-loco extra"
+            )
         args.go1_learning_rate = resolve_go1_learning_rate(
             getattr(args, "go1_learning_rate", None),
             previous[1]["result"] if previous else None,
@@ -648,6 +682,9 @@ def execute(args):
             "checkpoint_iteration"
         ]
         request["input_checkpoint_sha256"] = previous[1]["result"]["checkpoint_sha256"]
+        request["input_learner_backend"] = previous[1]["result"].get(
+            "learner_backend", "native"
+        )
         request["input_learning_rate_override"] = previous[1]["result"].get(
             "learning_rate_override"
         )
@@ -938,6 +975,19 @@ def main(argv=None):
             )
         if mode == "train":
             child.add_argument(
+                "--go1-learner",
+                choices=("native", "light-loco"),
+                help="Go1 PPO backend: defaults to native, or inherits the resumed run",
+            )
+            child.add_argument(
+                "--headless",
+                action=argparse.BooleanOptionalAction,
+                default=True,
+                help="Disable training preview (default); --no-headless opens a browser preview",
+            )
+            child.add_argument("--viewer-port", type=int, default=8083)
+            child.add_argument("--viewer-fps", type=int, default=10)
+            child.add_argument(
                 "--go1-learning-rate",
                 type=float,
                 help="Fixed Go1 learning rate; inherits input override, otherwise uses original annealing",
@@ -993,6 +1043,11 @@ def main(argv=None):
     status = sub.add_parser("status")
     status.add_argument("--run", type=Path, required=True)
     args = parser.parse_args(argv)
+    if hasattr(args, "viewer_port"):
+        if not 1 <= args.viewer_port <= 65535:
+            parser.error("--viewer-port must be between 1 and 65535")
+        if not 1 <= args.viewer_fps <= 30:
+            parser.error("--viewer-fps must be between 1 and 30")
     for name in (
         "timeout",
         "num_envs",
