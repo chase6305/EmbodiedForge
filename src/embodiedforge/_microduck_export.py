@@ -111,19 +111,23 @@ def export_run(args, python, identity, env):
         if expected is not None and digest != expected:
             raise ValueError("Checkpoint SHA256 mismatch after export snapshot")
         staged = attempt / "policy.onnx"
+        native = env.get("EF_MICRODUCK_NATIVE") == "1"
         execute(
             cli.export_command(
                 python,
                 frozen_checkpoint,
                 staged,
-                native=env.get("EF_MICRODUCK_NATIVE") == "1",
+                native=native,
             ),
             "export",
         )
-        execute(
-            [str(python), "-I", str(cli.worker_for(env)), "onnx", str(staged)],
-            "validate",
-        )
+        # The local exporter validates against its loaded actor before exiting.
+        # Legacy upstream exports still need standalone structural validation.
+        if not native:
+            execute(
+                [str(python), "-I", str(cli.worker_for(env)), "onnx", str(staged)],
+                "validate",
+            )
         report = json.loads(staged.with_suffix(".validation.json").read_text())
         if (
             report.get("actor_dim") != 61
@@ -132,6 +136,10 @@ def export_run(args, python, identity, env):
             or report.get("onnx") != str(staged)
         ):
             raise ValueError("Export validation report is incomplete or inconsistent")
+        if native:
+            parity = report.get("policy_parity")
+            if not isinstance(parity, dict) or parity.get("passed") is not True:
+                raise ValueError("Native export is missing checkpoint actor parity")
         manifest["phase"] = "publish"
         manifest["onnx_sha256"] = checkpoint_digest(staged)
         cli.write_json(attempt / "run.json", manifest)

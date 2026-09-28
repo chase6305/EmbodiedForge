@@ -15,7 +15,7 @@
 conda create -n ef-h1-native python=3.12 pip
 conda activate ef-h1-native
 python -m pip install -e '.[h1-native]'
-python -m embodiedforge h1-native train \
+python -m embodiedforge h1-native train --headless \
   --model /home/ubuntu/workspace/3rdparty/mink/examples/unitree_h1/h1.xml \
   --num-envs 128 --threads 4 --updates 1000 \
   --output runs/h1-native-first
@@ -25,16 +25,19 @@ python -m embodiedforge h1-native train \
 该路径只选择 Python 环境；训练不会导入 mjbatch 的上游 example。
 
 ```bash
-python -m embodiedforge h1-native train \
+python -m embodiedforge h1-native train --headless \
   --resume runs/h1-native-first --num-envs 128 --threads 4 --updates 1000 \
   --output runs/h1-native-resumed
 ```
 
 输出目录必须不存在。`--updates` 表示本次新增更新数，默认 horizon 为 24。
-目录包括 `model.mjb`、`checkpoint.pt`、`metrics.jsonl`、`run.json`。MJB 包含编译后的模型与网格，续训和回放无需再次读取原 XML/网格路径。
-每 50 轮及最终轮原子保存 checkpoint；续训接受 `complete` 目录，核对模型和 checkpoint 的 SHA256、任务版本、关节顺序和有限数值。
-恢复策略与 Adam 优化器，重新初始化环境和随机数；这不是逐步等价恢复。
-`--learning-rate` 默认 0.001，续训时使用这次指定的学习率。
+训练和评估始终无窗口，不初始化渲染器；可显式传入 `--headless`，省略时行为相同。`--seed` 范围为 `0..2**64-1`。
+目录包括 `model.mjb`、`checkpoint.pt`、`metrics.jsonl`、`run.json`。MJB 包含编译后的模型与网格，续训和回放无需再次读取原 XML/网格路径。权重与 MJB 均从通过哈希校验的同一份字节加载；续训目录保存实际加载的模型，避免输入文件被替换后记录与运行内容不一致。
+
+训练失败或 Ctrl+C / SIGTERM 中断时会尝试更新 `run.json`。若此时写盘也失败，日志记录文件路径及写盘异常，并保留原始训练异常或中断；文件中的状态可能仍为 `running`。正常训练结束后的最终记录写入失败则直接报错，不返回成功。
+每 50 轮及最终轮原子保存 checkpoint；续训和评估接受 `complete`、`interrupted` 或 `failed` 目录中已记录的保存点，核对模型和 checkpoint 的 SHA256、任务版本、关节顺序和有限数值。中断后从最后保存的轮数继续，未落盘的进度不会恢复；首次保存前退出或仍标记为 `running` 的目录不能作为输入。
+恢复策略与 Adam 优化器，重新初始化环境和随机数；这不是逐步等价恢复。恢复优化器前及保存 checkpoint 前，使用与原生 Go1 共用的 Adam 校验，检查参数组、完整状态、动量形状/类型、非负二阶矩和整数步数；损坏的优化器状态会在新运行目录和仿真环境创建前被拒绝。
+新训练默认学习率为 `0.0003`。续训省略 `--learning-rate` 时继承 checkpoint 中的学习率；显式指定则覆盖保存值。该默认值来自 [三种子学习率对照](rl-training-study-20260925.md)，验证范围是当前平地任务及标称起点评估。
 
 ## 评估与网页回放
 
@@ -91,6 +94,8 @@ MuJoCo 的 `qpos0` 保持资产的运动学参考值；站立姿态写入各环�
 - PPO 为三层 128 单元 ELU、固定学习率；没有上游 adaptive-KL 学习率调度、分布式训练或 GPU 批量状态。
 
 ## 本机验证：2026-09-15
+
+更新：2026-09-25 完成了六组 5000 轮训练，较低学习率在三个训练种子的标称起点行走和转向评估中均完成 10 秒试验；数据与限制见 [学习率对照](rl-training-study-20260925.md)。以下保留早期 500 轮结果。
 
 `runs/h1-native-validation-20260915` 保存训练、续训、评估和 RTX 回放证据。
 128 环境 × 24 步 × 500 轮完成 1,536,000 条环境转换，4 个 CPU 线程下训练循环约 75 秒。

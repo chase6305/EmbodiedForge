@@ -1,3 +1,4 @@
+import hashlib
 import json
 import runpy
 import sys
@@ -10,12 +11,64 @@ torch = pytest.importorskip("torch")
 
 from embodiedforge import Config
 from embodiedforge.training import (
+    ActorCritic,
     PPOConfig,
+    _optimize_policy,
     generalized_advantage,
     load_checkpoint,
     load_policy,
     train_ppo,
 )
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"updates": 1.5},
+        {"rollout_steps": True},
+        {"epochs": 0},
+        {"minibatch_size": float("nan")},
+        {"learning_rate": float("inf")},
+        {"seed": -1},
+        {"seed": 2**64},
+        {"seed": False},
+    ],
+)
+def test_invalid_ppo_config_is_rejected_before_training(options):
+    with pytest.raises(ValueError):
+        PPOConfig(**options)
+
+
+def test_nonfinite_gradient_does_not_update_policy_or_adam():
+    model = ActorCritic()
+    optimizer = torch.optim.Adam(model.parameters())
+    observation = torch.zeros(2, 6)
+    action = torch.zeros(2, 2)
+    with torch.no_grad():
+        logprob = model.distribution(observation).log_prob(action).sum(-1)
+    rollout = {
+        "obs": observation.numpy()[None],
+        "raw": action.numpy()[None],
+        "logprob": logprob.numpy()[None],
+        "reward": np.array([[1, 2]], dtype=np.float32),
+        "value": np.zeros((1, 2), dtype=np.float32),
+        "next_value": np.zeros((1, 2), dtype=np.float32),
+        "terminated": np.ones((1, 2), dtype=bool),
+        "truncated": np.zeros((1, 2), dtype=bool),
+    }
+    before = {key: value.clone() for key, value in model.state_dict().items()}
+    # A finite forward loss does not guarantee finite derivatives.
+    handle = model.log_std.register_hook(lambda grad: grad * float("nan"))
+    try:
+        with pytest.raises(RuntimeError, match="non-finite"):
+            _optimize_policy(
+                model, optimizer, rollout, PPOConfig(epochs=1), np.random.default_rng(0)
+            )
+    finally:
+        handle.remove()
+    assert not optimizer.state
+    for key, value in model.state_dict().items():
+        torch.testing.assert_close(value, before[key], atol=0, rtol=0)
 
 
 def test_gae_bootstraps_timeout_but_does_not_cross_reset():
@@ -56,6 +109,26 @@ def test_ppo_checkpoint_roundtrip(tmp_path, task, features):
     with pytest.raises(ValueError, match="action_units"):
         bundle.validate_environment(wrong_spec)
 
+    checkpoint = torch.load(tmp_path / "train/checkpoint.pt", weights_only=True)
+    damaged = tmp_path / "damaged.pt"
+    for name, nonfinite in (
+        ("actor.0.weight", float("nan")),
+        ("log_std", float("inf")),
+    ):
+        original = checkpoint["model"][name].clone()
+        checkpoint["model"][name].flatten()[0] = nonfinite
+        torch.save(checkpoint, damaged)
+        with pytest.raises(
+            ValueError, match=f"Non-finite checkpoint policy parameter: {name}"
+        ):
+            load_policy(damaged)
+        checkpoint["model"][name] = original
+    for low, high in ((-1, float("inf")), (1, -1), (0, 0), (-0.5, 0.5)):
+        checkpoint["model_spec"].update(action_low=low, action_high=high)
+        torch.save(checkpoint, damaged)
+        with pytest.raises(ValueError, match="action range"):
+            load_policy(damaged)
+
 
 def test_legacy_checkpoint_load(tmp_path):
     from embodiedforge.training import ActorCritic
@@ -65,9 +138,14 @@ def test_legacy_checkpoint_load(tmp_path):
     del config["task"]
     path = tmp_path / "legacy.pt"
     torch.save({"schema_version": 1, "model": policy.state_dict(), "env": config}, path)
-    restored = load_policy(path)
+    bundle = load_checkpoint(path)
+    restored = bundle.policy
     obs = {"proprio": np.zeros((1, 6), dtype=np.float32)}
     np.testing.assert_array_equal(restored.act(obs), policy.act(obs))
+    spec = {"proprio_shape": [6], "action_shape": [2], "action_range": [-1.0, 1.0]}
+    bundle.validate_environment(spec)
+    with pytest.raises(ValueError, match="action range"):
+        bundle.validate_environment({**spec, "action_range": [-2.0, 2.0]})
 
 
 @pytest.mark.parametrize("task,physics", [("reach", "mujoco"), ("hold", "numpy")])
@@ -95,17 +173,33 @@ def test_learning_comparison_uses_checkpoint_task_and_physics(
 
     monkeypatch.setattr(embodiedforge, "VectorEnv", environment)
     checkpoint = tmp_path / "train/checkpoint.pt"
+    expected_digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    replacement = tmp_path / "replacement.pt"
+    replaced_state = torch.load(checkpoint, weights_only=True)
+    replaced_state["env"]["seed"] += 1
+    torch.save(replaced_state, replacement)
+    original_load = torch.load
+
+    def load_and_replace(*args, **kwargs):
+        loaded = original_load(*args, **kwargs)
+        replacement.replace(checkpoint)
+        return loaded
+
+    monkeypatch.setattr(torch, "load", load_and_replace)
     script = Path(__file__).resolve().parents[1] / "benchmarks/check_learning.py"
     monkeypatch.setattr(
         sys, "argv", [str(script), str(checkpoint), "--num-envs", "3", "--seeds", "7"]
     )
     runpy.run_path(str(script), run_name="__main__")
     report = json.loads(capsys.readouterr().out)
+    assert report["metadata"]["checkpoint_sha256"] == expected_digest
+    assert hashlib.sha256(checkpoint.read_bytes()).hexdigest() != expected_digest
     assert len(actual_configs) == 2
     for actual in actual_configs:
         assert (actual.task, actual.physics, actual.max_steps) == (task, physics, 8)
         assert (actual.num_envs, actual.seed) == (3, 7)
     assert report["metadata"]["training_environment"]["task"] == task
+    assert report["metadata"]["training_environment"]["seed"] == config.seed
     for policy in ("untrained_seed_0", "trained"):
         assert report[policy][0]["seed"] == 7
         assert np.isfinite(report[policy][0]["mean_episode_return"])

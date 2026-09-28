@@ -105,7 +105,7 @@ class RobotFrames:
         import newton
 
         m, types = self.model, self.mujoco.mjtGeom
-        kind, size = m.geom_type[index], m.geom_size[index]
+        kind, size = int(m.geom_type[index]), m.geom_size[index]
         if kind == types.mjGEOM_MESH:
             mesh = m.geom_dataid[index]
             va, vn = m.mesh_vertadr[mesh], m.mesh_vertnum[mesh]

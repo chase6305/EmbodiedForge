@@ -8,21 +8,37 @@ from embodiedforge.locomotion.microduck.checkpoint import atomic_save
 
 
 @pytest.mark.parametrize("error", [RuntimeError, KeyboardInterrupt])
-def test_partial_save_does_not_publish_or_destroy_previous_checkpoint(tmp_path, error):
+@pytest.mark.parametrize("cleanup_fails", [False, True])
+def test_partial_save_does_not_publish_or_destroy_previous_checkpoint(
+    tmp_path, error, cleanup_fails, monkeypatch, caplog
+):
     target = tmp_path / "model_0.pt"
     target.write_bytes(b"previous complete model")
+    failure = error("interrupted save")
+    if cleanup_fails:
+
+        def denied(path, **kwargs):
+            raise PermissionError("temporary file removal denied")
+
+        monkeypatch.setattr(Path, "unlink", denied)
 
     def save(path, infos):
         assert infos == {"counter": 42}
         Path(path).write_bytes(b"partial new model")
         assert list(tmp_path.glob("model_*.pt")) == [target]
         assert target.read_bytes() == b"previous complete model"
-        raise error("interrupted save")
+        raise failure
 
-    with pytest.raises(error):
+    with pytest.raises(error) as caught:
         atomic_save(save, target, {"counter": 42})
+    assert caught.value is failure
     assert target.read_bytes() == b"previous complete model"
-    assert list(tmp_path.iterdir()) == [target]
+    if cleanup_fails:
+        (temporary,) = tmp_path.glob("*.tmp")
+        assert temporary.read_bytes() == b"partial new model"
+        assert str(temporary) in caplog.text and "removal denied" in caplog.text
+    else:
+        assert list(tmp_path.iterdir()) == [target]
 
 
 def test_complete_model_is_published_then_can_be_replaced(tmp_path):

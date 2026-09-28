@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ._go1_metrics import SWITCHING_SUITES
+from ._microduck_process import run_process as _run_process
 from .locomotion.go1_config import COMMAND_PROFILES as GO1_COMMAND_PROFILES
 from .locomotion.go1_config import REWARD_PROFILES as GO1_REWARD_PROFILES
 from .logging import get_logger, setup_logging
@@ -411,36 +412,17 @@ def child_environment(project: Path | None) -> dict:
     return env
 
 
-def run_process(command, output: Path, env: dict, timeout: float):
+def run_process(command, output: Path, env: dict, timeout: float | None):
     LOGGER.info("Running recipe; full output: %s", output / "console.log")
-    with (
-        (output / "console.log").open("a") as log,
-        subprocess.Popen(
-            command,
-            cwd=output,
-            env=env,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        ) as process,
-    ):
-        try:
-            code = process.wait(timeout=timeout)
-        except (KeyboardInterrupt, subprocess.TimeoutExpired):
-            try:
-                os.killpg(process.pid, signal.SIGINT)
-                process.wait(timeout=10)
-            except (ProcessLookupError, KeyboardInterrupt, subprocess.TimeoutExpired):
-                pass
-            finally:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                process.wait()
-            raise
-        if code:
-            raise subprocess.CalledProcessError(code, command)
+    _run_process(
+        command,
+        cwd=output,
+        env=env,
+        log_path=output / "console.log",
+        echo=False,
+        timeout=timeout,
+        append_log=True,
+    )
 
 
 def setup(args):
@@ -958,7 +940,12 @@ def main(argv=None):
         child.add_argument("--task", choices=RECIPES, required=True)
         child.add_argument("--cache", type=Path, default=Path(".cache/external"))
         child.add_argument("--output", type=Path, required=True)
-        child.add_argument("--timeout", type=float, default=600)
+        child.add_argument(
+            "--timeout",
+            type=float,
+            default=None if mode == "train" else 600,
+            help="Wall-clock limit in seconds; training has no limit by default",
+        )
         child.add_argument("--seed", type=int, default=0)
         child.add_argument("--num-envs", type=int, default=32)
         child.add_argument("--threads", type=int, default=4)
@@ -1002,7 +989,12 @@ def main(argv=None):
                 choices=tuple(GO1_REWARD_PROFILES),
                 help="Go1 reward weights; defaults to input run, or original for new training",
             )
-            child.add_argument("--updates", type=int, default=3)
+            child.add_argument(
+                "--updates",
+                type=int,
+                required=True,
+                help="Additional PPO updates in this invocation",
+            )
             child.add_argument("--resume-run", type=Path)
             child.add_argument("--horizon", type=int, default=24)
         elif mode == "evaluate":

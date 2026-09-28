@@ -46,6 +46,13 @@ class MicroduckOnPolicyRunner(MjlabOnPolicyRunner):
             return super().save(path, infos)
         return atomic_save(super().save, path, infos)
 
+    def load(self, path, load_cfg=None, strict=True, map_location=None):
+        infos = super().load(path, load_cfg, strict, map_location)
+        if load_cfg is None or load_cfg.get("iteration", False):
+            # SDK saves the just-completed iteration; resume at the next label.
+            self.current_learning_iteration += 1
+        return infos
+
 
 register_mjlab_task(
     task_id="Mjlab-Velocity-Flat-MicroDuck",

@@ -39,12 +39,16 @@ For environment and data APIs alone, install with `python -m pip install -e .`. 
 | Physics backends | NumPy, MuJoCo, mjbatch thread pool, Newton **1.6.0rc1** | Core backends use CPU state snapshots |
 | Core training and data | PyTorch PPO, termination/timeout-aware GAE, checkpoint evaluation, episode recording, windowed reading | Core PPO uses proprioception; training and dataset validation can run separately |
 | Go1 locomotion | Task, rewards, mirrored policy, normalization, and PPO ported into this repository; training, resume, evaluation, and live control | Still depends on mjbatch, MuJoCo, Torch, and Menagerie assets; not yet part of the core `VectorEnv` |
-| Native H1 | MJCF model, named joint groups, batched commands, randomization, resets, torque data, and PPO | CPU MuJoCo/mjbatch; no IsaacLab runtime. Initial policy has not passed walking tracking acceptance. [Guide](docs/h1-native.en.md) |
+| Native H1 | MJCF model, named joint groups, batched commands, randomization, resets, torque data, and PPO | CPU MuJoCo/mjbatch; no IsaacLab runtime. [Three-seed nominal-pose study](docs/rl-training-study-20260925.md); disturbance and hardware acceptance remain unvalidated. [Guide](docs/h1-native.en.md) |
 | Microduck walking | Local task, MDP helpers, actuator extensions, MJCF and meshes | mjlab / MuJoCo-Warp / BAM / RSL-RL in an isolated environment |
 | Other robot tasks | IsaacLab H1, Wuji reorientation, Cartpole MPC, arm throwing co-design | Upstream workflows and adapters in isolated SDK environments, rather than complete ports |
 | Shared Web viewer | Raster / MuJoCo / OpenGL / OVRTX, live Go1 policies, Go1/H1 mesh replay | Viewer and physics backends are selected independently; Web frames are not training camera observations |
 | VLA interfaces | Image, language, and proprioception data windows; action-chunk executor | No pretrained VLA model integration or fine-tuning trainer yet |
 | ACT imitation learning | LeRobot dataset export, ACT training, closed-loop evaluation, paired comparison, and portable inference bundles | Uses the installed LeRobot package; model/trainer are not ported. Separate Python 3.12+ environment. See the [ACT guide (Chinese)](docs/act.md) |
+| GMR motion retargeting | Headless BVH → robot reference NPZ and interactive replay | External GMR API; full Xsens clips validated on G1 / H1-2. [Guide (Chinese)](docs/humanoid-motion.md) |
+| SONIC / X2 Ultra | CPU ONNX motion tracking in headless MuJoCo | Pinned external player, model-specific controls and per-clip reports. [Guide](docs/humanoid-motion.md) and [study](docs/humanoid-integration-study-20260928.md) (Chinese) |
+| Weave / G1 HOI | NPZ motion library, external SDK training/resume, per-clip evaluation, and policy export | Headless by default; requires separate SDK, motions, and assets. Full simulation remains unvalidated. See [integration and commands (Chinese)](docs/weave-reference.md) |
+| RLinf / PickCube SAC | External SDK training, full SAC state resume, standalone evaluation, CPU ONNX export and closed-loop evaluation, and metrics reports | Single node/GPU, headless, pinned upstream revision. GPU training, checkpoint recovery, and evaluation validated on PickCube. See [integration and commands (Chinese)](docs/rlinf.md) |
 
 Training currently uses three paths: core `VectorEnv` + PPO, project-owned Go1/native H1 environments + PPO, and external SDK workflows. Go1/H1 robot training has not yet been unified under `VectorEnv`. New core, Go1 and native H1 training runs record loaded components in `training-runtime.json`; see the [training implementation guide](docs/training-deployment.en.md).
 
@@ -189,6 +193,12 @@ Multi-skill parkour, teacher training, and distillation are not included in this
 
 See the [training and deployment command guide](docs/training-deployment.en.md) for task-specific setup, training, resume, evaluation, model export, and remote Web execution. It covers reach/hold, Go1, Microduck, H1, Wuji/Light, Cartpole MPC, and arm CEM, with the execution and deployment modes actually supported by each task.
 
+The [2026-09-27 study (Chinese)](docs/rl-factorial-study-20260927.md) reports Microduck reward ablations, SAC training-seed comparisons, model sizes, and measured CPU ONNX deployment results.
+
+The [2026-09-28 restart study (Chinese)](docs/rl-resume-study-20260928.md) compares continuous SAC training with full-state restart across two training seeds, reports 4,800 independent evaluation trajectories and artifact sizes, and validates the `rlinf evaluate --onnx` closed-loop command. It also measures the size and success-rate tradeoff of dynamic INT8 quantization.
+
+The [2026-09-28 compression and post-training study (Chinese)](docs/rl-compression-study-20260928.md) compares FP16/INT8 weight storage, layer-wise dynamic quantization, QAT, and inference batch effects in closed-loop evaluation. Export supports `--weight-storage float16` or `int8`, and ONNX evaluation records CPU inference timing.
+
 Robot training SDKs use isolated environments to avoid conflicting Warp, Torch, and MuJoCo versions. Prepare source checkouts at the revisions specified in each task guide before setup. Those guides document local paths, caches, and GPU requirements.
 
 | Entry point | Tasks and methods | Implementation and documentation |
@@ -197,6 +207,12 @@ Robot training SDKs use isolated environments to avoid conflicting Warp, Torch, 
 | `python -m embodiedforge.microduck` | Microduck flat-ground walking PPO, evaluation, playback, and ONNX export | Local walking task and assets; isolated mjlab training. [Microduck](docs/microduck.md) |
 | `python -m embodiedforge h1-native` | Native H1 training, resume, fixed-command evaluation and motion recording | Project-owned CPU task/PPO. [Native H1](docs/h1-native.en.md) |
 | `python -m embodiedforge h1` | H1 flat-ground walking training, resume, and multi-seed fixed-command evaluation | Isolated IsaacLab / Newton / MuJoCo-Warp recipe. [H1](docs/h1-isaaclab.md) |
+| `python -m embodiedforge gmr` | BVH retargeting and reference replay | External GMR SDK; no RL trainer. [Guide (Chinese)](docs/humanoid-motion.md) |
+| `python -m embodiedforge sonic` | Headless X2 policy evaluation | External SONIC bundle; simulation deployment only. [Guide (Chinese)](docs/humanoid-motion.md) |
+| `python -m embodiedforge weave` | G1 interaction training, resume, per-clip evaluation and policy export | External Weave / IsaacLab SDK; full simulation remains unvalidated. [Weave](docs/weave-reference.md) |
+| `python -m embodiedforge rlinf` | PickCube MLP SAC training, full-state resume, evaluation, CPU ONNX export and closed-loop evaluation | External RLinf / ManiSkill SDK; GPU training, checkpoint recovery, and evaluation validated on PickCube. [RLinf](docs/rlinf.md) |
+
+`h1 train` and `recipes train` require an explicit `--updates` budget. Training has no wall-clock limit unless `--timeout` is supplied.
 
 Example managed Go1 training workflow; first replace the source path with a clean checkout as required by the task guide:
 

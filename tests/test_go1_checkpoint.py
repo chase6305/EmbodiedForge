@@ -19,6 +19,7 @@ def saved(tmp_path):
             "mean": torch.zeros(50),
             "var": torch.ones(50),
             "count": torch.tensor(1e-4),
+            "log_std": torch.zeros(12),
         },
     }
     return path, checkpoint, {"checkpoint_iteration": 0}
@@ -45,7 +46,6 @@ def test_mismatched_hash_never_deserializes(saved, monkeypatch):
         load_go1_checkpoint(path, sha256="wrong", contract=contract)
 
 
-@pytest.mark.parametrize("entry", ["resume", "evaluate", "live"])
 @pytest.mark.parametrize(
     "damage,error",
     [
@@ -60,16 +60,12 @@ def test_mismatched_hash_never_deserializes(saved, monkeypatch):
         ("float_iteration", "iteration differs"),
         ("wrong_recipe", "recipe differs"),
         ("changed_profile", "reward_profile differs"),
+        ("cast_overflow", "requires a float32 tensor"),
+        ("noise_overflow", "action standard deviation"),
+        ("noise_underflow", "action standard deviation"),
     ],
 )
-def test_all_entrypoints_reject_invalid_state_before_simulation(
-    saved, monkeypatch, entry, damage, error
-):
-    pytest.importorskip("mjbatch")
-    pytest.importorskip("mujoco_menagerie")
-    from embodiedforge import _go1_assets, _mjbatch_recipe
-    from embodiedforge._go1_live_worker import Go1LiveRuntime
-
+def test_invalid_state_rejected(saved, damage, error):
     path, checkpoint, contract = saved
     state = checkpoint["model_state_dict"]
     if damage == "negative_variance":
@@ -92,8 +88,28 @@ def test_all_entrypoints_reject_invalid_state_before_simulation(
         checkpoint["iteration"] = 0.0
     elif damage == "wrong_recipe":
         checkpoint["recipe"] = "another-task"
-    else:
+    elif damage == "changed_profile":
         checkpoint["reward_profile"] = "different"
+    elif damage == "cast_overflow":
+        state["actor.0.weight"] = torch.full((128, 50), 1e300, dtype=torch.float64)
+    else:
+        state["log_std"].fill_(1000 if damage == "noise_overflow" else -1000)
+    torch.save(checkpoint, path)
+    with pytest.raises(ValueError, match=error):
+        load_go1_checkpoint(path, sha256=sha256(path), contract=contract)
+
+
+@pytest.mark.parametrize("entry", ["resume", "evaluate", "live"])
+def test_all_entrypoints_validate_before_simulation(saved, monkeypatch, entry):
+    pytest.importorskip("mjbatch")
+    pytest.importorskip("mujoco_menagerie")
+    from embodiedforge import _go1_assets, _mjbatch_recipe
+    from embodiedforge._go1_live_worker import Go1LiveRuntime
+
+    path, checkpoint, contract = saved
+    checkpoint["model_state_dict"]["actor.0.weight"] = torch.full(
+        (128, 50), 1e300, dtype=torch.float64
+    )
     torch.save(checkpoint, path)
     digest = sha256(path)  # Valid hash must not mask invalid checkpoint contents.
     request = {
@@ -115,7 +131,7 @@ def test_all_entrypoints_reject_invalid_state_before_simulation(
 
     monkeypatch.setattr(_go1_assets, "verified_go1_assets", unexpected_simulation)
     owner = SimpleNamespace(Go1=unexpected_simulation)
-    with pytest.raises(ValueError, match=error):
+    with pytest.raises(ValueError, match="requires a float32 tensor"):
         if entry == "resume":
             _mjbatch_recipe.go1_train(request, owner)
         elif entry == "evaluate":

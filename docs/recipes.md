@@ -67,9 +67,9 @@ python -m embodiedforge recipes setup --source mjbatch --python 3.12
 ## 训练和续训
 
 ```bash
-# Wuji 入口短测，不能据此认定学会重定向
+# Wuji 训练；预算不保证策略通过重定向验收
 python -m embodiedforge recipes train --task wuji-reorient \
-  --num-envs 32 --horizon 40 --updates 5 --timeout 300 --output runs/wuji-smoke
+  --num-envs 512 --horizon 40 --updates 1000 --output runs/wuji-train
 
 # 本机已验证的 Go1 配置
 python -m embodiedforge recipes train --task go1-joystick \
@@ -83,7 +83,7 @@ python -m embodiedforge recipes train --task go1-joystick \
 python -m embodiedforge recipes status --run runs/go1-train
 ```
 
-Wuji 的 `--horizon` 建议显式使用上游 40；Go1 上游为 24。入口默认 32 环境、3 轮、24 步，仅用于短测。样本数 `num-envs × horizon` 必须能分成完整小批量：Wuji 为 32 个、Go1 为 4 个，每批至少两个样本。输出目录必须不存在。
+Wuji 的 `--horizon` 建议显式使用上游 40；Go1 上游为 24。训练必须显式指定 `--updates`，不再隐含 3 轮预算；默认 32 环境、24 步 horizon。训练默认没有墙钟时限，需要限时时显式传 `--timeout`；setup、评估和求解保留原有超时。样本数 `num-envs × horizon` 必须能分成完整小批量：Wuji 为 32 个、Go1 为 4 个，每批至少两个样本。输出目录必须不存在。
 
 Go1 迁入实现保留上游环境、奖励、镜像网络、PPO update、GAE 和 reset 的计算；管理层负责有界训练、CPU 线程数、逐轮 JSONL 指标和模型落盘。优化器使用普通 Adam，未使用上游的 fused Adam；没有加载仓库附带的预训练 `go1_policy.pt`。观测 50 维，动作 12 维，物理时间步 0.004 秒，控制间隔 0.02 秒。新运行额外保存 `recipe-config.json` 和带 Menagerie tree ID/资产校验信息的 `assets.json`。
 
@@ -91,7 +91,7 @@ Wuji 直接调用上游 `wuji-train`，20 维关节动作、207 维策略观测�
 
 两者均可使用 `--resume-run`，只接受同任务同版本的 `complete` 训练运行，核对并复制输入 checkpoint。Wuji 同时通过上游恢复课程状态，其 RSL-RL 编号从保存索引重用：300 轮模型 `model_299.pt` 再更新 3 轮得到 `model_301.pt`，实际累计 303 轮。Go1 从下一索引继续，600 轮后再更新 3 轮索引为 602。`completed_updates` 表示此次更新数，`cumulative_updates` 表示累计数。仿真状态和 RNG 不恢复，所以不保证逐步等价续训。
 
-每次运行记录源码文件 SHA256、入口和适配器指纹、依赖版本、完整 `console.log`、请求参数、结果和 checkpoint SHA256。子进程使用 `-I`，防止本地 `logging.py` 等覆盖标准库。Ctrl+C/SIGTERM 转发到子进程组；超时与失败分别记录 `timed_out` / `failed`。`complete` 表示执行和产物检查完成，策略效果由独立评估判断。`status` 读取记录，不是进程存活探针。
+每次运行记录源码文件 SHA256、入口和适配器指纹、依赖版本、完整 `console.log`、请求参数、结果和 checkpoint SHA256。子进程使用 `-I`，防止本地 `logging.py` 等覆盖标准库。Ctrl+C/SIGTERM，以及工作进程运行期间未被忽略的 SIGHUP，转发到子进程组；中断或超时后最多等待 10 秒正常清理，再清理组内残留进程。主进程非零退出时也清理残留。超时与失败分别记录 `timed_out` / `failed`。`complete` 表示执行和产物检查完成，策略效果由独立评估判断。`status` 读取记录，不是进程存活探针。
 
 新建受管任务在 `implementation/embodiedforge/` 保存并执行本地 Python 模块、Go1 场景和许可证快照，记录各文件哈希并在结束后复核；`runtime.json` 记录实际 adapter 导入路径。后台任务从自己的快照加载实现，工作区后续修改不会混入训练或评估。输出目录需位于源码包之外。旧运行仍可作为输入。
 
@@ -210,7 +210,7 @@ python -m embodiedforge recipes evaluate --task go1-joystick \
   --min-survival-fraction 0.8 --max-planar-rmse 0.3 --max-yaw-rmse 0.3
 
 python -m embodiedforge recipes evaluate --task wuji-reorient \
-  --run runs/wuji-smoke --output runs/wuji-eval \
+  --run runs/wuji-train --output runs/wuji-eval \
   --seed 0 --num-trials 50 --steps 280 --min-success-rate 0.5 --max-drop-rate 0.2
 ```
 

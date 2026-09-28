@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 
 @unittest.skipUnless(importlib.util.find_spec("mjlab"), "requires Microduck SDK")
@@ -24,6 +24,8 @@ class MicroduckRunnerTests(unittest.TestCase):
         self.runner.current_learning_iteration = 5
 
     def test_save_preserves_training_state_without_export(self):
+        from embodiedforge._microduck_worker import checkpoint_metadata
+
         payload = {
             "actor_state_dict": {"weight": self.torch.ones(2)},
             "critic_state_dict": {"weight": self.torch.zeros(2)},
@@ -41,6 +43,10 @@ class MicroduckRunnerTests(unittest.TestCase):
                 path = Path(folder) / "model_5.pt"
                 self.runner.save(str(path), {"label": "training"})
                 saved = self.torch.load(path, weights_only=True)
+                metadata = checkpoint_metadata(path)
+                self.assertEqual(metadata["iteration"], 5)
+                self.assertEqual(metadata["common_step_counter"], 120)
+                self.assertEqual(metadata["learning_rate"], 0.001)
                 self.assertEqual(saved["iter"], 5)
                 self.assertEqual(
                     saved["infos"]["env_state"]["common_step_counter"], 120
@@ -58,8 +64,16 @@ class MicroduckRunnerTests(unittest.TestCase):
                 self.runner.env.unwrapped.common_step_counter = 0
                 infos = self.runner.load(str(path), map_location="cpu")
                 self.assertEqual(infos["label"], "training")
-                self.assertEqual(self.runner.current_learning_iteration, 5)
+                self.assertEqual(self.runner.current_learning_iteration, 6)
                 self.assertEqual(self.runner.env.unwrapped.common_step_counter, 120)
+                # Inference-only loading does not advance the training cursor.
+                self.runner.alg.load.return_value = False
+                self.runner.load(
+                    str(path), load_cfg={"actor": True}, map_location="cpu"
+                )
+                self.assertEqual(self.runner.current_learning_iteration, 6)
+                self.runner.alg.load.return_value = True
+                self.runner.current_learning_iteration = 5
 
     def test_export_metadata_follows_action_order_and_preserves_precision(self):
         import numpy as np
@@ -114,7 +128,9 @@ class MicroduckRunnerTests(unittest.TestCase):
                     path,
                 )
                 exporter_utils.attach_metadata_to_onnx(str(path), metadata)
-                saved = {item.key: item.value for item in onnx.load(path).metadata_props}
+                saved = {
+                    item.key: item.value for item in onnx.load(path).metadata_props
+                }
             self.assertEqual(
                 list(map(float, saved["default_joint_pos"].split(","))),
                 defaults[0, [2, 0]].tolist(),
@@ -123,6 +139,75 @@ class MicroduckRunnerTests(unittest.TestCase):
             self.assertEqual(
                 list(map(float, saved["action_scale"].split(","))), expected_scale
             )
+
+    def test_export_compares_normalized_actor_and_rejects_wrong_finite_model(self):
+        import json
+        from copy import deepcopy
+
+        from rsl_rl.models import MLPModel
+        from tensordict import TensorDict
+
+        from embodiedforge._microduck_worker import validate_onnx
+        from embodiedforge.locomotion.microduck.export import export_policy
+
+        torch = self.torch
+        torch.manual_seed(17)
+        observations = torch.randn(64, 61) * 2 + 3
+        actor = MLPModel(
+            TensorDict({"actor": observations}, batch_size=[64]),
+            {"actor": ["actor"]},
+            "actor",
+            14,
+            hidden_dims=(32, 16),
+            obs_normalization=True,
+            distribution_cfg={
+                "class_name": "GaussianDistribution",
+                "init_std": 1.0,
+                "std_type": "scalar",
+            },
+        )
+        actor.obs_normalizer.update(observations)
+        before = deepcopy(actor.state_dict())
+        self.runner.alg = SimpleNamespace(
+            get_policy=Mock(return_value=actor),
+            eval_mode=actor.eval,
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "policy.onnx"
+            report = export_policy(self.runner, path, {"run_path": "checkpoint.pt"})
+            self.assertEqual(
+                json.loads(path.with_suffix(".validation.json").read_text()), report
+            )
+            self.assertTrue(report["policy_parity"]["passed"])
+            self.assertEqual(report["policy_parity"]["samples"], 3)
+            self.assertEqual(
+                report["policy_parity"]["reference"], "checkpoint_actor_cpu"
+            )
+            for name, value in actor.state_dict().items():
+                torch.testing.assert_close(value, before[name], atol=0, rtol=0)
+
+            wrong_actor = deepcopy(actor)
+            last_linear = [
+                m for m in wrong_actor.mlp.modules() if isinstance(m, torch.nn.Linear)
+            ][-1]
+            with torch.no_grad():
+                last_linear.bias.add_(0.25)
+            sdk_export = self.runner.export_policy_to_onnx
+
+            def wrong_export(*args):
+                self.runner.alg.get_policy.return_value = wrong_actor
+                try:
+                    sdk_export(*args)
+                finally:
+                    self.runner.alg.get_policy.return_value = actor
+
+            wrong_path = Path(folder) / "wrong.onnx"
+            with patch.object(self.runner, "export_policy_to_onnx", wrong_export):
+                with self.assertRaisesRegex(RuntimeError, "ONNX action mismatch"):
+                    export_policy(self.runner, wrong_path, {})
+            self.assertTrue(wrong_path.exists())
+            self.assertTrue(validate_onnx(wrong_path)["finite_inference"])
+            self.assertFalse(wrong_path.with_suffix(".validation.json").exists())
 
     def test_ppo_preserves_finite_targets_and_rejects_nonfinite_rollouts(self):
         from copy import deepcopy

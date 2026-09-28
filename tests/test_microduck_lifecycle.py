@@ -1,5 +1,6 @@
 """Real thread/process shutdown tests without requiring a GPU or desktop."""
 
+import json
 import os
 import signal
 import subprocess
@@ -13,6 +14,47 @@ import pytest
 
 from embodiedforge._microduck_worker import JoinedRenderThreadMixin
 from embodiedforge.microduck import run
+
+
+def test_sdk_module_does_not_import_host_site_packages(tmp_path, monkeypatch):
+    from embodiedforge import _microduck_process as process
+
+    host = tmp_path / "host site-packages"
+    package = host / "embodiedforge"
+    package.mkdir(parents=True)
+    (host / "numpy.py").write_text("raise RuntimeError('wrong Python environment')\n")
+    (package / "__init__.py").write_text("import numpy\n")
+    (package / "probe.py").write_text(
+        "import json, multiprocessing, sys, embodiedforge, numpy\n"
+        "def report():\n"
+        "    print(json.dumps({'arguments': sys.argv[1:], 'numpy': numpy.__file__, "
+        "'package': embodiedforge.__file__, 'search_path': sys.path}))\n"
+        "if __name__ == '__main__':\n"
+        "    child = multiprocessing.get_context('spawn').Process(target=report)\n"
+        "    child.start()\n"
+        "    child.join(5)\n"
+        "    assert child.exitcode == 0\n"
+        "    report()\n"
+    )
+    monkeypatch.setattr(process, "__file__", str(package / "_microduck_process.py"))
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(process.sdk_package_path(tmp_path))
+    result = subprocess.run(
+        [sys.executable, "-m", "embodiedforge.probe", "with spaces"],
+        cwd=tmp_path,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=10,
+    )
+    reports = [json.loads(line) for line in result.stdout.splitlines()]
+    assert len(reports) == 2
+    for report in reports:
+        assert report["arguments"] == ["with spaces"]
+        assert Path(report["package"]).resolve() == package / "__init__.py"
+        assert not Path(report["numpy"]).is_relative_to(host)
+        assert str(host) not in report["search_path"]
 
 
 @pytest.mark.parametrize("setup_fails", [False, True])
@@ -82,57 +124,94 @@ def test_stalled_render_thread_is_reported():
         viewer.close()
 
 
-def test_child_nonzero_exit_is_preserved(tmp_path):
-    with pytest.raises(subprocess.CalledProcessError) as exc:
-        run(
-            [sys.executable, "-c", "raise SystemExit(7)"],
-            cwd=tmp_path,
-            env=os.environ.copy(),
-        )
-    assert exc.value.returncode == 7
-
-
 @pytest.mark.skipif(os.name != "posix", reason="POSIX process-group signal handling")
 @pytest.mark.parametrize(
-    "capture_log,echo,interrupt_signal",
+    "frontend,capture_log,echo,interrupt_signal",
     [
-        (False, True, signal.SIGINT),
-        (True, True, signal.SIGTERM),
-        (True, False, signal.SIGHUP),
+        ("microduck", False, True, signal.SIGINT),
+        ("microduck", True, True, signal.SIGTERM),
+        ("microduck", True, False, signal.SIGHUP),
+        ("microduck", True, False, None),
+        ("h1", True, False, None),
+        ("recipes", True, False, None),
     ],
 )
-def test_interrupt_waits_for_child_cleanup(tmp_path, capture_log, echo, interrupt_signal):
+def test_failure_and_interrupt_clean_owned_process_group(
+    tmp_path, frontend, capture_log, echo, interrupt_signal
+):
     ready, cleaned = tmp_path / "ready", tmp_path / "cleaned"
+    descendant = tmp_path / "descendant.pid"
+    stubborn = textwrap.dedent(f"""
+        import os, signal, time
+        from pathlib import Path
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        Path({str(descendant)!r}).write_text(str(os.getpid()))
+        time.sleep(30)
+    """)
     child = textwrap.dedent(f"""
-        import signal, time
+        import signal, subprocess, sys, time
         from pathlib import Path
         def cleanup(*args):
             time.sleep(0.6)
             print("cleanup complete", flush=True)
             Path({str(cleaned)!r}).touch()
-            raise SystemExit(0)
+            raise SystemExit({7 if interrupt_signal is None else 0})
         signal.signal(signal.SIGINT, cleanup)
+        if sys.platform == 'linux':
+            subprocess.Popen([sys.executable, '-c', {stubborn!r}], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            while not Path({str(descendant)!r}).exists():
+                time.sleep(0.01)
         Path({str(ready)!r}).touch()
+        if {interrupt_signal is None!r}:
+            cleanup()
         while True:
             time.sleep(0.01)
     """)
     # Isolate the test's SIGINT from pytest and the user's terminal session.
     wrapper = textwrap.dedent(f"""
-        import os, signal, sys, threading, time
+        import os, signal, subprocess, sys, threading, time
         from pathlib import Path
         sys.path.insert(0, {str(Path(__file__).resolve().parents[1] / "src")!r})
-        from embodiedforge.microduck import run
+        from embodiedforge import microduck, h1, recipes
+        if sys.platform == 'linux':
+            import ctypes
+            # Reap the fixture's orphaned descendant instead of leaving zombies.
+            assert ctypes.CDLL(None).prctl(36, 1, 0, 0, 0) == 0
         def interrupt():
+            if {interrupt_signal is None!r}:
+                return
             deadline = time.monotonic() + 4
             while not Path({str(ready)!r}).exists() and time.monotonic() < deadline:
                 time.sleep(0.01)
-            os.kill(os.getpid(), {int(interrupt_signal)})
+            os.kill(os.getpid(), {int(interrupt_signal or 0)})
         thread = threading.Thread(target=interrupt)
         thread.start()
         try:
-            run([sys.executable, '-c', {child!r}], cwd=Path({str(tmp_path)!r}), env=os.environ.copy(), log_path=Path({str(tmp_path / "interrupt.log")!r}) if {capture_log!r} else None, echo={echo!r})
-        except KeyboardInterrupt as exc:
+            command = [sys.executable, '-c', {child!r}]
+            output = Path({str(tmp_path)!r})
+            if {frontend!r} == 'h1':
+                h1.run_process(command, cwd=output, env=os.environ.copy(), timeout=None)
+            elif {frontend!r} == 'recipes':
+                recipes.run_process(command, output, os.environ.copy(), None)
+            else:
+                microduck.run(command, cwd=output, env=os.environ.copy(), log_path=output / 'interrupt.log' if {capture_log!r} else None, echo={echo!r})
+        except (KeyboardInterrupt, subprocess.CalledProcessError) as exc:
             thread.join()
+            if sys.platform == 'linux':
+                pid = int(Path({str(descendant)!r}).read_text())
+                reaped = 0
+                deadline = time.monotonic() + 1
+                try:
+                    while not reaped and time.monotonic() < deadline:
+                        reaped, status = os.waitpid(pid, os.WNOHANG)
+                        time.sleep(0.01)
+                finally:
+                    if not reaped:
+                        os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
+                assert reaped, 'Stopped wrapper left a descendant running'
+            if isinstance(exc, subprocess.CalledProcessError):
+                raise SystemExit(exc.returncode)
             raise SystemExit(128 + getattr(exc, "signum", signal.SIGINT))
     """)
     result = subprocess.run(
@@ -142,10 +221,12 @@ def test_interrupt_waits_for_child_cleanup(tmp_path, capture_log, echo, interrup
         timeout=10,
         start_new_session=True,
     )
-    assert result.returncode == 128 + interrupt_signal, result.stderr
+    expected = 128 + interrupt_signal if interrupt_signal is not None else 7
+    assert result.returncode == expected, result.stderr
     assert cleaned.exists(), "Child was killed before native cleanup could finish"
     if capture_log:
-        assert "cleanup complete" in (tmp_path / "interrupt.log").read_text()
+        log = "interrupt.log" if frontend == "microduck" else "console.log"
+        assert "cleanup complete" in (tmp_path / log).read_text()
 
 
 def test_log_captures_stdout_stderr_unicode_and_nonzero_exit(tmp_path, capsys):

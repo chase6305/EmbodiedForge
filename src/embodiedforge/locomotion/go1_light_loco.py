@@ -67,7 +67,7 @@ class CriticAdapter(nn.Module):
         self.net = net
 
     def forward(self, states, *, target=None, **kwargs):
-        _, values = self.net(states.flatten(0, 1))
+        values = self.net.value(states.flatten(0, 1))
         values = values.reshape(states.shape[:2])
         return (values if target is None else (values - target).square().mean()), None
 
@@ -102,7 +102,7 @@ def gae(batch):
 
     # Reuse validation and the rollout's timeout bootstrap correction. Upstream
     # consumes [environment, time], while the native collector is time-major.
-    native.gae(batch)
+    native.validate_gae_batch(batch)
     values = torch.cat((batch["val"], batch["last_val"][None]), dim=0).T
     returns = Agent.calc_gae(
         batch["rew"].T,

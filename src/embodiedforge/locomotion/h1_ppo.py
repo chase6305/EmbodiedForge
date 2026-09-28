@@ -38,44 +38,54 @@ class Policy(nn.Module):
 
 
 def collect(policy, env, observation, horizon):
-    buffer = {
-        k: []
-        for k in (
-            "obs",
-            "action",
-            "logp",
-            "value",
-            "next_value",
-            "reward",
-            "terminated",
-            "truncated",
-        )
-    }
-    for _ in range(horizon):
+    if horizon <= 0:
+        raise ValueError("Rollout horizon must be positive")
+    buffer = {}
+    value = None  # Reuse only within a rollout, while the policy is unchanged.
+    reset_ids = None
+    for step in range(horizon):
         with torch.no_grad():
             tensor = torch.as_tensor(observation)
             dist = policy.distribution(tensor)
             action = dist.sample()
-            value, logp = policy.value(tensor), dist.log_prob(action).sum(-1)
+            if value is None:
+                value = policy.value(tensor)
+            elif reset_ids is not None:
+                value = value.index_copy(
+                    0, torch.as_tensor(reset_ids), policy.value(tensor[reset_ids])
+                )
+            logp = dist.log_prob(action).sum(-1)
         next_obs, reward, terminated, truncated, _ = env.step(action.numpy())
         with torch.no_grad():
-            next_value = policy.value(torch.as_tensor(next_obs)).numpy()
-        for key, data in {
+            next_value = policy.value(torch.as_tensor(next_obs))
+        transition = {
             "obs": observation,
             "action": action.numpy(),
             "logp": logp.numpy(),
             "value": value.numpy(),
-            "next_value": next_value,
+            "next_value": next_value.numpy(),
             "reward": reward,
             "terminated": terminated,
             "truncated": truncated,
-        }.items():
-            buffer[key].append(data.copy())
+        }
+        if step == 0:
+            buffer = {
+                key: np.empty((horizon, *data.shape), dtype=data.dtype)
+                for key, data in transition.items()
+            }
+        for key, data in transition.items():
+            buffer[key][step] = data
         observation = next_obs
+        value = next_value
+        reset_ids = None
         ids = np.flatnonzero(terminated | truncated)
         if ids.size:
+            if ids.size == len(value):
+                value = None
+            else:
+                reset_ids = ids
             observation[ids] = env.reset(ids)[ids]
-    return {k: np.stack(v) for k, v in buffer.items()}, observation
+    return buffer, observation
 
 
 def optimize(policy, optimizer, rollout, rng, *, epochs=5):
@@ -98,18 +108,21 @@ def optimize(policy, optimizer, rollout, rng, *, epochs=5):
     losses = []
     for _ in range(epochs):
         for indices in np.array_split(rng.permutation(count), min(4, count)):
-            dist = policy.distribution(flat["obs"][indices])
+            observations = flat["obs"][indices]
+            minibatch_advantages = advantage[indices]
+            old_value = flat["value"][indices]
+            targets = returns[indices]
+            dist = policy.distribution(observations)
             logp = dist.log_prob(flat["action"][indices]).sum(-1)
             ratio = torch.exp(logp - flat["logp"][indices])
             actor = -torch.minimum(
-                ratio * advantage[indices], ratio.clamp(0.8, 1.2) * advantage[indices]
+                ratio * minibatch_advantages,
+                ratio.clamp(0.8, 1.2) * minibatch_advantages,
             ).mean()
-            value = policy.value(flat["obs"][indices])
-            clipped = flat["value"][indices] + (value - flat["value"][indices]).clamp(
-                -0.2, 0.2
-            )
+            value = policy.value(observations)
+            clipped = old_value + (value - old_value).clamp(-0.2, 0.2)
             critic = torch.maximum(
-                (value - returns[indices]) ** 2, (clipped - returns[indices]) ** 2
+                (value - targets) ** 2, (clipped - targets) ** 2
             ).mean()
             loss = actor + critic - 0.01 * dist.entropy().sum(-1).mean()
             if not torch.isfinite(loss):

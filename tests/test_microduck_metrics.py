@@ -44,14 +44,48 @@ def events(tmp_path):
     return write
 
 
-def test_resumed_metrics_use_checkpoint_iteration(events):
-    checkpoint = events([42, 43])
+@pytest.fixture
+def checkpoint_state():
+    torch = pytest.importorskip("torch")
+    return {
+        "iter": 42,
+        "infos": {"env_state": {"common_step_counter": 1032}},
+        "actor_state_dict": {"weight": torch.ones(1)},
+        "critic_state_dict": {"weight": torch.ones(1)},
+        "optimizer_state_dict": {"param_groups": [{"lr": 3e-5}]},
+    }
+
+
+def test_resumed_metrics_use_checkpoint_iteration(events, checkpoint_state):
+    import torch
+
+    checkpoint = events([42, 43]).with_name("model_43.pt")
+    checkpoint_state["iter"] = 43
+    torch.save(checkpoint_state, checkpoint)
+    expected_metadata = checkpoint_metadata(checkpoint)
     report = validate_metrics(checkpoint, 2, start_iteration=42)
     assert report["iterations"] == 2
     assert report["start_iteration"] == 42
     assert report["all_scalars_finite"]
     with pytest.raises(RuntimeError, match="PPO updates"):
         validate_metrics(checkpoint, 2)
+
+    # Complete, finite logs cannot certify stale or damaged saved weights.
+    checkpoint_state["iter"] = 42
+    torch.save(checkpoint_state, checkpoint)
+    with pytest.raises(RuntimeError, match="checkpoint iteration"):
+        validate_metrics(checkpoint, 2, start_iteration=42)
+    checkpoint_state["iter"] = 43
+    checkpoint_state["actor_state_dict"]["weight"].fill_(float("nan"))
+    torch.save(checkpoint_state, checkpoint)
+    with pytest.raises(ValueError, match="Nonfinite checkpoint"):
+        validate_metrics(checkpoint, 2, start_iteration=42)
+    checkpoint.unlink()
+    with pytest.raises(FileNotFoundError):
+        validate_metrics(checkpoint, 2, start_iteration=42)
+    with pytest.raises(RuntimeError, match="final checkpoint filename"):
+        validate_metrics(checkpoint.with_name("model_42.pt"), 2, start_iteration=42)
+    assert report["checkpoint_metadata"] == expected_metadata
 
 
 @pytest.mark.parametrize("steps", [[42], [42, 44], list(range(1000))])
@@ -78,16 +112,12 @@ def test_invalid_metrics_rejected(events, kwargs, match):
         validate_metrics(events([0, 1], **kwargs), 2)
 
 
-def test_checkpoint_learning_rate_and_provenance(tmp_path, monkeypatch):
+def test_checkpoint_learning_rate_and_provenance(
+    tmp_path, monkeypatch, checkpoint_state
+):
     torch = pytest.importorskip("torch")
     path = tmp_path / "model.pt"
-    state = {
-        "iter": 42,
-        "infos": {"env_state": {"common_step_counter": 1032}},
-        "actor_state_dict": {"weight": torch.ones(1)},
-        "critic_state_dict": {"weight": torch.ones(1)},
-        "optimizer_state_dict": {"param_groups": [{"lr": 3e-5}]},
-    }
+    state = checkpoint_state
     torch.save(state, path)
     before = checkpoint_metadata(path)
     assert before["iteration"] == 42
@@ -110,6 +140,29 @@ def test_checkpoint_learning_rate_and_provenance(tmp_path, monkeypatch):
     after = checkpoint_metadata(path)
     assert after["learning_rate"] == 1e-5
     assert after["sha256"] != before["sha256"]
+    # Finite metadata alone does not make the saved training state usable.
+    from copy import deepcopy
+
+    for key, invalid in (
+        ("actor_state_dict", {"weight": torch.tensor([float("nan")])}),
+        ("critic_state_dict", {"weight": torch.tensor([float("inf")])}),
+        (
+            "optimizer_state_dict",
+            {
+                "param_groups": [{"lr": 1e-5}],
+                "state": {0: {"exp_avg": torch.tensor([float("nan")])}},
+            },
+        ),
+        (
+            "optimizer_state_dict",
+            {"param_groups": [{"lr": 1e-5, "betas": (0.9, float("nan"))}]},
+        ),
+    ):
+        damaged = deepcopy(state)
+        damaged[key] = invalid
+        torch.save(damaged, path)
+        with pytest.raises(ValueError, match=f"Nonfinite checkpoint value: {key}"):
+            checkpoint_metadata(path)
     state["optimizer_state_dict"]["param_groups"][0]["lr"] = float("nan")
     torch.save(state, path)
     with pytest.raises(ValueError, match="positive PPO learning rate"):

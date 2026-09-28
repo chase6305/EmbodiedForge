@@ -853,7 +853,9 @@ def main(argv=None):
         help="Checkpoint interval in steps; 0 saves only the final checkpoint",
     )
     training.add_argument(
-        "--small-model", action="store_true", help="Small model for smoke tests"
+        "--small-model",
+        action="store_true",
+        help="Compact ACT architecture (dim_model=64), without pretrained backbone weights",
     )
     resuming = commands.add_parser(
         "resume", help="Resume optimizer/RNG state into a new run"

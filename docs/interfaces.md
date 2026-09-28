@@ -62,6 +62,12 @@
 
 公共函数：`register` 注册后端，`register_task` 注册任务，`execution_plan` 解析组合，`read_episodes`/`action_windows` 读取数据，`train_ppo` 启动参考训练，`load_checkpoint` 加载完整评估配置，`load_policy` 只返回策略。PPO 内部采样和优化分别放在 `_collect_rollout`、`_optimize_policy`，方便独立阅读。
 
+`gmr`、`sonic`、`weave` 和 `rlinf` 通过各自 CLI 调度外部 SDK，不是注册到 `VectorEnv`
+中的任务。GMR 输出沿用机器人回放 NPZ；SONIC 输出逐片段仿真评估报告。机器人参考
+NPZ、核心 `EpisodeRecorder` 示范数据与 Weave HOI 动作库各有字段和语义，不能直接
+互换。入口、数据边界和命令见[人形动作指南](humanoid-motion.md)、
+[Weave 指南](weave-reference.md)和[RLinf 指南](rlinf.md)。
+
 ## 3. 数据契约与所有权
 
 | 接口/数据 | shape 与类型 | 所有权/副作用 |
@@ -157,8 +163,8 @@ ruff check src tests benchmarks
 ruff format --check src tests benchmarks
 
 embodiedforge plan --task hold --render raster
-embodiedforge train --task hold --num-envs 4 --updates 2 --output runs/hold-smoke
-embodiedforge evaluate --checkpoint runs/hold-smoke/checkpoint.pt --steps 110
+embodiedforge train --task hold --num-envs 32 --updates 100 --output runs/hold-train
+embodiedforge evaluate --checkpoint runs/hold-train/checkpoint.pt --steps 110
 ```
 
 测试包括两个任务 × 两种物理 × 两种渲染的替换组合、错误模态/版本拒绝、缓存原子更新、快照次数、无渲染路径、不同输入维度的训练/checkpoint 和旧 checkpoint 兼容。新增后端必须通过相应契约测试，而不仅是实现同名方法。

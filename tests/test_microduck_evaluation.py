@@ -268,7 +268,7 @@ def test_missing_metric_callbacks_fail_instead_of_reporting_partial_data(metric_
 
 @pytest.mark.parametrize("override", [None, 0, 123])
 def test_checkpoint_curriculum_counter_is_set_before_wrapper_reset(
-    monkeypatch, override
+    monkeypatch, override, capsys
 ):
     import sys
     from dataclasses import dataclass
@@ -317,3 +317,18 @@ def test_checkpoint_curriculum_counter_is_set_before_wrapper_reset(
         monkeypatch.setitem(sys.modules, name, module)
     with worker.policy_environment(None, 2, 0, curriculum_step=override):
         assert env.common_step_counter == (48000 if override is None else override)
+
+    def fail_close():
+        raise RuntimeError("environment close failed")
+
+    env.close = fail_close
+    # The first failure, including Ctrl-C, remains the one the launcher handles.
+    for failure in (ValueError("policy failed"), KeyboardInterrupt("interrupted")):
+        with pytest.raises(type(failure)) as caught:
+            with worker.policy_environment(None, 2, 0, curriculum_step=override):
+                raise failure
+        assert caught.value is failure
+        assert "environment close failed" in capsys.readouterr().err
+    with pytest.raises(RuntimeError, match="environment close failed"):
+        with worker.policy_environment(None, 2, 0, curriculum_step=override):
+            pass

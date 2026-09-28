@@ -17,6 +17,31 @@ from .rollout import DemonstrationPolicy, run_rollout
 
 def main() -> None:
     """Parse configuration, select a workflow and own its process-level resources."""
+    if sys.argv[1:2] == ["gmr"]:
+        from .gmr import main as gmr_main
+
+        gmr_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ["sonic"]:
+        from .sonic import main as sonic_main
+
+        sonic_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ["rlinf"]:
+        from .rlinf import main as rlinf_main
+
+        rlinf_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ["weave"]:
+        from .weave import main as weave_main
+
+        weave_main(sys.argv[2:])
+        return
+    if sys.argv[1:2] == ["motion"]:
+        from .motion import main as motion_main
+
+        motion_main(sys.argv[2:])
+        return
     if sys.argv[1:2] == ["act"]:
         from .act import main as act_main
 
@@ -65,6 +90,11 @@ def main() -> None:
             "replay",
             "live",
             "act",
+            "motion",
+            "weave",
+            "rlinf",
+            "gmr",
+            "sonic",
         ],
     )
     parser.add_argument("--config", type=Path)

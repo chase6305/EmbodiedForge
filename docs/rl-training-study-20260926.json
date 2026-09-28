@@ -1,0 +1,2408 @@
+{
+  "schema": 1,
+  "study": "RLinf GPU execution and Microduck action-rate penalty ablation",
+  "date": "2026-09-26",
+  "limits": [
+    "Shared GPU and host load; no throughput comparison.",
+    "Single training seed per configuration; evaluation seeds are not training replicates.",
+    "RLinf initial training and parallel resume hit host memory pressure; recovered chain is not uninterrupted training.",
+    "RLinf SDK inherits existing Torch and Ray; dependency record is not a clean-install lockfile.",
+    "Microduck default curriculum unchanged; candidate exists in captured experiment source only."
+  ],
+  "records": {
+    "rlinf_initial_interrupted": {
+      "run": "runs/rlinf-pickcube-training-20260926",
+      "status": "interrupted",
+      "latest_checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-training-20260926/maniskill_sac_mlp/checkpoints/global_step_500",
+      "last_saved_step": 500,
+      "request": {
+        "schema": 1,
+        "command": "train",
+        "repo": "/home/ubuntu/workspace/3rdparty/RLinf",
+        "revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+        "config": "maniskill_sac_mlp",
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "output": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-training-20260926",
+        "gpu": 0,
+        "seed": 1234,
+        "num_envs": 32,
+        "start_step": 0,
+        "iterations": 2000,
+        "save_interval": 500,
+        "eval_epochs": null,
+        "checkpoint": null,
+        "input_source": null
+      },
+      "input_file_count": 0,
+      "environment": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "packages": {
+          "torch": "2.10.0+cu128",
+          "ray": "2.57.0",
+          "hydra-core": "1.3.2",
+          "omegaconf": "2.3.0",
+          "numpy": "2.4.4",
+          "mani_skill": "3.0.0b22",
+          "sapien": "3.0.1",
+          "tensorboard": "2.21.0",
+          "packaging": "26.2"
+        },
+        "errors": []
+      }
+    },
+    "rlinf_parallel_resume_failed": {
+      "run": "runs/rlinf-pickcube-resume-20260926",
+      "status": "failed",
+      "latest_checkpoint": null,
+      "last_saved_step": null,
+      "request": {
+        "schema": 1,
+        "command": "train",
+        "repo": "/home/ubuntu/workspace/3rdparty/RLinf",
+        "revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+        "config": "maniskill_sac_mlp",
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "output": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-resume-20260926",
+        "gpu": 0,
+        "seed": 1234,
+        "num_envs": 32,
+        "start_step": 500,
+        "iterations": 500,
+        "save_interval": 500,
+        "eval_epochs": null,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-resume-20260926/inputs/global_step_500",
+        "input_source": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-training-20260926/maniskill_sac_mlp/checkpoints/global_step_500"
+      },
+      "input_file_count": 508,
+      "environment": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "packages": {
+          "torch": "2.10.0+cu128",
+          "ray": "2.57.0",
+          "hydra-core": "1.3.2",
+          "omegaconf": "2.3.0",
+          "numpy": "2.4.4",
+          "mani_skill": "3.0.0b22",
+          "sapien": "3.0.1",
+          "tensorboard": "2.21.0",
+          "packaging": "26.2"
+        },
+        "errors": []
+      }
+    },
+    "rlinf_recovered_interrupted": {
+      "run": "runs/rlinf-pickcube-recovered-20260926",
+      "status": "failed",
+      "latest_checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-recovered-20260926/maniskill_sac_mlp/checkpoints/global_step_1500",
+      "last_saved_step": 1500,
+      "request": {
+        "schema": 1,
+        "command": "train",
+        "repo": "/home/ubuntu/workspace/3rdparty/RLinf",
+        "revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+        "config": "maniskill_sac_mlp",
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "output": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-recovered-20260926",
+        "gpu": 0,
+        "seed": 1234,
+        "num_envs": 32,
+        "start_step": 500,
+        "iterations": 1500,
+        "save_interval": 500,
+        "eval_epochs": null,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-recovered-20260926/inputs/global_step_500",
+        "input_source": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-training-20260926/maniskill_sac_mlp/checkpoints/global_step_500"
+      },
+      "input_file_count": 508,
+      "environment": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "packages": {
+          "torch": "2.10.0+cu128",
+          "ray": "2.57.0",
+          "hydra-core": "1.3.2",
+          "omegaconf": "2.3.0",
+          "numpy": "2.4.4",
+          "mani_skill": "3.0.0b22",
+          "sapien": "3.0.1",
+          "tensorboard": "2.21.0",
+          "packaging": "26.2"
+        },
+        "errors": []
+      }
+    },
+    "rlinf_final": {
+      "run": "runs/rlinf-pickcube-final-20260926",
+      "status": "complete",
+      "latest_checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926/maniskill_sac_mlp/checkpoints/global_step_2000",
+      "last_saved_step": 2000,
+      "request": {
+        "schema": 1,
+        "command": "train",
+        "repo": "/home/ubuntu/workspace/3rdparty/RLinf",
+        "revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+        "config": "maniskill_sac_mlp",
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "output": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926",
+        "gpu": 0,
+        "quiet": true,
+        "seed": 1234,
+        "num_envs": 32,
+        "start_step": 1500,
+        "iterations": 500,
+        "save_interval": 500,
+        "eval_epochs": null,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926/inputs/global_step_1500",
+        "input_source": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-recovered-20260926/maniskill_sac_mlp/checkpoints/global_step_1500"
+      },
+      "input_file_count": 1508,
+      "result": {
+        "status": "complete",
+        "metrics": {
+          "env/num_trajectories": {
+            "step": 1999,
+            "value": 32.0
+          },
+          "time/sync_weights": {
+            "step": 1999,
+            "value": 0.19193434715270996
+          },
+          "time/generate_rollouts": {
+            "step": 1999,
+            "value": 0.20201826095581055
+          },
+          "time/cal_adv_and_returns": {
+            "step": 1999,
+            "value": 0.0008792877197265625
+          },
+          "time/actor_training": {
+            "step": 1999,
+            "value": 0.4100968837738037
+          },
+          "time/step": {
+            "step": 1999,
+            "value": 5.565238952636719
+          },
+          "time/env/env/bootstrap_step": {
+            "step": 1999,
+            "value": 0.00024387100711464882
+          },
+          "time/env/env_interact_step": {
+            "step": 1999,
+            "value": 0.06988706439733505
+          },
+          "time/env/run_interact_once": {
+            "step": 1999,
+            "value": 0.09574751555919647
+          },
+          "time/env/interact": {
+            "step": 1999,
+            "value": 0.09578482061624527
+          },
+          "time/rollout/sync_model_from_actor": {
+            "step": 1999,
+            "value": 0.3630704879760742
+          },
+          "time/rollout/predict": {
+            "step": 1999,
+            "value": 0.4490833282470703
+          },
+          "time/rollout/generate_one_epoch": {
+            "step": 1999,
+            "value": 0.09531129896640778
+          },
+          "time/rollout/rollout/generate": {
+            "step": 1999,
+            "value": 0.09617000073194504
+          },
+          "time/actor/actor/sync_model_to_rollout": {
+            "step": 1999,
+            "value": 0.03804425150156021
+          },
+          "time/actor/actor/recv_traj": {
+            "step": 1999,
+            "value": 0.1923871487379074
+          },
+          "time/actor/actor/compute_adv": {
+            "step": 1999,
+            "value": 4.678964614868164e-06
+          },
+          "time/actor/sample": {
+            "step": 1999,
+            "value": 0.1110684871673584
+          },
+          "time/actor/forward_critic": {
+            "step": 1999,
+            "value": 0.07613397389650345
+          },
+          "time/actor/forward_actor": {
+            "step": 1999,
+            "value": 0.05374469980597496
+          },
+          "time/actor/forward_alpha": {
+            "step": 1999,
+            "value": 0.017786869779229164
+          },
+          "time/actor/update_one_epoch": {
+            "step": 1999,
+            "value": 0.40564313530921936
+          },
+          "time/actor/run_training": {
+            "step": 1999,
+            "value": 0.40918126702308655
+          },
+          "train/actor/entropy": {
+            "step": 1999,
+            "value": -4.044090270996094
+          },
+          "train/actor/grad_norm": {
+            "step": 1999,
+            "value": 5.46167516708374
+          },
+          "train/actor/lr": {
+            "step": 1999,
+            "value": 0.0003000000142492354
+          },
+          "train/actor/q_pi": {
+            "step": 1999,
+            "value": 2.3871634006500244
+          },
+          "train/actor/q_value_0": {
+            "step": 1999,
+            "value": 2.4309446811676025
+          },
+          "train/actor/q_value_1": {
+            "step": 1999,
+            "value": 2.4309678077697754
+          },
+          "train/alpha/grad_norm": {
+            "step": 1999,
+            "value": 0.0010124531108886003
+          },
+          "train/critic/grad_norm": {
+            "step": 1999,
+            "value": 1.3118298053741455
+          },
+          "train/critic/lr": {
+            "step": 1999,
+            "value": 0.0003000000142492354
+          },
+          "train/critic/q_data": {
+            "step": 1999,
+            "value": 2.34089994430542
+          },
+          "train/replay_buffer/cache_size": {
+            "step": 1999,
+            "value": 2000.0
+          },
+          "train/replay_buffer/num_trajectories": {
+            "step": 1999,
+            "value": 2000.0
+          },
+          "train/replay_buffer/total_samples": {
+            "step": 1999,
+            "value": 128000.0
+          },
+          "train/sac/actor_loss": {
+            "step": 1999,
+            "value": -2.3443007469177246
+          },
+          "train/sac/alpha": {
+            "step": 1999,
+            "value": 0.010599406436085701
+          },
+          "train/sac/alpha_loss": {
+            "step": 1999,
+            "value": -0.0004957583732903004
+          },
+          "train/sac/critic_loss": {
+            "step": 1999,
+            "value": 0.006583492271602154
+          },
+          "env/reward": {
+            "step": 1999,
+            "value": 0.7280269265174866
+          },
+          "env/episode_len": {
+            "step": 1999,
+            "value": 50.0
+          },
+          "env/success_once": {
+            "step": 1999,
+            "value": 0.90625
+          },
+          "env/success_at_end": {
+            "step": 1999,
+            "value": 0.875
+          },
+          "env/return": {
+            "step": 1999,
+            "value": 36.40134811401367
+          },
+          "eval/reward": {
+            "step": 1999,
+            "value": 0.8344004154205322
+          },
+          "eval/episode_len": {
+            "step": 1999,
+            "value": 50.0
+          },
+          "eval/success_once": {
+            "step": 1999,
+            "value": 1.0
+          },
+          "eval/success_at_end": {
+            "step": 1999,
+            "value": 1.0
+          },
+          "eval/return": {
+            "step": 1999,
+            "value": 41.72001647949219
+          },
+          "eval/num_trajectories": {
+            "step": 1999,
+            "value": 16.0
+          },
+          "time/eval": {
+            "step": 1999,
+            "value": 3.442732572555542
+          },
+          "time/env/evaluate": {
+            "step": 1999,
+            "value": 3.260547161102295
+          },
+          "time/rollout/evaluate": {
+            "step": 1999,
+            "value": 3.1767773628234863
+          }
+        },
+        "final_step": 2000,
+        "weights": {
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926/maniskill_sac_mlp/checkpoints/global_step_2000/actor/model_state_dict/full_weights.pt",
+          "sha256": "250dbead623c957d72fc2ea13231ff8bb436382a115649ca49373aff412afc5f",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "target_weights": {
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926/maniskill_sac_mlp/checkpoints/global_step_2000/actor/sac_components/target_model/checkpoint_rank_0.pt",
+          "sha256": "c40c4eb6ddea16c6ead2c6314582ab5a932bc06b64be9f7779b6af5927322b1f",
+          "file_bytes": 1756023,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926/maniskill_sac_mlp/checkpoints/global_step_2000",
+        "checkpoint_bytes": 72581645
+      },
+      "checkpoint_file_count": 2008,
+      "environment": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "packages": {
+          "torch": "2.10.0+cu128",
+          "ray": "2.57.0",
+          "hydra-core": "1.3.2",
+          "omegaconf": "2.3.0",
+          "numpy": "2.4.4",
+          "mani_skill": "3.0.0b22",
+          "sapien": "3.0.1",
+          "tensorboard": "2.21.0",
+          "packaging": "26.2"
+        },
+        "errors": []
+      }
+    },
+    "rlinf_evaluation_s2001": {
+      "run": "runs/rlinf-pickcube-eval-20260926",
+      "status": "complete",
+      "request": {
+        "schema": 1,
+        "command": "evaluate",
+        "repo": "/home/ubuntu/workspace/3rdparty/RLinf",
+        "revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+        "config": "maniskill_sac_mlp",
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "output": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926",
+        "gpu": 0,
+        "quiet": true,
+        "seed": 2001,
+        "num_envs": 16,
+        "start_step": 0,
+        "iterations": null,
+        "save_interval": null,
+        "eval_epochs": 10,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926/inputs/full_weights.pt",
+        "input_source": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926/maniskill_sac_mlp/checkpoints/global_step_2000/actor/model_state_dict/full_weights.pt"
+      },
+      "input_file_count": 1,
+      "result": {
+        "status": "complete",
+        "metrics": {
+          "eval/return": {
+            "step": 0,
+            "value": 39.491371154785156
+          },
+          "eval/success_once": {
+            "step": 0,
+            "value": 0.9312499761581421
+          },
+          "eval/success_at_end": {
+            "step": 0,
+            "value": 0.925000011920929
+          },
+          "eval/episode_len": {
+            "step": 0,
+            "value": 50.0
+          },
+          "eval/reward": {
+            "step": 0,
+            "value": 0.7898273468017578
+          },
+          "eval/num_trajectories": {
+            "step": 0,
+            "value": 160.0
+          }
+        },
+        "weights": {
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926/inputs/full_weights.pt",
+          "sha256": "250dbead623c957d72fc2ea13231ff8bb436382a115649ca49373aff412afc5f",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        }
+      },
+      "checkpoint_file_count": 0,
+      "environment": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "packages": {
+          "torch": "2.10.0+cu128",
+          "ray": "2.57.0",
+          "hydra-core": "1.3.2",
+          "omegaconf": "2.3.0",
+          "numpy": "2.4.4",
+          "mani_skill": "3.0.0b22",
+          "sapien": "3.0.1",
+          "tensorboard": "2.21.0",
+          "packaging": "26.2"
+        },
+        "errors": []
+      }
+    },
+    "rlinf_evaluation_s2002": {
+      "run": "runs/rlinf-pickcube-eval-20260926-s2002",
+      "status": "complete",
+      "request": {
+        "schema": 1,
+        "command": "evaluate",
+        "repo": "/home/ubuntu/workspace/3rdparty/RLinf",
+        "revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+        "config": "maniskill_sac_mlp",
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "output": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926-s2002",
+        "gpu": 0,
+        "quiet": true,
+        "seed": 2002,
+        "num_envs": 16,
+        "start_step": 0,
+        "iterations": null,
+        "save_interval": null,
+        "eval_epochs": 10,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926-s2002/inputs/full_weights.pt",
+        "input_source": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926/maniskill_sac_mlp/checkpoints/global_step_2000/actor/model_state_dict/full_weights.pt"
+      },
+      "input_file_count": 1,
+      "result": {
+        "status": "complete",
+        "metrics": {
+          "eval/success_once": {
+            "step": 0,
+            "value": 0.956250011920929
+          },
+          "eval/return": {
+            "step": 0,
+            "value": 39.9204216003418
+          },
+          "eval/episode_len": {
+            "step": 0,
+            "value": 50.0
+          },
+          "eval/success_at_end": {
+            "step": 0,
+            "value": 0.949999988079071
+          },
+          "eval/reward": {
+            "step": 0,
+            "value": 0.7984084486961365
+          },
+          "eval/num_trajectories": {
+            "step": 0,
+            "value": 160.0
+          }
+        },
+        "weights": {
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926-s2002/inputs/full_weights.pt",
+          "sha256": "250dbead623c957d72fc2ea13231ff8bb436382a115649ca49373aff412afc5f",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        }
+      },
+      "checkpoint_file_count": 0,
+      "environment": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "packages": {
+          "torch": "2.10.0+cu128",
+          "ray": "2.57.0",
+          "hydra-core": "1.3.2",
+          "omegaconf": "2.3.0",
+          "numpy": "2.4.4",
+          "mani_skill": "3.0.0b22",
+          "sapien": "3.0.1",
+          "tensorboard": "2.21.0",
+          "packaging": "26.2"
+        },
+        "errors": []
+      }
+    },
+    "rlinf_evaluation_s2003": {
+      "run": "runs/rlinf-pickcube-eval-20260926-s2003",
+      "status": "complete",
+      "request": {
+        "schema": 1,
+        "command": "evaluate",
+        "repo": "/home/ubuntu/workspace/3rdparty/RLinf",
+        "revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+        "config": "maniskill_sac_mlp",
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "output": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926-s2003",
+        "gpu": 0,
+        "quiet": true,
+        "seed": 2003,
+        "num_envs": 16,
+        "start_step": 0,
+        "iterations": null,
+        "save_interval": null,
+        "eval_epochs": 10,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926-s2003/inputs/full_weights.pt",
+        "input_source": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-final-20260926/maniskill_sac_mlp/checkpoints/global_step_2000/actor/model_state_dict/full_weights.pt"
+      },
+      "input_file_count": 1,
+      "result": {
+        "status": "complete",
+        "metrics": {
+          "eval/return": {
+            "step": 0,
+            "value": 39.69095993041992
+          },
+          "eval/reward": {
+            "step": 0,
+            "value": 0.7938191890716553
+          },
+          "eval/episode_len": {
+            "step": 0,
+            "value": 50.0
+          },
+          "eval/success_at_end": {
+            "step": 0,
+            "value": 0.9375
+          },
+          "eval/success_once": {
+            "step": 0,
+            "value": 0.956250011920929
+          },
+          "eval/num_trajectories": {
+            "step": 0,
+            "value": 160.0
+          }
+        },
+        "weights": {
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/rlinf-pickcube-eval-20260926-s2003/inputs/full_weights.pt",
+          "sha256": "250dbead623c957d72fc2ea13231ff8bb436382a115649ca49373aff412afc5f",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        }
+      },
+      "checkpoint_file_count": 0,
+      "environment": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+        "packages": {
+          "torch": "2.10.0+cu128",
+          "ray": "2.57.0",
+          "hydra-core": "1.3.2",
+          "omegaconf": "2.3.0",
+          "numpy": "2.4.4",
+          "mani_skill": "3.0.0b22",
+          "sapien": "3.0.1",
+          "tensorboard": "2.21.0",
+          "packaging": "26.2"
+        },
+        "errors": []
+      }
+    },
+    "microduck_resume_baseline": {
+      "run": "runs/microduck-resume-training-20260925",
+      "status": "complete",
+      "seed": 0,
+      "num_envs": 512,
+      "iterations": 1000,
+      "start_iteration": 3018,
+      "checkpoint_metadata": {
+        "iteration": 4017,
+        "common_step_counter": 96480,
+        "learning_rate": 3.3750000000000014e-05,
+        "sha256": "b7e50e916e2ba2d2c208f2c58255f386048d6a8dea77775c78b97876923138f7"
+      },
+      "checkpoint_file_bytes": 4847293,
+      "implementation_sha256": "5b19fbc606e794d03fbc3a12ec02a102447d1e6d48e30eddfd2775516f6e27aa"
+    },
+    "microduck_resume_candidate": {
+      "run": "runs/microduck-action-rate-cap-20260925",
+      "status": "complete",
+      "seed": 0,
+      "num_envs": 512,
+      "iterations": 1000,
+      "start_iteration": 3018,
+      "checkpoint_metadata": {
+        "iteration": 4017,
+        "common_step_counter": 96480,
+        "learning_rate": 1e-05,
+        "sha256": "bd3267f93ae75ed58bb9c09e8613666624b5a6e54af2f67dcdbd509fd5863a20"
+      },
+      "checkpoint_file_bytes": 4847293,
+      "implementation_sha256": "7deaa3ebd9ddb074f5bb06910f9507d49e6ceeee407a7fa2d2e64acd5a6717d5"
+    },
+    "microduck_fresh_baseline": {
+      "run": "runs/microduck-fresh-baseline-20260926",
+      "status": "complete",
+      "seed": 0,
+      "num_envs": 512,
+      "iterations": 4000,
+      "start_iteration": 0,
+      "checkpoint_metadata": {
+        "iteration": 3999,
+        "common_step_counter": 96000,
+        "learning_rate": 1e-05,
+        "sha256": "1999a2f5cc403ac7ad7a4c6eaeed07cb97f2dcd35d10eb4e81fa6de2590518e7"
+      },
+      "checkpoint_file_bytes": 4847293,
+      "implementation_sha256": "e389c9f3f27e203c4616f7f66faa54d97b35f5f7b494d903788b318ad2fcd29f"
+    },
+    "microduck_fresh_candidate": {
+      "run": "runs/microduck-fresh-action-rate-cap-20260926",
+      "status": "complete",
+      "seed": 0,
+      "num_envs": 512,
+      "iterations": 4000,
+      "start_iteration": 0,
+      "checkpoint_metadata": {
+        "iteration": 3999,
+        "common_step_counter": 96000,
+        "learning_rate": 1e-05,
+        "sha256": "9c331d439ce7d3cce7637e835949218201700da5b5b3f8996aff28c352548068"
+      },
+      "checkpoint_file_bytes": 4847293,
+      "implementation_sha256": "7deaa3ebd9ddb074f5bb06910f9507d49e6ceeee407a7fa2d2e64acd5a6717d5"
+    },
+    "microduck_resume_baseline_evaluation": {
+      "schema": 1,
+      "task": "Mjlab-Velocity-Flat-MicroDuck",
+      "checkpoint_metadata": {
+        "iteration": 4017,
+        "common_step_counter": 96480,
+        "learning_rate": 3.3750000000000014e-05,
+        "sha256": "b7e50e916e2ba2d2c208f2c58255f386048d6a8dea77775c78b97876923138f7"
+      },
+      "conditions": {
+        "velocity_body_frame": [
+          0.2,
+          0.0,
+          0.0
+        ],
+        "neutral_head_body_commands": true,
+        "pushes_enabled": false,
+        "fixed_command_checks": 501,
+        "other_randomization": "upstream play=True",
+        "policy_matmul_precision": "tf32",
+        "curriculum_start_step": 96480,
+        "curriculum_source": "override"
+      },
+      "num_envs": 32,
+      "steps_per_env": 500,
+      "sim_seconds_per_env": 10.0,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "seed_count": 3,
+      "transitions": 48000,
+      "aggregation": "Equal-size seed runs; sample standard deviation is across seeds, not environments. No confidence interval is implied.",
+      "metrics": {
+        "mean_reward_per_transition": {
+          "mean": 0.15822294108072918,
+          "sample_std": 0.0009897464640613118,
+          "min": 0.15757572937011718,
+          "max": 0.15936228942871095
+        },
+        "planar_velocity_rmse_m_s": {
+          "mean": 0.1927651575104944,
+          "sample_std": 0.0029271982271756587,
+          "min": 0.18942882577716208,
+          "max": 0.1949025326961752
+        },
+        "initial_mean_observed_duration_seconds": {
+          "mean": 10.0,
+          "sample_std": 0.0,
+          "min": 10.0,
+          "max": 10.0
+        },
+        "survived_full_horizon_count": {
+          "mean": 32,
+          "sample_std": 0.0,
+          "min": 32,
+          "max": 32
+        },
+        "censored_before_horizon_count": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "falls": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "vx_rmse": {
+          "mean": 0.17827304763242677,
+          "sample_std": 0.007363840266378775,
+          "min": 0.1701841190757237,
+          "max": 0.18458754926116633
+        },
+        "vy_rmse": {
+          "mean": 0.07263381106158434,
+          "sample_std": 0.010321154917733881,
+          "min": 0.06256543701709547,
+          "max": 0.08319041801634562
+        },
+        "wz_rmse": {
+          "mean": 0.27330627596676704,
+          "sample_std": 0.0183602528970346,
+          "min": 0.2570070469819691,
+          "max": 0.29319685453026806
+        },
+        "vx_mean_command": {
+          "mean": 0.20000000298023224,
+          "sample_std": 0.0,
+          "min": 0.20000000298023224,
+          "max": 0.20000000298023224
+        },
+        "vx_mean_actual": {
+          "mean": 0.0293297920377273,
+          "sample_std": 0.009637020468534645,
+          "min": 0.02149605911117441,
+          "max": 0.04009111865776823
+        },
+        "vx_bias": {
+          "mean": -0.17067021094250492,
+          "sample_std": 0.009637020468534646,
+          "min": -0.17850394386905782,
+          "max": -0.159908884322464
+        },
+        "vy_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "vy_mean_actual": {
+          "mean": 0.0008214429711969177,
+          "sample_std": 0.0005097870159434405,
+          "min": 0.0004841137439749694,
+          "max": 0.0014078868877549144
+        },
+        "vy_bias": {
+          "mean": 0.0008214429711969177,
+          "sample_std": 0.0005097870159434405,
+          "min": 0.0004841137439749694,
+          "max": 0.0014078868877549144
+        },
+        "wz_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "wz_mean_actual": {
+          "mean": -0.012825129842547687,
+          "sample_std": 0.008449831411619597,
+          "min": -0.019606747125781594,
+          "max": -0.0033592161687028446
+        },
+        "wz_bias": {
+          "mean": -0.012825129842547687,
+          "sample_std": 0.008449831411619597,
+          "min": -0.019606747125781594,
+          "max": -0.0033592161687028446
+        }
+      },
+      "pooled_velocity_rmse": [
+        0.17837441036893714,
+        0.07312105033358843,
+        0.27371710409432704
+      ],
+      "velocity_axes": [
+        "vx",
+        "vy",
+        "wz"
+      ],
+      "velocity_units": [
+        "m/s",
+        "m/s",
+        "rad/s"
+      ],
+      "onnx_parity_configuration": null,
+      "per_seed": [
+        {
+          "seed": 0,
+          "mean_reward_per_transition": 0.15936228942871095,
+          "planar_velocity_rmse_m_s": 0.18942882577716208,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.1701841190757237,
+          "vy_rmse": 0.08319041801634562,
+          "wz_rmse": 0.29319685453026806,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.04009111865776823,
+          "vx_bias": -0.159908884322464,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.0014078868877549144,
+          "vy_bias": 0.0014078868877549144,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.019606747125781594,
+          "wz_bias": -0.019606747125781594
+        },
+        {
+          "seed": 1,
+          "mean_reward_per_transition": 0.15757572937011718,
+          "planar_velocity_rmse_m_s": 0.1939641140581459,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.18004747456039025,
+          "vy_rmse": 0.07214557815131192,
+          "wz_rmse": 0.269714926388064,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.02640219834423926,
+          "vx_bias": -0.17359780463599297,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.0004841137439749694,
+          "vy_bias": 0.0004841137439749694,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.0033592161687028446,
+          "wz_bias": -0.0033592161687028446
+        },
+        {
+          "seed": 2,
+          "mean_reward_per_transition": 0.15773080444335938,
+          "planar_velocity_rmse_m_s": 0.1949025326961752,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.18458754926116633,
+          "vy_rmse": 0.06256543701709547,
+          "wz_rmse": 0.2570070469819691,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.02149605911117441,
+          "vx_bias": -0.17850394386905782,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.0005723282818608695,
+          "vy_bias": 0.0005723282818608695,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.015509426233158622,
+          "wz_bias": -0.015509426233158622
+        }
+      ],
+      "reports": [
+        "seed-0/evaluation.json",
+        "seed-1/evaluation.json",
+        "seed-2/evaluation.json"
+      ]
+    },
+    "microduck_resume_candidate_evaluation": {
+      "schema": 1,
+      "task": "Mjlab-Velocity-Flat-MicroDuck",
+      "checkpoint_metadata": {
+        "iteration": 4017,
+        "common_step_counter": 96480,
+        "learning_rate": 1e-05,
+        "sha256": "bd3267f93ae75ed58bb9c09e8613666624b5a6e54af2f67dcdbd509fd5863a20"
+      },
+      "conditions": {
+        "velocity_body_frame": [
+          0.2,
+          0.0,
+          0.0
+        ],
+        "neutral_head_body_commands": true,
+        "pushes_enabled": false,
+        "fixed_command_checks": 501,
+        "other_randomization": "upstream play=True",
+        "policy_matmul_precision": "tf32",
+        "curriculum_start_step": 96480,
+        "curriculum_source": "override"
+      },
+      "num_envs": 32,
+      "steps_per_env": 500,
+      "sim_seconds_per_env": 10.0,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "seed_count": 3,
+      "transitions": 48000,
+      "aggregation": "Equal-size seed runs; sample standard deviation is across seeds, not environments. No confidence interval is implied.",
+      "metrics": {
+        "mean_reward_per_transition": {
+          "mean": 0.15663474527994792,
+          "sample_std": 0.000572514181045504,
+          "min": 0.15600392150878906,
+          "max": 0.1571213836669922
+        },
+        "planar_velocity_rmse_m_s": {
+          "mean": 0.18265973433114627,
+          "sample_std": 0.001520892303594134,
+          "min": 0.18139310991011517,
+          "max": 0.18434654563096736
+        },
+        "initial_mean_observed_duration_seconds": {
+          "mean": 10.0,
+          "sample_std": 0.0,
+          "min": 10.0,
+          "max": 10.0
+        },
+        "survived_full_horizon_count": {
+          "mean": 32,
+          "sample_std": 0.0,
+          "min": 32,
+          "max": 32
+        },
+        "censored_before_horizon_count": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "falls": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "vx_rmse": {
+          "mean": 0.1618694818851096,
+          "sample_std": 0.0037763833375868577,
+          "min": 0.1580868419341421,
+          "max": 0.1656395773563384
+        },
+        "vy_rmse": {
+          "mean": 0.08447235484258789,
+          "sample_std": 0.0053812650525018315,
+          "min": 0.08091464205744173,
+          "max": 0.09066312956725679
+        },
+        "wz_rmse": {
+          "mean": 0.3405270198228298,
+          "sample_std": 0.02265873157341975,
+          "min": 0.32365020736268274,
+          "max": 0.36628010241156095
+        },
+        "vx_mean_command": {
+          "mean": 0.20000000298023224,
+          "sample_std": 0.0,
+          "min": 0.20000000298023224,
+          "max": 0.20000000298023224
+        },
+        "vx_mean_actual": {
+          "mean": 0.050006631839675755,
+          "sample_std": 0.003975617088028902,
+          "min": 0.04581729962556367,
+          "max": 0.05372692180558705
+        },
+        "vx_bias": {
+          "mean": -0.1499933711405565,
+          "sample_std": 0.003975617088028904,
+          "min": -0.15418270335466858,
+          "max": -0.1462730811746452
+        },
+        "vy_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "vy_mean_actual": {
+          "mean": 0.0034402933145293232,
+          "sample_std": 0.0009727153123116887,
+          "min": 0.0027779875889873884,
+          "max": 0.004557059583016744
+        },
+        "vy_bias": {
+          "mean": 0.0034402933145293232,
+          "sample_std": 0.0009727153123116887,
+          "min": 0.0027779875889873884,
+          "max": 0.004557059583016744
+        },
+        "wz_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "wz_mean_actual": {
+          "mean": 0.03256242433773093,
+          "sample_std": 0.019754157779026255,
+          "min": 0.012579464211358922,
+          "max": 0.052079539707789294
+        },
+        "wz_bias": {
+          "mean": 0.03256242433773093,
+          "sample_std": 0.019754157779026255,
+          "min": 0.012579464211358922,
+          "max": 0.052079539707789294
+        }
+      },
+      "pooled_velocity_rmse": [
+        0.16189884664967638,
+        0.08458654783728281,
+        0.3410292215833741
+      ],
+      "velocity_axes": [
+        "vx",
+        "vy",
+        "wz"
+      ],
+      "velocity_units": [
+        "m/s",
+        "m/s",
+        "rad/s"
+      ],
+      "onnx_parity_configuration": null,
+      "per_seed": [
+        {
+          "seed": 0,
+          "mean_reward_per_transition": 0.1571213836669922,
+          "planar_velocity_rmse_m_s": 0.18139310991011517,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.16188202636484827,
+          "vy_rmse": 0.08183929290306514,
+          "wz_rmse": 0.33165074969424563,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.050475674087876544,
+          "vx_bias": -0.1495243288923557,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.002985832771583837,
+          "vy_bias": 0.002985832771583837,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": 0.03302826909404459,
+          "wz_bias": 0.03302826909404459
+        },
+        {
+          "seed": 1,
+          "mean_reward_per_transition": 0.15600392150878906,
+          "planar_velocity_rmse_m_s": 0.1822395474523563,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.1580868419341421,
+          "vy_rmse": 0.09066312956725679,
+          "wz_rmse": 0.36628010241156095,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.05372692180558705,
+          "vx_bias": -0.1462730811746452,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.004557059583016744,
+          "vy_bias": 0.004557059583016744,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": 0.052079539707789294,
+          "wz_bias": 0.052079539707789294
+        },
+        {
+          "seed": 2,
+          "mean_reward_per_transition": 0.1567789306640625,
+          "planar_velocity_rmse_m_s": 0.18434654563096736,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.1656395773563384,
+          "vy_rmse": 0.08091464205744173,
+          "wz_rmse": 0.32365020736268274,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.04581729962556367,
+          "vx_bias": -0.15418270335466858,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.0027779875889873884,
+          "vy_bias": 0.0027779875889873884,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": 0.012579464211358922,
+          "wz_bias": 0.012579464211358922
+        }
+      ],
+      "reports": [
+        "seed-0/evaluation.json",
+        "seed-1/evaluation.json",
+        "seed-2/evaluation.json"
+      ]
+    },
+    "microduck_fresh_baseline_evaluation": {
+      "schema": 1,
+      "task": "Mjlab-Velocity-Flat-MicroDuck",
+      "checkpoint_metadata": {
+        "iteration": 3999,
+        "common_step_counter": 96000,
+        "learning_rate": 1e-05,
+        "sha256": "1999a2f5cc403ac7ad7a4c6eaeed07cb97f2dcd35d10eb4e81fa6de2590518e7"
+      },
+      "conditions": {
+        "velocity_body_frame": [
+          0.2,
+          0.0,
+          0.0
+        ],
+        "neutral_head_body_commands": true,
+        "pushes_enabled": false,
+        "fixed_command_checks": 501,
+        "other_randomization": "upstream play=True",
+        "policy_matmul_precision": "tf32",
+        "curriculum_start_step": 96000,
+        "curriculum_source": "override"
+      },
+      "num_envs": 32,
+      "steps_per_env": 500,
+      "sim_seconds_per_env": 10.0,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "seed_count": 3,
+      "transitions": 48000,
+      "aggregation": "Equal-size seed runs; sample standard deviation is across seeds, not environments. No confidence interval is implied.",
+      "metrics": {
+        "mean_reward_per_transition": {
+          "mean": 0.15829002380371093,
+          "sample_std": 0.0002208144405143713,
+          "min": 0.15812693786621093,
+          "max": 0.1585413055419922
+        },
+        "planar_velocity_rmse_m_s": {
+          "mean": 0.1665127552779341,
+          "sample_std": 0.001064379645108685,
+          "min": 0.1653100265508978,
+          "max": 0.16733317839109016
+        },
+        "initial_mean_observed_duration_seconds": {
+          "mean": 10.0,
+          "sample_std": 0.0,
+          "min": 10.0,
+          "max": 10.0
+        },
+        "survived_full_horizon_count": {
+          "mean": 32,
+          "sample_std": 0.0,
+          "min": 32,
+          "max": 32
+        },
+        "censored_before_horizon_count": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "falls": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "vx_rmse": {
+          "mean": 0.10941439977668076,
+          "sample_std": 0.0014667465922044366,
+          "min": 0.10783671116659652,
+          "max": 0.1107366478246336
+        },
+        "vy_rmse": {
+          "mean": 0.12551598493993105,
+          "sample_std": 0.0002608312451768874,
+          "min": 0.12529424808438167,
+          "max": 0.12580336827820576
+        },
+        "wz_rmse": {
+          "mean": 0.3015835820802982,
+          "sample_std": 0.007213641916225043,
+          "min": 0.2932941641327449,
+          "max": 0.3064359578284858
+        },
+        "vx_mean_command": {
+          "mean": 0.20000000298023224,
+          "sample_std": 0.0,
+          "min": 0.20000000298023224,
+          "max": 0.20000000298023224
+        },
+        "vx_mean_actual": {
+          "mean": 0.09607862560558958,
+          "sample_std": 0.0018017283477892373,
+          "min": 0.09459018326652585,
+          "max": 0.09808166748979419
+        },
+        "vx_bias": {
+          "mean": -0.10392137737464266,
+          "sample_std": 0.0018017283477892373,
+          "min": -0.10540981971370639,
+          "max": -0.10191833549043805
+        },
+        "vy_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "vy_mean_actual": {
+          "mean": -0.019042990829631224,
+          "sample_std": 0.0014063156308390422,
+          "min": -0.020048182869217668,
+          "max": -0.017435897016175088
+        },
+        "vy_bias": {
+          "mean": -0.019042990829631224,
+          "sample_std": 0.0014063156308390422,
+          "min": -0.020048182869217668,
+          "max": -0.017435897016175088
+        },
+        "wz_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "wz_mean_actual": {
+          "mean": -0.05906851522113979,
+          "sample_std": 0.02268347341856383,
+          "min": -0.07518512607136336,
+          "max": -0.03312918333339075
+        },
+        "wz_bias": {
+          "mean": -0.05906851522113979,
+          "sample_std": 0.02268347341856383,
+          "min": -0.07518512607136336,
+          "max": -0.03312918333339075
+        }
+      },
+      "pooled_velocity_rmse": [
+        0.10942095370114666,
+        0.12551616561516413,
+        0.3016410914760249
+      ],
+      "velocity_axes": [
+        "vx",
+        "vy",
+        "wz"
+      ],
+      "velocity_units": [
+        "m/s",
+        "m/s",
+        "rad/s"
+      ],
+      "onnx_parity_configuration": null,
+      "per_seed": [
+        {
+          "seed": 0,
+          "mean_reward_per_transition": 0.1585413055419922,
+          "planar_velocity_rmse_m_s": 0.1653100265508978,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.10783671116659652,
+          "vy_rmse": 0.12529424808438167,
+          "wz_rmse": 0.3064359578284858,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.09808166748979419,
+          "vx_bias": -0.10191833549043805,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": -0.020048182869217668,
+          "vy_bias": -0.020048182869217668,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.07518512607136336,
+          "wz_bias": -0.07518512607136336
+        },
+        {
+          "seed": 1,
+          "mean_reward_per_transition": 0.15812693786621093,
+          "planar_velocity_rmse_m_s": 0.16689506089181433,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.10966984033881214,
+          "vy_rmse": 0.12580336827820576,
+          "wz_rmse": 0.2932941641327449,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.09556402606044868,
+          "vx_bias": -0.10443597691978355,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": -0.01964489260350092,
+          "vy_bias": -0.01964489260350092,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.03312918333339075,
+          "wz_bias": -0.03312918333339075
+        },
+        {
+          "seed": 2,
+          "mean_reward_per_transition": 0.1582018280029297,
+          "planar_velocity_rmse_m_s": 0.16733317839109016,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.1107366478246336,
+          "vy_rmse": 0.12545033845720574,
+          "wz_rmse": 0.30502062427966375,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.09459018326652585,
+          "vx_bias": -0.10540981971370639,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": -0.017435897016175088,
+          "vy_bias": -0.017435897016175088,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.06889123625866525,
+          "wz_bias": -0.06889123625866525
+        }
+      ],
+      "reports": [
+        "seed-0/evaluation.json",
+        "seed-1/evaluation.json",
+        "seed-2/evaluation.json"
+      ]
+    },
+    "microduck_fresh_candidate_evaluation": {
+      "schema": 1,
+      "task": "Mjlab-Velocity-Flat-MicroDuck",
+      "checkpoint_metadata": {
+        "iteration": 3999,
+        "common_step_counter": 96000,
+        "learning_rate": 1e-05,
+        "sha256": "9c331d439ce7d3cce7637e835949218201700da5b5b3f8996aff28c352548068"
+      },
+      "conditions": {
+        "velocity_body_frame": [
+          0.2,
+          0.0,
+          0.0
+        ],
+        "neutral_head_body_commands": true,
+        "pushes_enabled": false,
+        "fixed_command_checks": 501,
+        "other_randomization": "upstream play=True",
+        "policy_matmul_precision": "tf32",
+        "curriculum_start_step": 96000,
+        "curriculum_source": "override"
+      },
+      "num_envs": 32,
+      "steps_per_env": 500,
+      "sim_seconds_per_env": 10.0,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "seed_count": 3,
+      "transitions": 48000,
+      "aggregation": "Equal-size seed runs; sample standard deviation is across seeds, not environments. No confidence interval is implied.",
+      "metrics": {
+        "mean_reward_per_transition": {
+          "mean": 0.1497125244140625,
+          "sample_std": 0.000254500744460602,
+          "min": 0.1494900665283203,
+          "max": 0.14999005126953124
+        },
+        "planar_velocity_rmse_m_s": {
+          "mean": 0.15831602974508419,
+          "sample_std": 0.0005284245750155331,
+          "min": 0.15780789880343749,
+          "max": 0.15886264391456517
+        },
+        "initial_mean_observed_duration_seconds": {
+          "mean": 10.0,
+          "sample_std": 0.0,
+          "min": 10.0,
+          "max": 10.0
+        },
+        "survived_full_horizon_count": {
+          "mean": 32,
+          "sample_std": 0.0,
+          "min": 32,
+          "max": 32
+        },
+        "censored_before_horizon_count": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "falls": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "vx_rmse": {
+          "mean": 0.11195842661328863,
+          "sample_std": 0.00039601971839205386,
+          "min": 0.11153958071929315,
+          "max": 0.1123267762892141
+        },
+        "vy_rmse": {
+          "mean": 0.11193186612829796,
+          "sample_std": 0.0009604141055688537,
+          "min": 0.11084235766722401,
+          "max": 0.11265585132466348
+        },
+        "wz_rmse": {
+          "mean": 0.4376687479977086,
+          "sample_std": 0.004068840942307977,
+          "min": 0.43312414090450874,
+          "max": 0.44097322226184016
+        },
+        "vx_mean_command": {
+          "mean": 0.20000000298023224,
+          "sample_std": 0.0,
+          "min": 0.20000000298023224,
+          "max": 0.20000000298023224
+        },
+        "vx_mean_actual": {
+          "mean": 0.09483921644656403,
+          "sample_std": 0.00022039401807025374,
+          "min": 0.0945848354112859,
+          "max": 0.09497282879176784
+        },
+        "vx_bias": {
+          "mean": -0.10516078653366821,
+          "sample_std": 0.00022039401807025374,
+          "min": -0.10541516756894634,
+          "max": -0.1050271741884644
+        },
+        "vy_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "vy_mean_actual": {
+          "mean": 0.009349124979935104,
+          "sample_std": 0.0017367837970787851,
+          "min": 0.007923797985224725,
+          "max": 0.011283570035674529
+        },
+        "vy_bias": {
+          "mean": 0.009349124979935104,
+          "sample_std": 0.0017367837970787851,
+          "min": 0.007923797985224725,
+          "max": 0.011283570035674529
+        },
+        "wz_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "wz_mean_actual": {
+          "mean": 0.21530115548741166,
+          "sample_std": 0.015551030696392593,
+          "min": 0.19734547162856597,
+          "max": 0.22445109794279597
+        },
+        "wz_bias": {
+          "mean": 0.21530115548741166,
+          "sample_std": 0.015551030696392593,
+          "min": 0.19734547162856597,
+          "max": 0.22445109794279597
+        }
+      },
+      "pooled_velocity_rmse": [
+        0.11195889354640258,
+        0.11193461298960508,
+        0.43768135664159186
+      ],
+      "velocity_axes": [
+        "vx",
+        "vy",
+        "wz"
+      ],
+      "velocity_units": [
+        "m/s",
+        "m/s",
+        "rad/s"
+      ],
+      "onnx_parity_configuration": null,
+      "per_seed": [
+        {
+          "seed": 0,
+          "mean_reward_per_transition": 0.14999005126953124,
+          "planar_velocity_rmse_m_s": 0.15780789880343749,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.1123267762892141,
+          "vy_rmse": 0.11084235766722401,
+          "wz_rmse": 0.4389088808267769,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.09497282879176784,
+          "vx_bias": -0.1050271741884644,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.008840006918906058,
+          "vy_bias": 0.008840006918906058,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": 0.22410689689087301,
+          "wz_bias": 0.22410689689087301
+        },
+        {
+          "seed": 1,
+          "mean_reward_per_transition": 0.1494900665283203,
+          "planar_velocity_rmse_m_s": 0.15886264391456517,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.11200892283135863,
+          "vy_rmse": 0.11265585132466348,
+          "wz_rmse": 0.43312414090450874,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.0945848354112859,
+          "vx_bias": -0.10541516756894634,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.011283570035674529,
+          "vy_bias": 0.011283570035674529,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": 0.19734547162856597,
+          "wz_bias": 0.19734547162856597
+        },
+        {
+          "seed": 2,
+          "mean_reward_per_transition": 0.14965745544433592,
+          "planar_velocity_rmse_m_s": 0.15827754651724993,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.11153958071929315,
+          "vy_rmse": 0.11229738939300639,
+          "wz_rmse": 0.44097322226184016,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.09495998513663835,
+          "vx_bias": -0.10504001784359389,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": 0.007923797985224725,
+          "vy_bias": 0.007923797985224725,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": 0.22445109794279597,
+          "wz_bias": 0.22445109794279597
+        }
+      ],
+      "reports": [
+        "seed-0/evaluation.json",
+        "seed-1/evaluation.json",
+        "seed-2/evaluation.json"
+      ]
+    },
+    "microduck_onnx_trajectory_evaluation": {
+      "schema": 1,
+      "task": "Mjlab-Velocity-Flat-MicroDuck",
+      "checkpoint_metadata": {
+        "iteration": 3999,
+        "common_step_counter": 96000,
+        "learning_rate": 1e-05,
+        "sha256": "1999a2f5cc403ac7ad7a4c6eaeed07cb97f2dcd35d10eb4e81fa6de2590518e7"
+      },
+      "conditions": {
+        "velocity_body_frame": [
+          0.2,
+          0.0,
+          0.0
+        ],
+        "neutral_head_body_commands": true,
+        "pushes_enabled": false,
+        "fixed_command_checks": 501,
+        "other_randomization": "upstream play=True",
+        "policy_matmul_precision": "ieee",
+        "curriculum_start_step": 96000,
+        "curriculum_source": "override"
+      },
+      "num_envs": 32,
+      "steps_per_env": 500,
+      "sim_seconds_per_env": 10.0,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "seed_count": 3,
+      "transitions": 48000,
+      "aggregation": "Equal-size seed runs; sample standard deviation is across seeds, not environments. No confidence interval is implied.",
+      "metrics": {
+        "mean_reward_per_transition": {
+          "mean": 0.1581588592529297,
+          "sample_std": 0.0001502885200940131,
+          "min": 0.15803306579589843,
+          "max": 0.15832528686523437
+        },
+        "planar_velocity_rmse_m_s": {
+          "mean": 0.16638341191583106,
+          "sample_std": 0.0009805723888134724,
+          "min": 0.1652631003910364,
+          "max": 0.16708569007358728
+        },
+        "initial_mean_observed_duration_seconds": {
+          "mean": 10.0,
+          "sample_std": 0.0,
+          "min": 10.0,
+          "max": 10.0
+        },
+        "survived_full_horizon_count": {
+          "mean": 32,
+          "sample_std": 0.0,
+          "min": 32,
+          "max": 32
+        },
+        "censored_before_horizon_count": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "falls": {
+          "mean": 0,
+          "sample_std": 0.0,
+          "min": 0,
+          "max": 0
+        },
+        "vx_rmse": {
+          "mean": 0.10924784425342146,
+          "sample_std": 0.0014937132651921994,
+          "min": 0.10759249312623798,
+          "max": 0.11049508960013683
+        },
+        "vy_rmse": {
+          "mean": 0.1254889613143955,
+          "sample_std": 0.00018345392401974476,
+          "min": 0.12533340736461526,
+          "max": 0.1256912676784637
+        },
+        "wz_rmse": {
+          "mean": 0.30284433669932764,
+          "sample_std": 0.007937230512729819,
+          "min": 0.2943843015235609,
+          "max": 0.3101273007051491
+        },
+        "vx_mean_command": {
+          "mean": 0.20000000298023224,
+          "sample_std": 0.0,
+          "min": 0.20000000298023224,
+          "max": 0.20000000298023224
+        },
+        "vx_mean_actual": {
+          "mean": 0.09630374096632052,
+          "sample_std": 0.0018893500804656935,
+          "min": 0.09485577842468046,
+          "max": 0.09844094447198586
+        },
+        "vx_bias": {
+          "mean": -0.10369626201391172,
+          "sample_std": 0.0018893500804656935,
+          "min": -0.10514422455555178,
+          "max": -0.10155905850824638
+        },
+        "vy_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "vy_mean_actual": {
+          "mean": -0.019021175601207273,
+          "sample_std": 0.0013103299112488121,
+          "min": -0.019961537442923376,
+          "max": -0.017524469385338647
+        },
+        "vy_bias": {
+          "mean": -0.019021175601207273,
+          "sample_std": 0.0013103299112488121,
+          "min": -0.019961537442923376,
+          "max": -0.017524469385338647
+        },
+        "wz_mean_command": {
+          "mean": 0.0,
+          "sample_std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "wz_mean_actual": {
+          "mean": -0.05991485614317874,
+          "sample_std": 0.02138156360177226,
+          "min": -0.0749050900021848,
+          "max": -0.03543030341680878
+        },
+        "wz_bias": {
+          "mean": -0.05991485614317874,
+          "sample_std": 0.02138156360177226,
+          "min": -0.0749050900021848,
+          "max": -0.03543030341680878
+        }
+      },
+      "pooled_velocity_rmse": [
+        0.10925465174032137,
+        0.1254890507122461,
+        0.3029136709080612
+      ],
+      "velocity_axes": [
+        "vx",
+        "vy",
+        "wz"
+      ],
+      "velocity_units": [
+        "m/s",
+        "m/s",
+        "rad/s"
+      ],
+      "onnx_parity_configuration": {
+        "sha256": "8e5336d318b72abffde0fdc2647323eb7456596386d1bcc6052541c12faafc0b",
+        "provider": "CPUExecutionProvider",
+        "atol": 0.0001,
+        "rtol": 0.0001,
+        "sampling": "one environment per step, index = step % num_envs"
+      },
+      "per_seed": [
+        {
+          "seed": 0,
+          "mean_reward_per_transition": 0.15803306579589843,
+          "planar_velocity_rmse_m_s": 0.1652631003910364,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.10759249312623798,
+          "vy_rmse": 0.1254422089001075,
+          "wz_rmse": 0.3101273007051491,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.09844094447198586,
+          "vx_bias": -0.10155905850824638,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": -0.019961537442923376,
+          "vy_bias": -0.019961537442923376,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.0749050900021848,
+          "wz_bias": -0.0749050900021848
+        },
+        {
+          "seed": 1,
+          "mean_reward_per_transition": 0.15811822509765625,
+          "planar_velocity_rmse_m_s": 0.1668014452828695,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.10965595003388959,
+          "vy_rmse": 0.1256912676784637,
+          "wz_rmse": 0.2943843015235609,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.09561450000229524,
+          "vx_bias": -0.104385502977937,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": -0.01957751997535979,
+          "vy_bias": -0.01957751997535979,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.03543030341680878,
+          "wz_bias": -0.03543030341680878
+        },
+        {
+          "seed": 2,
+          "mean_reward_per_transition": 0.15832528686523437,
+          "planar_velocity_rmse_m_s": 0.16708569007358728,
+          "initial_mean_observed_duration_seconds": 10.0,
+          "survived_full_horizon_count": 32,
+          "censored_before_horizon_count": 0,
+          "falls": 0,
+          "vx_rmse": 0.11049508960013683,
+          "vy_rmse": 0.12533340736461526,
+          "wz_rmse": 0.304021407869273,
+          "vx_mean_command": 0.20000000298023224,
+          "vx_mean_actual": 0.09485577842468046,
+          "vx_bias": -0.10514422455555178,
+          "vy_mean_command": 0.0,
+          "vy_mean_actual": -0.017524469385338647,
+          "vy_bias": -0.017524469385338647,
+          "wz_mean_command": 0.0,
+          "wz_mean_actual": -0.06940917501054264,
+          "wz_bias": -0.06940917501054264
+        }
+      ],
+      "reports": [
+        "seed-0/evaluation.json",
+        "seed-1/evaluation.json",
+        "seed-2/evaluation.json"
+      ]
+    },
+    "rlinf_restore_audit": {
+      "500": {
+        "model": {
+          "optimizer_steps": [
+            16000.0
+          ],
+          "optimizer_state_count": 38,
+          "scheduler_last_epochs": [
+            16000,
+            16000
+          ],
+          "finite_model_and_optimizer_tensors": true
+        },
+        "alpha": {
+          "optimizer_steps": [
+            16000.0
+          ],
+          "optimizer_state_count": 1,
+          "scheduler_last_epochs": [
+            16000
+          ],
+          "finite_model_and_optimizer_tensors": true
+        },
+        "replay": {
+          "trajectory_format": "pt",
+          "size": 500,
+          "total_samples": 32000,
+          "trajectory_counter": 500,
+          "seed": 1234
+        }
+      },
+      "1000": {
+        "model": {
+          "optimizer_steps": [
+            32000.0
+          ],
+          "optimizer_state_count": 38,
+          "scheduler_last_epochs": [
+            32000,
+            32000
+          ],
+          "finite_model_and_optimizer_tensors": true
+        },
+        "alpha": {
+          "optimizer_steps": [
+            32000.0
+          ],
+          "optimizer_state_count": 1,
+          "scheduler_last_epochs": [
+            32000
+          ],
+          "finite_model_and_optimizer_tensors": true
+        },
+        "replay": {
+          "trajectory_format": "pt",
+          "size": 1000,
+          "total_samples": 64000,
+          "trajectory_counter": 1000,
+          "seed": 1234
+        }
+      },
+      "1500": {
+        "model": {
+          "optimizer_steps": [
+            48000.0
+          ],
+          "optimizer_state_count": 38,
+          "scheduler_last_epochs": [
+            48000,
+            48000
+          ],
+          "finite_model_and_optimizer_tensors": true
+        },
+        "alpha": {
+          "optimizer_steps": [
+            48000.0
+          ],
+          "optimizer_state_count": 1,
+          "scheduler_last_epochs": [
+            48000
+          ],
+          "finite_model_and_optimizer_tensors": true
+        },
+        "replay": {
+          "trajectory_format": "pt",
+          "size": 1500,
+          "total_samples": 96000,
+          "trajectory_counter": 1500,
+          "seed": 1234
+        }
+      },
+      "2000": {
+        "model": {
+          "optimizer_steps": [
+            64000.0
+          ],
+          "optimizer_state_count": 38,
+          "scheduler_last_epochs": [
+            64000,
+            64000
+          ],
+          "finite_model_and_optimizer_tensors": true
+        },
+        "alpha": {
+          "optimizer_steps": [
+            64000.0
+          ],
+          "optimizer_state_count": 1,
+          "scheduler_last_epochs": [
+            64000
+          ],
+          "finite_model_and_optimizer_tensors": true
+        },
+        "replay": {
+          "trajectory_format": "pt",
+          "size": 2000,
+          "total_samples": 128000,
+          "trajectory_counter": 2000,
+          "seed": 1234
+        }
+      }
+    },
+    "rlinf_training_evaluations": {
+      "rows": [
+        {
+          "run": "rlinf-pickcube-training-20260926",
+          "saved_step": 500,
+          "log_step": 499,
+          "eval/success_once": 0.0,
+          "eval/success_at_end": 0.0,
+          "eval/num_trajectories": 16.0,
+          "eval/return": 11.671627044677734
+        },
+        {
+          "run": "rlinf-pickcube-recovered-20260926",
+          "saved_step": 1000,
+          "log_step": 999,
+          "eval/success_once": 0.0625,
+          "eval/success_at_end": 0.0,
+          "eval/num_trajectories": 16.0,
+          "eval/return": 21.164907455444336
+        },
+        {
+          "run": "rlinf-pickcube-recovered-20260926",
+          "saved_step": 1500,
+          "log_step": 1499,
+          "eval/success_once": 0.6875,
+          "eval/success_at_end": 0.625,
+          "eval/num_trajectories": 16.0,
+          "eval/return": 33.23257064819336
+        },
+        {
+          "run": "rlinf-pickcube-final-20260926",
+          "saved_step": 2000,
+          "log_step": 1999,
+          "eval/success_once": 1.0,
+          "eval/success_at_end": 1.0,
+          "eval/num_trajectories": 16.0,
+          "eval/return": 41.72001647949219
+        }
+      ],
+      "sources": [
+        {
+          "path": "runs/rlinf-pickcube-training-20260926/tensorboard/events.out.tfevents.1790360838.ubuntu.2182246.0",
+          "bytes": 1326095,
+          "sha256": "89a958b9168bd5df5f8948e198fc0cde5dabace2cf1bd1d2c3bc2d8cbee787bf"
+        },
+        {
+          "path": "runs/rlinf-pickcube-recovered-20260926/tensorboard/events.out.tfevents.1790361676.ubuntu.2222213.0",
+          "bytes": 2988623,
+          "sha256": "073204e3112d0c15a7e770d2ebafd44202b183b91e55ae1756629287c4cb130c"
+        },
+        {
+          "path": "runs/rlinf-pickcube-final-20260926/tensorboard/events.out.tfevents.1790416152.ubuntu.2292287.0",
+          "bytes": 1244361,
+          "sha256": "676b047e9caa6e7009194adf26a7324be434b587d60dee04244e0469f6e09adb"
+        }
+      ]
+    },
+    "microduck_onnx_export": {
+      "onnx": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/microduck-fresh-baseline-20260926/policy.onnx",
+      "actor_dim": 61,
+      "action_dim": 14,
+      "finite_inference": true,
+      "policy_parity": {
+        "passed": true,
+        "samples": 3,
+        "atol": 0.0001,
+        "rtol": 0.0001,
+        "max_absolute_error": 1.430511474609375e-06,
+        "reference": "checkpoint_actor_cpu"
+      },
+      "onnx_sha256": "8e5336d318b72abffde0fdc2647323eb7456596386d1bcc6052541c12faafc0b",
+      "checkpoint_sha256": "1999a2f5cc403ac7ad7a4c6eaeed07cb97f2dcd35d10eb4e81fa6de2590518e7",
+      "export_run": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/microduck-fresh-baseline-20260926/.policy.onnx.export-17zgfzdp/run.json",
+      "file_bytes": 793954
+    },
+    "microduck_onnx_parity_per_seed": [
+      {
+        "onnx": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/microduck-fresh-baseline-onnx-eval-20260926/inputs/policy.onnx",
+        "sha256": "8e5336d318b72abffde0fdc2647323eb7456596386d1bcc6052541c12faafc0b",
+        "provider": "CPUExecutionProvider",
+        "sampling": "one environment per step, index = step % num_envs",
+        "atol": 0.0001,
+        "rtol": 0.0001,
+        "samples": 500,
+        "max_absolute_error": 1.6689300537109375e-06
+      },
+      {
+        "onnx": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/microduck-fresh-baseline-onnx-eval-20260926/inputs/policy.onnx",
+        "sha256": "8e5336d318b72abffde0fdc2647323eb7456596386d1bcc6052541c12faafc0b",
+        "provider": "CPUExecutionProvider",
+        "sampling": "one environment per step, index = step % num_envs",
+        "atol": 0.0001,
+        "rtol": 0.0001,
+        "samples": 500,
+        "max_absolute_error": 1.430511474609375e-06
+      },
+      {
+        "onnx": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/microduck-fresh-baseline-onnx-eval-20260926/inputs/policy.onnx",
+        "sha256": "8e5336d318b72abffde0fdc2647323eb7456596386d1bcc6052541c12faafc0b",
+        "provider": "CPUExecutionProvider",
+        "sampling": "one environment per step, index = step % num_envs",
+        "atol": 0.0001,
+        "rtol": 0.0001,
+        "samples": 500,
+        "max_absolute_error": 1.430511474609375e-06
+      }
+    ],
+    "rlinf_evaluation_aggregate": {
+      "num_trajectories": 480,
+      "success_once": 0.9479166666666666,
+      "success_at_end": 0.9375,
+      "aggregation": "Weighted by completed trajectories; one trained model, three evaluation seeds."
+    },
+    "sdk_overlay": {
+      "base_python": "/home/ubuntu/miniconda3/envs/isaaclab/bin/python",
+      "base_torch": "2.10.0+cu128",
+      "base_ray": "2.57.0",
+      "system_site_packages": true,
+      "new_packages": {
+        "accelerate": "1.15.0",
+        "antlr4-python3-runtime": "4.9.3",
+        "arm_pytorch_utilities": "0.5.0",
+        "dacite": "1.9.2",
+        "docstring_parser": "0.18.0",
+        "fast_kinematics": "0.2.2",
+        "gymnasium": "0.29.1",
+        "hydra-core": "1.3.2",
+        "lz4": "4.4.5",
+        "mani_skill": "3.0.0b22",
+        "mplib": "0.1.1",
+        "nvidia-ml-py": "13.615.71",
+        "omegaconf": "2.3.0",
+        "opencv-python": "5.0.0.93",
+        "pyperclip": "1.11.0",
+        "pytorch-kinematics": "0.7.6",
+        "pytorch-seed": "0.2.0",
+        "sapien": "3.0.1",
+        "sortedcontainers": "2.4.0",
+        "tabulate": "0.10.0",
+        "toppra": "0.6.10",
+        "transforms3d": "0.4.2",
+        "typeguard": "4.6.0",
+        "typing_extensions": "4.16.0",
+        "tyro": "1.0.16"
+      },
+      "note": "Local verification environment; inherits existing SDK packages; not a clean-install lockfile."
+    },
+    "microduck_ablation": {
+      "factor": "action_rate_l2 curriculum penalty cap",
+      "baseline_final_weight": -1.0,
+      "candidate_final_weight": -0.2,
+      "unchanged_initial_weight": -0.1,
+      "source_before_sha256": "c6dce6f8e794455ebde868a758596d6da93a00437eb4088aba74d7039849c845",
+      "source_after_sha256": "8457a9375688b3d4c61b98d6a657a207ee1c97ac908e31dc3f8af879a717d1c1"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "runs/rlinf-pickcube-training-20260926/run.json",
+      "bytes": 288,
+      "sha256": "55a0a2435e7a8bedd414e2d277c04f3f2720a8e01bdfc5d9eb3b3d7f6452402d"
+    },
+    {
+      "path": "runs/rlinf-pickcube-training-20260926/request.json",
+      "bytes": 549,
+      "sha256": "34ebad3f3db3b8c9134176773994c578031356e6c4de194d23633d821e51b36f"
+    },
+    {
+      "path": "runs/rlinf-pickcube-training-20260926/environment.json",
+      "bytes": 462,
+      "sha256": "34b10a45e24d9c82ab3db8c52e5df727e74d54cc7f128c22ca0acc5461021f56"
+    },
+    {
+      "path": "runs/rlinf-pickcube-resume-20260926/run.json",
+      "bytes": 579,
+      "sha256": "1550f483cec075d7c597a3ebd6515b9bcc914f9f86eee23747019977eaf91e97"
+    },
+    {
+      "path": "runs/rlinf-pickcube-resume-20260926/request.json",
+      "bytes": 126281,
+      "sha256": "9ed74e9fa71cc060ec5faa13d473fe8fc5089b09f3f2f2d131354255fef8577a"
+    },
+    {
+      "path": "runs/rlinf-pickcube-resume-20260926/environment.json",
+      "bytes": 462,
+      "sha256": "34b10a45e24d9c82ab3db8c52e5df727e74d54cc7f128c22ca0acc5461021f56"
+    },
+    {
+      "path": "runs/rlinf-pickcube-recovered-20260926/run.json",
+      "bytes": 717,
+      "sha256": "bb57e6737f63dcc96be6e0102440ad4258f078c001edb413a81b9c8d4c6c0469"
+    },
+    {
+      "path": "runs/rlinf-pickcube-recovered-20260926/request.json",
+      "bytes": 126288,
+      "sha256": "9f3e6f8a59d2c47bc6ad73ce0e17ee87cb072c7331e21b9fd87e03a5708f575b"
+    },
+    {
+      "path": "runs/rlinf-pickcube-recovered-20260926/environment.json",
+      "bytes": 462,
+      "sha256": "34b10a45e24d9c82ab3db8c52e5df727e74d54cc7f128c22ca0acc5461021f56"
+    },
+    {
+      "path": "runs/rlinf-pickcube-final-20260926/run.json",
+      "bytes": 493316,
+      "sha256": "90a1a84e49da3292ab8b08f13a703f8dd2467a54dd46ed89f8e19eb00044fbb3"
+    },
+    {
+      "path": "runs/rlinf-pickcube-final-20260926/request.json",
+      "bytes": 376309,
+      "sha256": "eeb20bfe3630d4f170177a151e3eeea16ea725a6f8ad731a8d06c1838f4fd191"
+    },
+    {
+      "path": "runs/rlinf-pickcube-final-20260926/result.json",
+      "bytes": 472456,
+      "sha256": "812af22cd7bb87918e7cd201140d45ede242cb8479029c3cd2a7defbdd4552e1"
+    },
+    {
+      "path": "runs/rlinf-pickcube-final-20260926/environment.json",
+      "bytes": 462,
+      "sha256": "34b10a45e24d9c82ab3db8c52e5df727e74d54cc7f128c22ca0acc5461021f56"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926/run.json",
+      "bytes": 1077,
+      "sha256": "2099381b6511ed839007df69a0bd3b9004aee4ccfa40aff7fbea1aa09ef0839f"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926/request.json",
+      "bytes": 998,
+      "sha256": "92ac9aa563a014651ee0283afc4d14f541365775ecae8bb5e172588f93234c63"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926/result.json",
+      "bytes": 932,
+      "sha256": "9b27cdb7cc4923475ab36f4e9d2386857ed68002e340a504e52193e4c487b920"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926/environment.json",
+      "bytes": 462,
+      "sha256": "34b10a45e24d9c82ab3db8c52e5df727e74d54cc7f128c22ca0acc5461021f56"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926-s2002/run.json",
+      "bytes": 1080,
+      "sha256": "98550e4612b9a2ee788f8f2d07d3865becc8e2dc0ad8f5ea1cccc4040b91cc79"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926-s2002/request.json",
+      "bytes": 1010,
+      "sha256": "e4158f762e043815ba52d33810f66e9f16b058850ddd169257cbbd6af8017bfd"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926-s2002/result.json",
+      "bytes": 935,
+      "sha256": "90218ada245492f9c61e7c7e8a6ce1dfbb56759d53916cab206548bed9c2f8f9"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926-s2002/environment.json",
+      "bytes": 462,
+      "sha256": "34b10a45e24d9c82ab3db8c52e5df727e74d54cc7f128c22ca0acc5461021f56"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926-s2003/run.json",
+      "bytes": 1070,
+      "sha256": "c86cb17c38f770aa14fc2bcf0e1f357b5c9fb4763ed053cbbac0169974b3a11f"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926-s2003/request.json",
+      "bytes": 1010,
+      "sha256": "34d53c809b8c4d1538014c9e4f6684ba5e12ee92d4d2f33dd9493a2de7de0ede"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926-s2003/result.json",
+      "bytes": 925,
+      "sha256": "9f881ea321446e5d0d3beceedb9be522217aad370da9c665dcfe404f77d76698"
+    },
+    {
+      "path": "runs/rlinf-pickcube-eval-20260926-s2003/environment.json",
+      "bytes": 462,
+      "sha256": "34b10a45e24d9c82ab3db8c52e5df727e74d54cc7f128c22ca0acc5461021f56"
+    },
+    {
+      "path": "runs/microduck-resume-training-20260925/run.json",
+      "bytes": 28381,
+      "sha256": "36e6ca9c44fef71df7d86346b9045fd6142a7b26098744e59f485320ca8679db"
+    },
+    {
+      "path": "runs/microduck-resume-training-20260925/metrics.validation.json",
+      "bytes": 2738,
+      "sha256": "540955295450e0f21e1cd62ba0593ec30a341bdfc607b23f22868688233c854f"
+    },
+    {
+      "path": "runs/microduck-action-rate-cap-20260925/run.json",
+      "bytes": 28364,
+      "sha256": "e8649dafefb42bcae611da5748bb9ec0f4687e444eace987959a47595bd36a7b"
+    },
+    {
+      "path": "runs/microduck-action-rate-cap-20260925/metrics.validation.json",
+      "bytes": 2732,
+      "sha256": "6f5215f610309f0fdc9bf6e4e9c3d6b65637579dcdb3a50bdda47855fe8f76a7"
+    },
+    {
+      "path": "runs/microduck-fresh-baseline-20260926/run.json",
+      "bytes": 28323,
+      "sha256": "57b936fdf3df44c03458156069734f5904d9d4e2726027e9332702c4f3fb9faf"
+    },
+    {
+      "path": "runs/microduck-fresh-baseline-20260926/metrics.validation.json",
+      "bytes": 2704,
+      "sha256": "86f2faa042e2423536210c7ad19e594187beef56b283c1b2eddf78caf91f59bc"
+    },
+    {
+      "path": "runs/microduck-fresh-action-rate-cap-20260926/run.json",
+      "bytes": 28498,
+      "sha256": "816efb53547b36850b202c0de890fda33488fd506c5ad28bee43ab3913b2575e"
+    },
+    {
+      "path": "runs/microduck-fresh-action-rate-cap-20260926/metrics.validation.json",
+      "bytes": 2726,
+      "sha256": "683d2a5b9cb55a4c5e26dcc330f428810b0d14213d6729387d10bde46e670e84"
+    },
+    {
+      "path": "runs/microduck-resume-after-eval-20260925/summary.json",
+      "bytes": 6426,
+      "sha256": "943320ea85f6687b5d10c4d11e47f8d013df6f28dd7b50c91fde37e1a1aab4b2"
+    },
+    {
+      "path": "runs/microduck-action-rate-cap-eval-20260926/summary.json",
+      "bytes": 6386,
+      "sha256": "587623f6f00ae2d7d0fa9a7d390e7d2db25489888c5e773648b6226ed53f43e8"
+    },
+    {
+      "path": "runs/microduck-fresh-baseline-eval-20260926/summary.json",
+      "bytes": 6395,
+      "sha256": "7208791eea17d03ff3f6a22ec1f0dc23ccdee14db028ddd13cbaaeeff23a3a12"
+    },
+    {
+      "path": "runs/microduck-fresh-action-rate-cap-eval-20260926/summary.json",
+      "bytes": 6381,
+      "sha256": "9c82c63a557437cc3fbcc0797768dc71102bc155d564836401c6f4c75180e078"
+    },
+    {
+      "path": "runs/microduck-fresh-baseline-onnx-eval-20260926/summary.json",
+      "bytes": 6620,
+      "sha256": "e4f8502fff9ff9a4d7c37e69f90c2690d4a9bcfbf8f9833365fba38508ef6ca2"
+    },
+    {
+      "path": "runs/rlinf-pickcube-recovered-20260926/restore-audit.json",
+      "bytes": 2469,
+      "sha256": "3e39dbd037bba6a16226d539ec1fa156e8208992bd19025dc2a5321aaffb2012"
+    },
+    {
+      "path": "runs/rlinf-pickcube-final-20260926/training-evaluations.json",
+      "bytes": 1763,
+      "sha256": "e94695ca776c62379172088d7b89c07910fbf9004564b5811357d282b0fe14d9"
+    },
+    {
+      "path": "runs/microduck-fresh-baseline-20260926/policy.validation.json",
+      "bytes": 685,
+      "sha256": "5bff29aa6827e446885df06ebb5d9d57eb2dcb5138de8d7ae73c11c5fd8fd3cd"
+    },
+    {
+      "path": "runs/microduck-fresh-baseline-onnx-eval-20260926/seed-0/evaluation.json",
+      "bytes": 23865,
+      "sha256": "1775821bf038ab63e9768921082981f715d95625b1a5e573001c51df8bf569ba"
+    },
+    {
+      "path": "runs/microduck-fresh-baseline-onnx-eval-20260926/seed-1/evaluation.json",
+      "bytes": 23872,
+      "sha256": "23610b80f8a68d24904c1c7a74ec43170ef59f0aea559c76e794557709f90e6c"
+    },
+    {
+      "path": "runs/microduck-fresh-baseline-onnx-eval-20260926/seed-2/evaluation.json",
+      "bytes": 23894,
+      "sha256": "8d55faf8d64b80e1756d7427242e2f184114d29b75a02481fef4102d97db68c0"
+    },
+    {
+      "path": "runs/rlinf-pickcube-training-20260926/sdk-overlay.json",
+      "bytes": 1012,
+      "sha256": "68a202724cd9f3c7f8c591c06adabb9240a39ab869c6fca33ba390a860f58ad5"
+    },
+    {
+      "path": "runs/microduck-action-rate-cap-20260925/ablation.json",
+      "bytes": 346,
+      "sha256": "b6a988c0dcc72960b570fa0393a16517995670c2db4d045c5dcc77d3e1bf3670"
+    }
+  ]
+}

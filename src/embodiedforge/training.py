@@ -1,6 +1,9 @@
 """Small reference PPO trainer; imported only when training is requested."""
 
+import hashlib
+import io
 import json
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -29,12 +32,18 @@ class PPOConfig:
     seed: int = 0
 
     def __post_init__(self):
-        if min(self.updates, self.rollout_steps, self.epochs, self.minibatch_size) <= 0:
-            raise ValueError("PPO counts must be positive")
+        for name in ("updates", "rollout_steps", "epochs", "minibatch_size"):
+            value = getattr(self, name)
+            if type(value) is not int or value <= 0:
+                raise ValueError(f"PPO {name} must be a positive integer")
+        if type(self.seed) is not int or not 0 <= self.seed < 2**64:
+            raise ValueError("PPO seed must be an integer in [0, 2**64 - 1]")
         if not (0 <= self.gamma <= 1 and 0 <= self.gae_lambda <= 1):
             raise ValueError("Invalid discount or GAE lambda")
-        if not self.learning_rate > 0 or not 0 < self.clip < 1:
-            raise ValueError("Invalid learning rate or clipping range")
+        if not math.isfinite(self.learning_rate) or self.learning_rate <= 0:
+            raise ValueError("PPO learning rate must be finite and positive")
+        if not 0 < self.clip < 1:
+            raise ValueError("Invalid PPO clipping range")
 
 
 class ActorCritic(nn.Module):
@@ -48,6 +57,12 @@ class ActorCritic(nn.Module):
         action_high: float = 1.0,
     ) -> None:
         super().__init__()
+        if not (
+            math.isfinite(action_low)
+            and math.isfinite(action_high)
+            and action_low < action_high
+        ):
+            raise ValueError("Policy action range must be finite and increasing")
         self.model_spec = {
             "proprio_dim": proprio_dim,
             "action_dim": action_dim,
@@ -103,9 +118,11 @@ def generalized_advantage(
     """Bootstrap at time limits, but never propagate GAE through reset."""
     advantage = np.zeros_like(reward)
     carry = np.zeros(reward.shape[1], dtype=np.float32)
+    # Only the carry depends on time; batch the independent transition terms.
+    delta = reward + gamma * next_value * ~terminated - value
+    discount = gamma * gae_lambda * ~(terminated | truncated)
     for t in reversed(range(len(reward))):
-        delta = reward[t] + gamma * next_value[t] * ~terminated[t] - value[t]
-        carry = delta + gamma * gae_lambda * ~(terminated[t] | truncated[t]) * carry
+        carry = delta[t] + discount[t] * carry
         advantage[t] = carry
     return advantage, advantage + value
 
@@ -114,31 +131,29 @@ def _collect_rollout(
     env: VectorEnv, model: ActorCritic, observation: Observation, rollout_steps: int
 ) -> tuple[dict[str, Array], Observation, int, int]:
     """Collect pre-reset transitions and separately refresh reset rows for acting."""
-    buffer = {
-        k: []
-        for k in (
-            "obs",
-            "raw",
-            "logprob",
-            "reward",
-            "value",
-            "next_value",
-            "terminated",
-            "truncated",
-        )
-    }
+    if rollout_steps <= 0:
+        raise ValueError("Rollout steps must be positive")
+    buffer = {}
     successes = completed = 0
-    for _ in range(rollout_steps):
+    value = None  # Local to this rollout: optimizer updates invalidate old values.
+    reset_ids = None
+    for step in range(rollout_steps):
         obs = torch.as_tensor(observation["proprio"])
         with torch.no_grad():
             distribution = model.distribution(obs)
             raw = distribution.sample()
-            value = model.value(obs)
+            if value is None:
+                value = model.value(obs)
+            elif reset_ids is not None:
+                # Keep continuing rows' bootstrap values; only reset rows changed.
+                value = value.index_copy(
+                    0, torch.as_tensor(reset_ids), model.value(obs[reset_ids])
+                )
             logprob = distribution.log_prob(raw).sum(-1)
         result = env.step(model.to_action(raw).numpy())
         with torch.no_grad():
             next_value = model.value(torch.as_tensor(result.observation["proprio"]))
-        for key, item in {
+        transition = {
             "obs": obs.numpy(),
             "raw": raw.numpy(),
             "logprob": logprob.numpy(),
@@ -147,19 +162,30 @@ def _collect_rollout(
             "next_value": next_value.numpy(),
             "terminated": result.terminated,
             "truncated": result.truncated,
-        }.items():
-            buffer[key].append(item)
+        }
+        if step == 0:
+            buffer = {
+                key: np.empty((rollout_steps, *item.shape), dtype=item.dtype)
+                for key, item in transition.items()
+            }
+        for key, item in transition.items():
+            buffer[key][step] = item
         done = result.terminated | result.truncated
         completed += int(done.sum())
         successes += int(result.info["success"].sum())
         observation = result.observation
+        value = next_value
+        reset_ids = None
         if done.any():
             ids = np.flatnonzero(done)
+            if ids.size == len(value):
+                value = None
+            else:
+                reset_ids = ids
             reset_observation = env.reset(ids)
             for key in observation:
                 observation[key][ids] = reset_observation[key]
-    rollout = {k: np.stack(v) for k, v in buffer.items()}
-    return rollout, observation, successes, completed
+    return buffer, observation, successes, completed
 
 
 def _optimize_policy(
@@ -193,23 +219,27 @@ def _optimize_policy(
         order = rng.permutation(count)
         for start in range(0, count, config.minibatch_size):
             ids = order[start : start + config.minibatch_size]
-            distribution = model.distribution(flat["obs"][ids])
+            observations = flat["obs"][ids]
+            minibatch_advantages = advantages[ids]
+            distribution = model.distribution(observations)
             # The tanh Jacobian cancels in the old/new policy ratio.
             logprob = distribution.log_prob(flat["raw"][ids]).sum(-1)
             ratio = (logprob - flat["logprob"][ids]).exp()
             actor_loss = -torch.minimum(
-                ratio * advantages[ids],
-                ratio.clamp(1 - config.clip, 1 + config.clip) * advantages[ids],
+                ratio * minibatch_advantages,
+                ratio.clamp(1 - config.clip, 1 + config.clip) * minibatch_advantages,
             ).mean()
-            value_loss = (model.value(flat["obs"][ids]) - targets[ids]).square().mean()
+            value_loss = (model.value(observations) - targets[ids]).square().mean()
             loss = actor_loss + 0.5 * value_loss
             if not torch.isfinite(loss):
                 raise FloatingPointError("Non-finite PPO loss")
             optimizer.zero_grad()
             loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), 0.5)
+            nn.utils.clip_grad_norm_(model.parameters(), 0.5, error_if_nonfinite=True)
             optimizer.step()
             losses.append(float(loss.detach()))
+    if any(not torch.isfinite(p).all() for p in model.parameters()):
+        raise FloatingPointError("Non-finite PPO policy")
     return float(np.mean(losses))
 
 
@@ -295,6 +325,7 @@ class PolicyCheckpoint:
     policy: ActorCritic
     env_config: Config
     env_spec: dict
+    sha256: str | None = None
 
     def validate_environment(self, spec: dict) -> None:
         """Reject semantic/dimension changes; allow device count/backend changes."""
@@ -313,18 +344,36 @@ class PolicyCheckpoint:
             "action_shape"
         ] != [self.policy.model_spec["action_dim"]]:
             raise ValueError("Checkpoint/environment dimension mismatch")
+        if spec["action_range"] != [
+            self.policy.model_spec["action_low"],
+            self.policy.model_spec["action_high"],
+        ]:
+            raise ValueError("Checkpoint/environment mismatch for policy action range")
 
 
 def load_checkpoint(path: str | Path) -> PolicyCheckpoint:
     """Read v1/v2 checkpoints on CPU without constructing simulation resources."""
-    checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+    # Deserialize and hash the same bytes even if the source file is replaced.
+    payload = Path(path).read_bytes()
+    checkpoint = torch.load(io.BytesIO(payload), map_location="cpu", weights_only=True)
     if checkpoint["schema_version"] not in (1, 2):
         raise ValueError("Unsupported checkpoint")
     model = ActorCritic(**checkpoint.get("model_spec", {}))
     model.load_state_dict(checkpoint["model"])
+    for name, parameter in model.named_parameters():
+        if not torch.isfinite(parameter).all():
+            raise ValueError(f"Non-finite checkpoint policy parameter: {name}")
     model.eval()
     env_config = Config(**checkpoint["env"])
-    return PolicyCheckpoint(model, env_config, checkpoint.get("env_spec", {}))
+    bundle = PolicyCheckpoint(
+        model,
+        env_config,
+        checkpoint.get("env_spec", {}),
+        sha256=hashlib.sha256(payload).hexdigest(),
+    )
+    if bundle.env_spec:
+        bundle.validate_environment(bundle.env_spec)
+    return bundle
 
 
 def load_policy(path: str | Path) -> ActorCritic:

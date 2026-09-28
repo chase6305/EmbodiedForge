@@ -90,25 +90,37 @@ def test_running_source_is_not_accepted_even_with_a_valid_checkpoint(run):
 
 
 @pytest.mark.parametrize("failure", ["receipt", "canonical"])
+@pytest.mark.parametrize("cleanup_fails", [False, True])
 def test_interruption_during_publication_keeps_a_committed_checkpoint(
-    run, monkeypatch, failure
+    run, monkeypatch, failure, cleanup_fails, caplog
 ):
     root, manifest, checkpoint = run
     checkpoint["iteration"] = 49
     replace = Path.replace
+    unlink = Path.unlink
+    temporary = "recovery.json.tmp" if failure == "receipt" else "model.pt.tmp"
+    interruption = KeyboardInterrupt("publication stopped")
 
     def interrupt(path, target):
-        if path.name == (
-            "recovery.json.tmp" if failure == "receipt" else "model.pt.tmp"
-        ):
-            raise KeyboardInterrupt
+        if path.name == temporary:
+            raise interruption
         return replace(path, target)
 
+    def cleanup(path, **kwargs):
+        if cleanup_fails and path.name == temporary:
+            raise PermissionError("cannot remove partial file")
+        return unlink(path, **kwargs)
+
     monkeypatch.setattr(Path, "replace", interrupt)
-    with pytest.raises(KeyboardInterrupt):
+    monkeypatch.setattr(Path, "unlink", cleanup)
+    with pytest.raises(KeyboardInterrupt) as error:
         publish_training_checkpoint(
             checkpoint, optimizer=None, request=manifest["request"]
         )
+    assert error.value is interruption
+    assert (root / temporary).exists() is cleanup_fails
+    if cleanup_fails:
+        assert "cannot remove partial file" in caplog.text
     result = recovery_result(root, manifest)
     assert result["checkpoint_iteration"] == (24 if failure == "receipt" else 49)
     assert (root / result["checkpoint"]).read_bytes() == str(

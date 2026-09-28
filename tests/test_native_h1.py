@@ -1,6 +1,7 @@
 """Native articulation contracts and H1 training without IsaacLab."""
 
 import json
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -129,34 +130,257 @@ def test_h1_standing_pose_preserves_original_mjcf_kinematics(h1_path):
         env.set_commands([[2, 0, 0]], [1])
 
 
-def test_rollout_bootstraps_pre_reset_timeout_observation():
+@pytest.mark.parametrize("backend", ["h1", "core"])
+@pytest.mark.parametrize(
+    "reset_step,reset_count", [(None, 0), (0, 1), (1, 2), (3, 2), (1, 3)]
+)
+def test_rollout_reuses_values_without_crossing_reset_or_policy_update(
+    backend, reset_step, reset_count
+):
+    from types import SimpleNamespace
+
     torch = pytest.importorskip("torch")
     from embodiedforge.locomotion.h1_ppo import collect
+    from embodiedforge.training import _collect_rollout
 
     class Policy:
+        calls = 0
+        rows = 0
+        offset = 0
+
         def distribution(self, obs):
             return torch.distributions.Normal(torch.zeros((len(obs), 19)), 1)
 
         def value(self, obs):
-            return obs[:, 0]
+            self.calls += 1
+            self.rows += len(obs)
+            return obs[:, 0] + self.offset
+
+        def to_action(self, raw):
+            return raw
 
     class Env:
+        step_index = 0
+
         def step(self, actions):
+            ended = (self.step_index == reset_step) & (np.arange(3) < reset_count)
+            self.step_index += 1
+            result = SimpleNamespace(
+                observation={
+                    "proprio": np.full((3, 69), 10 * self.step_index, np.float32)
+                },
+                reward=np.ones(3, np.float32),
+                terminated=ended & (np.arange(3) % 2 == 1),
+                truncated=ended & (np.arange(3) % 2 == 0),
+                info={"success": np.zeros(3, bool)},
+            )
+            if backend == "core":
+                return result
             return (
-                np.full((1, 69), 10, np.float32),
-                np.ones(1),
-                np.array([False]),
-                np.array([True]),
-                {},
+                result.observation["proprio"],
+                result.reward,
+                result.terminated,
+                result.truncated,
+                result.info,
             )
 
         def reset(self, ids):
-            return np.zeros((1, 69), np.float32)
+            if backend == "core":
+                return {"proprio": np.zeros((len(ids), 69), np.float32)}
+            return np.zeros((3, 69), np.float32)
 
-    rollout, observation = collect(Policy(), Env(), np.zeros((1, 69), np.float32), 2)
-    np.testing.assert_array_equal(rollout["next_value"], [[10], [10]])
-    np.testing.assert_array_equal(rollout["value"], [[0], [0]])
-    assert not observation.any()
+    def collect_batch(observation, horizon):
+        if backend == "core":
+            batch, obs, *_ = _collect_rollout(
+                env, policy, {"proprio": observation}, horizon
+            )
+            return batch, obs["proprio"]
+        return collect(policy, env, observation, horizon)
+
+    env, policy = Env(), Policy()
+    rollout, observation = collect_batch(np.zeros((3, 69), np.float32), 4)
+    expected = np.repeat(np.arange(4, dtype=np.float32)[:, None] * 10, 3, axis=1)
+    if reset_step is not None and reset_step < 3:
+        expected[reset_step + 1, :reset_count] = 0
+    np.testing.assert_array_equal(rollout["obs"][:, :, 0], expected)
+    np.testing.assert_array_equal(rollout["value"], expected)
+    np.testing.assert_array_equal(
+        rollout["next_value"], np.repeat(np.arange(1, 5)[:, None] * 10, 3, axis=1)
+    )
+    assert policy.calls == 5 + int(reset_step is not None and reset_step < 3)
+    assert policy.rows == 15 + reset_count * int(
+        reset_step is not None and reset_step < 3
+    )
+    saved = {key: value.copy() for key, value in rollout.items()}
+    policy.offset = 100
+    expected = observation[:, 0].copy() + policy.offset
+    following, _ = collect_batch(observation, 1)
+    np.testing.assert_array_equal(following["value"][0], expected)
+    observation.fill(-999)
+    for key, value in rollout.items():
+        np.testing.assert_array_equal(value, saved[key], strict=True)
+
+
+@pytest.mark.parametrize("damage", ["negative_second_moment", "missing_parameter"])
+def test_resume_rejects_damaged_adam_before_creating_run(tmp_path, monkeypatch, damage):
+    from types import SimpleNamespace
+
+    torch = pytest.importorskip("torch")
+    from embodiedforge import native_h1
+
+    policy = torch.nn.Linear(3, 2)
+    optimizer = torch.optim.Adam(policy.parameters())
+    policy(torch.ones(1, 3)).sum().backward()
+    optimizer.step()
+    state = optimizer.state_dict()
+    key = next(iter(state["state"]))
+    if damage == "negative_second_moment":
+        state["state"][key]["exp_avg_sq"].fill_(-1)
+    else:
+        del state["state"][key]
+    original_handler = signal.getsignal(signal.SIGTERM)
+
+    def load_run(directory):
+        assert callable(signal.getsignal(signal.SIGTERM))
+        assert signal.getsignal(signal.SIGTERM) is not original_handler
+        return None, policy, {"updates": 1, "optimizer": state}, {}
+
+    monkeypatch.setattr(native_h1, "load_run", load_run)
+    output = tmp_path / "resumed"
+    args = SimpleNamespace(
+        threads=1, seed=0, resume=tmp_path / "input", learning_rate=0.001, output=output
+    )
+    with pytest.raises(ValueError, match="H1 optimizer"):
+        native_h1.train(args)
+    assert not output.exists()
+    assert signal.getsignal(signal.SIGTERM) is original_handler
+
+
+def test_saved_h1_artifacts_load_after_interruption_and_source_replacement(
+    h1_path, tmp_path, monkeypatch
+):
+    torch = pytest.importorskip("torch")
+    from embodiedforge import native_h1
+    from embodiedforge.locomotion.h1_native import VERSION, build_model
+    from embodiedforge.locomotion.h1_ppo import Policy
+
+    model, policy = build_model(h1_path), Policy()
+    model_path, weights = tmp_path / "model.mjb", tmp_path / "checkpoint.pt"
+    mujoco.mj_saveModel(model, str(model_path))
+    model_hash = native_h1.digest(model_path)
+    torch.save(
+        {
+            "task": VERSION,
+            "updates": 1,
+            "model_sha256": model_hash,
+            "joint_names": [
+                model.joint(int(j)).name for j in model.actuator_trnid[:, 0]
+            ],
+            "policy": policy.state_dict(),
+        },
+        weights,
+    )
+    metadata = dict(
+        task=VERSION,
+        status="complete",
+        updates=1,
+        model_sha256=model_hash,
+        checkpoint_sha256=native_h1.digest(weights),
+    )
+    for status in ("running", "failed", "interrupted", "complete"):
+        metadata["status"] = status
+        native_h1.write_json(tmp_path / "run.json", metadata)
+        if status == "running":
+            with pytest.raises(ValueError, match="stopped native H1 run"):
+                native_h1.load_run(tmp_path)
+        else:
+            _, _, restored, _ = native_h1.load_run(tmp_path)
+            assert restored["updates"] == 1
+    native_h1.write_json(
+        tmp_path / "run.json",
+        {**metadata, "status": "interrupted", "checkpoint_sha256": None},
+    )
+    with pytest.raises(ValueError, match="saved checkpoint"):
+        native_h1.load_run(tmp_path)
+    metadata["status"] = "interrupted"
+    native_h1.write_json(tmp_path / "run.json", metadata)
+    original_load = torch.load
+
+    def replace_sources(*args, **kwargs):
+        model_path.write_bytes(b"replaced before MuJoCo load")
+        weights.write_bytes(b"replaced before Torch load")
+        return original_load(*args, **kwargs)
+
+    monkeypatch.setattr(torch, "load", replace_sources)
+    loaded_model, loaded_policy, _, loaded_metadata = native_h1.load_run(tmp_path)
+    assert loaded_metadata == metadata
+    np.testing.assert_array_equal(loaded_model.body_mass, model.body_mass)
+    for key, value in policy.state_dict().items():
+        torch.testing.assert_close(
+            loaded_policy.state_dict()[key], value, rtol=0, atol=0
+        )
+
+
+@pytest.mark.parametrize(
+    "failure", [RuntimeError("optimizer failed"), KeyboardInterrupt(), None]
+)
+def test_training_final_record_failure_preserves_primary_error(
+    h1_path, tmp_path, monkeypatch, caplog, failure
+):
+    pytest.importorskip("torch")
+    from embodiedforge import native_h1
+    from embodiedforge.locomotion import h1_ppo
+
+    write_json = native_h1.write_json
+    disk_error = OSError("disk full")
+    final_records = []
+
+    def save_record(path, value):
+        if path.name == "run.json" and value["status"] != "running":
+            final_records.append(dict(value))
+            raise disk_error
+        write_json(path, value)
+
+    if failure is not None:
+
+        def fail_optimizer(*args, **kwargs):
+            raise failure
+
+        monkeypatch.setattr(h1_ppo, "optimize", fail_optimizer)
+    monkeypatch.setattr(native_h1, "write_json", save_record)
+    output = tmp_path / "train"
+    expected = disk_error if failure is None else failure
+    with pytest.raises(type(expected)) as caught:
+        native_h1.main(
+            [
+                "train",
+                "--model",
+                str(h1_path),
+                "--output",
+                str(output),
+                "--updates",
+                "1",
+                "--horizon",
+                "1",
+                "--num-envs",
+                "2",
+                "--threads",
+                "1",
+            ]
+        )
+    assert caught.value is expected
+    assert len(final_records) == 1
+    if failure is None:
+        assert final_records[0]["status"] == "complete"
+        assert (output / "checkpoint.pt").is_file()
+    else:
+        status = "interrupted" if isinstance(failure, KeyboardInterrupt) else "failed"
+        assert final_records[0]["status"] == status
+        assert "disk full" in caplog.text
+        assert str(output / "run.json") in caplog.text
+    saved = json.loads((output / "run.json").read_text())
+    assert saved["status"] == "running"
+    assert saved["learning_rate"] == 3e-4
 
 
 def test_native_training_resume_evaluate_under_import_blocker(h1_path, tmp_path):
@@ -174,8 +398,11 @@ main(sys.argv[1:])
     commands = [
         [
             "train",
+            "--headless",
             "--model",
             str(h1_path),
+            "--learning-rate",
+            "0.0002",
             "--updates",
             "2",
             "--horizon",
@@ -196,6 +423,7 @@ main(sys.argv[1:])
         ],
         [
             "evaluate",
+            "--headless",
             "--run",
             str(resumed),
             "--steps",
@@ -222,6 +450,8 @@ main(sys.argv[1:])
         assert runtime["physics_adapter"]["module"].startswith("mjbatch")
     assert report["updates"] == 3 and report["initial_updates"] == 2
     assert report["status"] == "complete"
+    assert report["headless"] is True
+    assert report["learning_rate"] == 2e-4
     assert (evaluation / "motion.npz").is_file()
     from embodiedforge.robot_replay import RobotMotion
 

@@ -38,7 +38,8 @@ class RobotMotion:
         with np.load(path, allow_pickle=False) as data:
             self.metadata = json.loads(str(data["metadata"]))
             self.time, self.positions = data["time"].copy(), data["positions"].copy()
-            quaternion, joints = data["quaternions"].copy(), data["joints"].copy()
+            quaternion = data["quaternions"].astype(np.float64)
+            joints = data["joints"].copy()
             self.terminated = bool(data["terminated"][-1])
             self.truncated = bool(data["truncated"][-1])
         self.path = path
@@ -70,9 +71,9 @@ class RobotMotion:
         ids = []
         for name in meta["joint_names"]:
             joint = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
-            if joint < 0 or model.jnt_type[joint] not in (
-                mujoco.mjtJoint.mjJNT_HINGE,
-                mujoco.mjtJoint.mjJNT_SLIDE,
+            if joint < 0 or int(model.jnt_type[joint]) not in (
+                int(mujoco.mjtJoint.mjJNT_HINGE),
+                int(mujoco.mjtJoint.mjJNT_SLIDE),
             ):
                 raise ValueError(f"Missing or incompatible model joint: {name}")
             ids.append(joint)
