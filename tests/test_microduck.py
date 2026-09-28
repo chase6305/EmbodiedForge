@@ -10,6 +10,7 @@ import pytest
 from microduck_report_fixture import evaluation_report
 
 from embodiedforge import microduck
+from embodiedforge._microduck_run import checkpoint_digest
 
 
 def test_worker_directory_cannot_shadow_stdlib(tmp_path):
@@ -118,8 +119,9 @@ def test_failed_run_preserves_status_and_checkpoints(
     assert "disk full" in caplog.text
 
 
+@pytest.mark.parametrize("bad_validation", [False, True])
 def test_train_selects_latest_checkpoint_without_automatic_export(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, bad_validation
 ):
     output = tmp_path / "output with spaces"
     calls = []
@@ -129,15 +131,40 @@ def test_train_selects_latest_checkpoint_without_automatic_export(
         if "mjlab_microduck.train_cli" in command:
             folder = cwd / "logs/rsl_rl/microduck/first"
             folder.mkdir(parents=True)
-            for iteration in (2, 10):
+            for iteration in (2, 11):
                 (folder / f"model_{iteration}.pt").touch()
             (folder / "model_backup.pt").touch()
             (folder / "model_900.pt").mkdir()
         elif "metrics" in command:
-            assert command[4].endswith("model_10.pt")
+            assert command[4].endswith("model_11.pt")
             assert command[5] == "12"
+            Path(command[6]).write_text(
+                json.dumps(
+                    {
+                        "checkpoint_metadata": {
+                            "iteration": 11,
+                            "sha256": "wrong"
+                            if bad_validation
+                            else checkpoint_digest(command[4]),
+                        }
+                    }
+                )
+            )
 
     monkeypatch.setattr(microduck, "run", execute)
+    if bad_validation:
+        with pytest.raises(RuntimeError, match="validation disagrees"):
+            microduck.train_run(
+                Namespace(command="train", output=output, num_envs=128, iterations=12),
+                Path("/isolated/bin/python"),
+                {},
+                {},
+            )
+        manifest = json.loads((output / "run.json").read_text())
+        assert manifest["status"] == "failed" and manifest["failed_phase"] == "metrics"
+        assert len(manifest["checkpoints"]) == 2
+        assert "checkpoint_metadata" not in manifest
+        return
     microduck.train_run(
         Namespace(command="train", output=output, num_envs=128, iterations=12),
         Path("/isolated/bin/python"),
@@ -146,7 +173,9 @@ def test_train_selects_latest_checkpoint_without_automatic_export(
     )
     manifest = json.loads((output / "run.json").read_text())
     assert manifest["status"] == "complete"
-    assert manifest["checkpoint"].endswith("model_10.pt")
+    assert manifest["checkpoint"].endswith("model_11.pt")
+    assert manifest["checkpoint_metadata"]["iteration"] == 11
+    assert manifest["checkpoint_metadata"]["sha256"] == manifest["checkpoint_sha256"]
     assert "onnx" not in manifest
     assert len(calls) == 3
     train = calls[1]
@@ -165,7 +194,10 @@ def test_train_selects_latest_checkpoint_without_automatic_export(
     with pytest.raises(OSError, match="disk full"):
         microduck.train_run(
             Namespace(
-                command="train", output=tmp_path / "unsaved", num_envs=128, iterations=12
+                command="train",
+                output=tmp_path / "unsaved",
+                num_envs=128,
+                iterations=12,
             ),
             Path("/isolated/bin/python"),
             {},
@@ -216,12 +248,18 @@ def test_train_requires_explicit_iteration_budget():
     assert exc.value.code == 2
 
 
-@pytest.mark.parametrize("bad_audit", [False, True])
-def test_resume_snapshots_input_and_validates_offset(tmp_path, monkeypatch, bad_audit):
+@pytest.mark.parametrize(
+    "native,bad_audit", [(False, False), (True, False), (True, True)]
+)
+def test_resume_snapshots_input_and_validates_offset(
+    tmp_path, monkeypatch, native, bad_audit
+):
     source = tmp_path / "source [old].pt"
     source.write_bytes(b"original checkpoint")
     output = tmp_path / "resumed"
     calls = []
+    first_iteration = 43 if native else 42
+    environment = {"EF_MICRODUCK_NATIVE": "1"} if native else {}
 
     def execute(command, *, cwd, env, log_path=None, echo=True):
         assert "DISPLAY" not in env and "WAYLAND_DISPLAY" not in env
@@ -253,9 +291,20 @@ def test_resume_snapshots_input_and_validates_offset(tmp_path, monkeypatch, bad_
                     }
                 )
             )
-            model = cwd / "logs/rsl_rl/microduck/new/model_43.pt"
+            model = cwd / f"logs/rsl_rl/microduck/new/model_{first_iteration + 1}.pt"
             model.parent.mkdir(parents=True)
             model.touch()
+        if "metrics" in command:
+            Path(command[6]).write_text(
+                json.dumps(
+                    {
+                        "checkpoint_metadata": {
+                            "iteration": first_iteration + 1,
+                            "sha256": checkpoint_digest(command[4]),
+                        }
+                    }
+                )
+            )
 
     monkeypatch.setattr(microduck, "run", execute)
     args = Namespace(
@@ -268,28 +317,28 @@ def test_resume_snapshots_input_and_validates_offset(tmp_path, monkeypatch, bad_
     )
     if bad_audit:
         with pytest.raises(RuntimeError, match="initialization disagrees"):
-            microduck.train_run(args, Path("/isolated/bin/python"), {}, {})
+            microduck.train_run(args, Path("/isolated/bin/python"), {}, environment)
         manifest = json.loads((output / "run.json").read_text())
         assert manifest["status"] == "failed"
         assert not any("metrics" in command for command in calls)
         return
-    microduck.train_run(args, Path("/isolated/bin/python"), {}, {})
+    microduck.train_run(args, Path("/isolated/bin/python"), {}, environment)
     manifest = json.loads((output / "run.json").read_text())
     assert manifest["status"] == "complete"
     assert manifest["source_run"] == args.source_run
-    from embodiedforge._microduck_run import checkpoint_digest
 
     assert manifest["checkpoint_sha256"] == checkpoint_digest(
         Path(manifest["checkpoint"])
     )
     assert output / manifest["checkpoint_relative"] == Path(manifest["checkpoint"])
     assert manifest["resume"]["iteration"] == 42
+    assert manifest["start_iteration"] == first_iteration
     assert manifest["resume"]["learning_rate"] == 0.00003
     assert manifest["resume_initialization"]["counter_at_first_reset"] == 1032
     assert Path(manifest["resume"]["snapshot"]).read_bytes() == b"original checkpoint"
     assert len(manifest["checkpoints"]) == 1
     metrics = next(command for command in calls if "metrics" in command)
-    assert metrics[-1] == "42"
+    assert metrics[-1] == str(first_iteration)
 
 
 def test_missing_resume_does_not_create_output(tmp_path):

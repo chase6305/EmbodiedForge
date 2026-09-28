@@ -26,6 +26,7 @@ def test_child_environment_removes_caller_python_paths(monkeypatch):
 
 
 def test_nonzero_exit_and_native_output_are_preserved(tmp_path):
+    (tmp_path / "console.log").write_text("previous phase\n")
     with pytest.raises(subprocess.CalledProcessError) as caught:
         h1.run_process(
             [sys.executable, "-c", "print('native diagnostic'); raise SystemExit(7)"],
@@ -34,7 +35,9 @@ def test_nonzero_exit_and_native_output_are_preserved(tmp_path):
             timeout=5,
         )
     assert caught.value.returncode == 7
-    assert "native diagnostic" in (tmp_path / "console.log").read_text()
+    assert (
+        tmp_path / "console.log"
+    ).read_text() == "previous phase\nnative diagnostic\n"
 
 
 def test_timeout_remains_failure_when_child_handles_interrupt(tmp_path):
@@ -178,7 +181,7 @@ time.sleep(30)
 '''.format(parent=os.getpid())
     original([sys.executable, '-c', child], cwd=cwd, env=env, timeout=5)
 h1.run_process = worker
-h1.main(['train', '--environment', sys.prefix, '--repo', '.', '--output', {str(tmp_path / "out")!r}])
+h1.main(['train', '--updates', '1000', '--environment', sys.prefix, '--repo', '.', '--output', {str(tmp_path / "out")!r}])
 """
     result = subprocess.run(
         [sys.executable, "-c", script],
@@ -199,5 +202,5 @@ h1.main(['train', '--environment', sys.prefix, '--repo', '.', '--output', {str(t
 )
 def test_invalid_training_bounds_fail_before_execution(flag, value):
     with pytest.raises(SystemExit) as caught:
-        h1.main(["train", "--output", "unused", flag, value])
+        h1.main(["train", "--output", "unused", "--updates", "1000", flag, value])
     assert caught.value.code == 2

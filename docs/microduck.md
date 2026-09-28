@@ -4,6 +4,10 @@
 
 模型参数量、权重体积、预训练与后训练流程，以及已有结果和消融实验设计，见 [机械鸭模型与实验详解](microduck-model-training-ablation.md)。
 
+4000 次更新的动作惩罚对照、续训消融及 ONNX 轨迹一致性结果，见 [2026-09-26 实验](rl-training-study-20260926.md)。
+
+相同初始模型上的两个后训练种子、四类固定指令和推力扰动对照，见 [速度跟踪奖励后训练](rl-posttraining-study-20260926.md)。候选改善了部分跟踪与扰动指标，默认配方保持不变。
+
 按步骤执行安装、训练、续训、评估和运行，见 [训练与部署命令](training-deployment.md)（[English](training-deployment.en.md)）。
 
 EmbodiedForge 现在维护 Microduck **平地行走任务的本地移植**：任务配置、奖励与观测、对称增强、BAM 执行器扩展、机器人 MJCF 和 38 个网格资产均位于 `src/embodiedforge/locomotion/microduck/`。默认运行不再导入或读取 `3rdparty/microduck_rl`。训练仍使用 mjlab / MuJoCo-Warp / BAM / RSL-RL，不属于核心 `VectorEnv` 或 Newton 点质量适配器。
@@ -41,7 +45,9 @@ python -m embodiedforge.microduck train --headless --quiet --seed 0 \
 
 本地训练仅保存 checkpoint，不在每次保存时自动导出 ONNX。需要部署模型时，使用独立的 `export` 命令。
 
-本地 TensorBoard 训练保存 checkpoint 时，先写同目录临时文件，成功后原子替换正式 `model_*.pt`。常规异常或中断会清理临时文件，旧完整模型保留；SIGKILL 可能留下 `.tmp`，进度查询和模型选择不会读取它们。这不是断电持久性保证。
+训练结束时，现有的指标检查阶段还会在 CPU 上读取最终 checkpoint，检查 actor、critic 和优化器状态的有限性，并核对文件名与内部迭代编号均为 `start_iteration + iterations - 1`。例如，从零训练 4000 次更新应产生 `model_3999.pt`；原生实现追加 1000 次更新时，从 4000 开始，最终为 `model_4999.pt`。`run.json.start_iteration` 记录本次起点。`metrics.validation.json.checkpoint_metadata` 保存校验后的迭代编号、课程计数、学习率与 SHA-256，启动器核对散列后将其写入 `run.json.checkpoint_metadata`，再将状态设为 `complete`。日志完整但模型缺失、轮次错误、含 NaN/Inf 或散列不一致时，运行仍标记为失败，并保留已保存的模型；`failed_phase` 记录实际失败阶段。
+
+本地 TensorBoard 训练保存 checkpoint 时，先写同目录临时文件，成功后原子替换正式 `model_*.pt`。写入失败或中断会尝试清理临时文件，旧完整模型保留；若删除失败，日志单独记录残留路径和原因，不覆盖原始保存异常或中断。SIGKILL 可能留下 `.tmp`，进度查询和模型选择不会读取它们。这不是断电持久性保证。
 
 本地训练和评估启动前会将当前 EmbodiedForge 包的源代码与资产复制到 `implementation/embodiedforge/`，并逐文件核对启动时记录的散列；复制期间源文件变化会立即失败。后续工作进程从这份快照加载任务，因此开发期间修改工作区不会改变正在运行的任务或后续导出。多种子评估只保存一份快照；独立 SDK 依赖仍使用固定环境，不复制到运行目录。显式 `--repo` 的历史模式仍使用原先的固定检出检查。
 
@@ -78,6 +84,8 @@ python -m embodiedforge.microduck progress \
 
 `latest_checkpoint` 只从运行目录内的规范 `model_<数字>.pt` 文件中选择，忽略临时文件、异常名称、同名目录及目录外链接。TensorBoard 日志与 checkpoint 必须属于同一个训练会话；即使两者各只有一个目录，只要目录不同，也会拒绝混合展示。`checkpoint_validation=not_performed` 表示只找到了候选文件，未加载验证其内容；续训入口仍会检查完整 checkpoint、学习率和课程计数。
 
+续训及 `play` / `evaluate` 读取 checkpoint 时，还会在 CPU 上检查 actor、critic 和优化器状态中的张量及浮点标量。发现 NaN/Inf 会在创建仿真环境前拒绝加载，并报告具体字段，例如 `optimizer_state_dict.state.0.exp_avg`。这项检查不替代 SDK 的参数形状与结构校验，也不代表策略已通过行走质量验收。
+
 训练完成后，`play`、`evaluate`、`export` 可直接传 `--run`，自动选择运行记录中的 checkpoint：
 
 ```bash
@@ -92,12 +100,18 @@ python -m embodiedforge.microduck export \
 
 独立 `export` 默认 headless，清除桌面显示变量并使用 EGL，仍需 CUDA；可加 `--quiet` 只保存工作进程日志。`--output` 必须以 `.onnx` 结尾。导出先冻结当前本地代码、资产和输入 checkpoint，再调用本地 exporter 与 mjlab runner，并验证 ONNX 的 61 维输入、14 维输出和有限推理结果。`--run` 使用该运行的 checkpoint，导出实现取本次启动时的本地代码。
 
+默认本地导出还会将已加载的 actor 切到 CPU 评估模式，在零观测及固定 seed=0、标准差分别为 0.1 和 1.0 的随机观测上，对照原始确定性动作与 ONNX 输出。每个动作分量须满足 `abs(ONNX - actor) <= 1e-4 + 1e-4 * abs(actor)`，不经过动作裁剪或关节缩放；失败不会发布最终模型。`.validation.json` 的 `policy_parity` 记录样本数、容差、最大绝对误差及 CPU 参考来源。
+
+本地导出与对照在同一进程完成，日志为 `00-export.log`，无需再次启动 ONNX 检查进程。显式 `--repo` 的历史上游导出仍使用独立的尺寸和有限值检查，不提供这项 actor 对照。三个固定输入只能检查导出一致性；实际轨迹上的对照继续使用 `evaluate --onnx`。
+
 关节元数据由本地 exporter 按动作管理器的实际目标顺序生成，仅包含受控关节；默认角和逐关节缩放保留完整浮点精度。任务加载不再全局替换 SDK 的元数据函数。动作转换与硬件接口边界见 [模型与实验详解](microduck-model-training-ablation.md#66-从网络动作到关节目标)。
 
 只有验证成功后才发布 ONNX 和同名 `.validation.json`；已有模型或验证报告均拒绝覆盖，包括并发导出的同名输出。导出或验证失败、正常处理的中断不会留下最终模型，可用同一条命令重试。每次尝试在输出旁保留独立的 `.<文件名>.export-<随机串>/` 目录，内含 `run.json`、代码/模型快照、阶段日志和临时产物；启动日志打印其路径。成功报告记录模型及 checkpoint 的 SHA256，并指向这次导出记录。发布通过同一文件系统上的硬链接完成，输出目录所在文件系统需支持硬链接；强制断电或 SIGKILL 不保证回滚。
 
 最终导出记录保存失败或此时收到中断，也会撤回本次发布的 ONNX 和验证报告，保留尝试目录供排查，并允许使用同一输出路径重试。
 若文件权限等问题导致回滚删除失败，日志会列出未能删除的路径；仍会尝试清理另一个文件，并保留原始导出异常或中断。重试前需处理这些残留文件，输出覆盖保护仍然有效。
+
+回放、评估及本地导出在退出时关闭仿真环境；若已有错误或中断，关闭失败会单独写入 stderr，不替换原始异常。正常执行后若关闭失败，仍以失败退出，不报告成功。
 
 `--run` 接受已完成的 `train` 目录，并核对任务、源码 revision 和锁文件哈希。
 入口只使用记录中的模型，不扫描选择最大文件名；训练仍在进行、运行失败、模型丢失或已记录
@@ -121,7 +135,7 @@ python -m embodiedforge.microduck play \
 
 MuJoCo 3.10.0 的 passive viewer 在守护线程内渲染，`Handle.close()` 只请求退出。本项目的局部子类等待本次创建的渲染线程结束，再释放环境并退出进程，避免 GLFW 的进程退出清理与窗口销毁并发。该适配使用固定版本的私有线程入口标识，启动前检查 MuJoCo 版本；没有修改上游安装文件或屏蔽警告。
 
-Linux 启动器为子任务创建独立进程组：第一次 Ctrl+C 转发 SIGINT，并给予最多 10 秒清理时间；再次 Ctrl+C 或清理超时才强制结束。SIGTERM 和未被忽略的 SIGHUP 也走同一清理路径；退出码分别为 143、129，Ctrl+C 为 130。运行记录保存 `interrupted` 和 `interrupt_signal`，保留此前已写出的 checkpoint，不把未完成训练标为成功。继承的 `nohup` SIGHUP 忽略设置保持有效。
+Linux 启动器为子任务创建独立进程组：第一次 Ctrl+C 转发 SIGINT，并等待主工作进程清理退出，最长 10 秒；再次 Ctrl+C 或超时会强制结束。主进程退出后仍会清理组内残留子进程，包括忽略 SIGINT 且已重定向输出的进程；主进程失败退出或日志写入失败时也清理残留进程。SIGTERM 和未被忽略的 SIGHUP 走同一中断路径；退出码分别为 143、129，Ctrl+C 为 130。运行记录保存 `interrupted` 和 `interrupt_signal`，保留此前已写出的 checkpoint，不把未完成训练标为成功。继承的 `nohup` SIGHUP 忽略设置保持有效。
 
 后台运行可使用：
 
@@ -148,7 +162,9 @@ python -m embodiedforge.microduck train \
 
 恢复来源写入新运行的 `source_run`，包含原状态、选择方式与 SHA256。已有历史哈希会被核对；没有历史哈希的中断保存点标记 `verification=recorded_at_recovery`，表示哈希在恢复时取得，不声称验证了历史内容。复制后的模型再次核对哈希，并检查完整训练状态。`play` / `evaluate` / `export` 的 `--run` 仍要求训练已完成。
 
-上游恢复网络、归一化、优化器及 `common_step_counter`。本入口额外从优化器读取学习率，写入上游 `TrainConfig.agent.algorithm.learning_rate`，使 RSL-RL 的独立自适应学习率变量也从保存值启动。指标验证按实际起始编号检查：上游从保存的编号重新编号，例如 `model_4.pt` 追加 2 次更新，日志编号为 4、5，最终保存 `model_5.pt`，课程计数仍增加 48 个控制步。不要仅按文件名推断累计更新次数。
+上游恢复网络、归一化、优化器及 `common_step_counter`。本入口额外从优化器读取学习率，写入上游 `TrainConfig.agent.algorithm.learning_rate`，使 RSL-RL 的独立自适应学习率变量也从保存值启动。原生 runner 从保存编号的下一轮继续，例如 `model_4.pt` 追加 2 次更新，日志编号为 5、6，最终保存 `model_6.pt`，课程计数增加 48 个控制步。仅加载 actor 用于推理不会推进训练编号。
+
+显式 `--repo` 模式保留上游重新使用保存编号的行为：同一例子的日志为 4、5，最终为 `model_5.pt`。旧运行记录缺少 `start_iteration` 时，`progress` 仍按旧规则读取；历史续训可能重复编号，因此累计训练量应结合课程计数和各次预算判断。
 
 续训还会通过上游 `startup` 事件在首次 reset 前恢复课程计数。原入口的顺序是先创建 `RslRlVecEnvWrapper`（立即 reset），再加载模型；仅等待模型加载恢复计数，会让首个 episode 使用训练初期的课程配置。本入口仍调用上游训练 launcher、runner 和模型加载，只在本次配置中增加计数恢复与首次 reset 记录事件，不修改上游源码或安装文件。
 
@@ -284,9 +300,11 @@ python -m embodiedforge.microduck compare \
 
 需要先补齐带关节的机器人资产、关节状态与力矩动作协议、接触传感器、BAM 执行器、GPU 张量环境和批量 reset，再逐项对齐观测、奖励与域随机化。61 维 actor 观测、14 个舵机关节顺序及归一化是训练和部署间的契约。不能仅将 `--physics` 改为 `newton` 就复现该任务。
 
-代码和机器人资产的授权不同，分发资产前需遵循上游许可证；本接入读取外部仓库，未复制模型资产。
+当前本地移植已包含 MJCF 与网格资产，使用 mjlab / MuJoCo-Warp 执行；尚未实现上述 Newton 运行路径。来源文件与散列见 [`UPSTREAM.json`](../src/embodiedforge/locomotion/microduck/UPSTREAM.json)，保留的声明见 [`NOTICE`](../src/embodiedforge/locomotion/microduck/NOTICE) 和 [`LICENSE`](../src/embodiedforge/locomotion/microduck/LICENSE)。
 
 ## 验证记录
+
+2026-09-25 完成 512 环境、1000 次追加更新，验证新的续训编号及课程计数；同条件三种子评估未显示步态改善，见 [续训与模型大小记录](rl-training-study-20260925.md#microduck续训修复与行为结果)。
 
 续训首次 reset 的课程恢复修复与 64 环境实测见 [续训初始化验证](microduck-resume-initialization-20260912.md)。
 
@@ -305,3 +323,5 @@ python -m embodiedforge.microduck compare \
 迁移验证记录见 [本地移植验证](microduck-port-20260916.md)。
 
 本轮工程改进与续训对照见 [一小时优化记录](microduck-hour-optimization-20260916.md)。
+
+后续的 [四组合奖励消融与部署资源实测](rl-factorial-study-20260927.md) 分开比较线速度和角速度奖励，并补充 ONNX 文件大小、CPU 推理资源与 RLinf actor 导出结果。

@@ -39,12 +39,16 @@ python -m embodiedforge.visualization --physics numpy --port 8080
 | 物理后端 | NumPy、MuJoCo、mjbatch 线程池、Newton **1.6.0rc1** | 核心后端使用 CPU 状态快照 |
 | 核心训练与数据 | PyTorch PPO、终止/超时 GAE、checkpoint 评估、episode 记录与窗口读取 | 核心 PPO 使用 proprio；训练与数据验证可独立运行 |
 | Go1 行走 | 任务、奖励、镜像策略、归一化和 PPO 已移植到本仓库；支持训练、续训、评估与在线控制 | 仍依赖 mjbatch、MuJoCo、Torch 和 Menagerie 资产；尚未纳入核心 `VectorEnv` |
-| H1 原生训练 | MJCF 模型、关节分组、批量命令、随机化、重置、力矩数据与 PPO | CPU MuJoCo/mjbatch，不依赖 IsaacLab；初步策略尚未通过行走跟踪验收。[说明](docs/h1-native.md) |
+| H1 原生训练 | MJCF 模型、关节分组、批量命令、随机化、重置、力矩数据与 PPO | CPU MuJoCo/mjbatch，不依赖 IsaacLab；三种子标称起点训练对照见[实验记录](docs/rl-training-study-20260925.md)，尚未完成扰动或真机验收。[说明](docs/h1-native.md) |
 | Microduck 行走 | 本地任务、MDP 辅助代码、执行器扩展、MJCF 与网格 | 独立环境中的 mjlab / MuJoCo-Warp / BAM / RSL-RL |
 | 其他机器人任务 | IsaacLab H1、Wuji 重定向、Cartpole MPC、机械臂投掷联合优化 | 独立 SDK 环境中的上游流程与适配层，非完整移植 |
 | 统一 Web | Raster / MuJoCo / OpenGL / OVRTX、Go1 在线策略、Go1/H1 网格回放 | 查看器与物理后端独立选择；Web 画面不作为训练相机观测 |
 | VLA 接口 | 图像、语言、proprio 数据窗口及 action chunk 执行器 | 尚无预训练 VLA 模型接入或微调器 |
 | ACT 模仿学习 | LeRobot 数据导出、ACT 训练、闭环评估、实验比较与推理打包 | 依赖已安装的 LeRobot 包；模型/训练器未移植。独立 Python 3.12+ 环境，见 [ACT 指南](docs/act.md) |
+| GMR 动作重定向 | 无窗口 BVH → 机器人参考 NPZ 与交互回放 | 外部 GMR API；已用完整 Xsens 片段验证 G1 / H1-2，见[接入说明](docs/humanoid-motion.md) |
+| SONIC / X2 Ultra | CPU ONNX 在 headless MuJoCo 中跟踪动作 | 固定外部播放器、模型专用控制参数、逐片段报告，见[接入说明](docs/humanoid-motion.md)与[实测文章](docs/humanoid-integration-study-20260928.md) |
+| Weave / G1 HOI | NPZ 动作库、外部 SDK 训练/续训、逐片段评估、策略导出 | 默认 headless；需独立 SDK、动作与资产，完整仿真尚未实测，见 [接入与命令](docs/weave-reference.md) |
+| RLinf / PickCube SAC | 外部 SDK 训练、完整 SAC 状态续训、独立评估、CPU ONNX 导出及闭环评估与指标归档 | 单机单卡、默认 headless；固定上游提交，已实测 GPU 训练、恢复与评估，见 [接入与命令](docs/rlinf.md) |
 
 当前训练有三条路径：核心 `VectorEnv` + PPO、本仓库 Go1/原生 H1 环境 + PPO、外部 SDK 流程。Go1/H1 机器人训练尚未统一到 `VectorEnv`。新启动的核心、Go1 和原生 H1 训练会用 `training-runtime.json` 记录实际加载的实现，详见[训练实现说明](docs/training-deployment.md)。
 
@@ -190,6 +194,12 @@ Go1 新增 [Light Loco Parkour 实验性后端](docs/light-loco-parkour.md)：
 
 按任务复制安装、训练、续训、评估、模型导出和远程 Web 运行命令，见 [训练与部署命令手册](docs/training-deployment.md)。覆盖 reach/hold、Go1、Microduck、H1、Wuji/Light、Cartpole MPC 和机械臂 CEM；列明各任务实际支持的运行与部署方式。
 
+[2026-09-27 实验记录](docs/rl-factorial-study-20260927.md) 给出机械鸭四组合奖励消融、SAC 训练种子对照，以及模型大小和 CPU ONNX 部署实测。
+
+[2026-09-28 续训对照](docs/rl-resume-study-20260928.md) 比较两个种子的 SAC 连续训练与同保存点续训，记录 4800 条独立评估轨迹、模型与保存点大小，并验证正式的 `rlinf evaluate --onnx` 闭环入口；另实测动态 INT8 压缩的体积与成功率取舍。
+
+[2026-09-28 压缩与后训练实验](docs/rl-compression-study-20260928.md) 比较 FP16/INT8 权重存储、逐层动态量化与 QAT，并检查推理 batch 对闭环行为的影响；正式导出支持 `--weight-storage float16` 或 `int8`，ONNX 评估记录 CPU 推理耗时。
+
 机器人训练 SDK 使用独立环境，避免不同 Warp、Torch、MuJoCo 版本相互覆盖。安装前按任务文档准备固定 revision 的源码检出；本机路径、缓存和 GPU 要求均在对应文档中说明。
 
 | 入口 | 任务与方法 | 实现方式与文档 |
@@ -198,6 +208,12 @@ Go1 新增 [Light Loco Parkour 实验性后端](docs/light-loco-parkour.md)：
 | `python -m embodiedforge.microduck` | Microduck 平地行走 PPO、评估、回放和 ONNX 导出 | 本地行走任务与资产，隔离运行 mjlab 训练。[Microduck](docs/microduck.md) |
 | `python -m embodiedforge h1-native` | H1 原生训练、续训、固定指令评估与运动记录 | 项目内 CPU 任务与 PPO。[原生 H1](docs/h1-native.md) |
 | `python -m embodiedforge h1` | H1 平地行走训练、续训、多种子固定指令评估 | 独立 IsaacLab / Newton / MuJoCo-Warp 配方。[H1](docs/h1-isaaclab.md) |
+| `python -m embodiedforge gmr` | BVH 重定向与参考动作回放 | 外部 GMR SDK，不执行 RL。[指令](docs/humanoid-motion.md) |
+| `python -m embodiedforge sonic` | X2 策略无窗口评估 | 外部 SONIC bundle，仅仿真部署。[指令](docs/humanoid-motion.md) |
+| `python -m embodiedforge weave` | G1 动作交互训练、续训、逐片段评估和策略导出 | 外部 Weave / IsaacLab SDK，完整仿真尚未实测。[Weave](docs/weave-reference.md) |
+| `python -m embodiedforge rlinf` | PickCube MLP SAC 训练、完整状态续训、评估、CPU ONNX 导出及闭环评估 | 外部 RLinf / ManiSkill SDK，已实测 GPU 训练、恢复与评估。[RLinf](docs/rlinf.md) |
+
+`h1 train` 与 `recipes train` 必须显式指定 `--updates`，省略 `--timeout` 时不限制训练墙钟时间。
 
 Go1 托管训练示例（先将源码路径替换为文档要求的干净检出）：
 

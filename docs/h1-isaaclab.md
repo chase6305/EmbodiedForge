@@ -13,31 +13,31 @@
 ```bash
 conda activate ef
 python -m embodiedforge h1 train \
-  --num-envs 64 --updates 5 --timeout 240 \
-  --output runs/h1-smoke
+  --num-envs 512 --updates 1000 \
+  --output runs/h1-train
 
-python -m embodiedforge h1 status --run runs/h1-smoke
+python -m embodiedforge h1 status --run runs/h1-train
 
-# 恢复模型和优化器，再执行 5 轮更新，写入新目录
+# 恢复模型和优化器，追加 1000 轮更新，写入新目录
 python -m embodiedforge h1 train \
-  --resume-run runs/h1-smoke \
-  --num-envs 64 --updates 5 --timeout 240 \
+  --resume-run runs/h1-train \
+  --num-envs 512 --updates 1000 \
   --output runs/h1-resume
 ```
 
 也支持 `python -m embodiedforge.h1 ...` 和安装后的 `embodiedforge h1 ...`。`--repo`、`--environment` 可指定其他路径；默认使用本页列出的本机路径。源码必须为已验证 revision 且 checkout 干净；检查进程还会确认 IsaacLab 包实际来自所选 checkout、Python 为 3.12、RSL-RL 为 5.0.1，并记录其他依赖版本。
 
-默认 64 环境、5 轮更新，适合检查入口；正式训练需显式设置 `--num-envs` 和 `--updates`。`--timeout` 包含训练初始化时间，不包含前后各最多 60 秒的 CPU 检查；省略后训练无额外时限。首次资产加载仍可能需要网络。输出目录必须不存在。
+训练必须显式指定 `--updates`，不再隐含 5 轮预算；并行环境数默认 64，可按显存调整 `--num-envs`。`--timeout` 包含训练初始化时间，不包含前后各最多 60 秒的 CPU 检查；省略后训练无额外时限。首次资产加载仍可能需要网络。输出目录必须不存在。
 
 每次运行保留：
 
 - `run.json`：源码 revision、入口/检查脚本 SHA256、运行参数、命令、依赖版本、状态和最终模型索引。
-- `console.log`：完整上游标准输出和错误输出。运行中可用 `tail -f runs/h1-smoke/console.log` 查看。
+- `console.log`：完整上游标准输出和错误输出。运行中可用 `tail -f runs/h1-train/console.log` 查看。
 - `runtime.json`：独立环境和导入路径检查结果。
 - `verification.json`：最终 checkpoint SHA256、迭代编号、张量有限性、每轮 PPO 指标完整性及全部标量有限性。
 - `logs/rsl_rl/h1_flat/`：上游模型、解析后的环境/算法配置和 TensorBoard events。
 
-只有训练正常退出、最终模型编号正确、actor/critic 维度匹配、每轮指标齐全且所有检查数值有限时，状态才会标为 `complete`。Ctrl+C 和 SIGTERM 会转发给整个训练进程组并记录 `interrupted`；超时记录 `timed_out`，其他失败记录 `failed`。退出宽限期后会清理剩余子进程，不因上游捕获中断后返回 0 而误记成功。`status` 显示当前记录，不是 PID 存活探针；无法捕获的 SIGKILL 或主机断电可能留下 `running` 状态。
+只有训练正常退出、最终模型编号正确、actor/critic 维度匹配、每轮指标齐全且所有检查数值有限时，状态才会标为 `complete`。Ctrl+C、SIGTERM 和工作进程运行期间未被忽略的 SIGHUP 会转发给整个训练进程组并记录 `interrupted`；超时记录 `timed_out`，其他失败记录 `failed`。中断或超时后最多等待 10 秒正常清理，再清理组内残留进程；主进程非零退出时也清理残留。不因上游捕获中断后返回 0 而误记成功。`status` 显示当前记录，不是 PID 存活探针；无法捕获的 SIGKILL 或主机断电可能留下 `running` 状态。
 
 续训目前只接受该入口生成的 `complete` 运行，并核对任务、物理、源码版本和 checkpoint SHA256。输入模型复制到新运行的 `_resume_input/model.pt`，复制后再次核验。上游 RSL-RL 5.0.1 会从保存的迭代索引开始编号，例如 `model_4.pt` 续训 5 轮得到 `model_8.pt`，日志步数为 4～8；`completed_updates=5` 才是此次新增更新数。环境状态和随机数生成器状态没有恢复，因此不是逐步等价的断点恢复。
 
@@ -187,30 +187,7 @@ python -m embodiedforge h1 replay \
 
 上游也注册了 `Isaac-Velocity-Rough-H1-v0` 及 Flat/Rough 的 Play 任务。本节记录 2026-09-12 的 Flat 训练与离线骨架回放验证，未验证 Rough 任务。后续已接入 H1 的统一 Web 网格记录回放，包含 OVRTX 后端，见 [机器人回放](robot-web-replay.md)；这不代表 H1 在线策略控制已接入。
 
-## 重现短测
-
-在 EmbodiedForge 根目录执行。输出目录必须尚不存在；子 shell 中任何一步失败都会停止，避免误在其他目录写入训练输出。
-
-```bash
-(
-  set -eu
-  mkdir runs/h1-flat-smoke
-  cd runs/h1-flat-smoke
-  timeout --signal=INT --kill-after=15s 180s env \
-    CONDA_PREFIX=/home/ubuntu/miniconda3/envs/isaaclab \
-    VIRTUAL_ENV= PYTHONUNBUFFERED=1 \
-    /home/ubuntu/workspace/3rdparty/IsaacLab/isaaclab.sh train \
-    --rl_library rsl_rl \
-    --task Isaac-Velocity-Flat-H1-v0 \
-    physics=newton_mjwarp --visualizer none \
-    --num_envs 64 --max_iterations 5 --seed 0 \
-    --logger tensorboard --run_name embodiedforge_probe
-)
-```
-
-`CONDA_PREFIX` 选择已经配置的 IsaacLab 环境，清空 `VIRTUAL_ENV` 避免 wrapper 优先使用其他虚拟环境。H1 USD 资产来自上游远程资产库，首次加载需要网络，下载或内核编译较慢时可能超过短测的 180 秒限制；超时不算成功。
-
-训练通过上游统一 `train` 命令分发至 `train_rsl_rl.py`，没有调用已弃用的旧 `rsl_rl/train.py`。日志相对当前工作目录生成，因此保存在 EmbodiedForge 的 `runs/` 内。后续正式训练需要另建输出目录、去掉短测超时，并调整环境数和迭代数；上游 Flat 配方默认 1000 轮，这不是收敛保证。
+当前训练与续训使用页首的统一入口；以下保留历史验证结果，不再要求先执行短测。
 
 ## 本次结果与限制
 

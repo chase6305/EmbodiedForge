@@ -328,6 +328,7 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
         "seed": seed,
         "num_envs": args.num_envs,
         "iterations": args.iterations,
+        "start_iteration": 0,
         "execution": {
             "headless": True,
             "viewer": None,
@@ -400,7 +401,10 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
                 raise RuntimeError(
                     "Selected training run checkpoint changed before resume"
                 )
-            start_iteration = metadata["iteration"]
+            start_iteration = metadata["iteration"] + (
+                1 if env.get("EF_MICRODUCK_NATIVE") == "1" else 0
+            )
+            manifest["start_iteration"] = start_iteration
             # The worker adds startup/reset events to the upstream TrainConfig.
             # Its startup restores curricula before the wrapper resets the env.
             command = [
@@ -454,6 +458,17 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
             ],
             "metrics",
         )
+        validation = json.loads((output / "metrics.validation.json").read_text())
+        final_metadata = validation.get("checkpoint_metadata")
+        if (
+            not isinstance(final_metadata, dict)
+            or final_metadata.get("sha256") != manifest["checkpoint_sha256"]
+            or final_metadata.get("iteration") != start_iteration + args.iterations - 1
+        ):
+            raise RuntimeError(
+                "Final checkpoint validation disagrees with the training run"
+            )
+        manifest["checkpoint_metadata"] = final_metadata
         manifest["status"] = "complete"
         manifest["phase"] = "complete"
     except KeyboardInterrupt as exc:

@@ -94,6 +94,13 @@ def test_train_resume_evaluate_and_live_without_checkout(
         assert data["request"]["project"] is None
         assert data["result"]["runtime"]["launch_mode"] == "installed_packages"
         assert data["result"]["assets"] == assets
+        if run != evaluation:
+            metrics = [
+                json.loads(line)
+                for line in (run / "metrics.jsonl").read_text().splitlines()
+            ]
+            assert data["result"]["completed_updates"] == len(metrics)
+            assert data["result"]["latest_metrics"] == metrics[-1]
     data = json.loads((resume / "run.json").read_text())
     assert data["result"]["learner_backend"] == backend
     assert data["request"]["go1_learner"] == backend
@@ -102,6 +109,8 @@ def test_train_resume_evaluate_and_live_without_checkout(
             [
                 "train",
                 *common,
+                "--updates",
+                "100",
                 "--resume-run",
                 str(train),
                 "--go1-learner",

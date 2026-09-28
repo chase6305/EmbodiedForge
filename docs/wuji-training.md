@@ -25,17 +25,9 @@ ffprobe -version
 
 将 `/path/to/wuji_unilab` 替换为实际源码目录；必须是干净的 `91ccfa0ec8c129b300865bd36c59dc9eed56a744` 检出。默认源码位置为 `/home/ubuntu/workspace/3rdparty/wuji_unilab`，此时可省略 `--repo`。SDK 安装在独立的 `.cache/external/wuji_unilab/.venv`。CUDA 为 False 或 `nvidia-smi` 报驱动错误时，需先修复 GPU 环境。
 
-## 2. 短测入口
+## 2. 训练并观察动作
 
-```bash
-python -m embodiedforge recipes train --task wuji-reorient \
-  --num-envs 32 --horizon 40 --updates 5 --timeout 600 \
-  --headless --output runs/my-wuji-smoke
-```
-
-所有输出目录必须尚不存在。短测只验证训练链路，不代表学会任务。
-
-## 3. 训练并观察动作
+所有输出目录必须尚不存在。训练必须显式指定 `--updates`；省略 `--timeout` 时不设置墙钟时限。
 
 ```bash
 python -m embodiedforge recipes train --task wuji-reorient \
@@ -50,7 +42,7 @@ python -m embodiedforge recipes train --task wuji-reorient \
 
 关闭浏览器不停止训练；训练结束、失败或中断后预览服务随进程退出。目前 recipe 训练预览支持 Wuji 和 Go1。
 
-## 4. 日志、曲线与远程访问
+## 3. 日志、曲线与远程访问
 
 另开终端，在仓库目录运行：
 
@@ -73,7 +65,7 @@ python -m embodiedforge recipes status --run runs/my-wuji-01
 ssh -N -L 8083:127.0.0.1:8083 -L 6006:127.0.0.1:6006 用户名@服务器地址
 ```
 
-## 5. 评估与视频
+## 4. 评估与视频
 
 训练成功完成后进行独立评估。下面的门槛是示例：
 
@@ -91,7 +83,7 @@ python -m embodiedforge recipes evaluate --task wuji-reorient \
 
 查看 `runs/my-wuji-eval-01/evaluation.json` 和 `runs/my-wuji-video-01/evaluation.mp4`。验收失败返回 `rejected` 并保留报告。视频包含目标姿态叠加。零掉落不能替代重定向成功率。
 
-## 6. 续训
+## 5. 续训
 
 ```bash
 python -m embodiedforge recipes train --task wuji-reorient \

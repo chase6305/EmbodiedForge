@@ -4,7 +4,7 @@
 
 按任务选择一节执行，无需安装全部 SDK。以下命令从 EmbodiedForge 仓库根目录运行；`/path/to/...` 必须替换为本机路径，所有新输出目录或导出文件必须尚不存在。示例预算用于复现流程，不承诺训练后达到行为验收要求。
 
-[环境准备](#setup) · [核心 PPO](#core) · [Go1](#go1) · [Microduck](#microduck) · [H1](#h1) · [Wuji](#wuji) · [MPC / CEM](#solvers) · [Web 运行与远程访问](#serving) · [安装包部署](#package) · [产物与限制](#artifacts)
+[环境准备](#setup) · [核心 PPO](#core) · [Go1](#go1) · [Microduck](#microduck) · [H1](#h1) · [Wuji](#wuji) · [GMR / SONIC](humanoid-motion.md) · [Weave](weave-reference.md) · [RLinf](rlinf.md) · [MPC / CEM](#solvers) · [Web 运行与远程访问](#serving) · [安装包部署](#package) · [产物与限制](#artifacts)
 
 | 任务 | 训练 / 求解位置 | 当前运行或导出入口 |
 | --- | --- | --- |
@@ -14,13 +14,36 @@
 | H1 原生 | 项目内 MuJoCo/mjbatch CPU PPO，无 IsaacLab 依赖 | 固定指令评估、统一 Web 运动回放 |
 | H1 | 外部 IsaacLab 环境 + RSL-RL；Newton / MuJoCo-Warp GPU 物理 | 固定指令评估、离线 HTML / Web 记录回放 |
 | Wuji / Wuji Light | 外部 Wuji/UniLab 环境与训练实现，GPU PPO | 顺序试验评估、视频记录 |
+| [GMR / SONIC X2](humanoid-motion.md) | 外部 GMR BVH 重定向与 SONIC ONNX 动作跟踪 | 无窗口生成参考 / MuJoCo 评估；这两个入口不训练策略 |
+| [Weave / G1 HOI](weave-reference.md) | 固定外部 Weave / IsaacLab SDK，动作参考驱动的 PPO | 训练/续训、逐片段评估、策略导出；完整仿真尚未实测 |
+| [RLinf / PickCube](rlinf.md) | 固定外部 RLinf / ManiSkill SDK，单机单卡 MLP SAC | headless 训练、完整状态续训、仿真评估、CPU ONNX 导出与闭环评估；已实测 GPU 训练、恢复与评估 |
 | Cartpole / 机械臂投掷 | 外部 mjbatch example，适配 CPU MPC / CEM | 求解指标与轨迹 |
 
 这里的部署指仿真策略运行、查看器服务和模型导出。当前没有统一实机部署命令，也没有 Go1/H1 的通用 ONNX 导出入口。
 
+ONNX 评估的用途因入口而异：[Microduck 的 `evaluate --onnx`](microduck.md) 还需要 checkpoint，用实际观测对照动作，仿真由 PyTorch 驱动；[RLinf 的 `evaluate --onnx`](rlinf.md) 单独加载导出策略，用 CPU ONNX 动作直接驱动 PickCube；[SONIC 的 `evaluate`](humanoid-motion.md) 使用固定 bundle 的预训练 ONNX 和配套控制参数，直接驱动 X2 MuJoCo 仿真。
+
+GMR 的参考动作回放、SONIC 的模型体积、控制预设和外力消融见[人形动作接入实验](humanoid-integration-study-20260928.md)。
+
+RLinf 的连续训练、完整状态续训及 ONNX 闭环命令与实测结果见 [2026-09-28 续训对照](rl-resume-study-20260928.md)，包含两个训练种子的全部比较结果和模型、保存点大小。另见 [压缩与后训练实验](rl-compression-study-20260928.md)，包含 FP16/INT8 存储导出命令、动态 INT8 逐层消融及推理 batch 对照。
+
 **训练实际使用哪份实现？** `train` 使用核心 `VectorEnv`。Go1 和 `h1-native` 使用本仓库维护的机器人环境与 PPO，但尚未接入核心 `VectorEnv`；MuJoCo/mjbatch 仍负责底层物理计算。Go1 可使用 `--standalone` 从已安装依赖启动；默认模式仍使用固定版本的 mjbatch SDK 检出。`h1` 命令使用 IsaacLab，`h1-native` 不使用。统一 Web 查看器是独立可视化入口，不是训练环境。
 
 新启动的核心 PPO、Go1 PPO 和原生 H1 训练会在输出目录写入 `training-runtime.json`，Go1/H1 续训也会单独记录。文件包含实际加载的环境、任务、训练函数和物理适配器、模块及文件路径、Python 源文件哈希、依赖版本、解释器、CPU 执行位置和是否使用核心 `VectorEnv`。Go1 的路径指向该次运行的实现快照。这是入口来源记录，不是全部间接依赖清单、checkpoint 兼容锁或策略质量证明；旧运行和外部训练流程不会补写此文件。
+
+核心 PPO 与原生 H1 在同一次 rollout 内复用相邻步骤中同一观测的 value。无重置的 24 步采样，critic 调用由 48 次降为 25 次；部分环境重置后只重新计算对应行，整批重置则直接重新计算整批，避免额外索引拷贝。新的 rollout 重新计算，缓存不跨策略更新。超时仍使用重置前的观测进行 bootstrap。
+
+2026-09-22 使用实际策略、替代环境、Torch 2.9.0 和 CPU 单线程测量，交替执行前后实现并取 5 组中位数：128 步、1024 环境、每步重置 32 行时，核心 PPO 采样约从 136.6 ms 降至 102.4 ms，原生 H1 从 393.2 ms 降至 288.6 ms。无重置和整批重置用例耗时接近原实现。采样动作与随机数状态保持一致；小批量 critic 计算在对照中产生的 value 最大差异约为 `3e-8`，PPO 更新后权重和 Adam 最大差异分别约为 `7.5e-9`、`3.8e-9`，不承诺逐位一致。这是采样局部测量，不是完整物理仿真或训练吞吐。
+
+实际环境对照还覆盖 reach/hold 的 NumPy 与 MuJoCo 后端，以及原生 H1 的 MuJoCo/mjbatch：16 环境、64 步并错开超时，除当前 value 的最大约 `6.8e-8` 差异外，动作、观测、奖励、下一步 value 和终止/截断标记均逐值一致。
+
+两者的采样缓冲区按本次 rollout 的长度、实际数据形状与 dtype 分配，逐步写入独立数组，避免在结束时同时保留逐步数据与 `stack` 后的整批副本。缓冲区不跨 rollout 复用，后续采样或环境重置不会改写旧数据。以替代环境和策略隔离存储开销，128 步、1024 环境的 `tracemalloc` 峰值从核心 PPO 的约 10.2 MiB 降至 6.4 MiB，H1 的约 93.2 MiB 降至 47.1 MiB；该测量仅覆盖 NumPy/Python 分配，不代表完整仿真与训练进程的内存。
+
+两者共用的 GAE 先批量计算 TD 误差及递推折扣，仅将依赖下一步优势值的递推留在时间循环中，代价是额外保存整批中间数组。2026-09-21 本机 NumPy 局部测量（每组 100 次调用、7 组取中位数），128 步、1024 个环境的耗时约从 0.62 ms 降至 0.27 ms。float32/float64、非连续数组、终止与超时边界的前后结果完全一致；核心 PPO 与 H1 的策略更新也核对了 loss、权重、Adam 和随机数状态。这是 GAE 局部测量，不是完整训练吞吐。
+
+原生 Go1 的 Torch GAE 同样批量计算独立项，保留原有输入检查与超时 bootstrap 语义。同日使用 Torch 2.9.0、CPU 单线程和上述计时方法，包含输入校验的 1024 环境 GAE：24 步约从 0.40 ms 降至 0.24 ms，128 步约从 1.99 ms 降至 1.12 ms，代价是整批 TD 误差与折扣张量的临时内存。30 组不同长度、dtype、掩码类型及非连续输入的前后结果逐值一致，现有上游对照也确认了完整策略更新的权重与 Adam 状态一致。该改动只优化原生 Go1 GAE；Light Loco 仍调用固定上游实现。
+
+策略更新还会在当前 minibatch 内复用已抽取的观测与优势值；H1 同时复用旧 value 和回报目标。核心 PPO 每个 minibatch 的张量索引由 7 次减至 5 次，H1 由 10 次减至 6 次，减少重复拷贝。CPU profiler 已确认索引次数下降，前后 loss、梯度、权重、Adam 与随机数状态完全一致；该计数不表示整体耗时按相同比例下降。
 
 <a id="setup"></a>
 
@@ -75,7 +98,11 @@ python -m embodiedforge evaluate \
 
 核心 PPO 使用 proprio，不训练图像策略。评估从 checkpoint 恢复配置；不要随意更换任务或物理。核心 CLI 当前没有续训或 ONNX 导出命令；点任务 `visualization` 运行示范控制器，不加载这些 PPO checkpoint。
 
-要比较训练前后的策略，可在安装了核心训练依赖的环境执行以下命令。脚本沿用 checkpoint 的任务、物理、控制周期和回合长度；初始策略使用相同网络维度，两个策略使用相同评估种子。输出包含模型 SHA256 和环境配置，便于核对比较条件。
+Python API 的 `PPOConfig` 在构造时检查训练计数为正整数、学习率为有限正数、seed 为 `[0, 2**64 - 1]` 内的整数。无效配置在创建训练输出目录或仿真环境前报错；布尔值不能作为计数或 seed。
+
+`load_checkpoint` / `load_policy` 在 CPU 上检查加载后的 actor、critic 与 `log_std` 参数，遇到 NaN/Inf 时报告具体参数名并拒绝返回策略；动作范围的上下界必须有限且严格递增。checkpoint 含环境描述时，加载还会核对策略的观测维度、动作维度和动作范围与记录一致，不创建仿真资源。现有 v1/v2 checkpoint 仍受支持；没有环境描述的旧版模型在评估时也必须通过与实际环境的维度、动作范围核对。
+
+要比较训练前后的策略，可在安装了核心训练依赖的环境执行以下命令。脚本沿用 checkpoint 的任务、物理、控制周期和回合长度；初始策略使用相同网络维度，两个策略使用相同评估种子。输出包含模型 SHA256 和环境配置，便于核对比较条件。SHA256 取自 `load_checkpoint` 返回的 `sha256`，与反序列化使用同一份文件字节；加载后替换原文件不会让报告引用另一份模型的哈希。
 
 ```bash
 python benchmarks/check_learning.py runs/commands-reach/checkpoint.pt --num-envs 128 --seeds 1001 1002 1003
@@ -129,9 +156,17 @@ Go1 续训会保存来源运行记录的副本 `input-run.json`，并在模型�
 
 Go1 续训、评估与在线控制使用同一 checkpoint 校验：哈希对应实际反序列化的字节，权重内的迭代号须为与运行记录一致的非负整数，任务配置须匹配来源记录。归一化均值和方差必须为有限浮点向量，方差不可为负，计数须为正的有限浮点标量。无效输入在创建仿真环境前拒绝；合法的零方差及旧版缺省配置仍受支持。多种子/多指令评估共用一次读取并校验后的权重，各用例仍单独创建策略和环境。
 
+Go1 的 native 与 Light Loco 路径均使用 FP32 策略，加载时要求策略 state dict 的张量为 FP32，避免 PyTorch 隐式转换将原本有限的 FP64 数值变为 Inf。动作标准差 `exp(log_std)` 也必须有限且大于零；仅检查 `log_std` 本身有限不足以排除指数溢出或下溢。
+
 续训还会在创建仿真前检查 Adam 状态与当前参数是否匹配，包括参数组、完整且无重复的参数映射、动量形状/类型、非负二阶矩、有效步数和超参数。不兼容的优化器模式会被拒绝，避免加载时悄悄切换算法。保存仍每 25 次更新及训练结束时进行：先校验优化器状态和张量有限性，再写临时文件并替换 checkpoint；校验或写入失败时保留上一份已保存文件，运行按失败记录。
 
+保存失败或 Ctrl+C 中断时会尝试清理临时文件；清理失败会记录残留路径与原因，保留原始保存异常或中断。成功替换 checkpoint 后不再执行临时文件删除。
+
+Go1 的完整训练指标逐轮写入 `metrics.jsonl`；内存只保留最新一轮和已完成计数，结束报告的 `latest_metrics` 与最后一行一致，避免长训练在内存中再保留一份全部历史。
+
 新 Go1 训练每次成功保存时还会提交 `recovery.json`，其中包含独立 checkpoint 的哈希、保存进度、配置、依赖和资产记录。`checkpoints/` 保留最近两份快照，`model.pt` 继续作为完成运行的标准产物。正常停止后，状态为 `interrupted`、`timed_out` 或 `failed` 的目录可直接通过 `--resume-run` 恢复；启动时核对恢复记录、请求、实现快照和权重哈希。续训从已保存的迭代继续，未保存的后续更新不会计入。原运行状态保持不变，续训报告标明恢复来源；新目录的 `input-run.json` 会附带已验证的保存点结果和 `checkpoint_origin` 标记。
+
+恢复记录或 `model.pt` 发布过程中收到中断时，即使临时文件清理失败，也保留原中断原因并记录残留文件。恢复记录提交前使用上一个保存点；提交后即使 `model.pt` 更新失败，也可通过独立 checkpoint 恢复刚保存的进度。
 
 例如，上面的独立训练因 Ctrl+C 或超时停止后，先检查 `recoverable_checkpoint`，再写入新的续训目录：
 
@@ -250,20 +285,22 @@ python -m embodiedforge h1-native evaluate \
   --output runs/commands-h1-native-eval
 ```
 
+原生 H1 中断或失败后，上述 `--resume` 可读取目录内已记录且通过校验的最后保存点；首次保存前退出、仍标记为 `running` 或文件校验失败时不能恢复。未保存的更新不会计入续训进度。
+
 在 `ef-viewer` 中，用续训目录的 `model.mjb` 和评估目录的 `motion.npz` 运行统一 `replay` 命令。接口、力矩与验收边界见[原生 H1](h1-native.md)。原生 checkpoint 与 IsaacLab 流程不兼容。
 
 ### IsaacLab GPU 配方
 
-使用已准备好的固定版本 IsaacLab 与独立环境。先短测，再追加训练；以下命令的 `--repo` 和 `--environment` 每次保持一致。
+使用已准备好的固定版本 IsaacLab 与独立环境，直接指定训练预算；以下命令的 `--repo` 和 `--environment` 每次保持一致。
 
 ```bash
 python -m embodiedforge h1 train \
   --repo /path/to/IsaacLab --environment /path/to/envs/isaaclab \
-  --num-envs 64 --updates 5 --timeout 600 --output runs/commands-h1-smoke
-python -m embodiedforge h1 status --run runs/commands-h1-smoke
+  --num-envs 512 --updates 1000 --output runs/commands-h1
+python -m embodiedforge h1 status --run runs/commands-h1
 python -m embodiedforge h1 train \
   --repo /path/to/IsaacLab --environment /path/to/envs/isaaclab \
-  --resume-run runs/commands-h1-smoke --num-envs 512 --updates 1000 \
+  --resume-run runs/commands-h1 --num-envs 512 --updates 1000 \
   --output runs/commands-h1-resumed
 python -m embodiedforge h1 evaluate \
   --repo /path/to/IsaacLab --environment /path/to/envs/isaaclab \
@@ -286,18 +323,18 @@ python -m embodiedforge h1 replay \
 训练默认 headless；Wuji 可加 `--no-headless --viewer-port 8083 --viewer-fps 10`
 预览环境 0 的真实训练动作，也可显式使用 `--headless`。关闭页面不停止训练，训练结束后预览退出。
 
-先完成 wuji_unilab setup。标准与 Light 是不同任务，使用不同运行目录，续训和评估必须保持相同 `--task`。以下小规模预算用于入口验证：
+先完成 wuji_unilab setup。标准与 Light 是不同任务，使用不同运行目录，续训和评估必须保持相同 `--task`。训练必须指定 `--updates`；省略 `--timeout` 时不限制训练墙钟时间。以下预算不保证策略通过验收：
 
 ```bash
 python -m embodiedforge recipes train --task wuji-reorient \
-  --num-envs 32 --horizon 40 --updates 5 --timeout 600 \
+  --num-envs 512 --horizon 40 --updates 1000 \
   --output runs/commands-wuji
 python -m embodiedforge recipes train --task wuji-reorient-light \
-  --num-envs 32 --horizon 40 --updates 5 --timeout 600 \
+  --num-envs 512 --horizon 40 --updates 1000 \
   --output runs/commands-wuji-light
 python -m embodiedforge recipes train --task wuji-reorient-light \
-  --resume-run runs/commands-wuji-light --num-envs 32 --horizon 40 \
-  --updates 100 --timeout 1800 --output runs/commands-wuji-light-resumed
+  --resume-run runs/commands-wuji-light --num-envs 512 --horizon 40 \
+  --updates 1000 --output runs/commands-wuji-light-resumed
 python -m embodiedforge recipes status --run runs/commands-wuji-light-resumed
 python -m embodiedforge recipes evaluate --task wuji-reorient-light \
   --run runs/commands-wuji-light-resumed --num-envs 1 --seed 0 \

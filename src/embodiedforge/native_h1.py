@@ -2,11 +2,15 @@
 
 import argparse
 import hashlib
+import io
 import json
-import shutil
+import logging
+import sys
 import time
 from pathlib import Path
 
+from ._adam_checkpoint import validate_adam_checkpoint
+from ._microduck_process import termination_signals
 from ._training_runtime import record_training_runtime
 
 
@@ -46,18 +50,26 @@ def load_run(directory):
     from .locomotion.h1_ppo import Policy
 
     metadata = json.loads((directory / "run.json").read_text())
-    if metadata.get("task") != VERSION or metadata.get("status") != "complete":
+    if (
+        metadata.get("task") != VERSION
+        or metadata.get("status") not in ("complete", "failed", "interrupted")
+        or not metadata.get("checkpoint_sha256")
+    ):
         raise ValueError(
-            "Expected a complete native H1 run; IsaacLab checkpoints are incompatible"
+            "Expected a stopped native H1 run with a saved checkpoint; "
+            "IsaacLab checkpoints are incompatible"
         )
+    artifacts = {}
     for file, key in (
         ("model.mjb", "model_sha256"),
         ("checkpoint.pt", "checkpoint_sha256"),
     ):
-        if digest(directory / file) != metadata[key]:
+        payload = (directory / file).read_bytes()
+        if hashlib.sha256(payload).hexdigest() != metadata[key]:
             raise ValueError(f"Native H1 artifact hash mismatch: {file}")
+        artifacts[file] = payload
     checkpoint = torch.load(
-        directory / "checkpoint.pt", map_location="cpu", weights_only=True
+        io.BytesIO(artifacts["checkpoint.pt"]), map_location="cpu", weights_only=True
     )
     validate_tensors(checkpoint)
     if type(checkpoint.get("updates")) is not int or checkpoint["updates"] <= 0:
@@ -71,7 +83,10 @@ def load_run(directory):
     policy.load_state_dict(checkpoint["policy"], strict=True)
     if any(not torch.isfinite(p).all() for p in policy.parameters()):
         raise ValueError("Checkpoint contains non-finite policy parameters")
-    model = mujoco.MjModel.from_binary_path(str(directory / "model.mjb"))
+    # The VFS loads exactly the verified MJB bytes, even if the source is replaced.
+    model = mujoco.MjModel.from_binary_path(
+        "model.mjb", assets={"model.mjb": artifacts["model.mjb"]}
+    )
     names = [model.joint(int(j)).name for j in model.actuator_trnid[:, 0]]
     if (
         names != checkpoint["joint_names"]
@@ -81,6 +96,7 @@ def load_run(directory):
     return model, policy, checkpoint, metadata
 
 
+@termination_signals()
 def train(args):
     import importlib.metadata
 
@@ -99,17 +115,26 @@ def train(args):
         start = checkpoint["updates"]
     else:
         model, policy, checkpoint, start = build_model(args.model), Policy(), None, 0
-    optimizer = torch.optim.Adam(policy.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.Adam(
+        policy.parameters(),
+        lr=args.learning_rate if args.learning_rate is not None else 3e-4,
+    )
     if checkpoint is not None:
+        validate_adam_checkpoint(
+            optimizer, checkpoint["optimizer"], label="H1 optimizer"
+        )
         optimizer.load_state_dict(checkpoint["optimizer"])
-        for group in optimizer.param_groups:
-            group["lr"] = args.learning_rate
+    learning_rate = (
+        args.learning_rate
+        if args.learning_rate is not None
+        else optimizer.param_groups[0]["lr"]
+    )
+    for group in optimizer.param_groups:
+        group["lr"] = learning_rate
     root = args.output
     root.mkdir(parents=True, exist_ok=False)
-    if args.resume:
-        shutil.copyfile(args.resume / "model.mjb", root / "model.mjb")
-    else:
-        mujoco.mj_saveModel(model, str(root / "model.mjb"))
+    # Publish the actual loaded model, never re-read a mutable resume source.
+    mujoco.mj_saveModel(model, str(root / "model.mjb"))
     metadata = {
         "task": VERSION,
         "status": "running",
@@ -120,7 +145,7 @@ def train(args):
         "threads": args.threads,
         "seed": args.seed,
         "horizon": args.horizon,
-        "learning_rate": args.learning_rate,
+        "learning_rate": learning_rate,
         "model_sha256": digest(root / "model.mjb"),
         "resume": str(args.resume.resolve()) if args.resume else None,
         "versions": {
@@ -129,6 +154,7 @@ def train(args):
         },
         "physics": "MuJoCo CPU / mjbatch",
         "learner": "EmbodiedForge PPO CPU",
+        "headless": True,
         "resume_semantics": "policy+optimizer; environment and RNG reset",
     }
     write_json(root / "run.json", metadata)
@@ -172,7 +198,9 @@ def train(args):
                     print(json.dumps(row), flush=True)
                 if update % 50 == 0 or update == start + args.updates:
                     temporary = root / "checkpoint.pt.tmp"
-                    validate_tensors(optimizer.state_dict())
+                    validate_adam_checkpoint(
+                        optimizer, optimizer.state_dict(), label="H1 optimizer"
+                    )
                     torch.save(
                         {
                             "task": VERSION,
@@ -197,8 +225,17 @@ def train(args):
         metadata["error"] = f"{type(error).__name__}: {error}"
         raise
     finally:
+        active_error = sys.exc_info()[0] is not None
         metadata["seconds"] = time.monotonic() - began
-        write_json(root / "run.json", metadata)
+        try:
+            write_json(root / "run.json", metadata)
+        except Exception:
+            if not active_error:
+                raise
+            logging.getLogger(__name__).exception(
+                "Could not finalize %s; preserving the original training error",
+                root / "run.json",
+            )
 
 
 def evaluate(args):
@@ -336,6 +373,12 @@ def main(argv=None):
         )
         sub.add_argument("--threads", type=int, default=4)
         sub.add_argument("--seed", type=int, default=0)
+        sub.add_argument(
+            "--headless",
+            action="store_true",
+            default=True,
+            help="Always headless; accepted explicitly for training/evaluation scripts",
+        )
         if command == "train":
             source = sub.add_mutually_exclusive_group(required=True)
             source.add_argument(
@@ -348,7 +391,11 @@ def main(argv=None):
             )
             sub.add_argument("--updates", type=int, default=1000)
             sub.add_argument("--horizon", type=int, default=24)
-            sub.add_argument("--learning-rate", type=float, default=1e-3)
+            sub.add_argument(
+                "--learning-rate",
+                type=float,
+                help="New training: 0.0003; resume: inherit checkpoint unless specified",
+            )
         else:
             sub.add_argument("--run", type=Path, required=True)
             sub.add_argument("--steps", type=int, default=500)
@@ -365,11 +412,13 @@ def main(argv=None):
             getattr(args, key, 1) <= 0
             for key in ("num_envs", "threads", "updates", "horizon", "steps")
         )
-        or args.seed < 0
+        or not 0 <= args.seed < 2**64
     ):
-        parser.error("Counts must be positive and seed nonnegative")
-    if args.command == "train" and (
-        not math.isfinite(args.learning_rate) or args.learning_rate <= 0
+        parser.error("Counts must be positive and seed must be in [0, 2**64)")
+    if (
+        args.command == "train"
+        and args.learning_rate is not None
+        and (not math.isfinite(args.learning_rate) or args.learning_rate <= 0)
     ):
         parser.error("Learning rate must be finite and positive")
     if args.command == "evaluate":

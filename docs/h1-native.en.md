@@ -15,20 +15,24 @@ Run from the repository root. Supply an H1 MJCF together with its referenced mes
 conda create -n ef-h1-native python=3.12 pip
 conda activate ef-h1-native
 python -m pip install -e '.[h1-native]'
-python -m embodiedforge h1-native train \
+python -m embodiedforge h1-native train --headless \
   --model /home/ubuntu/workspace/3rdparty/mink/examples/unitree_h1/h1.xml \
   --num-envs 128 --threads 4 --updates 1000 \
   --output runs/h1-native-first
-python -m embodiedforge h1-native train \
+python -m embodiedforge h1-native train --headless \
   --resume runs/h1-native-first --num-envs 128 --threads 4 --updates 1000 \
   --output runs/h1-native-resumed
 ```
 
 The existing `.cache/external/mjbatch/.venv/bin/python` also works on this machine. It selects an interpreter; the native trainer does not import mjbatch examples.
 Output directories must be new. `--updates` counts additional updates, with a default rollout horizon of 24.
-Runs contain `model.mjb`, `checkpoint.pt`, `metrics.jsonl`, and `run.json`. The compiled MJB includes meshes, so resume and replay no longer require the original asset paths.
-Checkpoints are atomically saved every 50 updates and at completion. Resume accepts a `complete` run and checks artifact hashes, task version, joint order, and finite tensors.
-Policy and Adam state are restored; environment and RNG state restart. This is not exact continuation. The current `--learning-rate` applies on resume (default 0.001).
+Training and evaluation are always headless and do not initialize a renderer. Both accept an explicit `--headless`; omitting it gives the same behavior. Seeds must be in `0..2**64-1`.
+Runs contain `model.mjb`, `checkpoint.pt`, `metrics.jsonl`, and `run.json`. The compiled MJB includes meshes, so resume and replay no longer require the original asset paths. Weights and MJB models load from the same bytes used for hash validation. Resumed runs save the actual loaded model, so replacing an input file cannot change the model recorded for that run.
+
+Training attempts to update `run.json` after a failure, Ctrl+C, or SIGTERM. If that write also fails, the log includes the file path and write error while preserving the original training exception or interruption; the saved status may still be `running`. A final record write failure after otherwise successful training is raised rather than returning success.
+Checkpoints are atomically saved every 50 updates and at completion. Resume and evaluation accept recorded checkpoints from `complete`, `interrupted`, or `failed` runs, checking artifact hashes, task version, joint order, and finite tensors. Recovery starts at the last saved update; unsaved progress is lost. Runs that stopped before their first save or are still marked `running` cannot be used as inputs.
+Policy and Adam state are restored; environment and RNG state restart. This is not exact continuation. New training defaults to a learning rate of `0.0003`. Resume inherits the saved learning rate unless `--learning-rate` explicitly overrides it. The default follows the [three-seed learning-rate comparison](rl-training-study-20260925.md), limited to this flat-ground task and nominal-pose evaluation.
+Before restoring Adam or saving a checkpoint, the validator shared with native Go1 checks parameter groups, complete state, moment shapes/dtypes, nonnegative second moments, and integer step counts. Damaged optimizer state is rejected before creating the new run directory or simulation environment.
 
 ## Evaluate and replay
 
@@ -75,6 +79,8 @@ Configuration and reward concepts reference local IsaacLab revision `2e44ddb2e19
 - PPO uses three 128-unit ELU layers and a fixed learning rate, without adaptive-KL scheduling, distributed training, or GPU batched state.
 
 ## Local validation, 2026-09-15
+
+Update: the [2026-09-25 learning-rate study](rl-training-study-20260925.md) completed six 5000-update runs. At the lower learning rate, all three training seeds completed the nominal ten-second walking and turning trials. The earlier 500-update result is retained below.
 
 Evidence is in `runs/h1-native-validation-20260915`. Training completed 128 environments × 24 steps × 500 updates (1,536,000 transitions), with approximately 75 seconds in the training loop using four CPU threads.
 The resulting policy survived a nominal ten-second forward trial but averaged only 0.0065 m/s forward velocity, with planar RMSE approximately 0.4996 m/s. **It failed the 0.5 m/s walking tracking criterion.** This validates the independent training workflow, not a qualified walking policy.

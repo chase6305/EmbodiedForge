@@ -140,7 +140,7 @@ def render_motion(path: Path, output: Path) -> None:
         .replace("&", "\\u0026")
     )
     prefix, suffix = HTML.split("__MOTION_DATA__")
-    title = html.escape(motion["metadata"].get("title", "H1 运动回放"))
+    title = html.escape(motion["metadata"].get("title", "机器人动作回放"))
     page = prefix.replace("__TITLE__", title) + payload + suffix
     with output.open("x", encoding="utf-8") as stream:
         stream.write(page)
@@ -153,17 +153,19 @@ body{margin:0;background:#101723;color:#e4eaf4;font:15px system-ui}main{max-widt
 h1{font-size:24px;margin:0 0 8px}p{color:#a8b8cd;line-height:1.6}canvas{width:100%;height:65vh;min-height:320px;background:#141f2f;border-radius:12px;touch-action:none}
 .controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 0}button,select{background:#263750;color:white;border:1px solid #476287;border-radius:5px;padding:8px}input[type=range]{flex:1;min-width:180px}#info{font-variant-numeric:tabular-nums}small{color:#a8b8cd}
 </style><main><h1>__TITLE__</h1><p id="title"></p>
-<canvas id="canvas" aria-label="仿真刚体骨架回放"></canvas>
+<canvas id="canvas" aria-label="机器人骨架回放"></canvas>
 <div class="controls"><button id="play">播放</button><input id="frame" type="range" min="0" value="0" aria-label="时间轴">
 <select id="speed" aria-label="播放速度"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
 <select id="view" aria-label="视角"><option value="oblique">斜视</option><option value="side">侧视</option><option value="front">正视</option><option value="top">俯视</option></select>
 <label><input id="follow" type="checkbox" checked>跟随</label><span id="info"></span></div>
-<small>拖动画布旋转，滚轮缩放。蓝色为左侧，橙色为右侧。线段连接仿真模型的刚体原点及记录的末端点；不是机器人网格或 RTX 图像。仅回放标注环境的第一次试验，保留终止帧。</small></main>
+<small>拖动画布旋转，滚轮缩放。蓝色为左侧，橙色为右侧。线段连接模型的刚体原点及记录的末端点。回放使用文件中的时间戳，并显示已有的终止标记。</small></main>
 <script id="motion" type="application/json">__MOTION_DATA__</script><script>
 'use strict';const d=JSON.parse(document.getElementById('motion').textContent),m=d.metadata;
 const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d'),slider=document.getElementById('frame'),play=document.getElementById('play');
 const speed=document.getElementById('speed'),follow=document.getElementById('follow'),view=document.getElementById('view'),info=document.getElementById('info');
-document.getElementById('title').textContent=`${m.case} · seed ${m.seed} · 环境 ${m.env_id} · ${m.command_schedule?'分段指令':'指令 '+m.velocity_command.join(' / ')} · ${d.time.length} 帧`;
+const labels=[m.case??m.title??'动作回放'];if(m.seed!==undefined)labels.push(`seed ${m.seed}`);if(m.env_id!==undefined)labels.push(`环境 ${m.env_id}`);
+if(m.source_kind==='retargeted_reference')labels.push('重定向参考动作');else if(m.command_schedule)labels.push('分段指令');else if(Array.isArray(m.velocity_command))labels.push('指令 '+m.velocity_command.join(' / '));
+labels.push(`${d.time.length} 帧`);document.getElementById('title').textContent=labels.join(' · ');
 slider.max=d.time.length-1;let index=0,playing=false,last=null,elapsed=0,yaw=-0.8,elevation=0.28,scale=m.view_scale??145;
 function project(p,origin){let x=p[0]-origin[0],y=p[1]-origin[1],z=p[2]-origin[2],u=x*Math.cos(yaw)-y*Math.sin(yaw),depth=x*Math.sin(yaw)+y*Math.cos(yaw);return [canvas.width/2+scale*u,canvas.height*.55-scale*(z*Math.cos(elevation)-depth*Math.sin(elevation))];}
 function line(a,b,color,width=2){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();}

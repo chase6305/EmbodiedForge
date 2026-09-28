@@ -90,6 +90,7 @@ def test_dead_launcher_does_not_keep_running_eta(progress):
     read, manifest, state, _, log = progress
     (log / "model_1.pt").write_bytes(b"unvalidated candidate")
     assert read()["estimated_remaining_seconds"] == pytest.approx(3)
+
     state.update(alive=False, reason="exited")
     result = read()
     assert result["run_status"] == "running"
@@ -157,6 +158,17 @@ def test_unreliable_iteration_logs_do_not_produce_eta(progress):
         # Timing from a different update cannot distort this run's ETA.
         scalars[tag].append(SimpleNamespace(step=99, value=1000.0))
     assert read()["estimated_remaining_seconds"] == pytest.approx(3)
+
+    # New native resumes begin after the last completed checkpoint iteration.
+    manifest["start_iteration"] = 43
+    assert read()["estimated_remaining_seconds"] is None
+    for item in scalars["Loss/value"]:
+        item.step += 1
+    for tag in ("Perf/collection_time", "Perf/learning_time"):
+        scalars[tag][0].step = 44
+    report = read()
+    assert report["start_iteration"] == 43
+    assert report["estimated_remaining_seconds"] == pytest.approx(3)
 
 
 def test_checkpoint_discovery_ignores_nonmodels_and_external_links(progress, tmp_path):

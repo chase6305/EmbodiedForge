@@ -164,25 +164,38 @@ def onnx_session(path: Path):
     return session
 
 
-def validate_onnx(path: Path) -> dict:
+def validate_onnx(path: Path, *, reference=None) -> dict:
     import numpy as np
 
     session = onnx_session(path)
     inputs = session.get_inputs()
     rng = np.random.default_rng(0)
+    errors = []
     for observation in (
         np.zeros((1, 61), dtype=np.float32),
         rng.normal(0, 0.1, size=(1, 61)).astype(np.float32),
+        rng.normal(0, 1.0, size=(1, 61)).astype(np.float32),
     ):
         actions = session.run(None, {inputs[0].name: observation})[0]
         if actions.shape != (1, 14) or not np.isfinite(actions).all():
             raise RuntimeError("ONNX inference produced invalid actions")
-    return {
+        if reference is not None:
+            errors.append(compare_policy_actions(reference(observation), actions))
+    report = {
         "onnx": str(path),
         "actor_dim": 61,
         "action_dim": 14,
         "finite_inference": True,
     }
+    if reference is not None:
+        report["policy_parity"] = {
+            "passed": True,
+            "samples": len(errors),
+            "atol": 1e-4,
+            "rtol": 1e-4,
+            "max_absolute_error": max(errors),
+        }
+    return report
 
 
 def compare_policy_actions(reference, candidate) -> float:
@@ -407,9 +420,20 @@ def validate_metrics(
     nan_states = scalars.get("Episode_Termination/nan_state", [])
     if not nan_states or any(event.value != 0 for event in nan_states):
         raise RuntimeError("Missing NaN-state metric or simulation reported NaN states")
+    final_iteration = start_iteration + iterations - 1
+    if checkpoint.name != f"model_{final_iteration}.pt":
+        raise RuntimeError(
+            f"Expected final checkpoint filename model_{final_iteration}.pt, got {checkpoint.name}"
+        )
+    metadata = checkpoint_metadata(checkpoint)
+    if metadata["iteration"] != final_iteration:
+        raise RuntimeError(
+            f"Expected final checkpoint iteration {final_iteration}, got {metadata['iteration']}"
+        )
     return {
         "iterations": iterations,
         "start_iteration": start_iteration,
+        "checkpoint_metadata": metadata,
         "all_scalars_finite": True,
         "nan_states": 0,
         "last_values": {
@@ -454,7 +478,9 @@ def training_progress(directory: Path) -> dict:
     # expose it only once the training command has been written.
     if requested is None and commands:
         requested = int(commands[-1][commands[-1].index("--agent.max-iterations") + 1])
-    start = manifest.get("resume", {}).get("iteration", 0)
+    start = manifest.get(
+        "start_iteration", manifest.get("resume", {}).get("iteration", 0)
+    )
     launcher = launcher_status(manifest.get("launcher"))
     effective_status = manifest["status"]
     if effective_status == "running" and launcher["alive"] is False:
@@ -574,7 +600,8 @@ def checkpoint_metadata(path: Path) -> dict:
             digest.update(chunk)
     if not isinstance(checkpoint, dict):
         raise ValueError("Expected a full PPO training checkpoint dictionary")
-    for key in ("actor_state_dict", "critic_state_dict", "optimizer_state_dict"):
+    components = ("actor_state_dict", "critic_state_dict", "optimizer_state_dict")
+    for key in components:
         if not isinstance(checkpoint.get(key), dict) or not checkpoint[key]:
             raise ValueError(
                 f"Checkpoint has no valid {key}; use a full PPO training checkpoint"
@@ -601,6 +628,20 @@ def checkpoint_metadata(path: Path) -> dict:
         not math.isfinite(rate) or rate <= 0 or rate != rates[0] for rate in rates
     ):
         raise ValueError("Expected a single positive PPO learning rate")
+    # Inspect the already-loaded CPU state before callers create a simulation.
+    pending = [(key, checkpoint[key]) for key in components]
+    while pending:
+        name, value = pending.pop()
+        if isinstance(value, dict):
+            pending.extend((f"{name}.{key}", child) for key, child in value.items())
+        elif isinstance(value, (tuple, list)):
+            pending.extend(
+                (f"{name}.{index}", child) for index, child in enumerate(value)
+            )
+        elif (isinstance(value, torch.Tensor) and not torch.isfinite(value).all()) or (
+            isinstance(value, float) and not math.isfinite(value)
+        ):
+            raise ValueError(f"Nonfinite checkpoint value: {name}")
     return {
         "iteration": iteration,
         "common_step_counter": counter,
@@ -688,6 +729,17 @@ def resume_training(
     return json.loads(audit.read_text())
 
 
+def close_environment(env):
+    """Close from a finally block, preserving an active error or interruption."""
+    active_error = sys.exc_info()[0] is not None
+    try:
+        env.close()
+    except Exception as exc:
+        if not active_error:
+            raise
+        print(f"Environment cleanup also failed: {exc}", file=sys.stderr)
+
+
 @contextmanager
 def policy_environment(
     checkpoint: Path,
@@ -748,7 +800,7 @@ def policy_environment(
         policy = runner.get_inference_policy(device="cuda:0")
         yield wrapped, policy, metadata
     finally:
-        env.close()
+        close_environment(env)
 
 
 class JoinedRenderThreadMixin:

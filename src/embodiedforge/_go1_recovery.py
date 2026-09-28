@@ -1,6 +1,7 @@
 """Publish and inspect committed Go1 checkpoints independently of run completion."""
 
 import json
+import logging
 import re
 import shutil
 import tempfile
@@ -9,6 +10,16 @@ from pathlib import Path
 from .recipes import sha256, write_json
 
 STOPPED = {"interrupted", "timed_out", "failed"}
+
+
+def _remove_partial(path):
+    """Cleanup must not hide a save failure or change an interruption into failure."""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError as exc:
+        logging.getLogger(__name__).warning(
+            "Could not remove partial Go1 publication %s: %s", path, exc
+        )
 
 
 def publish_training_checkpoint(checkpoint, *, optimizer, request):
@@ -48,16 +59,18 @@ def publish_training_checkpoint(checkpoint, *, optimizer, request):
     try:
         write_json(temporary, receipt)
         temporary.replace("recovery.json")
-    finally:
-        temporary.unlink(missing_ok=True)
+    except BaseException:
+        _remove_partial(temporary)
+        raise
     # Preserve the completed-run interface. The receipt already points to a
     # separate immutable file if interruption occurs while updating model.pt.
     temporary = Path("model.pt.tmp")
     try:
         shutil.copyfile(path, temporary)
         temporary.replace("model.pt")
-    finally:
-        temporary.unlink(missing_ok=True)
+    except BaseException:
+        _remove_partial(temporary)
+        raise
     # Keep the newest two snapshots; unpublished files are never recovery input.
     snapshots = sorted(
         (p for p in directory.iterdir() if re.fullmatch(r"model-\d+\.pt", p.name)),
@@ -124,7 +137,9 @@ def recovery_result(run, manifest):
         if field not in result or result[field] != request.get(option):
             raise ValueError(f"Go1 recovery {field} differs from the training request")
     if result.get("learner_backend", "native") != request.get("go1_learner", "native"):
-        raise ValueError("Go1 recovery learner backend differs from the training request")
+        raise ValueError(
+            "Go1 recovery learner backend differs from the training request"
+        )
     for name in ("runtime", "assets"):
         if result.get(name) != json.loads((run / f"{name}.json").read_text()):
             raise ValueError(f"Go1 recovery {name} differs from the training record")

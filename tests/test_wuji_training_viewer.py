@@ -21,9 +21,21 @@ from embodiedforge._wuji_training_viewer import TrainingPreview, training_previe
 def test_cli_display_defaults_and_override(monkeypatch, flags, enabled):
     calls = []
     monkeypatch.setattr(recipes, "execute", calls.append)
-    recipes.main(["train", "--task", "wuji-reorient", "--output", "unused", *flags])
+    recipes.main(
+        [
+            "train",
+            "--task",
+            "wuji-reorient",
+            "--output",
+            "unused",
+            "--updates",
+            "1000",
+            *flags,
+        ]
+    )
     assert calls[0].headless is not enabled
     assert calls[0].viewer_port == 8083
+    assert calls[0].updates == 1000 and calls[0].timeout is None
 
 
 @pytest.mark.parametrize(
@@ -38,14 +50,34 @@ def test_cli_display_defaults_and_override(monkeypatch, flags, enabled):
 )
 def test_invalid_display_options_fail_before_launch(flags):
     with pytest.raises(SystemExit):
-        recipes.main(["train", "--task", "wuji-reorient", "--output", "unused", *flags])
+        recipes.main(
+            [
+                "train",
+                "--task",
+                "wuji-reorient",
+                "--output",
+                "unused",
+                "--updates",
+                "1000",
+                *flags,
+            ]
+        )
 
 
 def test_unsupported_task_rejected_before_output_creation(tmp_path):
     path = tmp_path / "run"
     with pytest.raises(ValueError, match="Wuji"):
         recipes.main(
-            ["train", "--task", "cartpole-mpc", "--output", str(path), "--no-headless"]
+            [
+                "train",
+                "--task",
+                "cartpole-mpc",
+                "--output",
+                str(path),
+                "--updates",
+                "1000",
+                "--no-headless",
+            ]
         )
     assert not path.exists()
 

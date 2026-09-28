@@ -166,7 +166,8 @@ def go1_train(request, owner):
 
         resume_report = record_go1_resume(request)
     start = time.perf_counter()
-    history = []
+    completed_updates = 0
+    latest_metrics = None
     preview = nullcontext()
     if not request.get("headless", True):
         from embodiedforge._go1_training_viewer import training_preview
@@ -203,7 +204,8 @@ def go1_train(request, owner):
             )
             stream.write(json.dumps(row, allow_nan=False) + "\n")
             stream.flush()
-            history.append(row)
+            completed_updates += 1
+            latest_metrics = row
             if (iteration + 1) % 25 == 0 or offset == request["updates"] - 1:
                 publish_training_checkpoint(
                     {
@@ -226,7 +228,8 @@ def go1_train(request, owner):
     net.load_state_dict(checkpoint["model_state_dict"], strict=True)
     if (
         checkpoint["iteration"] != first_iteration + request["updates"] - 1
-        or len(history) != request["updates"]
+        or completed_updates != request["updates"]
+        or latest_metrics is None
     ):
         raise ValueError("Incomplete Go1 training artifacts")
     tensors = finite_tensors(checkpoint)
@@ -238,12 +241,12 @@ def go1_train(request, owner):
         "reward_profile": request["go1_reward_profile"],
         "command_profile": request["go1_command_profile"],
         "task_semantics": request["go1_semantics"],
-        "completed_updates": request["updates"],
+        "completed_updates": completed_updates,
         "checkpoint_iteration": checkpoint["iteration"],
         "finite_tensor_count": tensors,
         "action_dim": owner.ACT_DIM,
         "policy_observation_dim": owner.OBS_DIM,
-        "latest_metrics": history[-1],
+        "latest_metrics": latest_metrics,
         "physics": "mjbatch_cpu",
         "learner": "cpu",
         "behavior_validated": False,

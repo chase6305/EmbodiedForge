@@ -4,7 +4,6 @@ PYTHONPATH=src python benchmarks/check_learning.py runs/ppo/checkpoint.pt
 """
 
 import argparse
-import hashlib
 import json
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -36,9 +35,7 @@ def main():
     report = {
         "metadata": {
             "checkpoint": str(args.checkpoint.resolve()),
-            "checkpoint_sha256": hashlib.sha256(
-                args.checkpoint.read_bytes()
-            ).hexdigest(),
+            "checkpoint_sha256": checkpoint.sha256,
             "training_environment": asdict(checkpoint.env_config),
             "num_envs": args.num_envs,
             "seeds": args.seeds,

@@ -44,12 +44,22 @@ def fake_worker(args, fail=None):
             if fail == "validate":
                 raise RuntimeError("nonfinite inference")
             model = Path(command[-1])
+        if "--onnx-file" not in command or env.get("EF_MICRODUCK_NATIVE") == "1":
             report = {
                 "onnx": str(model),
                 "actor_dim": 61,
                 "action_dim": 14,
                 "finite_inference": fail != "report",
             }
+            if env.get("EF_MICRODUCK_NATIVE") == "1" and fail != "parity":
+                report["policy_parity"] = {
+                    "passed": True,
+                    "samples": 3,
+                    "atol": 1e-4,
+                    "rtol": 1e-4,
+                    "max_absolute_error": 1e-7,
+                    "reference": "checkpoint_actor_cpu",
+                }
             model.with_suffix(".validation.json").write_text(json.dumps(report))
 
     return execute
@@ -87,7 +97,8 @@ def test_success_publishes_validated_model_and_provenance(export_args, monkeypat
 
 
 @pytest.mark.parametrize(
-    "phase", ["export", "validate", "report", "interrupt", "finalize", "finalize-interrupt"]
+    "phase",
+    ["export", "validate", "report", "interrupt", "finalize", "finalize-interrupt"],
 )
 def test_failure_retains_diagnostics_and_allows_same_output_retry(
     export_args, monkeypatch, phase
@@ -171,12 +182,16 @@ def test_changed_run_checkpoint_is_rejected_before_export(export_args, monkeypat
     assert not export_args.output.exists()
 
 
-def test_native_export_and_validation_use_frozen_code(export_args, monkeypatch):
+@pytest.mark.parametrize("missing_parity", [False, True])
+def test_native_export_and_validation_use_frozen_code(
+    export_args, monkeypatch, missing_parity
+):
     from embodiedforge._microduck_native import source_identity
 
-    delegate = fake_worker(export_args)
+    delegate = fake_worker(export_args, "parity" if missing_parity else None)
 
     def execute(command, **kwargs):
+        assert "--onnx-file" in command  # Export and parity share the loaded actor.
         assert command[1] == "-I"
         worker = Path(command[2])
         assert worker.is_relative_to(attempts(export_args)[0] / "implementation")
@@ -184,7 +199,20 @@ def test_native_export_and_validation_use_frozen_code(export_args, monkeypatch):
         delegate(command, **kwargs)
 
     monkeypatch.setattr(microduck, "run", execute)
-    run_export(export_args, source_identity(), {"EF_MICRODUCK_NATIVE": "1"})
+    if missing_parity:
+        with pytest.raises(ValueError, match="missing checkpoint actor parity"):
+            run_export(export_args, source_identity(), {"EF_MICRODUCK_NATIVE": "1"})
+        assert not export_args.output.exists()
+        assert not export_args.output.with_suffix(".validation.json").exists()
+    else:
+        run_export(export_args, source_identity(), {"EF_MICRODUCK_NATIVE": "1"})
+        report = json.loads(
+            export_args.output.with_suffix(".validation.json").read_text()
+        )
+        assert report["policy_parity"]["passed"]
+        assert report["policy_parity"]["samples"] == 3
+        manifest = json.loads(Path(report["export_run"]).read_text())
+        assert manifest["logs"] == ["00-export.log"]
 
 
 @pytest.mark.parametrize("collision", ["model", "report", "interrupt", "cleanup"])
@@ -200,10 +228,9 @@ def test_publication_races_and_interruptions_do_not_overwrite_or_leave_own_files
     real_link = os.link
 
     def link(source, destination):
-        if (
-            destination == (output if collision == "model" else validation)
-            and collision in ("model", "report")
-        ):
+        if destination == (
+            output if collision == "model" else validation
+        ) and collision in ("model", "report"):
             destination.write_bytes(b"other export")
         real_link(source, destination)
         if collision in ("interrupt", "cleanup") and destination == output:

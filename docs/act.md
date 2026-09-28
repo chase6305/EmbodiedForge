@@ -105,10 +105,11 @@ python -m embodiedforge act --python .cache/act-venv/bin/python evaluate \
   --output runs/act-train/evaluation-2001.json
 ```
 
-先验证接口时，训练使用 `--small-model --steps 5`，并设置
-`OMP_NUM_THREADS=1 MKL_NUM_THREADS=1` 限制 CPU 线程。
-`--small-model` 缩小 Transformer 并禁用 ImageNet 权重下载，只用于流程验证。
-短训练完成不代表策略已学会任务。正式训练可选择 `--device cuda`。
+训练直接按 `--steps` 指定的预算执行，可选择 `--device cuda`。
+`--small-model` 是可选的紧凑架构：Transformer 维度 64、4 个注意力头、
+前馈维度 128、encoder 与 VAE encoder 各 1 层、latent 维度 8，并禁用
+ImageNet backbone 初始化权重。它不改变训练预算；用于架构对照时应单独记录，
+不能与默认模型混作同一实验。CPU 线程可用 `OMP_NUM_THREADS` 和 `MKL_NUM_THREADS` 限制。
 训练关闭 Hub 上传及 W&B；图像策略默认可能下载 ResNet 的 ImageNet 初始化权重。
 当前封装仅训练由此导出器生成的本地数据集。
 省略 `--learning-rate` 时沿用上游 ACT 优化器预设；该参数调整主参数组，

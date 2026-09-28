@@ -188,27 +188,46 @@ def test_resume_rejects_negative_moment_before_creating_simulation(
     assert not (tmp_path / "resume-report.json").exists()
 
 
-@pytest.mark.parametrize("failure", ["write", "replace"])
-def test_failed_save_preserves_checkpoint_and_removes_partial_file(
-    trained, tmp_path, monkeypatch, failure
+@pytest.mark.parametrize("failure", ["write", "replace", "interrupt"])
+@pytest.mark.parametrize("cleanup_fails", [False, True])
+def test_failed_save_preserves_checkpoint_and_original_error(
+    trained, tmp_path, monkeypatch, caplog, failure, cleanup_fails
 ):
     path = tmp_path / "model.pt"
     checkpoint = {"optimizer_state_dict": trained.state_dict(), "iteration": 1}
     save_go1_checkpoint(path, checkpoint, optimizer=trained)
     before = path.read_bytes()
+    error = (
+        KeyboardInterrupt("Injected interruption")
+        if failure == "interrupt"
+        else OSError(f"Injected {failure} failure")
+    )
 
     def failed_write(value, temporary):
         temporary.write_bytes(b"partial checkpoint")
-        raise OSError("Injected write failure")
+        raise error
 
     def failed_replace(self, target):
-        raise OSError("Injected replace failure")
+        raise error
 
-    if failure == "write":
+    if cleanup_fails:
+
+        def denied(self, **kwargs):
+            raise PermissionError("temporary file removal denied")
+
+        monkeypatch.setattr(Path, "unlink", denied)
+    if failure in ("write", "interrupt"):
         monkeypatch.setattr(torch, "save", failed_write)
     else:
         monkeypatch.setattr(Path, "replace", failed_replace)
-    with pytest.raises(OSError, match="Injected"):
+    with pytest.raises(type(error), match="Injected") as caught:
         save_go1_checkpoint(path, checkpoint, optimizer=trained)
+    assert caught.value is error
     assert path.read_bytes() == before
-    assert not path.with_suffix(".pt.tmp").exists()
+    assert torch.load(path, weights_only=True)["iteration"] == 1
+    temporary = path.with_suffix(".pt.tmp")
+    if cleanup_fails:
+        assert temporary.exists()
+        assert str(temporary) in caplog.text and "removal denied" in caplog.text
+    else:
+        assert not temporary.exists()

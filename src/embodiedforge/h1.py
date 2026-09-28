@@ -13,6 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ._microduck_process import run_process as _run_process
 from .logging import get_logger, setup_logging
 
 REVISION = "2e44ddb2e19536579140496023b5ccb060bc4152"
@@ -77,35 +78,15 @@ def run_process(
 ) -> None:
     """Forward interruption to the whole child group and retain native output."""
     LOGGER.info("Running %s; output: %s", command, cwd / "console.log")
-    with (
-        (cwd / "console.log").open("a") as log,
-        subprocess.Popen(
-            command,
-            cwd=cwd,
-            env=env,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        ) as process,
-    ):
-        try:
-            returncode = process.wait(timeout=timeout)
-        except (KeyboardInterrupt, subprocess.TimeoutExpired):
-            try:
-                os.killpg(process.pid, signal.SIGINT)
-                process.wait(timeout=10)
-            except (subprocess.TimeoutExpired, KeyboardInterrupt, ProcessLookupError):
-                pass
-            finally:
-                # Also remove descendants if the wrapper exited before its worker.
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                process.wait()
-            raise
-        if returncode:
-            raise subprocess.CalledProcessError(returncode, command)
+    _run_process(
+        command,
+        cwd=cwd,
+        env=env,
+        log_path=cwd / "console.log",
+        echo=False,
+        timeout=timeout,
+        append_log=True,
+    )
 
 
 def resume_input(run: Path) -> tuple[Path, dict]:
@@ -468,7 +449,7 @@ def main(argv: list[str] | None = None) -> None:
     training.add_argument(
         "--updates",
         type=positive_int,
-        default=5,
+        required=True,
         help="Additional PPO updates in this invocation",
     )
     training.add_argument("--seed", type=int, default=0)

@@ -344,31 +344,40 @@ class Go1PortTests(unittest.TestCase):
         self.assertAlmostEqual(ret[0, 0].item(), 1 + ppo.GAMMA * 5, places=5)
         self.assertAlmostEqual(adv[1, 0].item(), 2 + ppo.GAMMA * 7 - 100, places=5)
 
-    def test_action_only_path_matches_forward_and_skips_critic(self):
+    def test_separate_actor_critic_paths_match_forward_and_skip_unused_network(self):
         torch, ppo = self.torch, self.ppo
         torch.manual_seed(14)
         net = ppo.ActorCritic()
+        net.mean.copy_(torch.randn(50))
+        net.var.copy_(torch.rand(50) + 0.1)
         env = self.task.Go1(8, seed=4, num_threads=2)
         obs = torch.as_tensor(env.obs())
-        calls = []
-        hook = net.critic.register_forward_hook(lambda *args: calls.append(1))
-        try:
-            action = net.action_mean(obs)
-            self.assertEqual(calls, [])
-            expected, _ = net(obs)
-            self.assertEqual(calls, [1])
-            torch.testing.assert_close(action, expected, rtol=0, atol=0)
-            other = deepcopy(net)
-            net.zero_grad(set_to_none=True)
-            action.square().sum().backward()
-            other(obs)[0].square().sum().backward()
-            for a, b in zip(
-                net.actor.parameters(), other.actor.parameters(), strict=True
-            ):
-                torch.testing.assert_close(a.grad, b.grad, rtol=0, atol=0)
-            self.assertTrue(all(p.grad is None for p in net.critic.parameters()))
-        finally:
-            hook.remove()
+        for method, used, unused, index in (
+            (net.action_mean, net.actor, net.critic, 0),
+            (net.value, net.critic, net.actor, 1),
+        ):
+            calls = []
+            hook = unused.register_forward_hook(
+                lambda *args, calls=calls: calls.append(1)
+            )
+            try:
+                actual = method(obs)
+                self.assertEqual(calls, [])
+                expected = net(obs)[index]
+                self.assertTrue(calls)
+                torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+                expected_grad = torch.autograd.grad(
+                    expected.square().sum(), tuple(used.parameters())
+                )
+                net.zero_grad(set_to_none=True)
+                actual.square().sum().backward()
+                for parameter, gradient in zip(
+                    used.parameters(), expected_grad, strict=True
+                ):
+                    torch.testing.assert_close(parameter.grad, gradient, rtol=0, atol=0)
+                self.assertTrue(all(p.grad is None for p in unused.parameters()))
+            finally:
+                hook.remove()
 
     def test_fast_command_profiles_change_interval_and_retention_only(self):
         slow = self.task.Go1(

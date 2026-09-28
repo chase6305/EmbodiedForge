@@ -4,7 +4,7 @@
 
 Choose the section for your task; installing every SDK is unnecessary. Run commands from the EmbodiedForge repository root. Replace `/path/to/...` with local paths and use nonexistent paths for new output directories or exported files. Example budgets reproduce workflows without promising behavioral acceptance.
 
-[Environment setup](#setup) · [Core PPO](#core) · [Go1](#go1) · [Microduck](#microduck) · [H1](#h1) · [Wuji](#wuji) · [MPC / CEM](#solvers) · [Web serving and remote access](#serving) · [Wheel deployment](#package) · [Artifacts and limits](#artifacts)
+[Environment setup](#setup) · [Core PPO](#core) · [Go1](#go1) · [Microduck](#microduck) · [H1](#h1) · [Wuji](#wuji) · [GMR / SONIC (Chinese)](humanoid-motion.md) · [Weave (Chinese)](weave-reference.md) · [RLinf (Chinese)](rlinf.md) · [MPC / CEM](#solvers) · [Web serving and remote access](#serving) · [Wheel deployment](#package) · [Artifacts and limits](#artifacts)
 
 | Task | Training / solver runtime | Available execution or export |
 | --- | --- | --- |
@@ -14,13 +14,36 @@ Choose the section for your task; installing every SDK is unnecessary. Run comma
 | Native H1 | Project-owned MuJoCo/mjbatch CPU PPO; no IsaacLab | Fixed-command evaluation and shared Web motion replay |
 | H1 | External IsaacLab environment + RSL-RL; Newton / MuJoCo-Warp GPU physics | Fixed-command evaluation, offline HTML / Web motion replay |
 | Wuji / Wuji Light | External Wuji/UniLab environment and training stack; GPU PPO | Sequential trial evaluation and video recording |
+| [GMR / SONIC X2](humanoid-motion.md) | External GMR BVH retargeting and SONIC ONNX tracking | Headless reference generation / MuJoCo evaluation; these entries do not train policies |
+| [Weave / G1 HOI](weave-reference.md) | Pinned external Weave / IsaacLab SDK; motion-conditioned PPO | Training/resume, per-clip evaluation and policy export; full simulation remains unvalidated |
+| [RLinf / PickCube](rlinf.md) | Pinned external RLinf / ManiSkill SDK; single-node, single-GPU MLP SAC | Headless training, full-state resume, simulation evaluation, CPU ONNX export and closed-loop evaluation; GPU training, checkpoint recovery and evaluation validated on PickCube |
 | Cartpole / arm throwing | External mjbatch examples, adapted CPU MPC / CEM | Solver metrics and trajectories |
 
 Deployment here means running policies in simulation, serving viewers, and exporting models. There is currently no unified hardware deployment command or generic Go1/H1 ONNX export entry point.
 
+ONNX evaluation serves different purposes across entry points. [Microduck's `evaluate --onnx`](microduck.md) also needs a checkpoint and compares actions on live observations while PyTorch drives the simulation. [RLinf's `evaluate --onnx`](rlinf.md) loads the exported policy alone and uses CPU ONNX actions to drive PickCube. [SONIC's `evaluate`](humanoid-motion.md) drives X2 MuJoCo using the pinned bundle's pretrained ONNX model and its matching control parameters.
+
+The [humanoid integration study (Chinese)](humanoid-integration-study-20260928.md) covers GMR reference replay and SONIC model sizes, control presets and force ablations.
+
+The [2026-09-28 restart study (Chinese)](rl-resume-study-20260928.md) provides RLinf training, full-state restart, and ONNX evaluation commands, with results for both training seeds and measured model and checkpoint sizes. The [compression and post-training study (Chinese)](rl-compression-study-20260928.md) adds FP16/INT8 storage export commands, layer-wise dynamic INT8 ablations, and inference batch comparisons.
+
 **Which implementation trains the policy?** `train` uses the core `VectorEnv`. Go1 and `h1-native` use robot environments and PPO maintained in this repository, but are not yet integrated into `VectorEnv`; MuJoCo/mjbatch remains the physics engine. Go1 supports `--standalone` with installed packages; its default mode retains the pinned mjbatch SDK checkout. The `h1` command uses IsaacLab, while `h1-native` does not. The shared Web viewer is a separate visualization path, not the training environment.
 
 New core PPO, Go1 PPO and native H1 training runs write `training-runtime.json` in their output directory, including resumed Go1/H1 runs. It records the actual loaded environment, task, learner and physics adapter, their module/file paths, Python source hashes, package versions, interpreter, CPU execution and whether the core `VectorEnv` is used. Go1 paths point to the run's implementation snapshot. This records entry-point provenance, not every transitive dependency, a checkpoint compatibility lock or policy quality. Older runs and external workflows do not gain this file retroactively.
+
+Core PPO and native H1 reuse the value of an unchanged observation across adjacent steps within a rollout. A 24-step rollout without resets needs 25 critic calls instead of 48. Partial resets recompute only the affected rows; a full reset recomputes the batch directly without extra indexed copies. Each new rollout recomputes values, so the cache never crosses policy updates. Timeout bootstrapping still uses the observation before reset.
+
+A local measurement on 2026-09-22 used actual policies, a stand-in environment, Torch 2.9.0 and one CPU thread, alternating implementations and taking the median of five groups. For 128 steps, 1024 environments and 32 reset rows per step, Core PPO collection fell from about 136.6 to 102.4 ms and native H1 from 393.2 to 288.6 ms. No-reset and full-reset cases remained close to the previous implementation. Sampled actions and RNG state matched; smaller critic batches introduced value differences up to about `3e-8`, with post-update weight and Adam differences of about `7.5e-9` and `3.8e-9`. Bitwise equality is not guaranteed. These are collection timings, not full physics simulation or training throughput.
+
+Actual-environment comparisons also covered reach/hold with NumPy and MuJoCo, and native H1 with MuJoCo/mjbatch: 16 environments, 64 steps and staggered timeouts. Current values differed by at most about `6.8e-8`; actions, observations, rewards, next values and termination/truncation flags matched exactly.
+
+Both collectors allocate independent arrays using the current rollout length and actual data shapes and dtypes, then write each step directly. This avoids retaining per-step data alongside the final stacked copy. Buffers are not reused across rollouts, so subsequent collection or environment resets cannot overwrite earlier data. Using stand-in environments and policies to isolate storage costs, `tracemalloc` peaks for 128 steps and 1024 environments fell from about 10.2 to 6.4 MiB for Core PPO and from 93.2 to 47.1 MiB for H1. These measurements cover NumPy/Python allocations, not the memory of the full simulation and training process.
+
+Their shared GAE batches TD errors and recurrence discounts, leaving only the dependent advantage recurrence in the time loop, at the cost of storing intermediate arrays for the full batch. A local NumPy measurement on 2026-09-21 (median of seven groups of 100 calls) reduced the 128-step, 1024-environment case from about 0.62 ms to 0.27 ms. Results matched exactly for float32/float64, noncontiguous arrays, and termination/timeout boundaries; Core PPO and H1 updates also matched in loss, weights, Adam state, and RNG state. These timings measure GAE alone, not full training throughput.
+
+Native Go1's Torch GAE also batches independent terms while preserving input validation and timeout bootstrapping. Measurements on the same date using Torch 2.9.0, one CPU thread, and the timing method above included validation: at 1024 environments, 24 steps fell from about 0.40 to 0.24 ms and 128 steps from 1.99 to 1.12 ms, at the cost of temporary batch-sized TD error and discount tensors. Thirty cases spanning lengths, dtypes, mask types, and noncontiguous inputs matched exactly; the existing upstream comparison also confirmed identical weights and Adam state after a full policy update. This change optimizes native Go1 GAE; Light Loco still calls its pinned upstream implementation.
+
+Policy updates reuse gathered observations and advantages within each minibatch; H1 also reuses old values and return targets. Tensor gathers per minibatch drop from seven to five in Core PPO and from ten to six in H1, avoiding duplicate copies. CPU profiling confirmed the reduced index counts, with exactly matching loss, gradients, weights, Adam state, and RNG state. These counts do not imply a proportional reduction in total runtime.
 
 <a id="setup"></a>
 
@@ -75,7 +98,11 @@ python -m embodiedforge evaluate \
 
 Core PPO uses proprioception, not images. Evaluation restores configuration from the checkpoint; avoid changing its task or physics arbitrarily. The core CLI currently has no resume or ONNX export command. Point-task `visualization` runs a demonstration controller rather than loading these PPO checkpoints.
 
-To compare trained and untrained policies, run these commands in an environment with core training dependencies. The script preserves the checkpoint’s task, physics, control period, and episode length. Both policies use matching network dimensions and evaluation seeds. Output includes the model SHA256 and environment configuration for comparison provenance.
+The Python API's `PPOConfig` validates positive integer training counts, a finite positive learning rate, and an integer seed in `[0, 2**64 - 1]` at construction. Invalid configurations fail before creating the training output directory or simulation environment; booleans are rejected as counts or seeds.
+
+`load_checkpoint` / `load_policy` check loaded actor, critic, and `log_std` parameters on CPU, rejecting NaN/Inf with the affected parameter name before returning a policy. Action bounds must be finite and strictly increasing. When a checkpoint includes an environment specification, loading also checks that the policy's observation dimensions, action dimensions, and action range match that record, without creating simulation resources. Existing v1/v2 checkpoints remain supported; legacy models without an environment specification must also match the actual environment's dimensions and action range during evaluation.
+
+To compare trained and untrained policies, run these commands in an environment with core training dependencies. The script preserves the checkpoint’s task, physics, control period, and episode length. Both policies use matching network dimensions and evaluation seeds. Output includes the model SHA256 and environment configuration for comparison provenance. The digest comes from the `sha256` returned by `load_checkpoint`, computed from the same bytes used for deserialization. Replacing the source file after loading cannot make the report identify a different model's hash.
 
 ```bash
 python benchmarks/check_learning.py runs/commands-reach/checkpoint.pt --num-envs 128 --seeds 1001 1002 1003
@@ -126,9 +153,17 @@ Policy parameters, normalization statistics and optimizer state are restored. Si
 
 Go1 resume, evaluation and live control share checkpoint validation: the hash covers the exact deserialized bytes, the saved iteration must be a nonnegative integer matching the run record, and task profiles must match the source record. Normalization mean and variance must be finite floating-point vectors, variance must be nonnegative, and count must be a positive finite floating-point scalar. Invalid inputs are rejected before creating the simulation environment; valid zero variance and legacy profile defaults remain supported. Multi-seed/command evaluation reads and validates the checkpoint once, while each case still creates its own policy and environment.
 
+The native and Light Loco Go1 paths both use FP32 policies. Policy state tensors must be FP32 on load, preventing Torch's implicit conversion from turning finite FP64 values into infinities. The action standard deviation `exp(log_std)` must also be finite and positive; finite `log_std` alone does not rule out exponential overflow or underflow.
+
 Before creating the simulation, resume also checks Adam state against the current parameters: parameter groups, complete and unique parameter mappings, moment shapes/dtypes, nonnegative second moments, valid step counters and hyperparameters. Incompatible optimizer modes are rejected to avoid silently changing algorithms. Checkpoints are still saved every 25 updates and at training completion: optimizer state and tensor finiteness are checked before writing a temporary file and replacing the checkpoint. Validation or write failures preserve the previously saved file and mark the run as failed.
 
+Go1 writes every update's metrics to `metrics.jsonl`, retaining only the latest row and completed count in memory. The final report's `latest_metrics` matches the last log row, avoiding a second in-memory copy of the full history during long training runs.
+
+A failed or interrupted save attempts to remove the temporary file. Cleanup failures log the remaining path and cause while preserving the original save exception or Ctrl+C. Successful checkpoint replacement requires no subsequent temporary-file deletion.
+
 New Go1 runs also commit `recovery.json` at each successful save, recording an independent checkpoint's hash, saved progress, configuration, dependencies and assets. `checkpoints/` retains the two most recent snapshots; `model.pt` remains the standard completed-run artifact. Once stopped, runs marked `interrupted`, `timed_out` or `failed` can be resumed with `--resume-run`, which verifies the recovery record, request, implementation snapshot and checkpoint hash. Resume starts from the saved iteration; later unsaved updates are not counted. The original run status is preserved and the resume report identifies the recovery source; the new directory's `input-run.json` is augmented with the verified saved-checkpoint result and a `checkpoint_origin` marker.
+
+An interruption while publishing the recovery record or `model.pt` retains its original cause even if temporary-file cleanup fails; the remaining file is logged. Before the recovery record commits, the previous checkpoint remains recoverable. After it commits, the newly saved independent checkpoint remains recoverable even if updating `model.pt` fails.
 
 For example, after the standalone training above stops through Ctrl+C or a timeout, inspect `recoverable_checkpoint` and resume into a new directory:
 
@@ -245,20 +280,22 @@ python -m embodiedforge h1-native evaluate \
   --output runs/commands-h1-native-eval
 ```
 
+After native H1 stops through interruption or failure, the same `--resume` command can load its last recorded, validated checkpoint. Runs that stopped before saving, are still marked `running`, or fail artifact validation cannot be recovered. Unsaved updates do not count toward resumed progress.
+
 Use the resumed run’s `model.mjb` and evaluation `motion.npz` with the shared `replay` command in `ef-viewer`. See [native H1](h1-native.en.md) for reset/torque contracts and acceptance limits. These checkpoints are incompatible with the IsaacLab workflow.
 
 ### IsaacLab GPU workflow
 
-Use the prepared pinned IsaacLab checkout and isolated environment. Run a smoke test, then add training updates. Keep `--repo` and `--environment` consistent across commands.
+Use the prepared pinned IsaacLab checkout and isolated environment, and specify the training budget directly. Keep `--repo` and `--environment` consistent across commands.
 
 ```bash
 python -m embodiedforge h1 train \
   --repo /path/to/IsaacLab --environment /path/to/envs/isaaclab \
-  --num-envs 64 --updates 5 --timeout 600 --output runs/commands-h1-smoke
-python -m embodiedforge h1 status --run runs/commands-h1-smoke
+  --num-envs 512 --updates 1000 --output runs/commands-h1
+python -m embodiedforge h1 status --run runs/commands-h1
 python -m embodiedforge h1 train \
   --repo /path/to/IsaacLab --environment /path/to/envs/isaaclab \
-  --resume-run runs/commands-h1-smoke --num-envs 512 --updates 1000 \
+  --resume-run runs/commands-h1 --num-envs 512 --updates 1000 \
   --output runs/commands-h1-resumed
 python -m embodiedforge h1 evaluate \
   --repo /path/to/IsaacLab --environment /path/to/envs/isaaclab \
@@ -271,7 +308,7 @@ python -m embodiedforge h1 replay \
   --output runs/commands-h1-forward.html
 ```
 
-The larger training command has no extra timeout; add `--timeout` to bound wall-clock time. Five hundred steps cover ten seconds. For longer validation, use `--steps 3000` with a new output directory. Open the HTML file offline for skeleton replay; see below for mesh replay. H1 currently has no shared Web live-command entry point: `live --run` cannot load H1 training directories.
+Training requires an explicit `--updates` budget and has no extra timeout; add `--timeout` to bound wall-clock time. Five hundred steps cover ten seconds. For longer validation, use `--steps 3000` with a new output directory. Open the HTML file offline for skeleton replay; see below for mesh replay. H1 currently has no shared Web live-command entry point: `live --run` cannot load H1 training directories.
 
 <a id="wuji"></a>
 
@@ -285,18 +322,18 @@ Closing the browser does not stop training; the preview server exits with traini
 Go1 also supports `--no-headless`. TensorBoard remains a separate service.
 See the [complete Wuji walkthrough (Chinese)](wuji-training.md).
 
-Complete wuji_unilab setup first. Standard and Light are different tasks: use separate run directories and preserve `--task` for resume and evaluation. The small budgets below validate the workflow:
+Complete wuji_unilab setup first. Standard and Light are different tasks: use separate run directories and preserve `--task` for resume and evaluation. Training requires `--updates` and has no wall-clock limit unless `--timeout` is supplied. These example budgets do not guarantee behavioral acceptance:
 
 ```bash
 python -m embodiedforge recipes train --task wuji-reorient \
-  --num-envs 32 --horizon 40 --updates 5 --timeout 600 \
+  --num-envs 512 --horizon 40 --updates 1000 \
   --output runs/commands-wuji
 python -m embodiedforge recipes train --task wuji-reorient-light \
-  --num-envs 32 --horizon 40 --updates 5 --timeout 600 \
+  --num-envs 512 --horizon 40 --updates 1000 \
   --output runs/commands-wuji-light
 python -m embodiedforge recipes train --task wuji-reorient-light \
-  --resume-run runs/commands-wuji-light --num-envs 32 --horizon 40 \
-  --updates 100 --timeout 1800 --output runs/commands-wuji-light-resumed
+  --resume-run runs/commands-wuji-light --num-envs 512 --horizon 40 \
+  --updates 1000 --output runs/commands-wuji-light-resumed
 python -m embodiedforge recipes status --run runs/commands-wuji-light-resumed
 python -m embodiedforge recipes evaluate --task wuji-reorient-light \
   --run runs/commands-wuji-light-resumed --num-envs 1 --seed 0 \

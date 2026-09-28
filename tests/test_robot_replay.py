@@ -65,6 +65,7 @@ def test_named_joint_mapping_and_full_fk_validation(recording):
     motion = RobotMotion(path, model)
     np.testing.assert_allclose(motion.qpos, expected, atol=1e-7)
     assert motion.max_position_error < 1e-6
+    assert motion.max_rotation_error < 1e-6
     assert motion.terminated and not motion.truncated
     assert motion.details(3)["terminal"] == "终止"
     assert motion.details(1)["command"] == [0.5, 0, 0]

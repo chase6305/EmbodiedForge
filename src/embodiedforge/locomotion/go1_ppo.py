@@ -68,14 +68,20 @@ class ActorCritic(nn.Module):
     def _action_and_normalized_obs(self, obs):
         """Average the net's answer with its answer on the mirrored observation mirrored back, so
         the policy commutes with the mirror exactly and the gait cannot limp."""
-        flip = (obs[:, self.mirror] * self.sign - self.mean) / (self.var.sqrt() + 1e-5)
-        obs = (obs - self.mean) / (self.var.sqrt() + 1e-5)
+        scale = self.var.sqrt() + 1e-5
+        flip = (obs[:, self.mirror] * self.sign - self.mean) / scale
+        obs = (obs - self.mean) / scale
         mean = self.actor(obs) + self.actor(flip)[:, self.legs] * self.leg_sign
         return 0.5 * mean, obs
 
     def action_mean(self, obs):
         """Compute policy actions without evaluating the critic."""
         return self._action_and_normalized_obs(obs)[0]
+
+    def value(self, obs):
+        """Compute bootstrap values without evaluating the mirrored actor."""
+        normalized = (obs - self.mean) / (self.var.sqrt() + 1e-5)
+        return self.critic(normalized).squeeze(-1)
 
     def forward(self, obs):
         mean, normalized = self._action_and_normalized_obs(obs)
@@ -99,16 +105,20 @@ def rollout(actor, env, *, horizon=24, record_policy=False):
     }
     means, falls, episodes = [], 0, 0
     obs = env.obs()
+    # The policy is fixed during collection; refresh after each PPO update.
+    log_std = actor.log_std.cpu().numpy()
+    std = np.exp(log_std)
     for t in range(horizon):
         mean, val = policy(obs)
-        log_std = actor.log_std.cpu().numpy()
         noise = env.rng.standard_normal(mean.shape, np.float32)
-        act, logp = mean + np.exp(log_std) * noise, log_density(noise, log_std)
+        act, logp = mean + std * noise, log_density(noise, log_std)
         reward, done, fell, terms = env.step(act)
         next_obs = env.obs()
         timeout = done & ~fell
         if timeout.any():  # bootstrap
-            reward[timeout] += GAMMA * policy(next_obs[timeout])[1]
+            reward[timeout] += (
+                GAMMA * actor.value(torch.as_tensor(next_obs[timeout])).cpu().numpy()
+            )
         for k, v in dict(
             obs=obs, act=act, logp=logp, val=val, rew=reward, alive=~done
         ).items():
@@ -125,13 +135,14 @@ def rollout(actor, env, *, horizon=24, record_policy=False):
     batch = {k: torch.as_tensor(v) for k, v in buf.items()}
     if record_policy:
         batch["policy_log_std"] = actor.log_std.detach().clone()
-    batch["last_val"] = torch.as_tensor(policy(obs)[1])
+    batch["last_val"] = actor.value(torch.as_tensor(obs)).cpu()
     stats = dict(zip(REWARD, np.mean(means, 0), strict=True))
     stats["falls"] = falls / max(episodes, 1)
     return batch, stats
 
 
-def gae(batch):
+def validate_gae_batch(batch):
+    """Check the shared rollout contract without computing training targets."""
     reward = batch["rew"]
     if (
         reward.ndim != 2
@@ -157,12 +168,17 @@ def gae(batch):
             raise ValueError(f"Invalid Go1 GAE {name} shape or values")
     if not ((batch["alive"] == 0) | (batch["alive"] == 1)).all():
         raise ValueError("Go1 GAE alive must contain only zero or one")
+
+
+def gae(batch):
+    validate_gae_batch(batch)
     vals = torch.cat([batch["val"], batch["last_val"][None]])
     adv, carry = torch.zeros_like(batch["rew"]), 0.0
+    # Batch the independent transition terms; only the carry is sequential.
+    delta = batch["rew"] + GAMMA * batch["alive"] * vals[1:] - vals[:-1]
+    discount = GAMMA * LAMBDA * batch["alive"]
     for t in reversed(range(len(batch["rew"]))):
-        alive = batch["alive"][t]
-        delta = batch["rew"][t] + GAMMA * alive * vals[t + 1] - vals[t]
-        adv[t] = carry = delta + GAMMA * LAMBDA * alive * carry
+        adv[t] = carry = delta[t] + discount[t] * carry
     return adv, adv + batch["val"]
 
 

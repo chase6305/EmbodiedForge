@@ -33,12 +33,17 @@ def test_gae_matches_reference_with_episode_boundaries(length):
     actual = llp.gae(batch)
     for a, b in zip(actual, expected, strict=True):
         torch.testing.assert_close(a, b, rtol=1e-5, atol=1e-6)
+    batch["alive"][0, 0] = 0.5
+    with pytest.raises(ValueError, match="alive must contain only zero or one"):
+        llp.gae(batch)
 
 
 def test_external_objective_has_equivalent_native_gradients():
     torch.manual_seed(11)
     torch.set_num_threads(1)
     net = native.ActorCritic()
+    net.mean.copy_(torch.randn(50))
+    net.var.copy_(torch.rand(50) + 0.1)
     obs, actions = torch.randn(16, 50), torch.randn(16, 12)
     mean, values = net(obs)
     old_logp = native.log_density(
@@ -54,10 +59,16 @@ def test_external_objective_has_equivalent_native_gradients():
         - native.ENT_COEF * net.log_std.sum()
     )
     expected = torch.autograd.grad(loss, tuple(net.parameters()))
-    external = llp.make_loss(net)(obs, actions, old_logp, advantage, returns)
+    actor_calls = []
+    hook = net.actor.register_forward_hook(lambda *args: actor_calls.append(1))
+    try:
+        external = llp.make_loss(net)(obs, actions, old_logp, advantage, returns)
+    finally:
+        hook.remove()
     actual = torch.autograd.grad(external, tuple(net.parameters()))
     for a, b in zip(actual, expected, strict=True):
         torch.testing.assert_close(a, b, rtol=1e-4, atol=1e-6)
+    assert len(actor_calls) == 2  # Original and mirrored observations, once each.
 
 
 def test_update_changes_weights_and_checkpoint_remains_native_compatible():

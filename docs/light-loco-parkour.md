@@ -98,13 +98,21 @@ python -m embodiedforge live --run runs/my-go1-light-loco-resumed \
 
 ## 实现与验收边界
 
+2000 次更新、1024 环境的实际训练对照见 [2026-09-25 实验记录](rl-training-study-20260925.md#go1原生-ppo-与-light-loco)：两个完整训练种子及三个评估种子，保留原生 PPO 默认值。
+
 - `light-loco-source.json` 记录上游 revision、版本、实际路径和源码哈希。
 - `training-runtime.json` 标明实际使用 `go1_light_loco.update`，并记录关键算法依赖版本。
 - 运行记录与 checkpoint 包含 `learner_backend`；旧 checkpoint 缺省视为 native。
-- 保留原有超时 bootstrap 修正和回合边界；GAE 转换为上游要求的 `[environment, time]`。
+- 保留原有超时 bootstrap 修正和回合边界；GAE 转换为上游要求的 `[environment, time]`。原生与 Light Loco 共用输入检查，Light Loco 仅执行一次上游 GAE，不再为校验而重复计算原生 GAE。
 - 适配器把原生策略传给上游 Agent；使用高斯动作分布，关闭上游再次标准化优势，避免重复标准化。
+- critic loss、rollout 超时 bootstrap 和末步 value 只执行 critic，避免额外运行镜像 actor；沿用相同的观测归一化和 checkpoint 参数格式。
+- 原生 Go1 与 Light Loco 共用的策略在单次镜像前向中复用归一化分母，采样标准差每次 rollout 只计算一次。24 步采样的标准差指数运算由 24 次减为 1 次；下一次 rollout 重新读取策略参数。已对照非默认归一化统计、短回合重置、策略更新及 checkpoint 状态重载，采样、梯度、权重、Adam 和随机数状态均与修改前逐值一致；运算次数减少不代表整体训练同比加速。
 - 上游完整高斯熵与旧实现仅保留 log-std 部分存在常数差，因此比较参数梯度而非强制损失数值相等。
 - 已验证 GAE 数值、梯度、实际权重更新、短训/续训/评估/在线控制兼容；短训不构成行为成功证明。
 - 2026-09-16 的 30 轮 Go1 Light Loco 训练预览短测完成，HTTP 读取到 9 个不同采样步的 640×480 JPEG 帧，图像内容随训练变化。EGL 发出驱动警告但实际出图成功；不代表使用了 NVIDIA 渲染。
+
+2026-09-20 的局部性能验证使用 Torch 2.9.0、CPU 单线程、batch=1024 和非默认观测归一化统计：只计算 value 的耗时从约 1.74 ms 降到 0.53 ms，Light Loco 完整 loss＋反向传播从约 5.99 ms 降到 4.63 ms。优化前后的 loss 和参数梯度逐值一致；这些计时不包含仿真与优化器更新，不等同于端到端训练加速或行走质量提升。
+
+同日去除重复 GAE 后，在相同 Torch 与 CPU 线程设置下，1024 个环境、24 步 rollout 的 GAE 耗时从约 0.92 ms 降到 0.65 ms；128 步从约 4.44 ms 降到 3.15 ms。计时包含输入校验，两种长度的优势和回报均与改动前逐值一致；收益仅对应 GAE 阶段。
 
 本地源码评估及后续多技能计划见 [接入评估](light-loco-parkour-assessment.md)。

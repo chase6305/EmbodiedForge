@@ -1,6 +1,7 @@
 """Local-checkpoint ONNX export adapted from Microduck's export.py (see NOTICE)."""
 
 import argparse
+import json
 from dataclasses import asdict
 from pathlib import Path
 
@@ -8,7 +9,6 @@ from pathlib import Path
 def policy_metadata(env, run_path):
     """Describe the controlled joints in action order without patching the SDK."""
     import torch
-
     from mjlab.envs.mdp.actions import JointPositionAction
 
     robot = env.scene["robot"]
@@ -36,12 +36,39 @@ def policy_metadata(env, run_path):
     }
 
 
+def export_policy(runner, output, metadata):
+    """Export and compare raw ONNX actions with the loaded checkpoint actor."""
+    import torch
+    from mjlab.rl.exporter_utils import attach_metadata_to_onnx
+    from tensordict import TensorDict
+
+    from embodiedforge._microduck_worker import validate_onnx
+
+    # Stage the actor on CPU before the SDK deep-copies it for ONNX export.
+    policy = runner.get_inference_policy(device="cpu")
+    runner.export_policy_to_onnx(str(output.parent), output.name)
+    attach_metadata_to_onnx(str(output), metadata)
+
+    @torch.inference_mode()
+    def reference(observation):
+        obs = TensorDict({"actor": torch.from_numpy(observation)}, batch_size=[1])
+        return policy(obs).cpu().numpy()
+
+    report = validate_onnx(output, reference=reference)
+    report["policy_parity"]["reference"] = "checkpoint_actor_cpu"
+    output.with_suffix(".validation.json").write_text(
+        json.dumps(report, indent=2, allow_nan=False) + "\n"
+    )
+    return report
+
+
 def main(argv=None):
     from mjlab.envs import ManagerBasedRlEnv
     from mjlab.rl import RslRlVecEnvWrapper
-    from mjlab.rl.exporter_utils import attach_metadata_to_onnx
     from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
     from mjlab.utils.torch import configure_torch_backends
+
+    from embodiedforge._microduck_worker import close_environment
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("task", choices=["Mjlab-Velocity-Flat-MicroDuck"])
@@ -61,8 +88,7 @@ def main(argv=None):
             str(args.checkpoint_file), load_cfg={"actor": True}, map_location="cpu"
         )
         output = args.onnx_file.resolve()
-        runner.export_policy_to_onnx(str(output.parent), output.name)
         metadata = policy_metadata(env, run_path=str(args.checkpoint_file))
-        attach_metadata_to_onnx(str(output), metadata)
+        export_policy(runner, output, metadata)
     finally:
-        env.close()
+        close_environment(env)
