@@ -25,7 +25,7 @@ bash requirements/install.sh embodied \
 
 本机本轮验证的 SDK 位于 `.cache/rlinf-sac-venv/bin/python`，下列命令的 `--python` 可替换为这个路径。它在独立虚拟环境中只读继承现有 Torch/Ray，并在自己的目录安装匹配的 ManiSkill、SAPIEN 和 Hydra；不直接使用原 IsaacLab 环境，也未改动 `ef`。这是本机依赖叠加环境，不是通用安装锁文件，实际版本和训练结果见 [GPU 实验记录](rl-training-study-20260926.md)。
 
-SDK 只加载当前 EmbodiedForge 包和指定的上游源码，NumPy、Torch 等依赖由 SDK 自己提供；从 wheel 安装 EmbodiedForge 时，也不会把主环境整个 `site-packages` 加入 SDK 的导入路径。该隔离同样适用于 SDK 派生的 Python 子进程。
+SDK 从运行目录的 `implementation/embodiedforge` 加载本地适配代码快照，并加载指定的上游源码；NumPy、Torch 等依赖由 SDK 自己提供。从 wheel 安装 EmbodiedForge 时，也不会把主环境整个 `site-packages` 加入 SDK 的导入路径。该隔离同样适用于 SDK 派生的 Python 子进程。`request.json` 保存 Python、XML 和许可证文件的 SHA256，SDK 启动前校验这些文件；运行期间继续编辑工作区不会改变本次任务的适配代码。历史运行不会自动补充快照。
 
 ## 训练
 
@@ -48,7 +48,11 @@ python -m embodiedforge rlinf train \
   --iterations 8000 --save-interval 200
 ```
 
-`--iterations` 是 RLinf 的采样/训练循环次数，不是环境步数，也不是单次梯度更新数。保留上游的 `algorithm.update_epoch=32`、训练每轮 2 个环境步、batch size 1024 等设置。每 200 次循环以及最后一次循环进行评估并保存完整检查点；训练中的评估使用 16 个并行环境，每轮 50 步。保存间隔和评估间隔共用一个参数，符合上游两者的整除约束。
+`--iterations` 是 RLinf 的采样/训练循环次数，不是环境步数，也不是单次梯度更新数。保留上游的 `algorithm.update_epoch=32`、训练每轮 2 个环境步、batch size 1024 等设置。每 200 次循环以及最后一次循环进行评估并保存完整检查点；训练中的评估使用 16 个并行环境，每轮 50 步。默认评估间隔跟随 `--save-interval`，也可显式指定 `--eval-interval`。例如 `--save-interval 1000 --eval-interval 500` 每 500 轮评估、每 1000 轮保存，最后一轮始终评估并保存。两个间隔必须为正数，且保存间隔必须是评估间隔的整数倍，这是固定上游的约束。比较不同保存频率时应显式固定评估间隔，不能只固定训练种子。
+
+新任务在环境 worker 的整次评估调用外保存并恢复 Torch CPU 与评估 GPU 的随机状态，避免 ManiSkill 自动重置消耗后续训练使用的 CUDA 随机流。请求记录 `evaluation_rng=isolated-torch`，训练和 PyTorch 评估结果也记录该字段。这不修改评估内部的采样、不重设种子，也不改变训练损失、奖励或网络。隔离范围针对当前同步、单卡配方；独立 ONNX 评估不与训练共用进程。
+
+历史请求缺少此字段时保留 `upstream` 行为；通过当前 CLI 从历史检查点新建续训则采用隔离行为。因此旧版与新版的学习轨迹可能不同，不能把“算法配置相同”解释为逐步复现旧轨迹。问题复现和配对验证见[评估随机状态隔离记录](rl-evaluation-isolation-20260929.md)。
 
 `--gpu` 指定一个物理 NVIDIA GPU 的非负整数索引，并覆盖继承的 `CUDA_VISIBLE_DEVICES`。该参数同时设置上游 actor、rollout、env 的 `component_placement`，因为 RLinf 会根据物理硬件放置重新设置工作进程的 GPU 可见性，单设驱动进程的环境变量不足以选卡。此固定版本的适配入口不接受 UUID/MIG 标识。不要用 `torchrun` 包裹此入口。每次运行建立自己的本地 Ray 实例，将实际地址传给工作进程，结束时关闭该实例；不会自动连接已有的 Ray 集群。
 
@@ -58,7 +62,7 @@ python -m embodiedforge rlinf train \
 
 训练和评估均可加 `--quiet`，将工作进程输出直接写入 `worker.log`，终端只显示日志路径和最终结果目录。指标、保存点及错误退出状态保持相同；不加时同时输出到终端和日志。长时间训练或后台运行建议加上该参数。
 
-Ctrl+C、SIGTERM 和未被忽略的 SIGHUP 会转发为工作进程组的 SIGINT，并等待主进程清理，最长 10 秒；随后清理本次组内残留进程。主进程失败或日志写入失败时也会清理残留进程。RLinf 工作进程自身的正常收尾负责关闭本次 Ray 实例。worker 异常触发上游 SIGUSR1 时，适配器保留日志中的原始错误，通过同一收尾路径关闭本次实例；不再通过可选 dashboard API 枚举 actor。清理期间忽略重复失败信号，结束后恢复之前的处理器。实际 CPU 故障与独立 Ray 作业隔离验证见 [后训练与恢复记录](rl-posttraining-study-20260926.md)。
+Ctrl+C、SIGTERM 和未被忽略的 SIGHUP 会转发为工作进程组的 SIGINT，并等待主进程清理，最长 10 秒；随后清理本次组内残留进程。主进程正常退出、失败或日志写入失败时也会清理残留进程，包括重定向输出的后台子进程。RLinf 工作进程自身的正常收尾负责关闭本次 Ray 实例。worker 异常触发上游 SIGUSR1 时，适配器保留日志中的原始错误，通过同一收尾路径关闭本次实例；不再通过可选 dashboard API 枚举 actor。清理期间忽略重复失败信号，结束后恢复之前的处理器。实际 CPU 故障与独立 Ray 作业隔离验证见 [后训练与恢复记录](rl-posttraining-study-20260926.md)。
 
 ## 续训
 
@@ -78,7 +82,11 @@ python -m embodiedforge rlinf train \
 
 正常退出、失败或中断后，`run.json` 的 `latest_checkpoint` 和 `last_saved_step` 指向本次输出目录中最近通过布局检查的保存点。上游直接写入最终目录，适配器会跳过缺文件、回放索引不完整或活动轨迹缺失的较新目录；首次保存前退出则为 `null`。这里的 `checkpoint_validation=layout_only` 不代表权重内容和 DCP 分片已校验，实际续训仍执行上述 SDK 检查。`inputs/` 中的原始保存点不参与发现。
 
-完整输入会复制到新运行的 `inputs/` 并比对文件哈希，SDK 进程加载前再次核对快照。复制包括回放数据，需要额外磁盘空间；这些检查并不等于对优化器和回放数据的完整语义校验。上游 FSDP 检查点保存训练进程的 RNG，但回放缓冲区的独立采样生成器会按种子重建，仿真状态也没有在这里完整恢复；续训不承诺与不中断训练逐位一致。准备快照时中断也会记录 `interrupted` 状态。
+SDK 还会在 CPU 上读取实际恢复用的 DCP 状态，确认策略张量与 `full_weights.pt` 一致、熵温度有限，以及 actor、critic 和熵温度的 Adam 参数顺序、超参数、步数和动量缓冲有效。缺失缓冲、负二阶矩或非有限数值会在启动 Ray/GPU 前被拒绝；训练结束时也执行这些检查，结果写入 `restore_validation`。
+
+损坏状态复现、历史保存点兼容性、旧版/新版配对训练与部署结果见[运行与恢复校验记录](rl-runtime-validation-20260928.md)。
+
+完整输入会复制到新运行的 `inputs/` 并比对文件哈希，SDK 进程加载前再次核对快照。复制包括回放数据，需要额外磁盘空间；上述检查不覆盖回放轨迹张量和调度器的完整语义。上游 FSDP 检查点保存训练进程的 RNG，但回放缓冲区的独立采样生成器会按种子重建，仿真状态也没有在这里完整恢复；续训不承诺与不中断训练逐位一致。准备快照时中断也会记录 `interrupted` 状态。
 
 回放元数据的轨迹数量、下一个轨迹编号和样本总数必须与完整历史索引一致，每条索引的样本数必须等于其时间长度乘并行环境数。错误计数器可能使上游覆盖已有轨迹，错误样本数可能使采样越界，因此在复制和启动 SDK 前拒绝这些保存点；这项检查不读取轨迹张量，也不要求已淘汰的轨迹文件重新出现。
 

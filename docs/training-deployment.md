@@ -265,7 +265,7 @@ python -m embodiedforge.microduck evaluate \
 
 <a id="h1"></a>
 
-## H1：IsaacLab 训练与回放
+## H1：原生 CPU 与 IsaacLab 训练及回放
 
 ### 原生 CPU 训练
 
@@ -273,17 +273,22 @@ python -m embodiedforge.microduck evaluate \
 
 ```bash
 python -m pip install -e '.[h1-native]'
-python -m embodiedforge h1-native train \
-  --model /path/to/unitree_h1/h1.xml --num-envs 128 --threads 4 --updates 500 \
+python -m embodiedforge h1-native train --headless \
+  --model /path/to/unitree_h1/h1.xml --num-envs 128 --threads 2 --updates 5000 \
+  --seed 0 --learning-rate 0.0003 \
   --output runs/commands-h1-native
-python -m embodiedforge h1-native train \
-  --resume runs/commands-h1-native --num-envs 128 --threads 4 --updates 1000 \
+python -m embodiedforge h1-native train --headless \
+  --resume runs/commands-h1-native --num-envs 128 --threads 2 --updates 1000 \
   --output runs/commands-h1-native-resumed
-python -m embodiedforge h1-native evaluate \
-  --run runs/commands-h1-native-resumed --steps 500 --velocity 0.5 0 0 \
+python -m embodiedforge h1-native evaluate --headless \
+  --run runs/commands-h1-native-resumed --threads 2 --steps 500 --velocity 0.5 0 0 \
   --record-motion --min-survival 0.8 --max-planar-rmse 0.3 --max-yaw-rmse 0.3 \
   --output runs/commands-h1-native-eval
 ```
+
+128 环境、5000 轮起始预算来自 [三种子实验](rl-training-study-20260925.md)。训练或续训完成不等于行走合格，仍需通过上述评估阈值。示例只覆盖前进；站立和左右转向应另换 `--velocity` 及输出目录分别评估。本轮较小批量的 [保存点对照](h1-checkpoint-publication-20260929.md) 用于验证软件一致性，不能作为部署配方。
+
+默认评估使用标称起点。要覆盖不同初始状态，可添加 `--randomized-reset --num-envs 32 --seed 9701`，并使用新输出目录；它采样训练内的初始状态和物理随机化，保持固定指令、关闭观测噪声。范围和统计口径见 [H1 评估说明](h1-native.md#评估与网页回放)。
 
 原生 H1 中断或失败后，上述 `--resume` 可读取目录内已记录且通过校验的最后保存点；首次保存前退出、仍标记为 `running` 或文件校验失败时不能恢复。未保存的更新不会计入续训进度。
 

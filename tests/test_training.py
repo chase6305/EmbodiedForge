@@ -84,6 +84,62 @@ def test_gae_bootstraps_timeout_but_does_not_cross_reset():
     np.testing.assert_allclose(returns, adv)
 
 
+@pytest.mark.parametrize("backend", ["core", "h1"])
+def test_ppo_exploration_recovers_from_overshot_bounds(backend):
+    torch.set_num_threads(1)
+    torch.manual_seed(0)
+    if backend == "h1":
+        pytest.importorskip("mujoco")
+        pytest.importorskip("mjbatch")
+        from embodiedforge.locomotion.h1_ppo import Policy, optimize
+
+        model, observation = Policy(), torch.zeros(8, 69)
+    else:
+        model, observation = ActorCritic(), torch.zeros(8, 6)
+    with torch.no_grad():
+        model.log_std[::2] = 2.01
+        model.log_std[1::2] = -5.01
+        distribution = model.distribution(observation)
+        offset = torch.zeros_like(distribution.loc)
+        # Positive advantages favor lower variance on even dimensions and
+        # higher variance on odd dimensions; negative samples do the reverse.
+        offset[:4, 1::2] = 3
+        offset[4:, ::2] = 3
+        action = distribution.loc + offset * distribution.scale
+        logprob = distribution.log_prob(action).sum(-1)
+    model.distribution(observation).log_prob(action).sum().backward()
+    assert torch.count_nonzero(model.log_std.grad) == 0
+    optimizer = torch.optim.Adam(
+        [
+            {"params": [model.log_std], "lr": 0.0001},
+            {
+                "params": [p for p in model.parameters() if p is not model.log_std],
+                "lr": 0,
+            },
+        ]
+    )
+    rollout = {
+        "obs": observation.numpy()[None],
+        "action" if backend == "h1" else "raw": action.numpy()[None],
+        "logp" if backend == "h1" else "logprob": logprob.numpy()[None],
+        "reward": np.array([[1] * 4 + [-1] * 4], dtype=np.float32),
+        "value": np.zeros((1, 8), dtype=np.float32),
+        "next_value": np.zeros((1, 8), dtype=np.float32),
+        "terminated": np.ones((1, 8), dtype=bool),
+        "truncated": np.zeros((1, 8), dtype=bool),
+    }
+    rng = np.random.default_rng(0)
+    if backend == "h1":
+        optimize(model, optimizer, rollout, rng, epochs=2)
+    else:
+        _optimize_policy(
+            model, optimizer, rollout, PPOConfig(epochs=2, minibatch_size=2), rng
+        )
+    assert torch.all(model.log_std[::2] < 2)
+    assert torch.all(model.log_std[1::2] > -5)
+    assert torch.all((model.log_std >= -5) & (model.log_std <= 2))
+
+
 @pytest.mark.parametrize("task,features", [("reach", 6), ("hold", 4)])
 def test_ppo_checkpoint_roundtrip(tmp_path, task, features):
     torch.set_num_threads(1)

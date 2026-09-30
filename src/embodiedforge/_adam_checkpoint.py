@@ -1,10 +1,10 @@
-"""Shared checkpoint checks for the native CPU Adam trainers."""
+"""Shared checks for Adam checkpoint state materialized on CPU."""
 
 import math
 
 
 def validate_adam_checkpoint(optimizer, state, *, label="Adam optimizer"):
-    """Validate trained CPU Adam state before restoring or publishing it."""
+    """Validate trained Adam state on CPU before restoring or publishing it."""
     import torch
 
     if not isinstance(state, dict) or not isinstance(state.get("state"), dict):
@@ -31,8 +31,8 @@ def validate_adam_checkpoint(optimizer, state, *, label="Adam optimizer"):
             )
         ):
             raise ValueError(f"Invalid {label} betas")
-        # Training uses ordinary CPU Adam; loading flags must not silently select
-        # a different optimizer algorithm or require CUDA graph capture.
+        # The reference optimizer defines the supported execution options.
+        # Loading must not select a different algorithm or CUDA graph capture.
         for name in (
             "amsgrad",
             "maximize",

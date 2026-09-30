@@ -14,6 +14,32 @@ import pytest
 from embodiedforge import _rlinf_worker as worker
 from embodiedforge import rlinf
 from embodiedforge._microduck_process import ProcessInterrupted
+from embodiedforge.recipes import snapshot_implementation, validate_snapshot
+
+
+def test_worker_validates_code_before_loading_sdk(tmp_path, monkeypatch):
+    package = tmp_path / "implementation" / "embodiedforge"
+    manifest = snapshot_implementation(Path(worker.__file__).parent, package)
+    request = tmp_path / "request.json"
+    request.write_text(
+        json.dumps(
+            {"repo": str(tmp_path), "output": str(tmp_path), "implementation": manifest}
+        )
+    )
+    monkeypatch.setattr(sys, "argv", ["worker", str(request)])
+
+    def sdk_boundary(repo):
+        raise RuntimeError("Reached SDK checkout check")
+
+    monkeypatch.setattr(worker, "check_checkout", sdk_boundary)
+    with pytest.raises(ValueError, match="must load its implementation snapshot"):
+        worker.main()
+    monkeypatch.setattr(worker, "__file__", str(package / "_rlinf_worker.py"))
+    with pytest.raises(RuntimeError, match="Reached SDK checkout check"):
+        worker.main()
+    (package / "_rlinf_export.py").write_text("# changed after snapshot\n")
+    with pytest.raises(ValueError, match="RLinf implementation differs"):
+        worker.main()
 
 
 def checkpoint(root, *, seed=1234, num_envs=32):
@@ -81,6 +107,8 @@ def test_launcher_snapshot_environment_and_status(tmp_path, monkeypatch, outcome
             str(output),
             "--iterations",
             "300",
+            "--eval-interval",
+            "100",
             "--gpu",
             "3",
             "--resume",
@@ -106,20 +134,22 @@ def test_launcher_snapshot_environment_and_status(tmp_path, monkeypatch, outcome
         assert env["EF_RLINF_SEED"] == "37"
         assert "unrelated" not in env["PYTHONPATH"]
         assert env["PYTHONPATH"].split(os.pathsep) == [
-            str(output / "python"),
+            str(output / "implementation"),
             str(args.repo.resolve()),
         ]
-        assert (output / "python/embodiedforge").resolve() == Path(
-            rlinf.__file__
-        ).parent
         for key in ("RAY_ADDRESS", "RLINF_NODE_RANK", "MASTER_PORT", "WORLD_SIZE"):
             assert key not in env
         request = json.loads((output / "request.json").read_text())
+        package = output / "implementation" / "embodiedforge"
+        assert not package.is_symlink()
+        validate_snapshot(package, request["implementation"])
         assert request["quiet"] is True
         copied = Path(request["checkpoint"])
         assert copied != source and rlinf.checkpoint_step(copied) == 200
         assert request["start_step"] == 200 and request["iterations"] == 300
         assert request["seed"] == 37 and request["num_envs"] == 8
+        assert request["save_interval"] == 200 and request["eval_interval"] == 100
+        assert request["evaluation_rng"] == "isolated-torch"
         assert request["input_files"] == rlinf.inventory(output / "inputs")
         (source / rlinf.WEIGHTS).write_bytes(b"source changed after snapshot")
         assert (copied / rlinf.WEIGHTS).read_bytes() == b"fixture"
@@ -139,6 +169,11 @@ def test_launcher_snapshot_environment_and_status(tmp_path, monkeypatch, outcome
 
     monkeypatch.setattr(rlinf, "run_process", run)
     if outcome == "complete":
+        for value in (0, -1, 150):
+            invalid = SimpleNamespace(**{**vars(args), "eval_interval": value})
+            with pytest.raises(ValueError, match="--eval-interval"):
+                rlinf.launch(invalid)
+            assert not output.exists()
         for name, value in (("seed", 1234), ("num_envs", 32)):
             conflicting = SimpleNamespace(**{**vars(args), name: value})
             with pytest.raises(ValueError, match="differs from the checkpoint"):
@@ -250,10 +285,47 @@ def test_resume_only_requires_active_replay_window(tmp_path, monkeypatch):
             rlinf.checkpoint_step(source)
 
 
+@pytest.mark.parametrize("failure", [False, True])
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_evaluation_preserves_torch_rng_on_exit(failure, device):
+    torch = pytest.importorskip("torch")
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    devices = [torch.cuda.current_device()] if device == "cuda" else []
+    get_rng_state = torch.cuda.get_rng_state if devices else torch.get_rng_state
+    set_rng_state = torch.cuda.set_rng_state if devices else torch.set_rng_state
+
+    class EnvWorker:
+        eval_env_list = [SimpleNamespace(device=torch.device(device))]
+
+        def evaluate(self):
+            values = torch.rand(7, device=device)
+            if failure:
+                raise RuntimeError("evaluation failed")
+            return values
+
+    with torch.random.fork_rng(devices=devices):
+        torch.random.default_generator.manual_seed(37)
+        if devices:
+            torch.cuda.manual_seed(37)
+        before = get_rng_state().clone()
+        expected = torch.rand(7, device=device)
+        set_rng_state(before)
+        environment = worker.isolated_eval_worker(EnvWorker)()
+        if failure:
+            with pytest.raises(RuntimeError, match="evaluation failed"):
+                environment.evaluate()
+        else:
+            assert torch.equal(environment.evaluate(), expected)
+        assert torch.equal(before, get_rng_state())
+        assert torch.equal(torch.rand(7, device=device), expected)
+
+
 @pytest.mark.parametrize("failure", [False, True, "worker"])
 def test_ray_local_retry_address_propagation_and_cleanup(monkeypatch, failure):
     calls = []
     previous_failure_handler = signal.getsignal(signal.SIGUSR1)
+    original_env_worker = type("EnvWorker", (), {})
 
     def init(**kwargs):
         calls.append(kwargs)
@@ -280,6 +352,8 @@ def test_ray_local_retry_address_propagation_and_cleanup(monkeypatch, failure):
 
     def entry(cfg):
         assert cfg == "configuration"
+        assert globals()["EnvWorker"] is not original_env_worker
+        assert issubclass(globals()["EnvWorker"], original_env_worker)
         assert globals()["Cluster"]() == "owned cluster"
         if failure == "worker":
             signal.raise_signal(signal.SIGUSR1)
@@ -287,6 +361,7 @@ def test_ray_local_retry_address_propagation_and_cleanup(monkeypatch, failure):
             raise KeyboardInterrupt
 
     monkeypatch.setitem(entry.__globals__, "Cluster", cluster)
+    monkeypatch.setitem(entry.__globals__, "EnvWorker", original_env_worker)
 
     monkeypatch.setattr(
         worker.runpy,
@@ -297,12 +372,13 @@ def test_ray_local_retry_address_propagation_and_cleanup(monkeypatch, failure):
     )
     if failure == "worker":
         with pytest.raises(RuntimeError, match="RLinf worker failed"):
-            worker.execute("configuration", Path("entry.py"))
+            worker.execute("configuration", Path("entry.py"), isolate_evaluation=True)
     elif failure:
         with pytest.raises(KeyboardInterrupt):
-            worker.execute("configuration", Path("entry.py"))
+            worker.execute("configuration", Path("entry.py"), isolate_evaluation=True)
     else:
-        worker.execute("configuration", Path("entry.py"))
+        worker.execute("configuration", Path("entry.py"), isolate_evaluation=True)
+    assert entry.__globals__["EnvWorker"] is original_env_worker
     assert (
         calls
         == [
@@ -359,6 +435,25 @@ def test_pinned_upstream_config_train_resume_and_eval(tmp_path, monkeypatch):
     assert cfg.algorithm.loss_type == "embodied_sac"
     assert cfg.algorithm.replay_buffer.sample_window_size == rlinf.REPLAY_WINDOW
     assert cfg.algorithm.replay_buffer.auto_save is False
+    request["eval_interval"] = 50
+    cfg = worker.compose_config(request)
+    assert cfg.runner.save_interval == 100 and cfg.runner.val_check_interval == 50
+    # Upstream imports register robot types globally; keep this contract check
+    # isolated from the model tests that unload their optional SDK modules.
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from rlinf.utils.runner_utils import check_progress\n"
+            "assert check_progress(50, 8250, 50, 100, 1.0) == (True, False, False)\n"
+            "assert check_progress(100, 8250, 50, 100, 1.0) == (True, True, False)\n"
+            "assert check_progress(8250, 8250, 50, 100, 1.0) == (True, True, True)\n",
+        ],
+        env={**os.environ, "PYTHONPATH": root},
+        check=True,
+        capture_output=True,
+        timeout=30,
+    )
     request.update(command="evaluate", checkpoint=str(tmp_path / "weights.pt"))
     cfg = worker.compose_config(request)
     assert cfg.runner.only_eval and cfg.runner.task_type == "embodied_eval"
@@ -501,6 +596,68 @@ def test_pinned_upstream_mlp_weights_match_architecture(tmp_path, monkeypatch):
         for name in set(sys.modules) - previous:
             if name == "rlinf" or name.startswith("rlinf."):
                 sys.modules.pop(name, None)
+
+
+@pytest.mark.parametrize(
+    "damage", [None, "temperature", "moment", "missing_slot", "policy"]
+)
+def test_sac_restore_checks_actual_dcp_state(tmp_path, damage):
+    torch = pytest.importorskip("torch")
+    import torch.distributed.checkpoint as dcp
+
+    def trained_state(names):
+        parameters = {name: torch.nn.Parameter(torch.ones(2)) for name in names}
+        if names == ["base_alpha"]:
+            parameters["base_alpha"] = torch.nn.Parameter(torch.tensor(-5.0))
+        optimizer = torch.optim.Adam(
+            [{"params": [parameter]} for parameter in parameters.values()]
+        )
+        sum(parameter.square().sum() for parameter in parameters.values()).backward()
+        optimizer.step()
+        saved = optimizer.state_dict()
+        saved["state"] = {
+            name: saved["state"][index] for index, name in enumerate(names)
+        }
+        for group, name in zip(saved["param_groups"], names, strict=True):
+            group["params"] = [name]
+        return {
+            "model": {
+                name: parameter.detach().clone()
+                for name, parameter in parameters.items()
+            },
+            "optimizers": saved,
+        }
+
+    policy = trained_state(["backbone.weight", "q_head.weight"])
+    policy["model"].update(
+        action_scale=torch.tensor(1.0), action_bias=torch.tensor(0.0)
+    )
+    alpha = trained_state(["base_alpha"])
+    path = tmp_path / "checkpoint"
+    (path / "actor/model_state_dict").mkdir(parents=True)
+    torch.save(policy["model"], path / rlinf.WEIGHTS)
+    if damage == "temperature":
+        alpha["model"]["base_alpha"].fill_(float("nan"))
+    elif damage == "moment":
+        policy["optimizers"]["state"]["q_head.weight"]["exp_avg_sq"].fill_(-1)
+    elif damage == "missing_slot":
+        del policy["optimizers"]["state"]["backbone.weight"]["exp_avg"]
+    elif damage == "policy":
+        policy["model"]["backbone.weight"].add_(0.1)
+    for relative, state in (
+        ("actor/dcp_checkpoint", policy),
+        ("actor/sac_components/alpha/dcp_checkpoint", alpha),
+    ):
+        dcp.save({"fsdp_checkpoint": state}, checkpoint_id=path / relative)
+    if damage:
+        with pytest.raises(ValueError, match="SAC"):
+            worker.validate_sac_state(path)
+    else:
+        rng = torch.get_rng_state().clone()
+        report = worker.validate_sac_state(path)
+        assert report["policy"]["optimizer_parameters"] == 2
+        assert report["entropy"]["optimizer_parameters"] == 1
+        assert torch.equal(torch.get_rng_state(), rng)
 
 
 def test_dcp_shards_checked_against_real_metadata(tmp_path):

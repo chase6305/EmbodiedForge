@@ -111,20 +111,35 @@ def h1_path():
     return path
 
 
-def test_h1_standing_pose_preserves_original_mjcf_kinematics(h1_path):
+@pytest.mark.parametrize("randomized_reset", [False, True])
+def test_h1_standing_pose_preserves_original_mjcf_kinematics(h1_path, randomized_reset):
     from embodiedforge.locomotion.h1_native import H1, build_model
 
     original = mujoco.MjModel.from_xml_path(str(h1_path))
     model = build_model(h1_path)
     np.testing.assert_array_equal(model.qpos0, original.qpos0)
-    env = H1(model, 2, training=False, threads=1)
+    env = H1(model, 2, training=False, randomized_reset=randomized_reset, threads=1)
     reference = mujoco.MjData(original)
     reference.qpos[:] = env.robot.qpos[0]
     mujoco.mj_forward(original, reference)
     np.testing.assert_allclose(env.batch.bind("xpos")[0], reference.xpos, atol=1e-12)
     assert env.obs().shape == (2, 69)
+    # Reset randomization must not enable observation noise or couple rows.
+    np.testing.assert_array_equal(env.obs(), env.obs())
+    if randomized_reset:
+        assert not np.array_equal(env.robot.qpos[0], env.robot.qpos[1])
+        same = H1(model, 2, training=False, randomized_reset=True, threads=1)
+        np.testing.assert_array_equal(env.robot.qpos, same.robot.qpos)
+        np.testing.assert_array_equal(env.robot.qvel, same.robot.qvel)
+        np.testing.assert_array_equal(
+            env.batch.expand("body_mass"), same.batch.expand("body_mass")
+        )
+    else:
+        np.testing.assert_array_equal(env.robot.qpos[0], env.robot.qpos[1])
+    untouched = env.robot.qpos[0].copy()
     env.set_commands([[0.5, 0, 0]], [1])
     env.reset([1])
+    np.testing.assert_array_equal(env.robot.qpos[0], untouched)
     np.testing.assert_array_equal(env.commands[1], [0.5, 0, 0])
     with pytest.raises(ValueError):
         env.set_commands([[2, 0, 0]], [1])
@@ -372,7 +387,7 @@ def test_training_final_record_failure_preserves_primary_error(
     assert len(final_records) == 1
     if failure is None:
         assert final_records[0]["status"] == "complete"
-        assert (output / "checkpoint.pt").is_file()
+        assert (output / final_records[0]["checkpoint"]).is_file()
     else:
         status = "interrupted" if isinstance(failure, KeyboardInterrupt) else "failed"
         assert final_records[0]["status"] == status
@@ -381,6 +396,93 @@ def test_training_final_record_failure_preserves_primary_error(
     saved = json.loads((output / "run.json").read_text())
     assert saved["status"] == "running"
     assert saved["learning_rate"] == 3e-4
+
+
+@pytest.mark.parametrize(
+    "boundary,error",
+    [
+        ("checkpoint", OSError("checkpoint publication failed")),
+        ("checkpoint", KeyboardInterrupt()),
+        ("run.json", OSError("manifest publication failed")),
+    ],
+)
+def test_checkpoint_publication_keeps_committed_state_recoverable(
+    h1_path, tmp_path, monkeypatch, boundary, error
+):
+    torch = pytest.importorskip("torch")
+    from embodiedforge import native_h1
+    from embodiedforge.locomotion.h1_native import VERSION, build_model
+    from embodiedforge.locomotion.h1_ppo import Policy
+
+    model, policy = build_model(h1_path), Policy()
+    mujoco.mj_saveModel(model, str(tmp_path / "model.mjb"))
+    optimizer = torch.optim.Adam(policy.parameters(), lr=3e-4)
+    sum(p.square().sum() for p in policy.parameters()).backward()
+    optimizer.step()
+    metadata = {
+        "task": VERSION,
+        "status": "running",
+        "updates": 0,
+        "model_sha256": native_h1.digest(tmp_path / "model.mjb"),
+    }
+
+    def save(update):
+        native_h1.save_checkpoint(
+            tmp_path,
+            {
+                "task": VERSION,
+                "updates": update,
+                "model_sha256": metadata["model_sha256"],
+                "joint_names": [
+                    model.joint(int(j)).name for j in model.actuator_trnid[:, 0]
+                ],
+                "policy": policy.state_dict(),
+                "optimizer": optimizer.state_dict(),
+            },
+            optimizer,
+            metadata,
+        )
+
+    save(50)
+    save(100)
+    committed = dict(metadata)
+    replace = Path.replace
+
+    def fail_after_replace(path, target):
+        result = replace(path, target)
+        name = Path(target).name
+        if (boundary == "checkpoint" and name == "checkpoint-000000150.pt") or (
+            boundary == "run.json" and name == "run.json"
+        ):
+            raise error
+        return result
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "replace", fail_after_replace)
+        with pytest.raises(type(error)) as caught:
+            save(150)
+    assert caught.value is error
+    assert metadata == committed
+    # Model the trainer's error finalization, then load through the real consumer.
+    native_h1.write_json(tmp_path / "run.json", {**metadata, "status": "failed"})
+    _, _, restored, _ = native_h1.load_run(tmp_path)
+    assert restored["updates"] == 100
+    assert (
+        native_h1.digest(tmp_path / committed["checkpoint"])
+        == committed["checkpoint_sha256"]
+    )
+    assert not list(tmp_path.glob("*.tmp"))
+    save(200)
+    assert sorted(p.name for p in tmp_path.glob("checkpoint-*.pt")) == [
+        "checkpoint-000000100.pt",
+        "checkpoint-000000200.pt",
+    ]
+    native_h1.write_json(
+        tmp_path / "run.json",
+        {**metadata, "status": "complete", "checkpoint": "../outside.pt"},
+    )
+    with pytest.raises(ValueError, match="checkpoint filename"):
+        native_h1.load_run(tmp_path)
 
 
 def test_native_training_resume_evaluate_under_import_blocker(h1_path, tmp_path):
@@ -394,7 +496,9 @@ sys.meta_path.insert(0, Block())
 from embodiedforge.native_h1 import main
 main(sys.argv[1:])
 """
-    run, resumed, evaluation = [tmp_path / name for name in ("train", "resume", "eval")]
+    run, resumed, evaluation, randomized = [
+        tmp_path / name for name in ("train", "resume", "eval", "randomized")
+    ]
     commands = [
         [
             "train",
@@ -432,6 +536,21 @@ main(sys.argv[1:])
             "--output",
             str(evaluation),
         ],
+        [
+            "evaluate",
+            "--run",
+            str(resumed),
+            "--randomized-reset",
+            "--record-motion",
+            "--record-env",
+            "1",
+            "--seed",
+            "42",
+            "--steps",
+            "1000",
+            "--output",
+            str(randomized),
+        ],
     ]
     for args in commands:
         subprocess.run(
@@ -442,6 +561,9 @@ main(sys.argv[1:])
             timeout=60,
         )
     report = json.loads((resumed / "run.json").read_text())
+    original = json.loads((run / "run.json").read_text())
+    assert original["resume_checkpoint_sha256"] is None
+    assert report["resume_checkpoint_sha256"] == original["checkpoint_sha256"]
     for path in (run, resumed):
         runtime = json.loads((path / "training-runtime.json").read_text())
         assert runtime["core_vector_env"] is False
@@ -452,14 +574,57 @@ main(sys.argv[1:])
     assert report["status"] == "complete"
     assert report["headless"] is True
     assert report["learning_rate"] == 2e-4
-    assert (evaluation / "motion.npz").is_file()
+    nominal = json.loads((evaluation / "evaluation.json").read_text())
+    varied = json.loads((randomized / "evaluation.json").read_text())
+    assert nominal["identical_initial_states"] is True
+    assert varied["identical_initial_states"] is False
+    assert "no observation noise" in varied["reset_protocol"]
+    assert len(set(varied["observed_seconds"])) == 2
+    assert all(0 < seconds < 20 for seconds in varied["observed_seconds"])
+    assert varied["survival_fraction"] == 0
+    assert nominal["survived"] == [True, True]
+    assert varied["survived"] == [False, False]
     from embodiedforge.robot_replay import RobotMotion
 
-    replay = RobotMotion(
-        evaluation / "motion.npz",
-        mujoco.MjModel.from_binary_path(str(resumed / "model.mjb")),
-    )
-    assert replay.max_position_error < 1e-5
+    for path, result in ((evaluation, nominal), (randomized, varied)):
+        assert result["survival_fraction"] == np.mean(result["survived"])
+        assert len(result["termination_reasons"]) == result["num_envs"]
+        clipping = np.array(result["action_clip_fraction_per_env"])
+        assert clipping.shape == (2,)
+        assert np.isfinite(clipping).all() and ((clipping >= 0) & (clipping <= 1)).all()
+        assert result["action_clip_fraction"] == pytest.approx(
+            np.average(clipping, weights=result["observed_seconds"])
+        )
+        for alive, reasons in zip(
+            result["survived"], result["termination_reasons"], strict=True
+        ):
+            assert alive == (not reasons)
+            assert set(reasons) <= {"torso_contact", "base_height", "base_tilt"}
+            assert len(reasons) == len(set(reasons))
+        for metric in ("planar_rmse", "yaw_rmse"):
+            per_env = np.array(result[metric + "_per_env"])
+            assert per_env.shape == (2,)
+            assert np.isfinite(per_env).all() and (per_env >= 0).all()
+            assert result[metric] == pytest.approx(
+                np.sqrt(np.average(per_env**2, weights=result["observed_seconds"]))
+            )
+        replay = RobotMotion(
+            path / "motion.npz",
+            mujoco.MjModel.from_binary_path(str(resumed / "model.mjb")),
+        )
+        assert replay.max_position_error < 1e-5
+        recorded_env = 1 if path == randomized else 0
+        assert replay.metadata["environment_index"] == recorded_env
+        assert replay.metadata["num_envs"] == result["num_envs"]
+        assert replay.metadata["seed"] == result["seed"]
+        assert replay.metadata["randomized_reset"] == (path == randomized)
+        assert replay.metadata["checkpoint_sha256"] == report["checkpoint_sha256"]
+        assert replay.metadata["model_sha256"] == report["model_sha256"]
+        assert replay.time[-1] == result["observed_seconds"][recorded_env]
+        with np.load(path / "motion.npz", allow_pickle=False) as motion:
+            root_height = motion["positions"][-1, 0, 2]
+            reasons = result["termination_reasons"][recorded_env]
+            assert ("base_height" in reasons) == (root_height < 0.45)
     from embodiedforge.native_h1 import load_run
 
     with (resumed / "model.mjb").open("ab") as stream:

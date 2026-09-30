@@ -24,6 +24,50 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def save_checkpoint(root, checkpoint, optimizer, metadata):
+    """Commit the new checkpoint before retiring any previously recorded file."""
+    import torch
+
+    validate_adam_checkpoint(optimizer, checkpoint["optimizer"], label="H1 optimizer")
+    path = root / f"checkpoint-{checkpoint['updates']:09d}.pt"
+    temporary = path.with_suffix(".pt.tmp")
+    previous = metadata.get("checkpoint")
+    try:
+        torch.save(checkpoint, temporary)
+        checksum = digest(temporary)
+        temporary.replace(path)
+        committed = {
+            **metadata,
+            "updates": checkpoint["updates"],
+            "checkpoint": path.name,
+            "checkpoint_sha256": checksum,
+        }
+        write_json(root / "run.json", committed)
+        metadata.update(committed)
+    finally:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            logging.getLogger(__name__).exception(
+                "Could not remove partial H1 checkpoint %s", temporary
+            )
+    # Keep the current and preceding committed files. An interrupted publication
+    # may leave an unreferenced file, which is never selected by load_run.
+    for old in root.glob("checkpoint-*.pt"):
+        number = old.stem.removeprefix("checkpoint-")
+        if (
+            number.isdecimal()
+            and old.name == f"checkpoint-{int(number):09d}.pt"
+            and old.name not in (path.name, previous)
+        ):
+            try:
+                old.unlink()
+            except OSError:
+                logging.getLogger(__name__).exception(
+                    "Could not remove old H1 checkpoint %s", old
+                )
+
+
 def validate_tensors(value):
     import math
 
@@ -59,17 +103,23 @@ def load_run(directory):
             "Expected a stopped native H1 run with a saved checkpoint; "
             "IsaacLab checkpoints are incompatible"
         )
+    checkpoint_name = metadata.get("checkpoint", "checkpoint.pt")
+    if checkpoint_name != "checkpoint.pt" and (
+        type(metadata.get("updates")) is not int
+        or checkpoint_name != f"checkpoint-{metadata['updates']:09d}.pt"
+    ):
+        raise ValueError("Invalid native H1 checkpoint filename")
     artifacts = {}
     for file, key in (
         ("model.mjb", "model_sha256"),
-        ("checkpoint.pt", "checkpoint_sha256"),
+        (checkpoint_name, "checkpoint_sha256"),
     ):
         payload = (directory / file).read_bytes()
         if hashlib.sha256(payload).hexdigest() != metadata[key]:
             raise ValueError(f"Native H1 artifact hash mismatch: {file}")
         artifacts[file] = payload
     checkpoint = torch.load(
-        io.BytesIO(artifacts["checkpoint.pt"]), map_location="cpu", weights_only=True
+        io.BytesIO(artifacts[checkpoint_name]), map_location="cpu", weights_only=True
     )
     validate_tensors(checkpoint)
     if type(checkpoint.get("updates")) is not int or checkpoint["updates"] <= 0:
@@ -148,6 +198,9 @@ def train(args):
         "learning_rate": learning_rate,
         "model_sha256": digest(root / "model.mjb"),
         "resume": str(args.resume.resolve()) if args.resume else None,
+        "resume_checkpoint_sha256": (
+            previous["checkpoint_sha256"] if args.resume else None
+        ),
         "versions": {
             name: importlib.metadata.version(name)
             for name in ("mujoco", "mjbatch", "torch")
@@ -197,11 +250,8 @@ def train(args):
                 ):
                     print(json.dumps(row), flush=True)
                 if update % 50 == 0 or update == start + args.updates:
-                    temporary = root / "checkpoint.pt.tmp"
-                    validate_adam_checkpoint(
-                        optimizer, optimizer.state_dict(), label="H1 optimizer"
-                    )
-                    torch.save(
+                    save_checkpoint(
+                        root,
                         {
                             "task": VERSION,
                             "updates": update,
@@ -210,13 +260,9 @@ def train(args):
                             "policy": policy.state_dict(),
                             "optimizer": optimizer.state_dict(),
                         },
-                        temporary,
+                        optimizer,
+                        metadata,
                     )
-                    temporary.replace(root / "checkpoint.pt")
-                    metadata.update(
-                        updates=update, checkpoint_sha256=digest(root / "checkpoint.pt")
-                    )
-                    write_json(root / "run.json", metadata)
         metadata["status"] = "complete"
     except BaseException as error:
         metadata["status"] = (
@@ -243,7 +289,7 @@ def evaluate(args):
     import torch
 
     from ._h1_motion import MotionRecorder
-    from .locomotion.h1_native import CTRL_DT, H1
+    from .locomotion.h1_native import ACT_DIM, ACTION_LIMIT, CTRL_DT, H1
 
     torch.set_num_threads(args.threads)
     model, policy, _, metadata = load_run(args.run)
@@ -254,12 +300,15 @@ def evaluate(args):
         seed=args.seed,
         threads=args.threads,
         training=False,
+        randomized_reset=args.randomized_reset,
         episode_steps=args.steps + 1,
     )
     env.set_commands(np.tile(args.velocity, (args.num_envs, 1)))
     observation = env.obs()
     args.output.mkdir(parents=True, exist_ok=False)
     alive = np.ones(args.num_envs, bool)
+    termination_reasons = [[] for _ in range(args.num_envs)]
+    clipped_actions = np.zeros(args.num_envs, dtype=np.int64)
     rewards, counts, torque_peak = (
         np.zeros(args.num_envs),
         np.zeros(args.num_envs, int),
@@ -284,11 +333,20 @@ def evaluate(args):
                 ],
                 "velocity_command": args.velocity,
                 "source": metadata["task"],
+                "environment_index": args.record_env,
+                "num_envs": args.num_envs,
+                "seed": args.seed,
+                "randomized_reset": args.randomized_reset,
+                "checkpoint_sha256": metadata["checkpoint_sha256"],
+                "model_sha256": metadata["model_sha256"],
             }
         )
     for step in range(args.steps):
         with torch.no_grad():
             action = policy.actor(torch.as_tensor(observation)).numpy()
+        clipped_actions[alive] += np.count_nonzero(
+            np.abs(action[alive]) > ACTION_LIMIT, axis=1
+        )
         observation, reward, terminated, truncated, _ = env.step(action)
         rewards[alive] += reward[alive]
         counts[alive] += 1
@@ -297,18 +355,31 @@ def evaluate(args):
         torque_peak = max(
             torque_peak, float(np.abs(env.robot.joint_force[alive]).max())
         )
-        if recorder is not None and alive[0]:
+        if recorder is not None and alive[args.record_env]:
             recorder.append(
                 (step + 1) * CTRL_DT,
-                env.batch.bind("xpos")[0, 1:],
-                np.roll(env.batch.bind("xquat")[0, 1:], -1, axis=1),
-                env.robot.qpos[0, env.robot.qadr],
-                bool(terminated[0]),
-                bool(truncated[0]),
+                env.batch.bind("xpos")[args.record_env, 1:],
+                np.roll(env.batch.bind("xquat")[args.record_env, 1:], -1, axis=1),
+                env.robot.qpos[args.record_env, env.robot.qadr],
+                bool(terminated[args.record_env]),
+                bool(truncated[args.record_env]),
             )
+        for index in np.flatnonzero(alive & (terminated | truncated)):
+            termination_reasons[index] = [
+                reason
+                for reason, triggered in env.termination_reasons.items()
+                if triggered[index]
+            ]
+            if truncated[index]:
+                termination_reasons[index].append("time_limit")
         alive &= ~(terminated | truncated)
         if not alive.any():
             break
+        # Rows can now end at different times. Reset ended simulations to keep
+        # integrating safely, but never count their later episodes as trials.
+        ended = np.flatnonzero(terminated | truncated)
+        if ended.size:
+            observation[ended] = env.reset(ended)[ended]
     if recorder is not None:
         recorder.save(args.output / "motion.npz")
     survival = float(alive.mean())
@@ -340,11 +411,19 @@ def evaluate(args):
         "velocity_command": args.velocity,
         "seed": args.seed,
         "survival_fraction": survival,
+        "survived": alive.tolist(),
+        "termination_reasons": termination_reasons,
+        "action_clip_fraction": float(clipped_actions.sum() / (counts.sum() * ACT_DIM)),
+        "action_clip_fraction_per_env": (clipped_actions / (counts * ACT_DIM)).tolist(),
         "return": rewards.tolist(),
         "observed_seconds": (counts * CTRL_DT).tolist(),
         "peak_joint_torque": torque_peak,
         "planar_rmse": planar_rmse,
         "yaw_rmse": yaw_rmse,
+        "planar_rmse_per_env": (
+            np.sqrt(squared_error[:, :2].sum(axis=1) / counts).tolist()
+        ),
+        "yaw_rmse_per_env": np.sqrt(squared_error[:, 2] / counts).tolist(),
         "mean_velocity": (velocity_sum / counts[:, None]).tolist(),
         "accepted": all(checks) if checks else None,
         "limits": {
@@ -352,8 +431,12 @@ def evaluate(args):
             "max_planar_rmse": args.max_planar_rmse,
             "max_yaw_rmse": args.max_yaw_rmse,
         },
-        "identical_initial_states": True,
-        "reset_protocol": "deterministic nominal pose, no training randomization",
+        "identical_initial_states": not args.randomized_reset,
+        "reset_protocol": (
+            "training reset distribution, no observation noise, fixed commands"
+            if args.randomized_reset
+            else "deterministic nominal pose, no training randomization"
+        ),
     }
     write_json(args.output / "evaluation.json", report)
     print(json.dumps(report, indent=2))
@@ -387,7 +470,9 @@ def main(argv=None):
                 help="H1 MJCF, with accessible referenced mesh files",
             )
             source.add_argument(
-                "--resume", type=Path, help="Complete native run directory"
+                "--resume",
+                type=Path,
+                help="Stopped native run directory with a saved checkpoint",
             )
             sub.add_argument("--updates", type=int, default=1000)
             sub.add_argument("--horizon", type=int, default=24)
@@ -401,6 +486,19 @@ def main(argv=None):
             sub.add_argument("--steps", type=int, default=500)
             sub.add_argument("--velocity", type=float, nargs=3, default=[0.5, 0, 0])
             sub.add_argument("--record-motion", action="store_true")
+            sub.add_argument(
+                "--record-env",
+                type=int,
+                help="Environment index to record with --record-motion (default: 0)",
+            )
+            sub.add_argument(
+                "--randomized-reset",
+                action="store_true",
+                help=(
+                    "Sample training initial-state and physics randomization; "
+                    "keep observation noise off and velocity commands fixed"
+                ),
+            )
             sub.add_argument("--min-survival", type=float)
             sub.add_argument("--max-planar-rmse", type=float)
             sub.add_argument("--max-yaw-rmse", type=float)
@@ -422,6 +520,12 @@ def main(argv=None):
     ):
         parser.error("Learning rate must be finite and positive")
     if args.command == "evaluate":
+        if args.record_env is not None and not args.record_motion:
+            parser.error("--record-env requires --record-motion")
+        if args.record_env is None:
+            args.record_env = 0
+        if not 0 <= args.record_env < args.num_envs:
+            parser.error("Recording environment index must be in [0, num-envs)")
         if any(not math.isfinite(v) or abs(v) > 1 for v in args.velocity):
             parser.error("Velocity components must be finite in [-1, 1]")
         if args.min_survival is not None and not 0 <= args.min_survival <= 1:

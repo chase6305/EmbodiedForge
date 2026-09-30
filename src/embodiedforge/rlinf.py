@@ -9,8 +9,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from ._microduck_process import run_process, sdk_package_path, termination_signals
+from ._microduck_process import run_process, termination_signals
 from .h1 import child_environment, sha256, write_json
+from .recipes import snapshot_implementation
 
 REVISION = "67864d67c086a111de9921c5f4591eb5882f74ec"
 CONFIG = "maniskill_sac_mlp"
@@ -230,7 +231,12 @@ def parser():
                 "--save-interval",
                 type=int,
                 default=200,
-                help="Save and evaluate every N iterations, and at the end",
+                help="Save every N iterations, and at the end",
+            )
+            command.add_argument(
+                "--eval-interval",
+                type=int,
+                help="Evaluate every N iterations; defaults to --save-interval and must divide it",
             )
             command.add_argument(
                 "--resume", type=Path, help="Full global_step_N directory"
@@ -266,6 +272,15 @@ def launch(args):
         raise ValueError("--gpu must be a nonnegative NVIDIA GPU index")
     if args.command == "train" and min(args.iterations, args.save_interval) < 1:
         raise ValueError("--iterations and --save-interval must be positive")
+    eval_interval = None
+    if args.command == "train":
+        eval_interval = (
+            args.save_interval if args.eval_interval is None else args.eval_interval
+        )
+        if eval_interval < 1 or args.save_interval % eval_interval:
+            raise ValueError(
+                "--eval-interval must be positive and divide --save-interval"
+            )
     if args.command == "evaluate" and args.eval_epochs < 1:
         raise ValueError("--eval-epochs must be positive")
     if int(os.environ.get("WORLD_SIZE", "1")) != 1:
@@ -307,6 +322,8 @@ def launch(args):
         "start_step": start,
         "iterations": getattr(args, "iterations", None),
         "save_interval": getattr(args, "save_interval", None),
+        "eval_interval": eval_interval,
+        "evaluation_rng": "isolated-torch",
         "eval_epochs": getattr(args, "eval_epochs", None),
         "checkpoint": None,
         "policy_format": "onnx" if onnx else "pytorch",
@@ -351,6 +368,10 @@ def launch(args):
                     )
                 request["input_files"] = copied
             request["checkpoint"] = str(checkpoint)
+        package = output / "implementation" / "embodiedforge"
+        request["implementation"] = snapshot_implementation(
+            Path(__file__).resolve().parent, package
+        )
         write_json(request_path, request)
         env = child_environment(python.parent.parent)
         for key in list(env):
@@ -368,7 +389,7 @@ def launch(args):
             ):
                 env.pop(key)
         env.update(
-            PYTHONPATH=os.pathsep.join((str(sdk_package_path(output)), str(repo))),
+            PYTHONPATH=os.pathsep.join((str(package.parent), str(repo))),
             EMBODIED_PATH=str(repo / "examples/embodiment"),
             CUDA_VISIBLE_DEVICES="" if args.command == "export" else str(args.gpu),
             MUJOCO_GL="egl",

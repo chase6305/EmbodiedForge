@@ -146,9 +146,10 @@ def run_process(
                     process.wait()
                 raise
         finally:
-            if errors or process.returncode:
-                # A failed wrapper can leave quiet descendants running as well.
-                send(signal.SIGKILL)
+            # The owned job ends with its wrapper, including a successful exit.
+            # Quiet descendants do not keep the log pipe open and would otherwise
+            # survive indefinitely. Unrelated jobs use different process groups.
+            send(signal.SIGKILL)
             if reader:
                 reader.join(timeout=5)
                 if reader.is_alive():
