@@ -17,6 +17,11 @@ from .rollout import DemonstrationPolicy, run_rollout
 
 def main() -> None:
     """Parse configuration, select a workflow and own its process-level resources."""
+    if sys.argv[1:2] == ["microduck"]:
+        from .microduck import main as microduck_main
+
+        microduck_main(sys.argv[2:])
+        return
     if sys.argv[1:2] == ["gmr"]:
         from .gmr import main as gmr_main
 
@@ -90,6 +95,7 @@ def main() -> None:
             "replay",
             "live",
             "act",
+            "microduck",
             "motion",
             "weave",
             "rlinf",

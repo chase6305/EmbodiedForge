@@ -131,6 +131,12 @@ def optimize(policy, optimizer, rollout, rng, *, epochs=5):
             loss.backward()
             nn.utils.clip_grad_norm_(policy.parameters(), 1, error_if_nonfinite=True)
             optimizer.step()
+            # Project the parameter too: a forward-only clamp gives zero
+            # gradient after Adam overshoots a boundary, freezing exploration.
+            with torch.no_grad():
+                if not torch.isfinite(policy.log_std).all():
+                    raise FloatingPointError("Non-finite native H1 policy log_std")
+                policy.log_std.clamp_(-5, 2)
             losses.append(float(loss.detach()))
     if any(not torch.isfinite(p).all() for p in policy.parameters()):
         raise FloatingPointError("Non-finite native H1 policy")

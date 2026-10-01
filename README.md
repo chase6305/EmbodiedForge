@@ -39,7 +39,7 @@ python -m embodiedforge.visualization --physics numpy --port 8080
 | 物理后端 | NumPy、MuJoCo、mjbatch 线程池、Newton **1.6.0rc1** | 核心后端使用 CPU 状态快照 |
 | 核心训练与数据 | PyTorch PPO、终止/超时 GAE、checkpoint 评估、episode 记录与窗口读取 | 核心 PPO 使用 proprio；训练与数据验证可独立运行 |
 | Go1 行走 | 任务、奖励、镜像策略、归一化和 PPO 已移植到本仓库；支持训练、续训、评估与在线控制 | 仍依赖 mjbatch、MuJoCo、Torch 和 Menagerie 资产；尚未纳入核心 `VectorEnv` |
-| H1 原生训练 | MJCF 模型、关节分组、批量命令、随机化、重置、力矩数据与 PPO | CPU MuJoCo/mjbatch，不依赖 IsaacLab；三种子标称起点训练对照见[实验记录](docs/rl-training-study-20260925.md)，尚未完成扰动或真机验收。[说明](docs/h1-native.md) |
+| H1 原生训练 | MJCF 模型、关节分组、批量命令、随机化、重置、力矩数据与 PPO | CPU MuJoCo/mjbatch，不依赖 IsaacLab；支持标称与随机初始状态评估，运行中推力及真机尚未验收。[说明](docs/h1-native.md) |
 | Microduck 行走 | 本地任务、MDP 辅助代码、执行器扩展、MJCF 与网格 | 独立环境中的 mjlab / MuJoCo-Warp / BAM / RSL-RL |
 | 其他机器人任务 | IsaacLab H1、Wuji 重定向、Cartpole MPC、机械臂投掷联合优化 | 独立 SDK 环境中的上游流程与适配层，非完整移植 |
 | 统一 Web | Raster / MuJoCo / OpenGL / OVRTX、Go1 在线策略、Go1/H1 网格回放 | 查看器与物理后端独立选择；Web 画面不作为训练相机观测 |
@@ -200,12 +200,22 @@ Go1 新增 [Light Loco Parkour 实验性后端](docs/light-loco-parkour.md)：
 
 [2026-09-28 压缩与后训练实验](docs/rl-compression-study-20260928.md) 比较 FP16/INT8 权重存储、逐层动态量化与 QAT，并检查推理 batch 对闭环行为的影响；正式导出支持 `--weight-storage float16` 或 `int8`，ONNX 评估记录 CPU 推理耗时。
 
+[2026-09-29 H1 保存与恢复实测](docs/h1-checkpoint-publication-20260929.md) 记录三种子的完整训练一致性、真实 SIGTERM 后续训、来源权重追溯、单模型探索性后训练及模型大小；同时保留行走与转向评估失败的结果。
+
+[2026-09-29 H1 转向与探索参数研究](docs/h1-turning-study-20260929.md) 记录指令/奖励消融、随机初始状态评估、H1 与核心 PPO 的探索参数边界修复，以及模型大小和完整训练预算。结果包含各训练种子的改善与退化，指令采样和奖励默认值保持不变。
+
+[2026-09-30 H1 指令采样研究](docs/h1-command-mixture-20260930.md) 补齐从零训练、续训与四组合消融，并记录逐环境误差和指定环境的失败回放。纯转向采样降低平均转向误差，但随机起点存活数下降，保留原采样默认值。
+
+[2026-09-30 H1 终止惩罚研究](docs/h1-termination-cost-20260930.md) 对比终止惩罚与指令采样的四组合，覆盖从零训练、续训、连续指令和逐环境终止原因；同时记录动作轨迹与梯度诊断，区分实际观测和原因猜测。两项加倍惩罚候选均未通过筛选，保留原采样和 −200 系数。
+
+[2026-09-30 H1 探索熵研究](docs/h1-entropy-study-20260930.md) 完整比较 0.01 / 0.001 熵系数的从零训练与续训，并记录均值/随机动作差异、动作限幅、模型大小和失败案例。降熵改善部分跟踪指标，但候选均未通过稳定性筛选，保留原默认配方。
+
 机器人训练 SDK 使用独立环境，避免不同 Warp、Torch、MuJoCo 版本相互覆盖。安装前按任务文档准备固定 revision 的源码检出；本机路径、缓存和 GPU 要求均在对应文档中说明。
 
 | 入口 | 任务与方法 | 实现方式与文档 |
 | --- | --- | --- |
 | `python -m embodiedforge recipes` | Go1 PPO、Wuji / Wuji Light 重定向 PPO、Cartpole MPC、机械臂投掷 CEM | Go1 已移植；其他为固定源码快照加适配层。[任务配方](docs/recipes.md) |
-| `python -m embodiedforge.microduck` | Microduck 平地行走 PPO、评估、回放和 ONNX 导出 | 本地行走任务与资产，隔离运行 mjlab 训练。[Microduck](docs/microduck.md) |
+| `python -m embodiedforge microduck` | Microduck 平地行走 PPO、评估、回放和 ONNX 导出 | 本地行走任务与资产，隔离运行 mjlab 训练。[Microduck](docs/microduck.md) |
 | `python -m embodiedforge h1-native` | H1 原生训练、续训、固定指令评估与运动记录 | 项目内 CPU 任务与 PPO。[原生 H1](docs/h1-native.md) |
 | `python -m embodiedforge h1` | H1 平地行走训练、续训、多种子固定指令评估 | 独立 IsaacLab / Newton / MuJoCo-Warp 配方。[H1](docs/h1-isaaclab.md) |
 | `python -m embodiedforge gmr` | BVH 重定向与参考动作回放 | 外部 GMR SDK，不执行 RL。[指令](docs/humanoid-motion.md) |

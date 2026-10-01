@@ -1,5 +1,8 @@
 # Microduck RL
 
+统一入口为 `python -m embodiedforge microduck`，也可使用 `embodiedforge microduck`；
+现有 `python -m embodiedforge.microduck` 命令继续支持，参数和运行行为一致。
+
 直接开始正式训练、续训和部署，见 [机械鸭快捷命令](microduck-quickstart.md)。
 
 模型参数量、权重体积、预训练与后训练流程，以及已有结果和消融实验设计，见 [机械鸭模型与实验详解](microduck-model-training-ablation.md)。
@@ -200,6 +203,9 @@ python -m embodiedforge.microduck evaluate \
 
 报告新增 `conditions`（指令、推扰、计算精度、指令检查次数）及 `onnx_parity`（模型散列、样本数、最大绝对误差、容差）。失败退出码非零，`run.json` 标为失败，worker 的具体错误写入 `evaluation.failure.json`。比较策略时应保持条件与精度一致，覆盖多个种子；奖励权重受课程影响，不能只用平均奖励判断步态质量。相同种子也不保证 GPU 仿真逐位一致。
 
+`evaluation_seconds` 记录评估循环墙钟耗时，包含策略、物理、逐步校验及启用时的 ONNX 对照和录像，
+不包含环境构建、checkpoint 加载和资源关闭。比较吞吐时保持环境数、步数、视频与对照设置一致。
+
 若磁盘写满等问题导致收尾时无法更新 `run.json`，启动器会保留原始失败或中断，并在日志中提示记录保存失败；此时文件可能仍是上一次保存的状态。任务正常完成但最终记录写入失败时，命令仍报错退出。
 
 ONNX 对照报告必须满足 `samples == steps_per_env`，每步按环境编号轮换采样；推理后端为 `CPUExecutionProvider`，PyTorch 策略使用完整 FP32，`atol` 和 `rtol` 均为 `1e-4`。在线完成检查、离线验收和策略对比都会拒绝缺失/不足的样本、改写的对照配置，以及非有限或负的最大绝对误差。报告中的 ONNX 路径也须与运行命令一致。最大绝对误差用于汇总，不能单独与 `atol` 比较判定成功，因为逐元素允许误差还包含相对容差项。
@@ -325,3 +331,5 @@ python -m embodiedforge.microduck compare \
 本轮工程改进与续训对照见 [一小时优化记录](microduck-hour-optimization-20260916.md)。
 
 后续的 [四组合奖励消融与部署资源实测](rl-factorial-study-20260927.md) 分开比较线速度和角速度奖励，并补充 ONNX 文件大小、CPU 推理资源与 RLinf actor 导出结果。
+
+[运行与恢复校验记录](rl-runtime-validation-20260928.md#机械鸭撤回没有稳定收益的改动) 记录评估循环计时及一次未保留的同步合并尝试，包含 32/128 环境、两种指令的实际对照。

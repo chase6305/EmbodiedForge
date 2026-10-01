@@ -126,18 +126,20 @@ def test_stalled_render_thread_is_reported():
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX process-group signal handling")
 @pytest.mark.parametrize(
-    "frontend,capture_log,echo,interrupt_signal",
+    "frontend,capture_log,echo,interrupt_signal,exit_code",
     [
-        ("microduck", False, True, signal.SIGINT),
-        ("microduck", True, True, signal.SIGTERM),
-        ("microduck", True, False, signal.SIGHUP),
-        ("microduck", True, False, None),
-        ("h1", True, False, None),
-        ("recipes", True, False, None),
+        ("microduck", False, True, signal.SIGINT, 0),
+        ("microduck", True, True, signal.SIGTERM, 0),
+        ("microduck", True, False, signal.SIGHUP, 0),
+        ("microduck", True, False, None, 7),
+        ("h1", True, False, None, 7),
+        ("recipes", True, False, None, 7),
+        ("microduck", True, False, None, 0),
+        ("microduck", True, True, None, 0),
     ],
 )
-def test_failure_and_interrupt_clean_owned_process_group(
-    tmp_path, frontend, capture_log, echo, interrupt_signal
+def test_process_exit_and_interrupt_clean_owned_process_group(
+    tmp_path, frontend, capture_log, echo, interrupt_signal, exit_code
 ):
     ready, cleaned = tmp_path / "ready", tmp_path / "cleaned"
     descendant = tmp_path / "descendant.pid"
@@ -155,7 +157,7 @@ def test_failure_and_interrupt_clean_owned_process_group(
             time.sleep(0.6)
             print("cleanup complete", flush=True)
             Path({str(cleaned)!r}).touch()
-            raise SystemExit({7 if interrupt_signal is None else 0})
+            raise SystemExit({exit_code})
         signal.signal(signal.SIGINT, cleanup)
         if sys.platform == 'linux':
             subprocess.Popen([sys.executable, '-c', {stubborn!r}], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -195,24 +197,27 @@ def test_failure_and_interrupt_clean_owned_process_group(
                 recipes.run_process(command, output, os.environ.copy(), None)
             else:
                 microduck.run(command, cwd=output, env=os.environ.copy(), log_path=output / 'interrupt.log' if {capture_log!r} else None, echo={echo!r})
-        except (KeyboardInterrupt, subprocess.CalledProcessError) as exc:
-            thread.join()
-            if sys.platform == 'linux':
-                pid = int(Path({str(descendant)!r}).read_text())
-                reaped = 0
-                deadline = time.monotonic() + 1
-                try:
-                    while not reaped and time.monotonic() < deadline:
-                        reaped, status = os.waitpid(pid, os.WNOHANG)
-                        time.sleep(0.01)
-                finally:
-                    if not reaped:
-                        os.kill(pid, signal.SIGKILL)
-                        os.waitpid(pid, 0)
-                assert reaped, 'Stopped wrapper left a descendant running'
-            if isinstance(exc, subprocess.CalledProcessError):
-                raise SystemExit(exc.returncode)
-            raise SystemExit(128 + getattr(exc, "signum", signal.SIGINT))
+        except subprocess.CalledProcessError as exc:
+            code = exc.returncode
+        except KeyboardInterrupt as exc:
+            code = 128 + getattr(exc, "signum", signal.SIGINT)
+        else:
+            code = 0
+        thread.join()
+        if sys.platform == 'linux':
+            pid = int(Path({str(descendant)!r}).read_text())
+            reaped = 0
+            deadline = time.monotonic() + 1
+            try:
+                while not reaped and time.monotonic() < deadline:
+                    reaped, status = os.waitpid(pid, os.WNOHANG)
+                    time.sleep(0.01)
+            finally:
+                if not reaped:
+                    os.kill(pid, signal.SIGKILL)
+                    os.waitpid(pid, 0)
+            assert reaped, 'Stopped wrapper left a descendant running'
+        raise SystemExit(code)
     """)
     result = subprocess.run(
         [sys.executable, "-c", wrapper],
@@ -221,7 +226,7 @@ def test_failure_and_interrupt_clean_owned_process_group(
         timeout=10,
         start_new_session=True,
     )
-    expected = 128 + interrupt_signal if interrupt_signal is not None else 7
+    expected = 128 + interrupt_signal if interrupt_signal is not None else exit_code
     assert result.returncode == expected, result.stderr
     assert cleaned.exists(), "Child was killed before native cleanup could finish"
     if capture_log:

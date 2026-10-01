@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 
 from .h1 import write_json
+from .recipes import validate_snapshot
 from .rlinf import CONFIG, WEIGHTS, check_checkout, checkpoint_step, inventory
 
 
@@ -52,7 +53,9 @@ def compose_config(request):
             cfg.runner.max_steps = final
             cfg.runner.max_epochs = final
             cfg.runner.save_interval = request["save_interval"]
-            cfg.runner.val_check_interval = request["save_interval"]
+            cfg.runner.val_check_interval = (
+                request.get("eval_interval") or request["save_interval"]
+            )
             cfg.runner.resume_dir = request["checkpoint"]
             cfg.env.train.total_num_envs = request["num_envs"]
         else:
@@ -150,10 +153,116 @@ def validate_dcp_files(checkpoint):
                 raise ValueError(f"Truncated or invalid DCP data shard: {path}")
 
 
+def validate_sac_state(checkpoint):
+    """Validate the actual DCP restore tensors, including policy and entropy Adam state."""
+    import torch
+    import torch.distributed.checkpoint as dcp
+    from torch.distributed.checkpoint.metadata import TensorStorageMetadata
+
+    from ._adam_checkpoint import validate_adam_checkpoint
+
+    reference = torch.load(checkpoint / WEIGHTS, map_location="cpu", weights_only=True)
+    validated = {}
+    for component, relative in (
+        ("policy", "actor/dcp_checkpoint"),
+        ("entropy", "actor/sac_components/alpha/dcp_checkpoint"),
+    ):
+        reader = dcp.FileSystemReader(checkpoint / relative)
+        metadata = reader.read_metadata()
+        state = {
+            key: torch.empty(item.size, dtype=item.properties.dtype)
+            if isinstance(item, TensorStorageMetadata)
+            else None
+            for key, item in metadata.state_dict_metadata.items()
+        }
+        dcp.load(state, storage_reader=reader)
+        prefix = "fsdp_checkpoint.model."
+        model = {
+            key.removeprefix(prefix): value
+            for key, value in state.items()
+            if key.startswith(prefix)
+        }
+        for name, value in model.items():
+            if not isinstance(value, torch.Tensor) or not torch.isfinite(value).all():
+                raise ValueError(f"Invalid SAC {component} DCP model tensor: {name}")
+        if component == "policy":
+            if model.keys() != reference.keys() or any(
+                model[name].dtype != value.dtype or not torch.equal(model[name], value)
+                for name, value in reference.items()
+            ):
+                raise ValueError("SAC DCP policy differs from full_weights.pt")
+            parameters = [
+                name
+                for name in reference
+                if name not in ("action_scale", "action_bias")
+            ]
+            groups = [
+                [name for name in parameters if not name.startswith("q_head.")],
+                [name for name in parameters if name.startswith("q_head.")],
+            ]
+        else:
+            if (
+                set(model) != {"base_alpha"}
+                or model["base_alpha"].shape != ()
+                or model["base_alpha"].dtype != torch.float32
+            ):
+                raise ValueError("Invalid SAC entropy temperature layout")
+            groups = [["base_alpha"]]
+        optimizer = torch.optim.Adam(
+            [{"params": [model[name] for name in names]} for names in groups]
+        )
+        ids = {
+            name: index
+            for index, name in enumerate(name for names in groups for name in names)
+        }
+        saved_groups = []
+        group_prefix = "fsdp_checkpoint.optimizers.param_groups."
+        expected_group_keys = {
+            f"{group_prefix}{index}.params" for index in range(len(groups))
+        }
+        if {
+            key
+            for key in state
+            if key.startswith(group_prefix) and key.endswith(".params")
+        } != expected_group_keys:
+            raise ValueError(f"SAC {component} optimizer groups differ")
+        for index, names in enumerate(groups):
+            prefix = f"{group_prefix}{index}."
+            saved = {
+                key.removeprefix(prefix): value
+                for key, value in state.items()
+                if key.startswith(prefix)
+            }
+            if saved.get("params") != names:
+                raise ValueError(f"SAC {component} optimizer parameter order differs")
+            saved["params"] = [ids[name] for name in names]
+            saved_groups.append(saved)
+        prefix = "fsdp_checkpoint.optimizers.state."
+        slots = {}
+        for key, value in state.items():
+            if key.startswith(prefix):
+                name, field = key.removeprefix(prefix).rsplit(".", 1)
+                if name not in ids:
+                    raise ValueError(
+                        f"Unknown SAC {component} optimizer parameter: {name}"
+                    )
+                slots.setdefault(ids[name], {})[field] = value
+        validate_adam_checkpoint(
+            optimizer,
+            {"param_groups": saved_groups, "state": slots},
+            label=f"SAC {component} optimizer",
+        )
+        validated[component] = {
+            "optimizer_parameters": len(ids),
+            "model_tensors": len(model),
+        }
+    return validated
+
+
 def checkpoint_summary(checkpoint, model_cfg):
     step = checkpoint_step(checkpoint)
     validate_dcp_files(checkpoint)
-    return {
+    summary = {
         "final_step": step,
         "weights": weight_summary(checkpoint / WEIGHTS, model_cfg),
         "target_weights": weight_summary(
@@ -161,6 +270,8 @@ def checkpoint_summary(checkpoint, model_cfg):
             model_cfg,
         ),
     }
+    summary["restore_validation"] = validate_sac_state(checkpoint)
+    return summary
 
 
 def last_metrics(output, expected_step=None):
@@ -194,13 +305,36 @@ def last_metrics(output, expected_step=None):
     return result
 
 
-def execute(cfg, entry):
+def isolated_eval_worker(base):
+    """Keep ManiSkill evaluation resets out of the training Torch random stream."""
+
+    class IsolatedEvalWorker(base):
+        def evaluate(self, *args, **kwargs):
+            import torch
+
+            devices = sorted(
+                {
+                    env.device.index
+                    if env.device.index is not None
+                    else torch.cuda.current_device()
+                    for env in self.eval_env_list
+                    if env.device.type == "cuda"
+                }
+            )
+            with torch.random.fork_rng(devices=devices):
+                return super().evaluate(*args, **kwargs)
+
+    return IsolatedEvalWorker
+
+
+def execute(cfg, entry, *, isolate_evaluation=False):
     """Own one local Ray runtime, including when another Ray cluster is running."""
     import ray
 
     original_init = ray.init
     previous_failure_handler = signal.getsignal(signal.SIGUSR1)
     entry_globals = None
+    original_env_worker = None
 
     def worker_failed(signum, frame):
         # WorkerGroup prints the original exception before signalling the driver.
@@ -232,6 +366,9 @@ def execute(cfg, entry):
         main = namespace["main"].__wrapped__
         original_cluster = main.__globals__["Cluster"]
         entry_globals = main.__globals__
+        if isolate_evaluation:
+            original_env_worker = entry_globals["EnvWorker"]
+            entry_globals["EnvWorker"] = isolated_eval_worker(original_env_worker)
 
         def owned_cluster(*args, **kwargs):
             cluster = original_cluster(*args, **kwargs)
@@ -247,6 +384,8 @@ def execute(cfg, entry):
         ray.init = original_init
         if entry_globals is not None:
             entry_globals["Cluster"] = original_cluster
+            if original_env_worker is not None:
+                entry_globals["EnvWorker"] = original_env_worker
         active_error = sys.exc_info()[0] is not None
         signal.signal(signal.SIGUSR1, signal.SIG_IGN)
         try:
@@ -311,6 +450,17 @@ def record_environment(output, *, export_onnx=False, evaluate_onnx=False):
 def main():
     request = json.loads(Path(sys.argv[1]).read_text())
     repo, output = Path(request["repo"]), Path(request["output"])
+    evaluation_rng = request.get("evaluation_rng", "upstream")
+    if evaluation_rng not in ("upstream", "isolated-torch"):
+        raise ValueError(f"Unknown RLinf evaluation RNG mode: {evaluation_rng}")
+    # Historical requests did not record an implementation snapshot.
+    if "implementation" in request:
+        package = output / "implementation" / "embodiedforge"
+        if Path(__file__).resolve().parent != package.resolve():
+            raise ValueError("RLinf worker must load its implementation snapshot")
+        validate_snapshot(
+            package, request["implementation"], label="RLinf implementation"
+        )
     check_checkout(repo)
     evaluate_onnx = request.get("policy_format") == "onnx"
     record_environment(
@@ -361,7 +511,7 @@ def main():
     # temporary runtime files are removed; persistent training logs stay in output.
     with tempfile.TemporaryDirectory(prefix="ef-rlinf-") as runtime:
         os.environ["RAY_TMPDIR"] = runtime
-        execute(cfg, entry)
+        execute(cfg, entry, isolate_evaluation=evaluation_rng == "isolated-torch")
     final = (
         request["start_step"] + request["iterations"]
         if request["command"] == "train"
@@ -369,6 +519,7 @@ def main():
     )
     result = {
         "status": "complete",
+        "evaluation_rng": evaluation_rng,
         "metrics": last_metrics(output, final - 1 if final else 0),
     }
     if request["command"] == "train":

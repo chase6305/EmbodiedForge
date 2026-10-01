@@ -260,7 +260,7 @@ Evaluation copies the checkpoint and optional ONNX model into the run's `inputs/
 
 <a id="h1"></a>
 
-## H1: IsaacLab training and replay
+## H1: native CPU and IsaacLab training and replay
 
 ### Native CPU workflow
 
@@ -268,17 +268,22 @@ The independent `h1-native` entry point uses no IsaacLab, RSL-RL, or upstream tr
 
 ```bash
 python -m pip install -e '.[h1-native]'
-python -m embodiedforge h1-native train \
-  --model /path/to/unitree_h1/h1.xml --num-envs 128 --threads 4 --updates 500 \
+python -m embodiedforge h1-native train --headless \
+  --model /path/to/unitree_h1/h1.xml --num-envs 128 --threads 2 --updates 5000 \
+  --seed 0 --learning-rate 0.0003 \
   --output runs/commands-h1-native
-python -m embodiedforge h1-native train \
-  --resume runs/commands-h1-native --num-envs 128 --threads 4 --updates 1000 \
+python -m embodiedforge h1-native train --headless \
+  --resume runs/commands-h1-native --num-envs 128 --threads 2 --updates 1000 \
   --output runs/commands-h1-native-resumed
-python -m embodiedforge h1-native evaluate \
-  --run runs/commands-h1-native-resumed --steps 500 --velocity 0.5 0 0 \
+python -m embodiedforge h1-native evaluate --headless \
+  --run runs/commands-h1-native-resumed --threads 2 --steps 500 --velocity 0.5 0 0 \
   --record-motion --min-survival 0.8 --max-planar-rmse 0.3 --max-yaw-rmse 0.3 \
   --output runs/commands-h1-native-eval
 ```
+
+The 128-environment, 5000-update starting budget follows the [three-seed study](rl-training-study-20260925.md). More updates alone do not establish walking quality: apply the evaluation thresholds to every trained or resumed policy. The example covers forward walking; evaluate standing and turns separately with other `--velocity` values and new output directories. The smaller-batch [checkpoint study](h1-checkpoint-publication-20260929.md) checks software consistency and is not a deployment recipe.
+
+Evaluation defaults to the nominal initial state. Add `--randomized-reset --num-envs 32 --seed 9701` with a new output directory to sample initial states and physics from the training distribution while keeping fixed commands and observation noise disabled. See the [H1 evaluation guide](h1-native.en.md#evaluate-and-replay) for ranges and metric definitions.
 
 After native H1 stops through interruption or failure, the same `--resume` command can load its last recorded, validated checkpoint. Runs that stopped before saving, are still marked `running`, or fail artifact validation cannot be recovered. Unsaved updates do not count toward resumed progress.
 

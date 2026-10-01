@@ -12,6 +12,7 @@ from .articulation import ArticulationBatch, finite_array, selected_ids
 
 OBS_DIM, ACT_DIM = 69, 19
 TIMESTEP, DECIMATION, ACTION_SCALE = 0.005, 4, 0.5
+ACTION_LIMIT = 5.0
 CTRL_DT = TIMESTEP * DECIMATION
 VERSION = "h1-mjbatch-flat-v1"
 
@@ -125,6 +126,7 @@ class H1:
         threads=4,
         episode_steps=1000,
         training=True,
+        randomized_reset=None,
     ):
         if type(episode_steps) is not int or episode_steps <= 0:
             raise ValueError("Episode length must be a positive integer")
@@ -134,6 +136,11 @@ class H1:
             num_envs,
             training,
             episode_steps,
+        )
+        # Evaluation can sample initial states without observation noise or
+        # periodic command changes. Training retains its existing reset behavior.
+        self.randomized_reset = (
+            training if randomized_reset is None else randomized_reset
         )
         # qpos0 is MuJoCo's kinematic reference, not a configurable standing pose.
         self.default = np.array([joint_defaults(name)[0] for name in self.robot.names])
@@ -179,7 +186,7 @@ class H1:
         qpos[:, :3] = (0, 0, 1.05)
         qpos[:, 3:7] = (1, 0, 0, 0)
         qvel = np.zeros((len(ids), self.model.nv))
-        if self.training:
+        if self.randomized_reset:
             self.robot.randomize(ids, body_ids=[self.model.body("torso_link").id])
             qpos[:, :2] = self.rng.uniform(-0.5, 0.5, (len(ids), 2))
             yaw = self.rng.uniform(-np.pi, np.pi, len(ids))
@@ -223,12 +230,12 @@ class H1:
 
     def step(self, actions):
         actions = np.clip(
-            finite_array(actions, (self.num_envs, ACT_DIM), "Actions"), -5, 5
+            finite_array(actions, (self.num_envs, ACT_DIM), "Actions"),
+            -ACTION_LIMIT,
+            ACTION_LIMIT,
         )
         previous_velocity = self.robot.qvel[:, self.robot.vadr].copy()
-        self.robot.set_joint_position_targets(
-            self.default + ACTION_SCALE * np.clip(actions, -5, 5)
-        )
+        self.robot.set_joint_position_targets(self.default + ACTION_SCALE * actions)
         self.robot.step(DECIMATION)
         self.steps += 1
         foot_force = np.concatenate(
@@ -258,10 +265,14 @@ class H1:
         )
         world_gyro = np.einsum("nij,nj->ni", self.rotation, self.gyro)
         self.measured_velocity = np.column_stack((velocity, world_gyro[:, 2]))
-        fell = self.batch.sensor("native_touch_torso_link")[:, 0] > 1
         # Native safeguard also terminates a tipped/sub-floor base, including a
         # fall whose torso contact occurred between the sampled control ticks.
-        fell |= (self.robot.qpos[:, 2] < 0.45) | (self.rotation[:, 2, 2] < 0.2)
+        self.termination_reasons = {
+            "torso_contact": self.batch.sensor("native_touch_torso_link")[:, 0] > 1,
+            "base_height": self.robot.qpos[:, 2] < 0.45,
+            "base_tilt": self.rotation[:, 2, 2] < 0.2,
+        }
+        fell = np.logical_or.reduce(list(self.termination_reasons.values()))
         q = self.robot.qpos[:, self.robot.qadr]
         joint_ids = self.model.actuator_trnid[:, 0]
         limits = self.model.jnt_range[joint_ids]

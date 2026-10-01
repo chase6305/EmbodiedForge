@@ -237,6 +237,11 @@ def _optimize_policy(
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 0.5, error_if_nonfinite=True)
             optimizer.step()
+            # Keep exploration trainable when Adam crosses the forward clamp.
+            with torch.no_grad():
+                if not torch.isfinite(model.log_std).all():
+                    raise FloatingPointError("Non-finite PPO policy log_std")
+                model.log_std.clamp_(-5, 2)
             losses.append(float(loss.detach()))
     if any(not torch.isfinite(p).all() for p in model.parameters()):
         raise FloatingPointError("Non-finite PPO policy")

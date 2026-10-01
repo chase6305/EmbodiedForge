@@ -12,6 +12,7 @@ import sys
 import threading
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
+from time import perf_counter
 
 
 def _process_state(pid):
@@ -1041,6 +1042,8 @@ def evaluate(
         metrics = env.metrics_manager.cfg["ef_velocity_tracking"].func
         obs = wrapped.get_observations()
         reward_sum = torch.zeros((), device="cuda:0")
+        torch.cuda.synchronize(env.device)
+        started = perf_counter()
         for step in range(steps):
             if velocity is not None:
                 verify_fixed_commands(env, velocity)
@@ -1080,6 +1083,7 @@ def evaluate(
             raise RuntimeError("Nonfinite simulation state during evaluation")
         if velocity is not None:
             verify_fixed_commands(env, velocity)
+        evaluation_seconds = perf_counter() - started
         return {
             "checkpoint": str(checkpoint),
             "checkpoint_metadata": metadata,
@@ -1105,6 +1109,7 @@ def evaluate(
             "num_envs": num_envs,
             "steps_per_env": steps,
             "transitions": steps * num_envs,
+            "evaluation_seconds": evaluation_seconds,
             "sim_seconds_per_env": steps * env.step_dt,
             "mean_reward_per_transition": float(reward_sum.item() / (steps * num_envs)),
             **metrics.report(steps=steps, step_dt=env.step_dt),

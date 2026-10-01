@@ -1,0 +1,4540 @@
+{
+  "status": "complete",
+  "collected_at": "2026-09-29T04:49:29.495032+00:00",
+  "protocol": {
+    "declared_at": "2026-09-29T03:21:27.306780+00:00",
+    "start": "2026-09-29T03:13:57+00:00",
+    "deadline": "2026-09-29T05:13:57+00:00",
+    "purpose": "Paired software and evaluation-frequency comparison from identical full-state checkpoints, not independent fresh training runs. Check whether in-process evaluation affects later training updates.",
+    "training_seeds": [
+      1234,
+      4321
+    ],
+    "resume_step": 2000,
+    "additional_iterations": 1000,
+    "save_interval": 500,
+    "evaluation_intervals": [
+      250,
+      500
+    ],
+    "num_envs": 32,
+    "jobs": [
+      [
+        "upstream",
+        1234,
+        500
+      ],
+      [
+        "upstream",
+        1234,
+        250
+      ],
+      [
+        "isolated",
+        1234,
+        250
+      ],
+      [
+        "isolated",
+        1234,
+        500
+      ],
+      [
+        "isolated",
+        4321,
+        500
+      ],
+      [
+        "isolated",
+        4321,
+        250
+      ]
+    ],
+    "independent_evaluation_seeds": [
+      9401,
+      9402,
+      9403
+    ],
+    "evaluation_envs": 16,
+    "evaluation_epochs": 10,
+    "gpu_execution": "serial",
+    "limits": [
+      "No claim of universal GPU determinism.",
+      "Current upstream algorithms, rewards and model unchanged.",
+      "Historical weights are read only.",
+      "The unmodified frequency control is measured only at training seed 1234; seed 4321 checks corrected behavior only."
+    ],
+    "revised_at": "2026-09-29T03:27:30.702026+00:00",
+    "revision_reason": "Measured first-run update time around 0.90 seconds requires limiting queued runs to honor the two-hour budget. Keep the full four-way control at seed 1234 and the two corrected-frequency paths at seed 4321. Individual training budgets remain 1000 iterations; revision made before the first run completed, without examining learning outcomes."
+  },
+  "optional_protocol": {
+    "declared_at": "2026-09-29T03:39:20.235539+00:00",
+    "latest_start": "2026-09-29T04:45:00+00:00",
+    "jobs": [
+      [
+        "upstream",
+        4321,
+        250
+      ],
+      [
+        "upstream",
+        4321,
+        500
+      ]
+    ],
+    "purpose": "Complete the original second-seed baseline controls only if the six primary paths and their evaluation finish early enough. Admission depends only on elapsed time, not learning outcomes.",
+    "additional_iterations": 1000,
+    "save_interval": 500,
+    "eval_seeds": [
+      9401,
+      9402,
+      9403
+    ]
+  },
+  "optional_status": "skipped",
+  "optional_reason": "Primary pipeline completed after the admission deadline; no partial training budget used",
+  "executed_jobs": [
+    [
+      "upstream",
+      1234,
+      500
+    ],
+    [
+      "upstream",
+      1234,
+      250
+    ],
+    [
+      "isolated",
+      1234,
+      250
+    ],
+    [
+      "isolated",
+      1234,
+      500
+    ],
+    [
+      "isolated",
+      4321,
+      500
+    ],
+    [
+      "isolated",
+      4321,
+      250
+    ]
+  ],
+  "source_changes": {
+    "_rlinf_worker.py": {
+      "baseline_sha256": "1c9dbd4a79074e9762e70fbd1cd86454aa32b539d2489060d6a9f5108688876f",
+      "candidate_sha256": "e4e20bf3d771057c15293155b2160d37db3e7608bb0b3676cb0deb6dcd050406"
+    },
+    "rlinf.py": {
+      "baseline_sha256": "9564bfeaf545c07f0d2b636146737d74c9e03a4664711299d6e483d79fb3d5fd",
+      "candidate_sha256": "075cb0aa02a7e11dd7f2c7312b78c46323bdaa1b8d191825cd57e6ec6c407501"
+    }
+  },
+  "candidate_revision": {
+    "at": "2026-09-29T03:54:31.680138+00:00",
+    "previous_attempts": [
+      {
+        "label": "isolated-s1234-e250",
+        "command": [
+          "/home/ubuntu/miniconda3/envs/ef/bin/python",
+          "-m",
+          "embodiedforge",
+          "rlinf",
+          "train",
+          "--repo",
+          "/home/ubuntu/workspace/3rdparty/RLinf",
+          "--python",
+          ".cache/rlinf-sac-venv/bin/python",
+          "--headless",
+          "--quiet",
+          "--output",
+          "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250",
+          "--resume",
+          "runs/rlinf-continuous-1234-20260928/maniskill_sac_mlp/checkpoints/global_step_2000",
+          "--iterations",
+          "1000",
+          "--save-interval",
+          "500",
+          "--eval-interval",
+          "250",
+          "--gpu",
+          "0"
+        ],
+        "variant": "isolated",
+        "status": "failed",
+        "started_at": "2026-09-29T03:48:38.046610+00:00",
+        "returncode": 1,
+        "wall_seconds": 198.12530545401387,
+        "finished_at": "2026-09-29T03:51:56.172105+00:00"
+      }
+    ],
+    "failure": "First in-training evaluation received torch.device(cuda) with index None. Runtime and source archived with v1-failed prefix.",
+    "correction": "Resolve absent CUDA index with torch.cuda.current_device(). Full SDK tests including real CUDA state restoration passed.",
+    "restart": "Same original full-state checkpoint; full additional 1000 iterations; no failed attempt included in result comparisons."
+  },
+  "policy_rng_probe": {
+    "eager": [
+      {
+        "repeat": 0,
+        "cuda_rng_unchanged": true,
+        "cpu_rng_unchanged": true,
+        "next_train_actions_equal": true,
+        "max_action_difference": 0.0
+      },
+      {
+        "repeat": 1,
+        "cuda_rng_unchanged": true,
+        "cpu_rng_unchanged": true,
+        "next_train_actions_equal": true,
+        "max_action_difference": 0.0
+      }
+    ],
+    "compiled": [
+      {
+        "repeat": 0,
+        "cuda_rng_unchanged": true,
+        "cpu_rng_unchanged": true,
+        "next_train_actions_equal": true,
+        "max_action_difference": 0.0
+      },
+      {
+        "repeat": 1,
+        "cuda_rng_unchanged": true,
+        "cpu_rng_unchanged": true,
+        "next_train_actions_equal": true,
+        "max_action_difference": 0.0
+      }
+    ]
+  },
+  "environment_rng_probe": [
+    {
+      "torch_rng_isolation": false,
+      "train_observation_unchanged": true,
+      "max_train_observation_difference": 0.0,
+      "cpu_rng_unchanged": true,
+      "cuda_rng_unchanged": false,
+      "numpy_rng_unchanged": true,
+      "python_rng_unchanged": true
+    },
+    {
+      "torch_rng_isolation": true,
+      "train_observation_unchanged": true,
+      "max_train_observation_difference": 0.0,
+      "cpu_rng_unchanged": true,
+      "cuda_rng_unchanged": true,
+      "numpy_rng_unchanged": true,
+      "python_rng_unchanged": true
+    }
+  ],
+  "runs": [
+    {
+      "label": "upstream-s1234-e500",
+      "variant": "upstream",
+      "seed": 1234,
+      "eval_interval": 500,
+      "evaluation_rng": "upstream",
+      "implementation_snapshot_valid": true,
+      "input_files": 2008,
+      "training": {
+        "status": "complete",
+        "metrics": {
+          "env/num_trajectories": {
+            "step": 2999,
+            "value": 32.0
+          },
+          "time/sync_weights": {
+            "step": 2999,
+            "value": 0.1751999855041504
+          },
+          "time/generate_rollouts": {
+            "step": 2999,
+            "value": 0.1793828010559082
+          },
+          "time/cal_adv_and_returns": {
+            "step": 2999,
+            "value": 0.0008578300476074219
+          },
+          "time/actor_training": {
+            "step": 2999,
+            "value": 0.3875722885131836
+          },
+          "time/step": {
+            "step": 2999,
+            "value": 4.257462501525879
+          },
+          "time/env/env/bootstrap_step": {
+            "step": 2999,
+            "value": 0.0002726160455495119
+          },
+          "time/env/env_interact_step": {
+            "step": 2999,
+            "value": 0.05789034068584442
+          },
+          "time/env/run_interact_once": {
+            "step": 2999,
+            "value": 0.07572998106479645
+          },
+          "time/env/interact": {
+            "step": 2999,
+            "value": 0.07574832439422607
+          },
+          "time/rollout/sync_model_from_actor": {
+            "step": 2999,
+            "value": 0.34743160009384155
+          },
+          "time/rollout/predict": {
+            "step": 2999,
+            "value": 0.038084015250205994
+          },
+          "time/rollout/generate_one_epoch": {
+            "step": 2999,
+            "value": 0.07519412040710449
+          },
+          "time/rollout/rollout/generate": {
+            "step": 2999,
+            "value": 0.07554583251476288
+          },
+          "time/actor/actor/sync_model_to_rollout": {
+            "step": 2999,
+            "value": 0.0260954350233078
+          },
+          "time/actor/actor/recv_traj": {
+            "step": 2999,
+            "value": 0.1699635088443756
+          },
+          "time/actor/actor/compute_adv": {
+            "step": 2999,
+            "value": 6.001908332109451e-06
+          },
+          "time/actor/sample": {
+            "step": 2999,
+            "value": 0.11294234544038773
+          },
+          "time/actor/forward_critic": {
+            "step": 2999,
+            "value": 0.06898799538612366
+          },
+          "time/actor/forward_actor": {
+            "step": 2999,
+            "value": 0.0480157807469368
+          },
+          "time/actor/forward_alpha": {
+            "step": 2999,
+            "value": 0.01757900044322014
+          },
+          "time/actor/update_one_epoch": {
+            "step": 2999,
+            "value": 0.3846025764942169
+          },
+          "time/actor/run_training": {
+            "step": 2999,
+            "value": 0.38661062717437744
+          },
+          "train/actor/entropy": {
+            "step": 2999,
+            "value": -4.02172327041626
+          },
+          "train/actor/grad_norm": {
+            "step": 2999,
+            "value": 5.603190898895264
+          },
+          "train/actor/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/actor/q_pi": {
+            "step": 2999,
+            "value": 2.8862853050231934
+          },
+          "train/actor/q_value_0": {
+            "step": 2999,
+            "value": 2.9270565509796143
+          },
+          "train/actor/q_value_1": {
+            "step": 2999,
+            "value": 2.9260597229003906
+          },
+          "train/alpha/grad_norm": {
+            "step": 2999,
+            "value": 0.0010732942027971148
+          },
+          "train/critic/grad_norm": {
+            "step": 2999,
+            "value": 1.0729570388793945
+          },
+          "train/critic/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/critic/q_data": {
+            "step": 2999,
+            "value": 2.8456809520721436
+          },
+          "train/replay_buffer/cache_size": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/num_trajectories": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/total_samples": {
+            "step": 2999,
+            "value": 192000.0
+          },
+          "train/sac/actor_loss": {
+            "step": 2999,
+            "value": -2.8275997638702393
+          },
+          "train/sac/alpha": {
+            "step": 2999,
+            "value": 0.014592812396585941
+          },
+          "train/sac/alpha_loss": {
+            "step": 2999,
+            "value": -0.00014434520562645048
+          },
+          "train/sac/critic_loss": {
+            "step": 2999,
+            "value": 0.005805253516882658
+          },
+          "env/success_at_end": {
+            "step": 2999,
+            "value": 0.9375
+          },
+          "env/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "env/return": {
+            "step": 2999,
+            "value": 38.73774719238281
+          },
+          "env/success_once": {
+            "step": 2999,
+            "value": 0.9375
+          },
+          "env/reward": {
+            "step": 2999,
+            "value": 0.7747548818588257
+          },
+          "eval/success_at_end": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "eval/return": {
+            "step": 2999,
+            "value": 43.1334114074707
+          },
+          "eval/success_once": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/reward": {
+            "step": 2999,
+            "value": 0.8626681566238403
+          },
+          "eval/num_trajectories": {
+            "step": 2999,
+            "value": 16.0
+          },
+          "time/eval": {
+            "step": 2999,
+            "value": 1.6313190460205078
+          },
+          "time/env/evaluate": {
+            "step": 2999,
+            "value": 1.4494061470031738
+          },
+          "time/rollout/evaluate": {
+            "step": 2999,
+            "value": 1.421156883239746
+          }
+        },
+        "final_step": 3000,
+        "weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/upstream-s1234-e500/maniskill_sac_mlp/checkpoints/global_step_3000/actor/model_state_dict/full_weights.pt",
+          "sha256": "2769bfe20f4c72fa76a184363c0d5c65ce9e0c668aec4354d8e79bfe06e81141",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "target_weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/upstream-s1234-e500/maniskill_sac_mlp/checkpoints/global_step_3000/actor/sac_components/target_model/checkpoint_rank_0.pt",
+          "sha256": "12ba5b774c9b577ccf96aad131b4b25b6931e0d7dc1004033eff74d1f4ed9c57",
+          "file_bytes": 1756023,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "restore_validation": {
+          "policy": {
+            "optimizer_parameters": 38,
+            "model_tensors": 40
+          },
+          "entropy": {
+            "optimizer_parameters": 1,
+            "model_tensors": 1
+          }
+        },
+        "checkpoint": "runs/rl-evaluation-isolation-20260929/upstream-s1234-e500/maniskill_sac_mlp/checkpoints/global_step_3000",
+        "checkpoint_bytes": 104297695
+      },
+      "export": {
+        "path": "runs/rl-evaluation-isolation-20260929/upstream-s1234-e500-export/policy.onnx",
+        "sha256": "bf659b56632d2547cf31f6cf187fdb09bb4f3f954e48638ec308e2e174071111",
+        "file_bytes": 575951,
+        "parameters": 143620,
+        "weight_storage": "float32",
+        "input": {
+          "name": "states",
+          "shape": [
+            "batch",
+            42
+          ],
+          "dtype": "float32"
+        },
+        "output": {
+          "name": "actions",
+          "shape": [
+            "batch",
+            4
+          ],
+          "dtype": "float32"
+        },
+        "metadata": {
+          "task": "PickCube-v1",
+          "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+          "checkpoint_sha256": "2769bfe20f4c72fa76a184363c0d5c65ce9e0c668aec4354d8e79bfe06e81141",
+          "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+          "control_mode": "pd_ee_delta_pos",
+          "policy_mode": "eval: tanh(actor_mean), without exploration",
+          "action_range": "[-1, 1] normalized controller inputs",
+          "deterministic_actor_parameters": "143620"
+        },
+        "validation": {
+          "passed": true,
+          "reference": "upstream predict_action_batch(mode=eval)",
+          "reference_weight_storage": "float32",
+          "provider": "CPUExecutionProvider",
+          "batch_sizes": [
+            1,
+            7,
+            32
+          ],
+          "samples": 40,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "max_absolute_error": 8.344650268554688e-07,
+          "original_fp32_max_absolute_error": 8.344650268554688e-07
+        }
+      },
+      "evaluations": [
+        {
+          "seed": 9401,
+          "trajectories": 160,
+          "success_once_count": 159,
+          "success_at_end_count": 159,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.99375
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.99375
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 42.37829841375351
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8475659687072039
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.07056352635845542,
+            "p50_batch_ms": 0.06650597788393497,
+            "p95_batch_ms": 0.09759246604517097
+          }
+        },
+        {
+          "seed": 9402,
+          "trajectories": 160,
+          "success_once_count": 159,
+          "success_at_end_count": 159,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.99375
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.99375
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 42.85002053976059
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8570004094392061
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.07555847987532616,
+            "p50_batch_ms": 0.06121594924479723,
+            "p95_batch_ms": 0.1448965398594737
+          }
+        },
+        {
+          "seed": 9403,
+          "trajectories": 160,
+          "success_once_count": 156,
+          "success_at_end_count": 156,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.975
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.975
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.99600949883461
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8399201891385019
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.0657452242448926,
+            "p50_batch_ms": 0.06214308086782694,
+            "p95_batch_ms": 0.09323650738224386
+          }
+        }
+      ],
+      "total_trajectories": 480,
+      "success_once_count": 474,
+      "success_at_end_count": 474
+    },
+    {
+      "label": "upstream-s1234-e250",
+      "variant": "upstream",
+      "seed": 1234,
+      "eval_interval": 250,
+      "evaluation_rng": "upstream",
+      "implementation_snapshot_valid": true,
+      "input_files": 2008,
+      "training": {
+        "status": "complete",
+        "metrics": {
+          "env/num_trajectories": {
+            "step": 2999,
+            "value": 32.0
+          },
+          "time/sync_weights": {
+            "step": 2999,
+            "value": 0.17802953720092773
+          },
+          "time/generate_rollouts": {
+            "step": 2999,
+            "value": 0.1837482452392578
+          },
+          "time/cal_adv_and_returns": {
+            "step": 2999,
+            "value": 0.0008463859558105469
+          },
+          "time/actor_training": {
+            "step": 2999,
+            "value": 0.4188058376312256
+          },
+          "time/step": {
+            "step": 2999,
+            "value": 4.547820091247559
+          },
+          "time/env/env/bootstrap_step": {
+            "step": 2999,
+            "value": 0.00028091087006032467
+          },
+          "time/env/env_interact_step": {
+            "step": 2999,
+            "value": 0.05713559687137604
+          },
+          "time/env/run_interact_once": {
+            "step": 2999,
+            "value": 0.07836798578500748
+          },
+          "time/env/interact": {
+            "step": 2999,
+            "value": 0.07838589698076248
+          },
+          "time/rollout/sync_model_from_actor": {
+            "step": 2999,
+            "value": 0.3525460362434387
+          },
+          "time/rollout/predict": {
+            "step": 2999,
+            "value": 0.045045651495456696
+          },
+          "time/rollout/generate_one_epoch": {
+            "step": 2999,
+            "value": 0.07672323286533356
+          },
+          "time/rollout/rollout/generate": {
+            "step": 2999,
+            "value": 0.07709693908691406
+          },
+          "time/actor/actor/sync_model_to_rollout": {
+            "step": 2999,
+            "value": 0.027122607454657555
+          },
+          "time/actor/actor/recv_traj": {
+            "step": 2999,
+            "value": 0.1741882711648941
+          },
+          "time/actor/actor/compute_adv": {
+            "step": 2999,
+            "value": 6.341841071844101e-06
+          },
+          "time/actor/sample": {
+            "step": 2999,
+            "value": 0.12425228208303452
+          },
+          "time/actor/forward_critic": {
+            "step": 2999,
+            "value": 0.07889371365308762
+          },
+          "time/actor/forward_actor": {
+            "step": 2999,
+            "value": 0.05110929161310196
+          },
+          "time/actor/forward_alpha": {
+            "step": 2999,
+            "value": 0.01799236424267292
+          },
+          "time/actor/update_one_epoch": {
+            "step": 2999,
+            "value": 0.4156390130519867
+          },
+          "time/actor/run_training": {
+            "step": 2999,
+            "value": 0.41773030161857605
+          },
+          "train/actor/entropy": {
+            "step": 2999,
+            "value": -4.017822265625
+          },
+          "train/actor/grad_norm": {
+            "step": 2999,
+            "value": 5.798383712768555
+          },
+          "train/actor/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/actor/q_pi": {
+            "step": 2999,
+            "value": 2.8860924243927
+          },
+          "train/actor/q_value_0": {
+            "step": 2999,
+            "value": 2.927133321762085
+          },
+          "train/actor/q_value_1": {
+            "step": 2999,
+            "value": 2.9257688522338867
+          },
+          "train/alpha/grad_norm": {
+            "step": 2999,
+            "value": 0.0011852046009153128
+          },
+          "train/critic/grad_norm": {
+            "step": 2999,
+            "value": 1.564517617225647
+          },
+          "train/critic/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/critic/q_data": {
+            "step": 2999,
+            "value": 2.8480496406555176
+          },
+          "train/replay_buffer/cache_size": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/num_trajectories": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/total_samples": {
+            "step": 2999,
+            "value": 192000.0
+          },
+          "train/sac/actor_loss": {
+            "step": 2999,
+            "value": -2.826714277267456
+          },
+          "train/sac/alpha": {
+            "step": 2999,
+            "value": 0.014778761193156242
+          },
+          "train/sac/alpha_loss": {
+            "step": 2999,
+            "value": -0.00012402133143041283
+          },
+          "train/sac/critic_loss": {
+            "step": 2999,
+            "value": 0.005946308374404907
+          },
+          "env/success_at_end": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "env/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "env/reward": {
+            "step": 2999,
+            "value": 0.8292040228843689
+          },
+          "env/return": {
+            "step": 2999,
+            "value": 41.460201263427734
+          },
+          "env/success_once": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/success_at_end": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "eval/reward": {
+            "step": 2999,
+            "value": 0.8596680164337158
+          },
+          "eval/return": {
+            "step": 2999,
+            "value": 42.983394622802734
+          },
+          "eval/success_once": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/num_trajectories": {
+            "step": 2999,
+            "value": 16.0
+          },
+          "time/eval": {
+            "step": 2999,
+            "value": 1.7789664268493652
+          },
+          "time/env/evaluate": {
+            "step": 2999,
+            "value": 1.5936577320098877
+          },
+          "time/rollout/evaluate": {
+            "step": 2999,
+            "value": 1.5638943910598755
+          }
+        },
+        "final_step": 3000,
+        "weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/upstream-s1234-e250/maniskill_sac_mlp/checkpoints/global_step_3000/actor/model_state_dict/full_weights.pt",
+          "sha256": "b7e6bcde9c56ba62dd1f4826a241ec2c9ab4e1ef91d491f5e704c753c18dea93",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "target_weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/upstream-s1234-e250/maniskill_sac_mlp/checkpoints/global_step_3000/actor/sac_components/target_model/checkpoint_rank_0.pt",
+          "sha256": "093de4e8020fe0b7cd7adc9503760f424c413f1f63f29fa37992aeeac853e1fb",
+          "file_bytes": 1756023,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "restore_validation": {
+          "policy": {
+            "optimizer_parameters": 38,
+            "model_tensors": 40
+          },
+          "entropy": {
+            "optimizer_parameters": 1,
+            "model_tensors": 1
+          }
+        },
+        "checkpoint": "runs/rl-evaluation-isolation-20260929/upstream-s1234-e250/maniskill_sac_mlp/checkpoints/global_step_3000",
+        "checkpoint_bytes": 104297695
+      },
+      "export": {
+        "path": "runs/rl-evaluation-isolation-20260929/upstream-s1234-e250-export/policy.onnx",
+        "sha256": "f535a4ac2998eb5957cc2faf325178efae5958e7488dfd85833514dce271eb80",
+        "file_bytes": 575951,
+        "parameters": 143620,
+        "weight_storage": "float32",
+        "input": {
+          "name": "states",
+          "shape": [
+            "batch",
+            42
+          ],
+          "dtype": "float32"
+        },
+        "output": {
+          "name": "actions",
+          "shape": [
+            "batch",
+            4
+          ],
+          "dtype": "float32"
+        },
+        "metadata": {
+          "task": "PickCube-v1",
+          "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+          "checkpoint_sha256": "b7e6bcde9c56ba62dd1f4826a241ec2c9ab4e1ef91d491f5e704c753c18dea93",
+          "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+          "control_mode": "pd_ee_delta_pos",
+          "policy_mode": "eval: tanh(actor_mean), without exploration",
+          "action_range": "[-1, 1] normalized controller inputs",
+          "deterministic_actor_parameters": "143620"
+        },
+        "validation": {
+          "passed": true,
+          "reference": "upstream predict_action_batch(mode=eval)",
+          "reference_weight_storage": "float32",
+          "provider": "CPUExecutionProvider",
+          "batch_sizes": [
+            1,
+            7,
+            32
+          ],
+          "samples": 40,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "max_absolute_error": 1.5990808606147766e-06,
+          "original_fp32_max_absolute_error": 1.5990808606147766e-06
+        }
+      },
+      "evaluations": [
+        {
+          "seed": 9401,
+          "trajectories": 160,
+          "success_once_count": 158,
+          "success_at_end_count": 158,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.9875
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.9875
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 42.297915583848955
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8459583119489252
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.0524262972176075,
+            "p50_batch_ms": 0.049002934247255325,
+            "p95_batch_ms": 0.07181111723184584
+          }
+        },
+        {
+          "seed": 9402,
+          "trajectories": 160,
+          "success_once_count": 158,
+          "success_at_end_count": 157,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.9875
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 42.53587807416916
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.850717562250793
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.05470183212310076,
+            "p50_batch_ms": 0.04957406781613827,
+            "p95_batch_ms": 0.08534884545952076
+          }
+        },
+        {
+          "seed": 9403,
+          "trajectories": 160,
+          "success_once_count": 157,
+          "success_at_end_count": 157,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 42.0325889647007
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.840651779063046
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.052701429929584265,
+            "p50_batch_ms": 0.0472640385851264,
+            "p95_batch_ms": 0.08171427762135848
+          }
+        }
+      ],
+      "total_trajectories": 480,
+      "success_once_count": 473,
+      "success_at_end_count": 472
+    },
+    {
+      "label": "isolated-s1234-e250",
+      "variant": "isolated",
+      "seed": 1234,
+      "eval_interval": 250,
+      "evaluation_rng": "isolated-torch",
+      "implementation_snapshot_valid": true,
+      "input_files": 2008,
+      "training": {
+        "status": "complete",
+        "evaluation_rng": "isolated-torch",
+        "metrics": {
+          "env/num_trajectories": {
+            "step": 2999,
+            "value": 32.0
+          },
+          "time/sync_weights": {
+            "step": 2999,
+            "value": 0.20957446098327637
+          },
+          "time/generate_rollouts": {
+            "step": 2999,
+            "value": 0.23227906227111816
+          },
+          "time/cal_adv_and_returns": {
+            "step": 2999,
+            "value": 0.0008635520935058594
+          },
+          "time/actor_training": {
+            "step": 2999,
+            "value": 0.5971889495849609
+          },
+          "time/step": {
+            "step": 2999,
+            "value": 4.75106143951416
+          },
+          "time/env/env/bootstrap_step": {
+            "step": 2999,
+            "value": 0.0002784370444715023
+          },
+          "time/env/env_interact_step": {
+            "step": 2999,
+            "value": 0.05927034467458725
+          },
+          "time/env/run_interact_once": {
+            "step": 2999,
+            "value": 0.0820983350276947
+          },
+          "time/env/interact": {
+            "step": 2999,
+            "value": 0.08211947232484818
+          },
+          "time/rollout/sync_model_from_actor": {
+            "step": 2999,
+            "value": 0.4298887550830841
+          },
+          "time/rollout/predict": {
+            "step": 2999,
+            "value": 0.039938054978847504
+          },
+          "time/rollout/generate_one_epoch": {
+            "step": 2999,
+            "value": 0.08039659261703491
+          },
+          "time/rollout/rollout/generate": {
+            "step": 2999,
+            "value": 0.08080319315195084
+          },
+          "time/actor/actor/sync_model_to_rollout": {
+            "step": 2999,
+            "value": 0.03357170149683952
+          },
+          "time/actor/actor/recv_traj": {
+            "step": 2999,
+            "value": 0.22126451134681702
+          },
+          "time/actor/actor/compute_adv": {
+            "step": 2999,
+            "value": 8.65710899233818e-06
+          },
+          "time/actor/sample": {
+            "step": 2999,
+            "value": 0.15494780242443085
+          },
+          "time/actor/forward_critic": {
+            "step": 2999,
+            "value": 0.11857143044471741
+          },
+          "time/actor/forward_actor": {
+            "step": 2999,
+            "value": 0.07648269832134247
+          },
+          "time/actor/forward_alpha": {
+            "step": 2999,
+            "value": 0.029098372906446457
+          },
+          "time/actor/update_one_epoch": {
+            "step": 2999,
+            "value": 0.5933045148849487
+          },
+          "time/actor/run_training": {
+            "step": 2999,
+            "value": 0.5961958765983582
+          },
+          "train/actor/entropy": {
+            "step": 2999,
+            "value": -4.01854944229126
+          },
+          "train/actor/grad_norm": {
+            "step": 2999,
+            "value": 5.932734489440918
+          },
+          "train/actor/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/actor/q_pi": {
+            "step": 2999,
+            "value": 2.8795688152313232
+          },
+          "train/actor/q_value_0": {
+            "step": 2999,
+            "value": 2.9219770431518555
+          },
+          "train/actor/q_value_1": {
+            "step": 2999,
+            "value": 2.9199509620666504
+          },
+          "train/alpha/grad_norm": {
+            "step": 2999,
+            "value": 0.0010636508231982589
+          },
+          "train/critic/grad_norm": {
+            "step": 2999,
+            "value": 1.858071208000183
+          },
+          "train/critic/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/critic/q_data": {
+            "step": 2999,
+            "value": 2.842170000076294
+          },
+          "train/replay_buffer/cache_size": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/num_trajectories": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/total_samples": {
+            "step": 2999,
+            "value": 192000.0
+          },
+          "train/sac/actor_loss": {
+            "step": 2999,
+            "value": -2.8193776607513428
+          },
+          "train/sac/alpha": {
+            "step": 2999,
+            "value": 0.014978636987507343
+          },
+          "train/sac/alpha_loss": {
+            "step": 2999,
+            "value": -0.00011424125113990158
+          },
+          "train/sac/critic_loss": {
+            "step": 2999,
+            "value": 0.006022397894412279
+          },
+          "env/success_once": {
+            "step": 2999,
+            "value": 0.96875
+          },
+          "env/success_at_end": {
+            "step": 2999,
+            "value": 0.96875
+          },
+          "env/return": {
+            "step": 2999,
+            "value": 41.08066940307617
+          },
+          "env/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "env/reward": {
+            "step": 2999,
+            "value": 0.8216133713722229
+          },
+          "eval/success_once": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/success_at_end": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/return": {
+            "step": 2999,
+            "value": 43.12329864501953
+          },
+          "eval/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "eval/reward": {
+            "step": 2999,
+            "value": 0.862466037273407
+          },
+          "eval/num_trajectories": {
+            "step": 2999,
+            "value": 16.0
+          },
+          "time/eval": {
+            "step": 2999,
+            "value": 1.716426134109497
+          },
+          "time/env/evaluate": {
+            "step": 2999,
+            "value": 1.484630823135376
+          },
+          "time/rollout/evaluate": {
+            "step": 2999,
+            "value": 1.4515982866287231
+          }
+        },
+        "final_step": 3000,
+        "weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250/maniskill_sac_mlp/checkpoints/global_step_3000/actor/model_state_dict/full_weights.pt",
+          "sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "target_weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250/maniskill_sac_mlp/checkpoints/global_step_3000/actor/sac_components/target_model/checkpoint_rank_0.pt",
+          "sha256": "71fb7535f7d56c2885e32225e1555c6106e22fadc5716f2a777bcdd062bd9307",
+          "file_bytes": 1756023,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "restore_validation": {
+          "policy": {
+            "optimizer_parameters": 38,
+            "model_tensors": 40
+          },
+          "entropy": {
+            "optimizer_parameters": 1,
+            "model_tensors": 1
+          }
+        },
+        "checkpoint": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250/maniskill_sac_mlp/checkpoints/global_step_3000",
+        "checkpoint_bytes": 104297695
+      },
+      "export": {
+        "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250-export/policy.onnx",
+        "sha256": "5c5535a1268b5ea048be231c0e721238e26bac44d161daeb3fef506e5e55ed87",
+        "file_bytes": 575951,
+        "parameters": 143620,
+        "weight_storage": "float32",
+        "input": {
+          "name": "states",
+          "shape": [
+            "batch",
+            42
+          ],
+          "dtype": "float32"
+        },
+        "output": {
+          "name": "actions",
+          "shape": [
+            "batch",
+            4
+          ],
+          "dtype": "float32"
+        },
+        "metadata": {
+          "task": "PickCube-v1",
+          "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+          "checkpoint_sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+          "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+          "control_mode": "pd_ee_delta_pos",
+          "policy_mode": "eval: tanh(actor_mean), without exploration",
+          "action_range": "[-1, 1] normalized controller inputs",
+          "deterministic_actor_parameters": "143620"
+        },
+        "validation": {
+          "passed": true,
+          "reference": "upstream predict_action_batch(mode=eval)",
+          "reference_weight_storage": "float32",
+          "provider": "CPUExecutionProvider",
+          "batch_sizes": [
+            1,
+            7,
+            32
+          ],
+          "samples": 40,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "max_absolute_error": 1.1920928955078125e-06,
+          "original_fp32_max_absolute_error": 1.1920928955078125e-06
+        }
+      },
+      "evaluations": [
+        {
+          "seed": 9401,
+          "trajectories": 160,
+          "success_once_count": 158,
+          "success_at_end_count": 157,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.9875
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 42.211427038908006
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8442285438999534
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.055986886378377676,
+            "p50_batch_ms": 0.04922354128211737,
+            "p95_batch_ms": 0.09527713991701602
+          }
+        },
+        {
+          "seed": 9402,
+          "trajectories": 160,
+          "success_once_count": 157,
+          "success_at_end_count": 157,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.99392766058445
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8398785525932908
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.05167601490393281,
+            "p50_batch_ms": 0.047945999540388584,
+            "p95_batch_ms": 0.07535471813753246
+          }
+        },
+        {
+          "seed": 9403,
+          "trajectories": 160,
+          "success_once_count": 153,
+          "success_at_end_count": 152,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.95625
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.95
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.366674050688744
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8273334814235568
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.05349105503410101,
+            "p50_batch_ms": 0.047184526920318604,
+            "p95_batch_ms": 0.0877711339853704
+          }
+        }
+      ],
+      "total_trajectories": 480,
+      "success_once_count": 468,
+      "success_at_end_count": 466
+    },
+    {
+      "label": "isolated-s1234-e500",
+      "variant": "isolated",
+      "seed": 1234,
+      "eval_interval": 500,
+      "evaluation_rng": "isolated-torch",
+      "implementation_snapshot_valid": true,
+      "input_files": 2008,
+      "training": {
+        "status": "complete",
+        "evaluation_rng": "isolated-torch",
+        "metrics": {
+          "env/num_trajectories": {
+            "step": 2999,
+            "value": 32.0
+          },
+          "time/sync_weights": {
+            "step": 2999,
+            "value": 0.15897250175476074
+          },
+          "time/generate_rollouts": {
+            "step": 2999,
+            "value": 0.1688079833984375
+          },
+          "time/cal_adv_and_returns": {
+            "step": 2999,
+            "value": 0.0007498264312744141
+          },
+          "time/actor_training": {
+            "step": 2999,
+            "value": 0.37232422828674316
+          },
+          "time/step": {
+            "step": 2999,
+            "value": 4.367880344390869
+          },
+          "time/env/env/bootstrap_step": {
+            "step": 2999,
+            "value": 0.0002571358345448971
+          },
+          "time/env/env_interact_step": {
+            "step": 2999,
+            "value": 0.06117847561836243
+          },
+          "time/env/run_interact_once": {
+            "step": 2999,
+            "value": 0.08304863423109055
+          },
+          "time/env/interact": {
+            "step": 2999,
+            "value": 0.08306501060724258
+          },
+          "time/rollout/sync_model_from_actor": {
+            "step": 2999,
+            "value": 0.3308218717575073
+          },
+          "time/rollout/predict": {
+            "step": 2999,
+            "value": 0.051445093005895615
+          },
+          "time/rollout/generate_one_epoch": {
+            "step": 2999,
+            "value": 0.08157015591859818
+          },
+          "time/rollout/rollout/generate": {
+            "step": 2999,
+            "value": 0.08193795382976532
+          },
+          "time/actor/actor/sync_model_to_rollout": {
+            "step": 2999,
+            "value": 0.029919642955064774
+          },
+          "time/actor/actor/recv_traj": {
+            "step": 2999,
+            "value": 0.15996068716049194
+          },
+          "time/actor/actor/compute_adv": {
+            "step": 2999,
+            "value": 7.183058187365532e-06
+          },
+          "time/actor/sample": {
+            "step": 2999,
+            "value": 0.10281211137771606
+          },
+          "time/actor/forward_critic": {
+            "step": 2999,
+            "value": 0.07094448804855347
+          },
+          "time/actor/forward_actor": {
+            "step": 2999,
+            "value": 0.04950942099094391
+          },
+          "time/actor/forward_alpha": {
+            "step": 2999,
+            "value": 0.01668066903948784
+          },
+          "time/actor/update_one_epoch": {
+            "step": 2999,
+            "value": 0.36935630440711975
+          },
+          "time/actor/run_training": {
+            "step": 2999,
+            "value": 0.3712776303291321
+          },
+          "train/actor/entropy": {
+            "step": 2999,
+            "value": -4.01854944229126
+          },
+          "train/actor/grad_norm": {
+            "step": 2999,
+            "value": 5.932734489440918
+          },
+          "train/actor/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/actor/q_pi": {
+            "step": 2999,
+            "value": 2.8795688152313232
+          },
+          "train/actor/q_value_0": {
+            "step": 2999,
+            "value": 2.9219770431518555
+          },
+          "train/actor/q_value_1": {
+            "step": 2999,
+            "value": 2.9199509620666504
+          },
+          "train/alpha/grad_norm": {
+            "step": 2999,
+            "value": 0.0010636508231982589
+          },
+          "train/critic/grad_norm": {
+            "step": 2999,
+            "value": 1.858071208000183
+          },
+          "train/critic/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/critic/q_data": {
+            "step": 2999,
+            "value": 2.842170000076294
+          },
+          "train/replay_buffer/cache_size": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/num_trajectories": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/total_samples": {
+            "step": 2999,
+            "value": 192000.0
+          },
+          "train/sac/actor_loss": {
+            "step": 2999,
+            "value": -2.8193776607513428
+          },
+          "train/sac/alpha": {
+            "step": 2999,
+            "value": 0.014978636987507343
+          },
+          "train/sac/alpha_loss": {
+            "step": 2999,
+            "value": -0.00011424125113990158
+          },
+          "train/sac/critic_loss": {
+            "step": 2999,
+            "value": 0.006022397894412279
+          },
+          "env/return": {
+            "step": 2999,
+            "value": 41.08066940307617
+          },
+          "env/reward": {
+            "step": 2999,
+            "value": 0.8216133713722229
+          },
+          "env/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "env/success_once": {
+            "step": 2999,
+            "value": 0.96875
+          },
+          "env/success_at_end": {
+            "step": 2999,
+            "value": 0.96875
+          },
+          "eval/return": {
+            "step": 2999,
+            "value": 43.124290466308594
+          },
+          "eval/reward": {
+            "step": 2999,
+            "value": 0.8624858260154724
+          },
+          "eval/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "eval/success_once": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/success_at_end": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/num_trajectories": {
+            "step": 2999,
+            "value": 16.0
+          },
+          "time/eval": {
+            "step": 2999,
+            "value": 1.8344416618347168
+          },
+          "time/env/evaluate": {
+            "step": 2999,
+            "value": 1.6529078483581543
+          },
+          "time/rollout/evaluate": {
+            "step": 2999,
+            "value": 1.6231210231781006
+          }
+        },
+        "final_step": 3000,
+        "weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e500/maniskill_sac_mlp/checkpoints/global_step_3000/actor/model_state_dict/full_weights.pt",
+          "sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "target_weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e500/maniskill_sac_mlp/checkpoints/global_step_3000/actor/sac_components/target_model/checkpoint_rank_0.pt",
+          "sha256": "71fb7535f7d56c2885e32225e1555c6106e22fadc5716f2a777bcdd062bd9307",
+          "file_bytes": 1756023,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "restore_validation": {
+          "policy": {
+            "optimizer_parameters": 38,
+            "model_tensors": 40
+          },
+          "entropy": {
+            "optimizer_parameters": 1,
+            "model_tensors": 1
+          }
+        },
+        "checkpoint": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e500/maniskill_sac_mlp/checkpoints/global_step_3000",
+        "checkpoint_bytes": 104297695
+      },
+      "export": {
+        "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e500-export/policy.onnx",
+        "sha256": "5c5535a1268b5ea048be231c0e721238e26bac44d161daeb3fef506e5e55ed87",
+        "file_bytes": 575951,
+        "parameters": 143620,
+        "weight_storage": "float32",
+        "input": {
+          "name": "states",
+          "shape": [
+            "batch",
+            42
+          ],
+          "dtype": "float32"
+        },
+        "output": {
+          "name": "actions",
+          "shape": [
+            "batch",
+            4
+          ],
+          "dtype": "float32"
+        },
+        "metadata": {
+          "task": "PickCube-v1",
+          "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+          "checkpoint_sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+          "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+          "control_mode": "pd_ee_delta_pos",
+          "policy_mode": "eval: tanh(actor_mean), without exploration",
+          "action_range": "[-1, 1] normalized controller inputs",
+          "deterministic_actor_parameters": "143620"
+        },
+        "validation": {
+          "passed": true,
+          "reference": "upstream predict_action_batch(mode=eval)",
+          "reference_weight_storage": "float32",
+          "provider": "CPUExecutionProvider",
+          "batch_sizes": [
+            1,
+            7,
+            32
+          ],
+          "samples": 40,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "max_absolute_error": 1.1920928955078125e-06,
+          "original_fp32_max_absolute_error": 1.1920928955078125e-06
+        }
+      },
+      "evaluations": [
+        {
+          "seed": 9401,
+          "trajectories": 160,
+          "success_once_count": 158,
+          "success_at_end_count": 157,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.9875
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 42.211427038908006
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8442285438999534
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.051223812624812126,
+            "p50_batch_ms": 0.04655297379940748,
+            "p95_batch_ms": 0.07693656953051681
+          }
+        },
+        {
+          "seed": 9402,
+          "trajectories": 160,
+          "success_once_count": 157,
+          "success_at_end_count": 157,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.99392766058445
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8398785525932908
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.05030730180442333,
+            "p50_batch_ms": 0.0459419097751379,
+            "p95_batch_ms": 0.07381553295999763
+          }
+        },
+        {
+          "seed": 9403,
+          "trajectories": 160,
+          "success_once_count": 153,
+          "success_at_end_count": 152,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.95625
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.95
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.366674050688744
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8273334814235568
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.04814457148313522,
+            "p50_batch_ms": 0.04518497735261917,
+            "p95_batch_ms": 0.05981256254017351
+          }
+        }
+      ],
+      "total_trajectories": 480,
+      "success_once_count": 468,
+      "success_at_end_count": 466
+    },
+    {
+      "label": "isolated-s4321-e500",
+      "variant": "isolated",
+      "seed": 4321,
+      "eval_interval": 500,
+      "evaluation_rng": "isolated-torch",
+      "implementation_snapshot_valid": true,
+      "input_files": 2008,
+      "training": {
+        "status": "complete",
+        "evaluation_rng": "isolated-torch",
+        "metrics": {
+          "env/num_trajectories": {
+            "step": 2999,
+            "value": 32.0
+          },
+          "time/sync_weights": {
+            "step": 2999,
+            "value": 0.16084694862365723
+          },
+          "time/generate_rollouts": {
+            "step": 2999,
+            "value": 0.1672959327697754
+          },
+          "time/cal_adv_and_returns": {
+            "step": 2999,
+            "value": 0.0007789134979248047
+          },
+          "time/actor_training": {
+            "step": 2999,
+            "value": 0.33666133880615234
+          },
+          "time/step": {
+            "step": 2999,
+            "value": 4.124871253967285
+          },
+          "time/env/env/bootstrap_step": {
+            "step": 2999,
+            "value": 0.00025463197380304337
+          },
+          "time/env/env_interact_step": {
+            "step": 2999,
+            "value": 0.0602417029440403
+          },
+          "time/env/run_interact_once": {
+            "step": 2999,
+            "value": 0.07905767112970352
+          },
+          "time/env/interact": {
+            "step": 2999,
+            "value": 0.07907456904649734
+          },
+          "time/rollout/sync_model_from_actor": {
+            "step": 2999,
+            "value": 0.31977009773254395
+          },
+          "time/rollout/predict": {
+            "step": 2999,
+            "value": 0.03964652866125107
+          },
+          "time/rollout/generate_one_epoch": {
+            "step": 2999,
+            "value": 0.07914673537015915
+          },
+          "time/rollout/rollout/generate": {
+            "step": 2999,
+            "value": 0.07950294017791748
+          },
+          "time/actor/actor/sync_model_to_rollout": {
+            "step": 2999,
+            "value": 0.025339551270008087
+          },
+          "time/actor/actor/recv_traj": {
+            "step": 2999,
+            "value": 0.15833412110805511
+          },
+          "time/actor/actor/compute_adv": {
+            "step": 2999,
+            "value": 5.410052835941315e-06
+          },
+          "time/actor/sample": {
+            "step": 2999,
+            "value": 0.09573044627904892
+          },
+          "time/actor/forward_critic": {
+            "step": 2999,
+            "value": 0.0632127895951271
+          },
+          "time/actor/forward_actor": {
+            "step": 2999,
+            "value": 0.04406488686800003
+          },
+          "time/actor/forward_alpha": {
+            "step": 2999,
+            "value": 0.01613904908299446
+          },
+          "time/actor/update_one_epoch": {
+            "step": 2999,
+            "value": 0.33381643891334534
+          },
+          "time/actor/run_training": {
+            "step": 2999,
+            "value": 0.3356558382511139
+          },
+          "train/actor/entropy": {
+            "step": 2999,
+            "value": -4.006994724273682
+          },
+          "train/actor/grad_norm": {
+            "step": 2999,
+            "value": 5.553149700164795
+          },
+          "train/actor/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/actor/q_pi": {
+            "step": 2999,
+            "value": 2.461033582687378
+          },
+          "train/actor/q_value_0": {
+            "step": 2999,
+            "value": 2.5025806427001953
+          },
+          "train/actor/q_value_1": {
+            "step": 2999,
+            "value": 2.501650333404541
+          },
+          "train/alpha/grad_norm": {
+            "step": 2999,
+            "value": 0.0007288831402547657
+          },
+          "train/critic/grad_norm": {
+            "step": 2999,
+            "value": 1.1303725242614746
+          },
+          "train/critic/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/critic/q_data": {
+            "step": 2999,
+            "value": 2.4146037101745605
+          },
+          "train/replay_buffer/cache_size": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/num_trajectories": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/total_samples": {
+            "step": 2999,
+            "value": 192000.0
+          },
+          "train/sac/actor_loss": {
+            "step": 2999,
+            "value": -2.4201550483703613
+          },
+          "train/sac/alpha": {
+            "step": 2999,
+            "value": 0.010202398523688316
+          },
+          "train/sac/alpha_loss": {
+            "step": 2999,
+            "value": -0.00014320071204565465
+          },
+          "train/sac/critic_loss": {
+            "step": 2999,
+            "value": 0.006452782079577446
+          },
+          "env/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "env/success_at_end": {
+            "step": 2999,
+            "value": 0.875
+          },
+          "env/return": {
+            "step": 2999,
+            "value": 37.058101654052734
+          },
+          "env/reward": {
+            "step": 2999,
+            "value": 0.7411619424819946
+          },
+          "env/success_once": {
+            "step": 2999,
+            "value": 0.90625
+          },
+          "eval/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "eval/success_at_end": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/return": {
+            "step": 2999,
+            "value": 41.87174606323242
+          },
+          "eval/reward": {
+            "step": 2999,
+            "value": 0.8374349474906921
+          },
+          "eval/success_once": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/num_trajectories": {
+            "step": 2999,
+            "value": 16.0
+          },
+          "time/eval": {
+            "step": 2999,
+            "value": 1.6033856868743896
+          },
+          "time/env/evaluate": {
+            "step": 2999,
+            "value": 1.4355274438858032
+          },
+          "time/rollout/evaluate": {
+            "step": 2999,
+            "value": 1.4054782390594482
+          }
+        },
+        "final_step": 3000,
+        "weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s4321-e500/maniskill_sac_mlp/checkpoints/global_step_3000/actor/model_state_dict/full_weights.pt",
+          "sha256": "01b27f80c4569493492437bc7dc0d604646d196624e4abc216260d47b30749aa",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "target_weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s4321-e500/maniskill_sac_mlp/checkpoints/global_step_3000/actor/sac_components/target_model/checkpoint_rank_0.pt",
+          "sha256": "4378941bdcc7187424fcc3799ce5d709ff7bf7a511b54d6457e2c952ada81bc2",
+          "file_bytes": 1756023,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "restore_validation": {
+          "policy": {
+            "optimizer_parameters": 38,
+            "model_tensors": 40
+          },
+          "entropy": {
+            "optimizer_parameters": 1,
+            "model_tensors": 1
+          }
+        },
+        "checkpoint": "runs/rl-evaluation-isolation-20260929/isolated-s4321-e500/maniskill_sac_mlp/checkpoints/global_step_3000",
+        "checkpoint_bytes": 104297695
+      },
+      "export": {
+        "path": "runs/rl-evaluation-isolation-20260929/isolated-s4321-e500-export/policy.onnx",
+        "sha256": "ea154b743a9ecf38f6e3b17bab6f58f908096d68892f51bdffcbb312e28ce1e7",
+        "file_bytes": 575951,
+        "parameters": 143620,
+        "weight_storage": "float32",
+        "input": {
+          "name": "states",
+          "shape": [
+            "batch",
+            42
+          ],
+          "dtype": "float32"
+        },
+        "output": {
+          "name": "actions",
+          "shape": [
+            "batch",
+            4
+          ],
+          "dtype": "float32"
+        },
+        "metadata": {
+          "task": "PickCube-v1",
+          "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+          "checkpoint_sha256": "01b27f80c4569493492437bc7dc0d604646d196624e4abc216260d47b30749aa",
+          "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+          "control_mode": "pd_ee_delta_pos",
+          "policy_mode": "eval: tanh(actor_mean), without exploration",
+          "action_range": "[-1, 1] normalized controller inputs",
+          "deterministic_actor_parameters": "143620"
+        },
+        "validation": {
+          "passed": true,
+          "reference": "upstream predict_action_batch(mode=eval)",
+          "reference_weight_storage": "float32",
+          "provider": "CPUExecutionProvider",
+          "batch_sizes": [
+            1,
+            7,
+            32
+          ],
+          "samples": 40,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "max_absolute_error": 1.3560056686401367e-06,
+          "original_fp32_max_absolute_error": 1.3560056686401367e-06
+        }
+      },
+      "evaluations": [
+        {
+          "seed": 9401,
+          "trajectories": 160,
+          "success_once_count": 153,
+          "success_at_end_count": 152,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.95625
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.95
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 40.59775032699108
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8119550074450672
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.05120644671842456,
+            "p50_batch_ms": 0.04685355816036463,
+            "p95_batch_ms": 0.07472927682101718
+          }
+        },
+        {
+          "seed": 9402,
+          "trajectories": 160,
+          "success_once_count": 158,
+          "success_at_end_count": 157,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.9875
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.38379725813866
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8276759457774461
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.05083251046016812,
+            "p50_batch_ms": 0.04670349881052971,
+            "p95_batch_ms": 0.07472822908312078
+          }
+        },
+        {
+          "seed": 9403,
+          "trajectories": 160,
+          "success_once_count": 156,
+          "success_at_end_count": 155,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.975
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.96875
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 40.82886490225792
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8165772991254926
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.053283960558474064,
+            "p50_batch_ms": 0.04737009294331074,
+            "p95_batch_ms": 0.08970070630311965
+          }
+        }
+      ],
+      "total_trajectories": 480,
+      "success_once_count": 467,
+      "success_at_end_count": 464
+    },
+    {
+      "label": "isolated-s4321-e250",
+      "variant": "isolated",
+      "seed": 4321,
+      "eval_interval": 250,
+      "evaluation_rng": "isolated-torch",
+      "implementation_snapshot_valid": true,
+      "input_files": 2008,
+      "training": {
+        "status": "complete",
+        "evaluation_rng": "isolated-torch",
+        "metrics": {
+          "env/num_trajectories": {
+            "step": 2999,
+            "value": 32.0
+          },
+          "time/sync_weights": {
+            "step": 2999,
+            "value": 0.15672063827514648
+          },
+          "time/generate_rollouts": {
+            "step": 2999,
+            "value": 0.1739029884338379
+          },
+          "time/cal_adv_and_returns": {
+            "step": 2999,
+            "value": 0.0008726119995117188
+          },
+          "time/actor_training": {
+            "step": 2999,
+            "value": 0.3513917922973633
+          },
+          "time/step": {
+            "step": 2999,
+            "value": 4.110008716583252
+          },
+          "time/env/env/bootstrap_step": {
+            "step": 2999,
+            "value": 0.00024789897724986076
+          },
+          "time/env/env_interact_step": {
+            "step": 2999,
+            "value": 0.060560375452041626
+          },
+          "time/env/run_interact_once": {
+            "step": 2999,
+            "value": 0.07905968278646469
+          },
+          "time/env/interact": {
+            "step": 2999,
+            "value": 0.0790746882557869
+          },
+          "time/rollout/sync_model_from_actor": {
+            "step": 2999,
+            "value": 0.32018545269966125
+          },
+          "time/rollout/predict": {
+            "step": 2999,
+            "value": 0.03781180828809738
+          },
+          "time/rollout/generate_one_epoch": {
+            "step": 2999,
+            "value": 0.07780297100543976
+          },
+          "time/rollout/rollout/generate": {
+            "step": 2999,
+            "value": 0.07816556096076965
+          },
+          "time/actor/actor/sync_model_to_rollout": {
+            "step": 2999,
+            "value": 0.024697376415133476
+          },
+          "time/actor/actor/recv_traj": {
+            "step": 2999,
+            "value": 0.16509564220905304
+          },
+          "time/actor/actor/compute_adv": {
+            "step": 2999,
+            "value": 5.260109901428223e-06
+          },
+          "time/actor/sample": {
+            "step": 2999,
+            "value": 0.09876720607280731
+          },
+          "time/actor/forward_critic": {
+            "step": 2999,
+            "value": 0.06382438540458679
+          },
+          "time/actor/forward_actor": {
+            "step": 2999,
+            "value": 0.0451604500412941
+          },
+          "time/actor/forward_alpha": {
+            "step": 2999,
+            "value": 0.017906714230775833
+          },
+          "time/actor/update_one_epoch": {
+            "step": 2999,
+            "value": 0.3485473394393921
+          },
+          "time/actor/run_training": {
+            "step": 2999,
+            "value": 0.35048189759254456
+          },
+          "train/actor/entropy": {
+            "step": 2999,
+            "value": -4.006994724273682
+          },
+          "train/actor/grad_norm": {
+            "step": 2999,
+            "value": 5.553149700164795
+          },
+          "train/actor/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/actor/q_pi": {
+            "step": 2999,
+            "value": 2.461033582687378
+          },
+          "train/actor/q_value_0": {
+            "step": 2999,
+            "value": 2.5025806427001953
+          },
+          "train/actor/q_value_1": {
+            "step": 2999,
+            "value": 2.501650333404541
+          },
+          "train/alpha/grad_norm": {
+            "step": 2999,
+            "value": 0.0007288831402547657
+          },
+          "train/critic/grad_norm": {
+            "step": 2999,
+            "value": 1.1303725242614746
+          },
+          "train/critic/lr": {
+            "step": 2999,
+            "value": 0.0003000000142492354
+          },
+          "train/critic/q_data": {
+            "step": 2999,
+            "value": 2.4146037101745605
+          },
+          "train/replay_buffer/cache_size": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/num_trajectories": {
+            "step": 2999,
+            "value": 3000.0
+          },
+          "train/replay_buffer/total_samples": {
+            "step": 2999,
+            "value": 192000.0
+          },
+          "train/sac/actor_loss": {
+            "step": 2999,
+            "value": -2.4201550483703613
+          },
+          "train/sac/alpha": {
+            "step": 2999,
+            "value": 0.010202398523688316
+          },
+          "train/sac/alpha_loss": {
+            "step": 2999,
+            "value": -0.00014320071204565465
+          },
+          "train/sac/critic_loss": {
+            "step": 2999,
+            "value": 0.006452782079577446
+          },
+          "env/reward": {
+            "step": 2999,
+            "value": 0.7411619424819946
+          },
+          "env/return": {
+            "step": 2999,
+            "value": 37.058101654052734
+          },
+          "env/success_once": {
+            "step": 2999,
+            "value": 0.90625
+          },
+          "env/success_at_end": {
+            "step": 2999,
+            "value": 0.875
+          },
+          "env/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "eval/reward": {
+            "step": 2999,
+            "value": 0.8374559283256531
+          },
+          "eval/return": {
+            "step": 2999,
+            "value": 41.87279510498047
+          },
+          "eval/success_once": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/success_at_end": {
+            "step": 2999,
+            "value": 1.0
+          },
+          "eval/episode_len": {
+            "step": 2999,
+            "value": 50.0
+          },
+          "eval/num_trajectories": {
+            "step": 2999,
+            "value": 16.0
+          },
+          "time/eval": {
+            "step": 2999,
+            "value": 1.5830681324005127
+          },
+          "time/env/evaluate": {
+            "step": 2999,
+            "value": 1.4091293811798096
+          },
+          "time/rollout/evaluate": {
+            "step": 2999,
+            "value": 1.3812241554260254
+          }
+        },
+        "final_step": 3000,
+        "weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s4321-e250/maniskill_sac_mlp/checkpoints/global_step_3000/actor/model_state_dict/full_weights.pt",
+          "sha256": "01b27f80c4569493492437bc7dc0d604646d196624e4abc216260d47b30749aa",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "target_weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s4321-e250/maniskill_sac_mlp/checkpoints/global_step_3000/actor/sac_components/target_model/checkpoint_rank_0.pt",
+          "sha256": "4378941bdcc7187424fcc3799ce5d709ff7bf7a511b54d6457e2c952ada81bc2",
+          "file_bytes": 1756023,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        },
+        "restore_validation": {
+          "policy": {
+            "optimizer_parameters": 38,
+            "model_tensors": 40
+          },
+          "entropy": {
+            "optimizer_parameters": 1,
+            "model_tensors": 1
+          }
+        },
+        "checkpoint": "runs/rl-evaluation-isolation-20260929/isolated-s4321-e250/maniskill_sac_mlp/checkpoints/global_step_3000",
+        "checkpoint_bytes": 104297695
+      },
+      "export": {
+        "path": "runs/rl-evaluation-isolation-20260929/isolated-s4321-e250-export/policy.onnx",
+        "sha256": "ea154b743a9ecf38f6e3b17bab6f58f908096d68892f51bdffcbb312e28ce1e7",
+        "file_bytes": 575951,
+        "parameters": 143620,
+        "weight_storage": "float32",
+        "input": {
+          "name": "states",
+          "shape": [
+            "batch",
+            42
+          ],
+          "dtype": "float32"
+        },
+        "output": {
+          "name": "actions",
+          "shape": [
+            "batch",
+            4
+          ],
+          "dtype": "float32"
+        },
+        "metadata": {
+          "task": "PickCube-v1",
+          "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+          "checkpoint_sha256": "01b27f80c4569493492437bc7dc0d604646d196624e4abc216260d47b30749aa",
+          "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+          "control_mode": "pd_ee_delta_pos",
+          "policy_mode": "eval: tanh(actor_mean), without exploration",
+          "action_range": "[-1, 1] normalized controller inputs",
+          "deterministic_actor_parameters": "143620"
+        },
+        "validation": {
+          "passed": true,
+          "reference": "upstream predict_action_batch(mode=eval)",
+          "reference_weight_storage": "float32",
+          "provider": "CPUExecutionProvider",
+          "batch_sizes": [
+            1,
+            7,
+            32
+          ],
+          "samples": 40,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "max_absolute_error": 1.3560056686401367e-06,
+          "original_fp32_max_absolute_error": 1.3560056686401367e-06
+        }
+      },
+      "evaluations": [
+        {
+          "seed": 9401,
+          "trajectories": 160,
+          "success_once_count": 153,
+          "success_at_end_count": 152,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.95625
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.95
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 40.59775032699108
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8119550074450672
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.05111122038215399,
+            "p50_batch_ms": 0.047109322622418404,
+            "p95_batch_ms": 0.07537758210673927
+          }
+        },
+        {
+          "seed": 9402,
+          "trajectories": 160,
+          "success_once_count": 158,
+          "success_at_end_count": 157,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.9875
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.38379725813866
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8276759457774461
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.049527539405971766,
+            "p50_batch_ms": 0.04614249337464571,
+            "p95_batch_ms": 0.0639058882370591
+          }
+        },
+        {
+          "seed": 9403,
+          "trajectories": 160,
+          "success_once_count": 156,
+          "success_at_end_count": 155,
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.975
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.96875
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 40.82886490225792
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8165772991254926
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.051504368893802166,
+            "p50_batch_ms": 0.0464579788967967,
+            "p95_batch_ms": 0.07856495212763545
+          }
+        }
+      ],
+      "total_trajectories": 480,
+      "success_once_count": 467,
+      "success_at_end_count": 464
+    }
+  ],
+  "frequency_comparisons": [
+    {
+      "variant": "isolated",
+      "seed": 1234,
+      "step": 2500,
+      "weights_sha256": [
+        "870b8060f37a230497f1867c27a02c28ac65c28cdfd9bfdca7d25b6ef3a26ccc",
+        "870b8060f37a230497f1867c27a02c28ac65c28cdfd9bfdca7d25b6ef3a26ccc"
+      ],
+      "weights_byte_identical": true,
+      "target_weights_byte_identical": true,
+      "replay_files_compared": 2502,
+      "replay_differing_files_count": 0,
+      "replay_first_differing_files": []
+    },
+    {
+      "variant": "isolated",
+      "seed": 1234,
+      "step": 3000,
+      "weights_sha256": [
+        "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+        "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2"
+      ],
+      "weights_byte_identical": true,
+      "target_weights_byte_identical": true,
+      "replay_files_compared": 3002,
+      "replay_differing_files_count": 0,
+      "replay_first_differing_files": []
+    },
+    {
+      "variant": "isolated",
+      "seed": 4321,
+      "step": 2500,
+      "weights_sha256": [
+        "7958e6a4b13fd843fd916412387da0897e52a4923f121ae6bf8ea12091891a73",
+        "7958e6a4b13fd843fd916412387da0897e52a4923f121ae6bf8ea12091891a73"
+      ],
+      "weights_byte_identical": true,
+      "target_weights_byte_identical": true,
+      "replay_files_compared": 2502,
+      "replay_differing_files_count": 0,
+      "replay_first_differing_files": []
+    },
+    {
+      "variant": "isolated",
+      "seed": 4321,
+      "step": 3000,
+      "weights_sha256": [
+        "01b27f80c4569493492437bc7dc0d604646d196624e4abc216260d47b30749aa",
+        "01b27f80c4569493492437bc7dc0d604646d196624e4abc216260d47b30749aa"
+      ],
+      "weights_byte_identical": true,
+      "target_weights_byte_identical": true,
+      "replay_files_compared": 3002,
+      "replay_differing_files_count": 0,
+      "replay_first_differing_files": []
+    },
+    {
+      "variant": "upstream",
+      "seed": 1234,
+      "step": 2500,
+      "weights_sha256": [
+        "62f64a74a9a7b4387685e4c3ab1ccad8bdea5c2824599ac4e0d4ed7bca02e289",
+        "870b8060f37a230497f1867c27a02c28ac65c28cdfd9bfdca7d25b6ef3a26ccc"
+      ],
+      "weights_byte_identical": false,
+      "target_weights_byte_identical": false,
+      "replay_files_compared": 2502,
+      "replay_differing_files_count": 225,
+      "replay_first_differing_files": [
+        "trajectory_2275_d981b51b-9e8d-523a-ac36-d521077266b7.pt",
+        "trajectory_2276_0283494d-c5c0-5d12-b513-2a8e4da02e1c.pt",
+        "trajectory_2277_eb26b02f-3108-5e9a-b2d0-a78a39704759.pt",
+        "trajectory_2278_d8427887-d66d-505b-8e9d-f82c689e900f.pt",
+        "trajectory_2279_2f974bbe-65e4-5403-8376-20ad261bcb9f.pt",
+        "trajectory_2280_e351c721-2aba-50de-8fe5-eaf97b9e27ac.pt",
+        "trajectory_2281_b7980e10-bfe3-5a43-b14e-f4ce0e85126f.pt",
+        "trajectory_2282_17bb814f-9421-572e-a80b-6a1cb36555b5.pt",
+        "trajectory_2283_7935dec8-09af-54ee-8f5d-c3582d05113a.pt",
+        "trajectory_2284_6af8cf41-2789-5811-8ca8-dd710ed150d5.pt"
+      ]
+    },
+    {
+      "variant": "upstream",
+      "seed": 1234,
+      "step": 3000,
+      "weights_sha256": [
+        "b7e6bcde9c56ba62dd1f4826a241ec2c9ab4e1ef91d491f5e704c753c18dea93",
+        "2769bfe20f4c72fa76a184363c0d5c65ce9e0c668aec4354d8e79bfe06e81141"
+      ],
+      "weights_byte_identical": false,
+      "target_weights_byte_identical": false,
+      "replay_files_compared": 3002,
+      "replay_differing_files_count": 725,
+      "replay_first_differing_files": [
+        "trajectory_2275_d981b51b-9e8d-523a-ac36-d521077266b7.pt",
+        "trajectory_2276_0283494d-c5c0-5d12-b513-2a8e4da02e1c.pt",
+        "trajectory_2277_eb26b02f-3108-5e9a-b2d0-a78a39704759.pt",
+        "trajectory_2278_d8427887-d66d-505b-8e9d-f82c689e900f.pt",
+        "trajectory_2279_2f974bbe-65e4-5403-8376-20ad261bcb9f.pt",
+        "trajectory_2280_e351c721-2aba-50de-8fe5-eaf97b9e27ac.pt",
+        "trajectory_2281_b7980e10-bfe3-5a43-b14e-f4ce0e85126f.pt",
+        "trajectory_2282_17bb814f-9421-572e-a80b-6a1cb36555b5.pt",
+        "trajectory_2283_7935dec8-09af-54ee-8f5d-c3582d05113a.pt",
+        "trajectory_2284_6af8cf41-2789-5811-8ca8-dd710ed150d5.pt"
+      ]
+    }
+  ],
+  "tests": {
+    "ef": {
+      "passed": 913,
+      "skipped": 91
+    },
+    "rlinf_sdk": {
+      "passed": 38
+    }
+  },
+  "dcp_content_comparisons": [
+    {
+      "variant": "isolated",
+      "seed": 1234,
+      "device": "cpu",
+      "comparisons": [
+        {
+          "step": 2500,
+          "component": "policy",
+          "all_values_equal": true,
+          "keys_compared": 201,
+          "differing_keys": [],
+          "optimizer_update_steps": [
+            [
+              80000
+            ],
+            [
+              80000
+            ]
+          ]
+        },
+        {
+          "step": 2500,
+          "component": "entropy",
+          "all_values_equal": true,
+          "keys_compared": 30,
+          "differing_keys": [],
+          "optimizer_update_steps": [
+            [
+              80000
+            ],
+            [
+              80000
+            ]
+          ]
+        },
+        {
+          "step": 3000,
+          "component": "policy",
+          "all_values_equal": true,
+          "keys_compared": 201,
+          "differing_keys": [],
+          "optimizer_update_steps": [
+            [
+              96000
+            ],
+            [
+              96000
+            ]
+          ]
+        },
+        {
+          "step": 3000,
+          "component": "entropy",
+          "all_values_equal": true,
+          "keys_compared": 30,
+          "differing_keys": [],
+          "optimizer_update_steps": [
+            [
+              96000
+            ],
+            [
+              96000
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "isolated",
+      "seed": 4321,
+      "device": "cpu",
+      "comparisons": [
+        {
+          "step": 2500,
+          "component": "policy",
+          "all_values_equal": true,
+          "keys_compared": 201,
+          "differing_keys": [],
+          "optimizer_update_steps": [
+            [
+              80000
+            ],
+            [
+              80000
+            ]
+          ]
+        },
+        {
+          "step": 2500,
+          "component": "entropy",
+          "all_values_equal": true,
+          "keys_compared": 30,
+          "differing_keys": [],
+          "optimizer_update_steps": [
+            [
+              80000
+            ],
+            [
+              80000
+            ]
+          ]
+        },
+        {
+          "step": 3000,
+          "component": "policy",
+          "all_values_equal": true,
+          "keys_compared": 201,
+          "differing_keys": [],
+          "optimizer_update_steps": [
+            [
+              96000
+            ],
+            [
+              96000
+            ]
+          ]
+        },
+        {
+          "step": 3000,
+          "component": "entropy",
+          "all_values_equal": true,
+          "keys_compared": 30,
+          "differing_keys": [],
+          "optimizer_update_steps": [
+            [
+              96000
+            ],
+            [
+              96000
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "upstream",
+      "seed": 1234,
+      "device": "cpu",
+      "comparisons": [
+        {
+          "step": 2500,
+          "component": "policy",
+          "all_values_equal": false,
+          "keys_compared": 201,
+          "differing_keys": [
+            "fsdp_checkpoint.model.actor_logstd.bias",
+            "fsdp_checkpoint.model.actor_logstd.weight",
+            "fsdp_checkpoint.model.actor_mean.bias",
+            "fsdp_checkpoint.model.actor_mean.weight",
+            "fsdp_checkpoint.model.backbone.0.bias",
+            "fsdp_checkpoint.model.backbone.0.weight",
+            "fsdp_checkpoint.model.backbone.2.bias",
+            "fsdp_checkpoint.model.backbone.2.weight",
+            "fsdp_checkpoint.model.backbone.4.bias",
+            "fsdp_checkpoint.model.backbone.4.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.0.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.0.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.1.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.1.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.3.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.3.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.4.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.4.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.6.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.6.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.7.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.7.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.9.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.9.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.0.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.0.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.1.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.1.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.3.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.3.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.4.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.4.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.6.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.6.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.7.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.7.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.9.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.9.weight",
+            "fsdp_checkpoint.optimizers.state.actor_logstd.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.actor_logstd.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.actor_logstd.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.actor_logstd.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.actor_mean.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.actor_mean.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.actor_mean.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.actor_mean.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.0.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.0.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.0.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.0.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.2.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.2.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.2.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.2.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.4.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.4.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.4.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.4.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.0.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.0.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.0.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.0.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.1.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.1.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.1.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.1.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.3.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.3.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.3.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.3.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.4.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.4.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.4.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.4.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.6.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.6.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.6.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.6.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.7.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.7.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.7.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.7.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.9.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.9.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.9.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.9.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.0.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.0.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.0.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.0.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.1.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.1.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.1.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.1.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.3.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.3.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.3.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.3.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.4.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.4.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.4.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.4.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.6.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.6.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.6.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.6.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.7.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.7.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.7.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.7.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.9.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.9.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.9.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.9.weight.exp_avg_sq"
+          ],
+          "optimizer_update_steps": [
+            [
+              80000
+            ],
+            [
+              80000
+            ]
+          ]
+        },
+        {
+          "step": 2500,
+          "component": "entropy",
+          "all_values_equal": false,
+          "keys_compared": 30,
+          "differing_keys": [
+            "fsdp_checkpoint.model.base_alpha",
+            "fsdp_checkpoint.optimizers.state.base_alpha.exp_avg",
+            "fsdp_checkpoint.optimizers.state.base_alpha.exp_avg_sq"
+          ],
+          "optimizer_update_steps": [
+            [
+              80000
+            ],
+            [
+              80000
+            ]
+          ]
+        },
+        {
+          "step": 3000,
+          "component": "policy",
+          "all_values_equal": false,
+          "keys_compared": 201,
+          "differing_keys": [
+            "fsdp_checkpoint.model.actor_logstd.bias",
+            "fsdp_checkpoint.model.actor_logstd.weight",
+            "fsdp_checkpoint.model.actor_mean.bias",
+            "fsdp_checkpoint.model.actor_mean.weight",
+            "fsdp_checkpoint.model.backbone.0.bias",
+            "fsdp_checkpoint.model.backbone.0.weight",
+            "fsdp_checkpoint.model.backbone.2.bias",
+            "fsdp_checkpoint.model.backbone.2.weight",
+            "fsdp_checkpoint.model.backbone.4.bias",
+            "fsdp_checkpoint.model.backbone.4.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.0.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.0.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.1.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.1.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.3.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.3.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.4.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.4.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.6.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.6.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.7.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.7.weight",
+            "fsdp_checkpoint.model.q_head.qs.0.net.9.bias",
+            "fsdp_checkpoint.model.q_head.qs.0.net.9.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.0.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.0.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.1.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.1.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.3.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.3.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.4.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.4.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.6.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.6.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.7.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.7.weight",
+            "fsdp_checkpoint.model.q_head.qs.1.net.9.bias",
+            "fsdp_checkpoint.model.q_head.qs.1.net.9.weight",
+            "fsdp_checkpoint.optimizers.state.actor_logstd.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.actor_logstd.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.actor_logstd.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.actor_logstd.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.actor_mean.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.actor_mean.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.actor_mean.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.actor_mean.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.0.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.0.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.0.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.0.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.2.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.2.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.2.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.2.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.4.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.4.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.backbone.4.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.backbone.4.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.0.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.0.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.0.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.0.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.1.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.1.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.1.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.1.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.3.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.3.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.3.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.3.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.4.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.4.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.4.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.4.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.6.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.6.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.6.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.6.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.7.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.7.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.7.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.7.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.9.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.9.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.9.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.0.net.9.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.0.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.0.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.0.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.0.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.1.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.1.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.1.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.1.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.3.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.3.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.3.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.3.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.4.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.4.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.4.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.4.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.6.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.6.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.6.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.6.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.7.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.7.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.7.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.7.weight.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.9.bias.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.9.bias.exp_avg_sq",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.9.weight.exp_avg",
+            "fsdp_checkpoint.optimizers.state.q_head.qs.1.net.9.weight.exp_avg_sq"
+          ],
+          "optimizer_update_steps": [
+            [
+              96000
+            ],
+            [
+              96000
+            ]
+          ]
+        },
+        {
+          "step": 3000,
+          "component": "entropy",
+          "all_values_equal": false,
+          "keys_compared": 30,
+          "differing_keys": [
+            "fsdp_checkpoint.model.base_alpha",
+            "fsdp_checkpoint.optimizers.state.base_alpha.exp_avg",
+            "fsdp_checkpoint.optimizers.state.base_alpha.exp_avg_sq"
+          ],
+          "optimizer_update_steps": [
+            [
+              96000
+            ],
+            [
+              96000
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "environment": {
+    "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+    "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/rlinf-sac-venv/bin/python",
+    "packages": {
+      "torch": "2.10.0+cu128",
+      "ray": "2.57.0",
+      "hydra-core": "1.3.2",
+      "omegaconf": "2.3.0",
+      "numpy": "2.4.4",
+      "mani_skill": "3.0.0b22",
+      "sapien": "3.0.1",
+      "tensorboard": "2.21.0",
+      "packaging": "26.2"
+    },
+    "errors": []
+  },
+  "job_timings": [
+    {
+      "label": "upstream-s1234-e500",
+      "status": "complete",
+      "started_at": "2026-09-29T03:21:27.307007+00:00",
+      "finished_at": "2026-09-29T03:35:20.847027+00:00",
+      "wall_seconds": 833.5398563970812
+    },
+    {
+      "label": "upstream-s1234-e250",
+      "status": "complete",
+      "started_at": "2026-09-29T03:35:20.847390+00:00",
+      "finished_at": "2026-09-29T03:48:35.986547+00:00",
+      "wall_seconds": 795.1390370188747
+    },
+    {
+      "label": "isolated-s1234-e250",
+      "status": "complete",
+      "started_at": "2026-09-29T03:54:31.823931+00:00",
+      "finished_at": "2026-09-29T04:08:08.206558+00:00",
+      "wall_seconds": 816.3804153439123
+    },
+    {
+      "label": "isolated-s1234-e500",
+      "status": "complete",
+      "started_at": "2026-09-29T04:08:08.206974+00:00",
+      "finished_at": "2026-09-29T04:21:01.591909+00:00",
+      "wall_seconds": 773.3848122330382
+    },
+    {
+      "label": "isolated-s4321-e500",
+      "status": "complete",
+      "started_at": "2026-09-29T04:21:01.592270+00:00",
+      "finished_at": "2026-09-29T04:32:57.264555+00:00",
+      "wall_seconds": 715.6721703300718
+    },
+    {
+      "label": "isolated-s4321-e250",
+      "status": "complete",
+      "started_at": "2026-09-29T04:32:57.264950+00:00",
+      "finished_at": "2026-09-29T04:44:40.083813+00:00",
+      "wall_seconds": 702.8187326351181
+    },
+    {
+      "label": "upstream-s1234-e500-export",
+      "status": "complete",
+      "started_at": "2026-09-29T04:44:40.084175+00:00",
+      "finished_at": "2026-09-29T04:44:42.701913+00:00",
+      "wall_seconds": 2.6176146059297025
+    },
+    {
+      "label": "upstream-s1234-e500-eval-9401",
+      "status": "complete",
+      "started_at": "2026-09-29T04:44:42.702235+00:00",
+      "finished_at": "2026-09-29T04:44:57.790438+00:00",
+      "wall_seconds": 15.088076716056094
+    },
+    {
+      "label": "upstream-s1234-e500-eval-9402",
+      "status": "complete",
+      "started_at": "2026-09-29T04:44:57.790943+00:00",
+      "finished_at": "2026-09-29T04:45:12.916274+00:00",
+      "wall_seconds": 15.12510432000272
+    },
+    {
+      "label": "upstream-s1234-e500-eval-9403",
+      "status": "complete",
+      "started_at": "2026-09-29T04:45:12.916706+00:00",
+      "finished_at": "2026-09-29T04:45:27.799062+00:00",
+      "wall_seconds": 14.882200218038633
+    },
+    {
+      "label": "upstream-s1234-e250-export",
+      "status": "complete",
+      "started_at": "2026-09-29T04:45:27.799504+00:00",
+      "finished_at": "2026-09-29T04:45:30.355669+00:00",
+      "wall_seconds": 2.5559448190033436
+    },
+    {
+      "label": "upstream-s1234-e250-eval-9401",
+      "status": "complete",
+      "started_at": "2026-09-29T04:45:30.356138+00:00",
+      "finished_at": "2026-09-29T04:45:45.247150+00:00",
+      "wall_seconds": 14.890730103012174
+    },
+    {
+      "label": "upstream-s1234-e250-eval-9402",
+      "status": "complete",
+      "started_at": "2026-09-29T04:45:45.247560+00:00",
+      "finished_at": "2026-09-29T04:46:00.007805+00:00",
+      "wall_seconds": 14.760077316081151
+    },
+    {
+      "label": "upstream-s1234-e250-eval-9403",
+      "status": "complete",
+      "started_at": "2026-09-29T04:46:00.008240+00:00",
+      "finished_at": "2026-09-29T04:46:14.756056+00:00",
+      "wall_seconds": 14.747646979987621
+    },
+    {
+      "label": "isolated-s1234-e250-export",
+      "status": "complete",
+      "started_at": "2026-09-29T04:46:14.756514+00:00",
+      "finished_at": "2026-09-29T04:46:17.243023+00:00",
+      "wall_seconds": 2.486312170047313
+    },
+    {
+      "label": "isolated-s1234-e250-eval-9401",
+      "status": "complete",
+      "started_at": "2026-09-29T04:46:17.243568+00:00",
+      "finished_at": "2026-09-29T04:46:32.043779+00:00",
+      "wall_seconds": 14.79993378603831
+    },
+    {
+      "label": "isolated-s1234-e250-eval-9402",
+      "status": "complete",
+      "started_at": "2026-09-29T04:46:32.044236+00:00",
+      "finished_at": "2026-09-29T04:46:46.882888+00:00",
+      "wall_seconds": 14.836792149813846
+    },
+    {
+      "label": "isolated-s1234-e250-eval-9403",
+      "status": "complete",
+      "started_at": "2026-09-29T04:46:46.883441+00:00",
+      "finished_at": "2026-09-29T04:47:01.767746+00:00",
+      "wall_seconds": 14.884015904041007
+    },
+    {
+      "label": "isolated-s1234-e500-export",
+      "status": "complete",
+      "started_at": "2026-09-29T04:47:01.768213+00:00",
+      "finished_at": "2026-09-29T04:47:04.256896+00:00",
+      "wall_seconds": 2.4884477120358497
+    },
+    {
+      "label": "isolated-s1234-e500-eval-9401",
+      "status": "complete",
+      "started_at": "2026-09-29T04:47:04.257359+00:00",
+      "finished_at": "2026-09-29T04:47:19.043399+00:00",
+      "wall_seconds": 14.785716166021302
+    },
+    {
+      "label": "isolated-s1234-e500-eval-9402",
+      "status": "complete",
+      "started_at": "2026-09-29T04:47:19.043993+00:00",
+      "finished_at": "2026-09-29T04:47:33.911905+00:00",
+      "wall_seconds": 14.867593110073358
+    },
+    {
+      "label": "isolated-s1234-e500-eval-9403",
+      "status": "complete",
+      "started_at": "2026-09-29T04:47:33.912363+00:00",
+      "finished_at": "2026-09-29T04:47:48.782135+00:00",
+      "wall_seconds": 14.86952845309861
+    },
+    {
+      "label": "isolated-s4321-e500-export",
+      "status": "complete",
+      "started_at": "2026-09-29T04:47:48.782738+00:00",
+      "finished_at": "2026-09-29T04:47:51.252630+00:00",
+      "wall_seconds": 2.469647077145055
+    },
+    {
+      "label": "isolated-s4321-e500-eval-9401",
+      "status": "complete",
+      "started_at": "2026-09-29T04:47:51.253247+00:00",
+      "finished_at": "2026-09-29T04:48:06.105528+00:00",
+      "wall_seconds": 14.851916777901351
+    },
+    {
+      "label": "isolated-s4321-e500-eval-9402",
+      "status": "complete",
+      "started_at": "2026-09-29T04:48:06.106034+00:00",
+      "finished_at": "2026-09-29T04:48:21.103946+00:00",
+      "wall_seconds": 14.997656990773976
+    },
+    {
+      "label": "isolated-s4321-e500-eval-9403",
+      "status": "complete",
+      "started_at": "2026-09-29T04:48:21.104624+00:00",
+      "finished_at": "2026-09-29T04:48:36.081536+00:00",
+      "wall_seconds": 14.97630144096911
+    },
+    {
+      "label": "isolated-s4321-e250-export",
+      "status": "complete",
+      "started_at": "2026-09-29T04:48:36.082052+00:00",
+      "finished_at": "2026-09-29T04:48:38.591323+00:00",
+      "wall_seconds": 2.50901813688688
+    },
+    {
+      "label": "isolated-s4321-e250-eval-9401",
+      "status": "complete",
+      "started_at": "2026-09-29T04:48:38.591868+00:00",
+      "finished_at": "2026-09-29T04:48:53.407946+00:00",
+      "wall_seconds": 14.815821168012917
+    },
+    {
+      "label": "isolated-s4321-e250-eval-9402",
+      "status": "complete",
+      "started_at": "2026-09-29T04:48:53.408501+00:00",
+      "finished_at": "2026-09-29T04:49:08.444785+00:00",
+      "wall_seconds": 15.03596050082706
+    },
+    {
+      "label": "isolated-s4321-e250-eval-9403",
+      "status": "complete",
+      "started_at": "2026-09-29T04:49:08.445322+00:00",
+      "finished_at": "2026-09-29T04:49:23.393854+00:00",
+      "wall_seconds": 14.948149500181898
+    }
+  ],
+  "completed_training_work": {
+    "paths": 7,
+    "additional_iterations": 7000,
+    "additional_environment_transitions": 448000,
+    "additional_optimizer_update_iterations": 224000,
+    "excludes": "Failed candidate attempt and historical input checkpoint transitions"
+  },
+  "worktree_formatting_only_since_candidate": {
+    "_rlinf_worker.py": true,
+    "rlinf.py": true
+  },
+  "saving_frequency_comparison": {
+    "protocol": {
+      "declared_at": "2026-09-29T04:39:36.465144+00:00",
+      "purpose": "Separate saving frequency from evaluation frequency: compare the existing isolated seed 1234, eval interval 250, save interval 500 branch with save interval 1000. No loss, model, seed, input checkpoint, or iteration budget change.",
+      "prerequisite": "Primary complete; optional seed 4321 upstream controls skipped by their original time rule.",
+      "latest_start": "2026-09-29T04:56:00+00:00",
+      "seed": 1234,
+      "additional_iterations": 1000,
+      "eval_interval": 250,
+      "save_interval": 1000,
+      "eval_seeds": [
+        9401,
+        9402,
+        9403
+      ],
+      "num_envs": 32,
+      "evaluation_envs": 16,
+      "evaluation_epochs": 10,
+      "limits": [
+        "Single paired saving-frequency check, not an independent training seed.",
+        "Full individual training budget or skip entire path.",
+        "Fixed before primary independent evaluation results are available."
+      ]
+    },
+    "training": {
+      "status": "complete",
+      "evaluation_rng": "isolated-torch",
+      "metrics": {
+        "env/num_trajectories": {
+          "step": 2999,
+          "value": 32.0
+        },
+        "time/sync_weights": {
+          "step": 2999,
+          "value": 0.14688897132873535
+        },
+        "time/generate_rollouts": {
+          "step": 2999,
+          "value": 0.1601259708404541
+        },
+        "time/cal_adv_and_returns": {
+          "step": 2999,
+          "value": 0.0007297992706298828
+        },
+        "time/actor_training": {
+          "step": 2999,
+          "value": 0.3275265693664551
+        },
+        "time/step": {
+          "step": 2999,
+          "value": 3.8887999057769775
+        },
+        "time/env/env/bootstrap_step": {
+          "step": 2999,
+          "value": 0.00024304096587002277
+        },
+        "time/env/env_interact_step": {
+          "step": 2999,
+          "value": 0.05329116806387901
+        },
+        "time/env/run_interact_once": {
+          "step": 2999,
+          "value": 0.07209843397140503
+        },
+        "time/env/interact": {
+          "step": 2999,
+          "value": 0.0721157118678093
+        },
+        "time/rollout/sync_model_from_actor": {
+          "step": 2999,
+          "value": 0.29352909326553345
+        },
+        "time/rollout/predict": {
+          "step": 2999,
+          "value": 0.03141803294420242
+        },
+        "time/rollout/generate_one_epoch": {
+          "step": 2999,
+          "value": 0.0703413113951683
+        },
+        "time/rollout/rollout/generate": {
+          "step": 2999,
+          "value": 0.07064733654260635
+        },
+        "time/actor/actor/sync_model_to_rollout": {
+          "step": 2999,
+          "value": 0.024461770430207253
+        },
+        "time/actor/actor/recv_traj": {
+          "step": 2999,
+          "value": 0.15101087093353271
+        },
+        "time/actor/actor/compute_adv": {
+          "step": 2999,
+          "value": 5.710870027542114e-06
+        },
+        "time/actor/sample": {
+          "step": 2999,
+          "value": 0.09346295893192291
+        },
+        "time/actor/forward_critic": {
+          "step": 2999,
+          "value": 0.060721516609191895
+        },
+        "time/actor/forward_actor": {
+          "step": 2999,
+          "value": 0.044053755700588226
+        },
+        "time/actor/forward_alpha": {
+          "step": 2999,
+          "value": 0.015670493245124817
+        },
+        "time/actor/update_one_epoch": {
+          "step": 2999,
+          "value": 0.3250170052051544
+        },
+        "time/actor/run_training": {
+          "step": 2999,
+          "value": 0.3268186151981354
+        },
+        "train/actor/entropy": {
+          "step": 2999,
+          "value": -4.01854944229126
+        },
+        "train/actor/grad_norm": {
+          "step": 2999,
+          "value": 5.932734489440918
+        },
+        "train/actor/lr": {
+          "step": 2999,
+          "value": 0.0003000000142492354
+        },
+        "train/actor/q_pi": {
+          "step": 2999,
+          "value": 2.8795688152313232
+        },
+        "train/actor/q_value_0": {
+          "step": 2999,
+          "value": 2.9219770431518555
+        },
+        "train/actor/q_value_1": {
+          "step": 2999,
+          "value": 2.9199509620666504
+        },
+        "train/alpha/grad_norm": {
+          "step": 2999,
+          "value": 0.0010636508231982589
+        },
+        "train/critic/grad_norm": {
+          "step": 2999,
+          "value": 1.858071208000183
+        },
+        "train/critic/lr": {
+          "step": 2999,
+          "value": 0.0003000000142492354
+        },
+        "train/critic/q_data": {
+          "step": 2999,
+          "value": 2.842170000076294
+        },
+        "train/replay_buffer/cache_size": {
+          "step": 2999,
+          "value": 3000.0
+        },
+        "train/replay_buffer/num_trajectories": {
+          "step": 2999,
+          "value": 3000.0
+        },
+        "train/replay_buffer/total_samples": {
+          "step": 2999,
+          "value": 192000.0
+        },
+        "train/sac/actor_loss": {
+          "step": 2999,
+          "value": -2.8193776607513428
+        },
+        "train/sac/alpha": {
+          "step": 2999,
+          "value": 0.014978636987507343
+        },
+        "train/sac/alpha_loss": {
+          "step": 2999,
+          "value": -0.00011424125113990158
+        },
+        "train/sac/critic_loss": {
+          "step": 2999,
+          "value": 0.006022397894412279
+        },
+        "env/return": {
+          "step": 2999,
+          "value": 41.08066940307617
+        },
+        "env/success_at_end": {
+          "step": 2999,
+          "value": 0.96875
+        },
+        "env/reward": {
+          "step": 2999,
+          "value": 0.8216133713722229
+        },
+        "env/episode_len": {
+          "step": 2999,
+          "value": 50.0
+        },
+        "env/success_once": {
+          "step": 2999,
+          "value": 0.96875
+        },
+        "eval/return": {
+          "step": 2999,
+          "value": 43.12329864501953
+        },
+        "eval/success_at_end": {
+          "step": 2999,
+          "value": 1.0
+        },
+        "eval/reward": {
+          "step": 2999,
+          "value": 0.862466037273407
+        },
+        "eval/episode_len": {
+          "step": 2999,
+          "value": 50.0
+        },
+        "eval/success_once": {
+          "step": 2999,
+          "value": 1.0
+        },
+        "eval/num_trajectories": {
+          "step": 2999,
+          "value": 16.0
+        },
+        "time/eval": {
+          "step": 2999,
+          "value": 1.4731476306915283
+        },
+        "time/env/evaluate": {
+          "step": 2999,
+          "value": 1.3164957761764526
+        },
+        "time/rollout/evaluate": {
+          "step": 2999,
+          "value": 1.289396047592163
+        }
+      },
+      "final_step": 3000,
+      "weights": {
+        "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250-save1000/maniskill_sac_mlp/checkpoints/global_step_3000/actor/model_state_dict/full_weights.pt",
+        "sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+        "file_bytes": 1754385,
+        "state_tensor_elements": 435468,
+        "state_tensor_bytes": 1741872,
+        "parameters": {
+          "total": 435466,
+          "actor": 144648,
+          "critic": 290818
+        }
+      },
+      "target_weights": {
+        "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250-save1000/maniskill_sac_mlp/checkpoints/global_step_3000/actor/sac_components/target_model/checkpoint_rank_0.pt",
+        "sha256": "71fb7535f7d56c2885e32225e1555c6106e22fadc5716f2a777bcdd062bd9307",
+        "file_bytes": 1756023,
+        "state_tensor_elements": 435468,
+        "state_tensor_bytes": 1741872,
+        "parameters": {
+          "total": 435466,
+          "actor": 144648,
+          "critic": 290818
+        }
+      },
+      "restore_validation": {
+        "policy": {
+          "optimizer_parameters": 38,
+          "model_tensors": 40
+        },
+        "entropy": {
+          "optimizer_parameters": 1,
+          "model_tensors": 1
+        }
+      },
+      "checkpoint": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250-save1000/maniskill_sac_mlp/checkpoints/global_step_3000",
+      "checkpoint_bytes": 104297713
+    },
+    "saved_directories": [
+      "global_step_3000"
+    ],
+    "same_input_manifest": true,
+    "same_implementation": true,
+    "comparisons": {
+      "policy_byte_identical": true,
+      "target_byte_identical": true,
+      "policy_dcp_data_byte_identical": true,
+      "entropy_dcp_data_byte_identical": true,
+      "replay_file_count": 3002,
+      "replay_differing_files": 0,
+      "onnx_byte_identical": true
+    },
+    "export": {
+      "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250-save1000-export/policy.onnx",
+      "sha256": "5c5535a1268b5ea048be231c0e721238e26bac44d161daeb3fef506e5e55ed87",
+      "file_bytes": 575951,
+      "parameters": 143620,
+      "weight_storage": "float32",
+      "input": {
+        "name": "states",
+        "shape": [
+          "batch",
+          42
+        ],
+        "dtype": "float32"
+      },
+      "output": {
+        "name": "actions",
+        "shape": [
+          "batch",
+          4
+        ],
+        "dtype": "float32"
+      },
+      "metadata": {
+        "task": "PickCube-v1",
+        "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+        "checkpoint_sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+        "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+        "control_mode": "pd_ee_delta_pos",
+        "policy_mode": "eval: tanh(actor_mean), without exploration",
+        "action_range": "[-1, 1] normalized controller inputs",
+        "deterministic_actor_parameters": "143620"
+      },
+      "validation": {
+        "passed": true,
+        "reference": "upstream predict_action_batch(mode=eval)",
+        "reference_weight_storage": "float32",
+        "provider": "CPUExecutionProvider",
+        "batch_sizes": [
+          1,
+          7,
+          32
+        ],
+        "samples": 40,
+        "atol": 1e-05,
+        "rtol": 1e-05,
+        "max_absolute_error": 1.1920928955078125e-06,
+        "original_fp32_max_absolute_error": 1.1920928955078125e-06
+      }
+    },
+    "evaluations": [
+      {
+        "seed": 9401,
+        "metrics_equal": true,
+        "result": {
+          "status": "complete",
+          "policy_driver": "onnx_cpu",
+          "onnx": {
+            "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250-save1000-eval-9401/inputs/policy.onnx",
+            "sha256": "5c5535a1268b5ea048be231c0e721238e26bac44d161daeb3fef506e5e55ed87",
+            "file_bytes": 575951,
+            "metadata": {
+              "deterministic_actor_parameters": "143620",
+              "action_range": "[-1, 1] normalized controller inputs",
+              "policy_mode": "eval: tanh(actor_mean), without exploration",
+              "control_mode": "pd_ee_delta_pos",
+              "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+              "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+              "checkpoint_sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+              "task": "PickCube-v1"
+            },
+            "provider": "CPUExecutionProvider"
+          },
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.9875
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 42.211427038908006
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8442285438999534
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "action_observations": 8000,
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.0500153168104589,
+            "p50_batch_ms": 0.045922002755105495,
+            "p95_batch_ms": 0.0695473630912602
+          },
+          "success_once_count": 158,
+          "success_at_end_count": 157
+        }
+      },
+      {
+        "seed": 9402,
+        "metrics_equal": true,
+        "result": {
+          "status": "complete",
+          "policy_driver": "onnx_cpu",
+          "onnx": {
+            "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250-save1000-eval-9402/inputs/policy.onnx",
+            "sha256": "5c5535a1268b5ea048be231c0e721238e26bac44d161daeb3fef506e5e55ed87",
+            "file_bytes": 575951,
+            "metadata": {
+              "deterministic_actor_parameters": "143620",
+              "action_range": "[-1, 1] normalized controller inputs",
+              "policy_mode": "eval: tanh(actor_mean), without exploration",
+              "control_mode": "pd_ee_delta_pos",
+              "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+              "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+              "checkpoint_sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+              "task": "PickCube-v1"
+            },
+            "provider": "CPUExecutionProvider"
+          },
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.98125
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.99392766058445
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8398785525932908
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "action_observations": 8000,
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.048644733149558306,
+            "p50_batch_ms": 0.04554656334221363,
+            "p95_batch_ms": 0.06501557072624564
+          },
+          "success_once_count": 157,
+          "success_at_end_count": 157
+        }
+      },
+      {
+        "seed": 9403,
+        "metrics_equal": true,
+        "result": {
+          "status": "complete",
+          "policy_driver": "onnx_cpu",
+          "onnx": {
+            "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e250-save1000-eval-9403/inputs/policy.onnx",
+            "sha256": "5c5535a1268b5ea048be231c0e721238e26bac44d161daeb3fef506e5e55ed87",
+            "file_bytes": 575951,
+            "metadata": {
+              "deterministic_actor_parameters": "143620",
+              "action_range": "[-1, 1] normalized controller inputs",
+              "policy_mode": "eval: tanh(actor_mean), without exploration",
+              "control_mode": "pd_ee_delta_pos",
+              "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+              "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+              "checkpoint_sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+              "task": "PickCube-v1"
+            },
+            "provider": "CPUExecutionProvider"
+          },
+          "metrics": {
+            "eval/success_once": {
+              "step": 0,
+              "value": 0.95625
+            },
+            "eval/success_at_end": {
+              "step": 0,
+              "value": 0.95
+            },
+            "eval/return": {
+              "step": 0,
+              "value": 41.366674050688744
+            },
+            "eval/episode_len": {
+              "step": 0,
+              "value": 50.0
+            },
+            "eval/reward": {
+              "step": 0,
+              "value": 0.8273334814235568
+            },
+            "eval/num_trajectories": {
+              "step": 0,
+              "value": 160
+            }
+          },
+          "action_observations": 8000,
+          "inference": {
+            "scope": "onnxruntime_session_run_cpu",
+            "batch_size": 16,
+            "calls": 500,
+            "includes_first_call": true,
+            "mean_batch_ms": 0.04973392328247428,
+            "p50_batch_ms": 0.046152505092322826,
+            "p95_batch_ms": 0.06845118477940552
+          },
+          "success_once_count": 153,
+          "success_at_end_count": 152
+        }
+      }
+    ],
+    "job_timings": [
+      {
+        "label": "isolated-s1234-e250-save1000",
+        "status": "complete",
+        "started_at": "2026-09-29T04:49:39.717480+00:00",
+        "finished_at": "2026-09-29T05:00:43.300519+00:00",
+        "wall_seconds": 663.5828836048022
+      },
+      {
+        "label": "isolated-s1234-e250-save1000-export",
+        "status": "complete",
+        "started_at": "2026-09-29T05:00:43.300830+00:00",
+        "finished_at": "2026-09-29T05:00:45.799183+00:00",
+        "wall_seconds": 2.498266062932089
+      },
+      {
+        "label": "isolated-s1234-e250-save1000-eval-9401",
+        "status": "complete",
+        "started_at": "2026-09-29T05:00:45.799521+00:00",
+        "finished_at": "2026-09-29T05:01:00.595833+00:00",
+        "wall_seconds": 14.796188751934096
+      },
+      {
+        "label": "isolated-s1234-e250-save1000-eval-9402",
+        "status": "complete",
+        "started_at": "2026-09-29T05:01:00.596151+00:00",
+        "finished_at": "2026-09-29T05:01:15.464833+00:00",
+        "wall_seconds": 14.868566892109811
+      },
+      {
+        "label": "isolated-s1234-e250-save1000-eval-9403",
+        "status": "complete",
+        "started_at": "2026-09-29T05:01:15.465160+00:00",
+        "finished_at": "2026-09-29T05:01:30.371457+00:00",
+        "wall_seconds": 14.906186691951007
+      }
+    ],
+    "evaluation_events": [
+      {
+        "step": 2249,
+        "value": 1.0
+      },
+      {
+        "step": 2499,
+        "value": 1.0
+      },
+      {
+        "step": 2749,
+        "value": 1.0
+      },
+      {
+        "step": 2999,
+        "value": 1.0
+      }
+    ]
+  },
+  "primary_completed_training_work": {
+    "paths": 6,
+    "additional_iterations": 6000,
+    "additional_environment_transitions": 384000,
+    "additional_optimizer_update_iterations": 192000,
+    "excludes": "Failed candidate attempt and historical input checkpoint transitions"
+  },
+  "total_onnx_evaluation_trajectories": 3360,
+  "standalone_torch_comparison": {
+    "seed": 9401,
+    "trajectories_per_path": 160,
+    "same_torch_input_weights": true,
+    "upstream_and_isolated_torch_metrics_equal": true,
+    "torch_vs_onnx_metrics_equal": false,
+    "results": {
+      "isolated_torch": {
+        "status": "complete",
+        "evaluation_rng": "isolated-torch",
+        "metrics": {
+          "eval/success_at_end": {
+            "step": 0,
+            "value": 0.96875
+          },
+          "eval/return": {
+            "step": 0,
+            "value": 41.93568420410156
+          },
+          "eval/reward": {
+            "step": 0,
+            "value": 0.8387136459350586
+          },
+          "eval/success_once": {
+            "step": 0,
+            "value": 0.9750000238418579
+          },
+          "eval/episode_len": {
+            "step": 0,
+            "value": 50.0
+          },
+          "eval/num_trajectories": {
+            "step": 0,
+            "value": 160.0
+          }
+        },
+        "weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e500-torch-eval-9401/inputs/full_weights.pt",
+          "sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        }
+      },
+      "upstream_torch": {
+        "status": "complete",
+        "metrics": {
+          "eval/success_at_end": {
+            "step": 0,
+            "value": 0.96875
+          },
+          "eval/episode_len": {
+            "step": 0,
+            "value": 50.0
+          },
+          "eval/reward": {
+            "step": 0,
+            "value": 0.8387136459350586
+          },
+          "eval/success_once": {
+            "step": 0,
+            "value": 0.9750000238418579
+          },
+          "eval/return": {
+            "step": 0,
+            "value": 41.93568420410156
+          },
+          "eval/num_trajectories": {
+            "step": 0,
+            "value": 160.0
+          }
+        },
+        "weights": {
+          "path": "runs/rl-evaluation-isolation-20260929/upstream-torch-eval-9401/inputs/full_weights.pt",
+          "sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+          "file_bytes": 1754385,
+          "state_tensor_elements": 435468,
+          "state_tensor_bytes": 1741872,
+          "parameters": {
+            "total": 435466,
+            "actor": 144648,
+            "critic": 290818
+          }
+        }
+      },
+      "onnx": {
+        "status": "complete",
+        "policy_driver": "onnx_cpu",
+        "onnx": {
+          "path": "runs/rl-evaluation-isolation-20260929/isolated-s1234-e500-eval-9401/inputs/policy.onnx",
+          "sha256": "5c5535a1268b5ea048be231c0e721238e26bac44d161daeb3fef506e5e55ed87",
+          "file_bytes": 575951,
+          "metadata": {
+            "deterministic_actor_parameters": "143620",
+            "action_range": "[-1, 1] normalized controller inputs",
+            "policy_mode": "eval: tanh(actor_mean), without exploration",
+            "control_mode": "pd_ee_delta_pos",
+            "observation": "ManiSkill obs_mode=state, unchanged 42-element ordering",
+            "rlinf_revision": "67864d67c086a111de9921c5f4591eb5882f74ec",
+            "checkpoint_sha256": "fdb0f8766f083a119af3f9a27ede8fd8994531af533a2a30668bd1b4ec8bc6d2",
+            "task": "PickCube-v1"
+          },
+          "provider": "CPUExecutionProvider"
+        },
+        "metrics": {
+          "eval/success_once": {
+            "step": 0,
+            "value": 0.9875
+          },
+          "eval/success_at_end": {
+            "step": 0,
+            "value": 0.98125
+          },
+          "eval/return": {
+            "step": 0,
+            "value": 42.211427038908006
+          },
+          "eval/episode_len": {
+            "step": 0,
+            "value": 50.0
+          },
+          "eval/reward": {
+            "step": 0,
+            "value": 0.8442285438999534
+          },
+          "eval/num_trajectories": {
+            "step": 0,
+            "value": 160
+          }
+        },
+        "action_observations": 8000,
+        "inference": {
+          "scope": "onnxruntime_session_run_cpu",
+          "batch_size": 16,
+          "calls": 500,
+          "includes_first_call": true,
+          "mean_batch_ms": 0.051223812624812126,
+          "p50_batch_ms": 0.04655297379940748,
+          "p95_batch_ms": 0.07693656953051681
+        },
+        "success_once_count": 158,
+        "success_at_end_count": 157
+      }
+    },
+    "limits": "Original and corrected standalone PyTorch metrics match. Cross-backend simulation equality is not established; the Torch/ONNX difference is not introduced by this RNG isolation change."
+  },
+  "total_pytorch_evaluation_trajectories": 320,
+  "total_evaluation_trajectories": 3680,
+  "action_precision_on_recorded_observations": {
+    "observations": 1024,
+    "batch_size": 16,
+    "actions_per_observation": 4,
+    "observation_source": "Last 16 saved training replay fragments; numerical comparison only, not independent evaluation data.",
+    "matmul_precision": "highest",
+    "cuda_matmul_allow_tf32": false,
+    "source_files": {
+      "trajectory_2984_09822349-f0d2-5152-81e0-e1365b3efe04.pt": "ebc503131490bf0edd9a40989a0059ca1fb1d3abfb512f2d31f34f775e014e9a",
+      "trajectory_2985_0bc0aca7-e4a1-5d30-9e09-571b1a2ffedd.pt": "7ae023211b5ca1c0a72eef0c3b4876ccea6599f157b92776b62a125516c0b5fe",
+      "trajectory_2986_e645a6f7-0876-53ff-a646-f8ae9dc53a91.pt": "78dd3ae3c8f1ebd31e11e5a9975d0303487bffa15bbea6974967b945e14499e1",
+      "trajectory_2987_4237507b-d927-52ac-9230-7711df5995c7.pt": "cf1ae0b102d08288290d4e9f0b64ee0eed54347fd0852a86250e43f3dcf0754a",
+      "trajectory_2988_3a448d0d-2153-55b0-a6a6-34b9e0703105.pt": "c2ef6e10b03466863c9bc085aa4b2c352131459b32768f3c4870fd3cfe09317c",
+      "trajectory_2989_eb07c96a-23fc-566f-abef-68cf53faf53b.pt": "b344d9a2b0b14d5540ba6ee332c9ebb7362f8270a6f8141aa5bf80975a2ae1b9",
+      "trajectory_2990_9aba36d8-5e13-5242-8442-b9467fd775e2.pt": "90cf1eae8f815f81b4bbf006b4c5ce3961277ecdc95e58ff4195e0f2cb23e1a4",
+      "trajectory_2991_c9bf2f17-9f0b-50d7-896a-3f4f1f8b7943.pt": "6fd65cc38cb92f9848ba775df1af3fe45150544b8f960a92baab8b01afc4572d",
+      "trajectory_2992_71c8c2eb-0c1a-5e1f-9423-ec079ea86224.pt": "3493d504e80a0f7a775ee99759b6fd6400659549c44ae0b0a6da350a0de1c70a",
+      "trajectory_2993_dbfaac16-4ddc-5cf3-b363-2ad10faccd78.pt": "068c3d8003179821e88cb426acf73bf9c529ac82116fadbc6e6cbf7029a04ea3",
+      "trajectory_2994_6226d7b1-7708-565c-94fb-617a30af2335.pt": "2d214c58b82b55e15b4f34b0d2861c4d839cccfb28bb63c640bba88ee12cae6f",
+      "trajectory_2995_8b821047-2c8d-5c2a-ae22-4a45595156e9.pt": "62871e3b229ebcbb9cfb3744bbf78c1f4ccdeb97baf51bef890119dacebde0ee",
+      "trajectory_2996_76f2c356-2cad-5f92-8afe-3ef7200d611c.pt": "0b10f12c233d1404dc264f15107c87b7fb58e674106f1d32c31b7ab7268c0ea6",
+      "trajectory_2997_501c0979-a34f-5c19-9481-0459abaf0c2d.pt": "01af5c7eb45a3e80ea34dca3c25c5c5a2569364093f8de185b28e007e1f384dd",
+      "trajectory_2998_6a5ee112-9595-5205-af67-58c132ac5bc9.pt": "9ce0754341d78a938ab606d2d700765db0987fefe76770e2c0fccc91ddefd94c",
+      "trajectory_2999_7331bf62-27a6-58fa-9b60-df273d3ee17c.pt": "6bad582cfcbb15af0c583371db358d458db116fb02c58f998516f87c7ea54f87"
+    },
+    "onnx_sha256": "5c5535a1268b5ea048be231c0e721238e26bac44d161daeb3fef506e5e55ed87",
+    "differences_from_cpu_onnx": {
+      "cpu_torch": {
+        "max_absolute_error": 1.30385160446167e-06,
+        "mean_absolute_error": 2.3038869301217346e-07,
+        "p95_absolute_error": 6.059417501091957e-07,
+        "exact_equal_components": 45
+      },
+      "cuda_eager": {
+        "max_absolute_error": 1.3709068298339844e-06,
+        "mean_absolute_error": 2.079631116203018e-07,
+        "p95_absolute_error": 5.811452865600586e-07,
+        "exact_equal_components": 52
+      },
+      "cuda_compiled": {
+        "max_absolute_error": 1.2814998626708984e-06,
+        "mean_absolute_error": 2.0528187860691105e-07,
+        "p95_absolute_error": 5.662441253662109e-07,
+        "exact_equal_components": 54
+      }
+    }
+  },
+  "original_input_checkpoints_after_study": [
+    {
+      "seed": 1234,
+      "source": "runs/rlinf-continuous-1234-20260928/maniskill_sac_mlp/checkpoints/global_step_2000",
+      "files": 2008,
+      "unchanged": true
+    },
+    {
+      "seed": 4321,
+      "source": "runs/rlinf-continuous-4321-20260928/maniskill_sac_mlp/checkpoints/global_step_2000",
+      "files": 2008,
+      "unchanged": true
+    }
+  ],
+  "completion": {
+    "status": "complete",
+    "started_at": "2026-09-29T03:13:57+00:00",
+    "deadline": "2026-09-29T05:13:57+00:00",
+    "review_finished_at": "2026-09-29T05:14:27.404167+00:00",
+    "elapsed_seconds": 7230.404167,
+    "last_gpu_diagnostic_finished_at": "2026-09-29T05:07:30.323218+00:00",
+    "training_paths": 7,
+    "additional_training_iterations": 7000,
+    "onnx_evaluation_trajectories": 3360,
+    "pytorch_evaluation_trajectories": 320,
+    "total_evaluation_trajectories": 3680,
+    "tests": {
+      "ef": {
+        "passed": 913,
+        "skipped": 91
+      },
+      "rlinf_sdk": {
+        "passed": 38
+      }
+    },
+    "external_rlinf_checkout_clean": true,
+    "original_input_checkpoints_unchanged": true,
+    "residual_study_processes": 0,
+    "branch": "feat/rl-runtime-robustness",
+    "changes_committed": false
+  }
+}

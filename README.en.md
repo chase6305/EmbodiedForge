@@ -39,7 +39,7 @@ For environment and data APIs alone, install with `python -m pip install -e .`. 
 | Physics backends | NumPy, MuJoCo, mjbatch thread pool, Newton **1.6.0rc1** | Core backends use CPU state snapshots |
 | Core training and data | PyTorch PPO, termination/timeout-aware GAE, checkpoint evaluation, episode recording, windowed reading | Core PPO uses proprioception; training and dataset validation can run separately |
 | Go1 locomotion | Task, rewards, mirrored policy, normalization, and PPO ported into this repository; training, resume, evaluation, and live control | Still depends on mjbatch, MuJoCo, Torch, and Menagerie assets; not yet part of the core `VectorEnv` |
-| Native H1 | MJCF model, named joint groups, batched commands, randomization, resets, torque data, and PPO | CPU MuJoCo/mjbatch; no IsaacLab runtime. [Three-seed nominal-pose study](docs/rl-training-study-20260925.md); disturbance and hardware acceptance remain unvalidated. [Guide](docs/h1-native.en.md) |
+| Native H1 | MJCF model, named joint groups, batched commands, randomization, resets, torque data, and PPO | CPU MuJoCo/mjbatch; no IsaacLab runtime. Supports nominal and randomized initial-state evaluation; runtime pushes and hardware acceptance remain unvalidated. [Guide](docs/h1-native.en.md) |
 | Microduck walking | Local task, MDP helpers, actuator extensions, MJCF and meshes | mjlab / MuJoCo-Warp / BAM / RSL-RL in an isolated environment |
 | Other robot tasks | IsaacLab H1, Wuji reorientation, Cartpole MPC, arm throwing co-design | Upstream workflows and adapters in isolated SDK environments, rather than complete ports |
 | Shared Web viewer | Raster / MuJoCo / OpenGL / OVRTX, live Go1 policies, Go1/H1 mesh replay | Viewer and physics backends are selected independently; Web frames are not training camera observations |
@@ -199,12 +199,22 @@ The [2026-09-28 restart study (Chinese)](docs/rl-resume-study-20260928.md) compa
 
 The [2026-09-28 compression and post-training study (Chinese)](docs/rl-compression-study-20260928.md) compares FP16/INT8 weight storage, layer-wise dynamic quantization, QAT, and inference batch effects in closed-loop evaluation. Export supports `--weight-storage float16` or `int8`, and ONNX evaluation records CPU inference timing.
 
+The [2026-09-29 H1 checkpoint study (Chinese)](docs/h1-checkpoint-publication-20260929.md) reports three-seed training parity, recovery after an actual SIGTERM, input-weight provenance, exploratory post-training on one policy, and model sizes, including the resulting policies’ walking and turning limitations.
+
+The [2026-09-29 H1 turning and exploration study (Chinese)](docs/h1-turning-study-20260929.md) records command/reward ablations, randomized initial-state evaluation, the exploration-boundary fix for H1 and core PPO, model sizes, and complete training budgets. It includes improvements and regressions across training seeds; command-sampling and reward defaults remain unchanged.
+
+The [2026-09-30 H1 command-sampling study (Chinese)](docs/h1-command-mixture-20260930.md) covers paired fresh training, continuation, and a four-arm ablation, with per-environment errors and selected-environment failure recording. Pure-turn sampling reduces mean turning error but lowers randomized-start survival, so the original sampling default is retained.
+
+The [2026-09-30 H1 termination-cost study (Chinese)](docs/h1-termination-cost-20260930.md) compares failure penalties and command sampling across four recipes, with fresh training, continuation, continuous commands, and per-environment termination reasons. Actuation and gradient diagnostics distinguish observations from causal hypotheses. Both doubled-cost candidates fail the screen, so the original sampler and −200 coefficient remain the default.
+
+The [2026-09-30 H1 entropy study (Chinese)](docs/h1-entropy-study-20260930.md) compares 0.01 / 0.001 entropy coefficients with full-budget fresh training and continuation, paired mean/sampled actions, clipping diagnostics, model sizes, and failure cases. Both candidates fail the robustness screen, so the original recipe remains the default.
+
 Robot training SDKs use isolated environments to avoid conflicting Warp, Torch, and MuJoCo versions. Prepare source checkouts at the revisions specified in each task guide before setup. Those guides document local paths, caches, and GPU requirements.
 
 | Entry point | Tasks and methods | Implementation and documentation |
 | --- | --- | --- |
 | `python -m embodiedforge recipes` | Go1 PPO, Wuji / Wuji Light reorientation PPO, Cartpole MPC, arm throwing CEM | Go1 is ported; other tasks use pinned source snapshots and adapters. [Task recipes](docs/recipes.md) |
-| `python -m embodiedforge.microduck` | Microduck flat-ground walking PPO, evaluation, playback, and ONNX export | Local walking task and assets; isolated mjlab training. [Microduck](docs/microduck.md) |
+| `python -m embodiedforge microduck` | Microduck flat-ground walking PPO, evaluation, playback, and ONNX export | Local walking task and assets; isolated mjlab training. [Microduck](docs/microduck.md) |
 | `python -m embodiedforge h1-native` | Native H1 training, resume, fixed-command evaluation and motion recording | Project-owned CPU task/PPO. [Native H1](docs/h1-native.en.md) |
 | `python -m embodiedforge h1` | H1 flat-ground walking training, resume, and multi-seed fixed-command evaluation | Isolated IsaacLab / Newton / MuJoCo-Warp recipe. [H1](docs/h1-isaaclab.md) |
 | `python -m embodiedforge gmr` | BVH retargeting and reference replay | External GMR SDK; no RL trainer. [Guide (Chinese)](docs/humanoid-motion.md) |
