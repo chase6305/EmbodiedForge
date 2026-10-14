@@ -42,8 +42,9 @@ class NumpyPhysics:
         """Semi-implicit Euler; active rows advance by a total of dt seconds."""
         h = dt / substeps
         # Full slices avoid repeated boolean gathers and scatters when every
-        # row is active. Keep the same substep arithmetic and selected-row
-        # path when completed environments must remain frozen.
+        # row is active. For partial batches, extract IDs once instead of
+        # rescanning the mask at every substep gather/scatter. Keep the same
+        # arithmetic and freeze completed environments in both paths.
         rows = active
         if (
             isinstance(active, np.ndarray)
@@ -55,6 +56,8 @@ class NumpyPhysics:
                 return
             if count == len(active):
                 rows = slice(None)
+            else:
+                rows = np.flatnonzero(active)
         for _ in range(substeps):
             self.velocity[rows] += self.control[rows] * h / self.scene.mass
             self.position[rows] += self.velocity[rows] * h
