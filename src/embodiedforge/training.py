@@ -3,7 +3,11 @@
 import hashlib
 import io
 import json
+import logging
 import math
+import sys
+import time
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -12,6 +16,9 @@ import torch
 from torch import nn
 from torch.distributions import Normal
 
+from ._adam_checkpoint import validate_adam_checkpoint
+from ._core_run import publish_checkpoint, read_resume, write_json
+from ._microduck_process import termination_signals
 from ._training_runtime import record_training_runtime
 from .core import Array, Config, Observation
 from .env import VectorEnv
@@ -248,78 +255,164 @@ def _optimize_policy(
     return float(np.mean(losses))
 
 
+@termination_signals()
 def train_ppo(
-    env_config: Config, config: PPOConfig, directory: str | Path
+    env_config: Config,
+    config: PPOConfig,
+    directory: str | Path,
+    *,
+    resume: "TrainingCheckpoint | str | Path | None" = None,
+    checkpoint_interval: int = 10,
 ) -> ActorCritic:
-    """Train from registered task specs and save a self-describing checkpoint."""
+    """Train additional updates, periodically saving policy and Adam state.
+
+    Resume restores policy/Adam, then starts new environments and RNG streams.
+    The supplied PPOConfig defines this run's budget and hyperparameters; its
+    learning rate replaces the saved Adam learning rate.
+    """
+    if type(checkpoint_interval) is not int or checkpoint_interval <= 0:
+        raise ValueError("checkpoint_interval must be a positive integer")
     root = Path(directory)
-    root.mkdir(parents=True, exist_ok=False)
+    restored = (
+        resume
+        if isinstance(resume, TrainingCheckpoint)
+        else load_training_checkpoint(resume)
+        if resume is not None
+        else None
+    )
+    if restored and (type(restored.updates) is not int or restored.updates <= 0):
+        raise ValueError("Invalid core PPO checkpoint update count")
+    start = restored.updates if restored else 0
     torch.manual_seed(config.seed)
     rng = np.random.default_rng(config.seed)
-    (root / "config.json").write_text(
-        json.dumps({"env": env_config.to_dict(), "ppo": asdict(config)}, indent=2)
-        + "\n"
-    )
-    with VectorEnv(env_config) as env, (root / "metrics.jsonl").open("w") as metrics:
-        record_training_runtime(
-            root,
-            environment=env,
-            task=env.task,
-            learner=train_ppo,
-            physics_adapter=env.physics,
-            physics=env_config.physics,
-            core_vector_env=True,
-            packages=[
-                "numpy",
-                "torch",
-                *{
-                    "numpy": [],
-                    "mujoco": ["mujoco"],
-                    "mjbatch": ["mujoco", "mjbatch"],
-                    "newton": ["newton", "warp-lang"],
-                }[env_config.physics],
-            ],
-        )
-        spec = env.spec
-        model = ActorCritic(
-            proprio_dim=spec["proprio_shape"][0],
-            action_dim=spec["action_shape"][0],
-            action_low=spec["action_range"][0],
-            action_high=spec["action_range"][1],
-        )
-        optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
-        observation = env.observe()
-        for update in range(config.updates):
-            rollout, observation, successes, completed = _collect_rollout(
-                env, model, observation, config.rollout_steps
-            )
-            count = config.rollout_steps * env_config.num_envs
-            loss = _optimize_policy(model, optimizer, rollout, config, rng)
-            metric = {
-                "update": update + 1,
-                "transitions": (update + 1) * count,
-                "mean_step_reward": float(rollout["reward"].mean()),
-                "loss": loss,
-                "completed_episodes": completed,
-                "success_rate": successes / completed if completed else None,
-            }
-            metrics.write(json.dumps(metric) + "\n")
-            metrics.flush()
-            print(json.dumps(metric), flush=True)
-        temporary = root / "checkpoint.pt.tmp"
-        torch.save(
-            {
-                "schema_version": 2,
-                "model_spec": model.model_spec,
-                "env_spec": env.spec,
-                "model": model.state_dict(),
-                "optimizer": optimizer.state_dict(),
+    metadata = None
+    began = time.monotonic()
+    try:
+        with VectorEnv(env_config) as env:
+            spec = env.spec
+            if restored:
+                restored.bundle.validate_environment(spec)
+                model = deepcopy(restored.bundle.policy)
+            else:
+                model = ActorCritic(
+                    proprio_dim=spec["proprio_shape"][0],
+                    action_dim=spec["action_shape"][0],
+                    action_low=spec["action_range"][0],
+                    action_high=spec["action_range"][1],
+                )
+            model.train()
+            optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+            if restored:
+                validate_adam_checkpoint(
+                    optimizer, restored.optimizer_state, label="core PPO optimizer"
+                )
+                optimizer.load_state_dict(deepcopy(restored.optimizer_state))
+                for group in optimizer.param_groups:
+                    group["lr"] = config.learning_rate
+            root.mkdir(parents=True, exist_ok=False)
+            metadata = {
+                "schema_version": 1,
+                "kind": "core-ppo",
+                "status": "running",
+                "initial_updates": start,
+                "requested_updates": config.updates,
+                "completed_updates": start,
+                "saved_updates": 0,
+                "checkpoint_interval": checkpoint_interval,
                 "env": env_config.to_dict(),
                 "ppo": asdict(config),
-            },
-            temporary,
-        )
-        temporary.replace(root / "checkpoint.pt")
+                "resume": (
+                    {"source": restored.source, "sha256": restored.bundle.sha256}
+                    if restored
+                    else None
+                ),
+                "resume_semantics": "policy+optimizer; environment and RNG reset",
+            }
+            write_json(root / "run.json", metadata)
+            write_json(
+                root / "config.json",
+                {"env": env_config.to_dict(), "ppo": asdict(config)},
+            )
+            record_training_runtime(
+                root,
+                environment=env,
+                task=env.task,
+                learner=train_ppo,
+                physics_adapter=env.physics,
+                physics=env_config.physics,
+                core_vector_env=True,
+                packages=[
+                    "numpy",
+                    "torch",
+                    *{
+                        "numpy": [],
+                        "mujoco": ["mujoco"],
+                        "mjbatch": ["mujoco", "mjbatch"],
+                        "newton": ["newton", "warp-lang"],
+                    }[env_config.physics],
+                ],
+            )
+            observation = env.observe()
+            with (root / "metrics.jsonl").open("x") as metrics:
+                for update in range(start + 1, start + config.updates + 1):
+                    rollout, observation, successes, completed = _collect_rollout(
+                        env, model, observation, config.rollout_steps
+                    )
+                    count = config.rollout_steps * env_config.num_envs
+                    loss = _optimize_policy(model, optimizer, rollout, config, rng)
+                    metadata["completed_updates"] = update
+                    metric = {
+                        "update": update,
+                        "transitions": (update - start) * count,
+                        "mean_step_reward": float(rollout["reward"].mean()),
+                        "loss": loss,
+                        "completed_episodes": completed,
+                        "success_rate": successes / completed if completed else None,
+                    }
+                    metrics.write(json.dumps(metric, allow_nan=False) + "\n")
+                    metrics.flush()
+                    print(json.dumps(metric, allow_nan=False), flush=True)
+                    if (
+                        update == start + 1
+                        or update % checkpoint_interval == 0
+                        or update == start + config.updates
+                    ):
+                        publish_checkpoint(
+                            root,
+                            {
+                                "schema_version": 2,
+                                "updates": update,
+                                "model_spec": model.model_spec,
+                                "env_spec": spec,
+                                "model": model.state_dict(),
+                                "optimizer": optimizer.state_dict(),
+                                "env": env_config.to_dict(),
+                                "ppo": asdict(config),
+                            },
+                            optimizer,
+                            metadata,
+                        )
+        metadata["status"] = "complete"
+    except BaseException as error:
+        if metadata is not None:
+            metadata["status"] = (
+                "interrupted" if isinstance(error, KeyboardInterrupt) else "failed"
+            )
+            metadata["error"] = f"{type(error).__name__}: {error}"
+        raise
+    finally:
+        if metadata is not None:
+            metadata["seconds"] = time.monotonic() - began
+            active_error = sys.exc_info()[0] is not None
+            try:
+                write_json(root / "run.json", metadata)
+            except Exception:
+                if not active_error:
+                    raise
+                logging.getLogger(__name__).exception(
+                    "Could not finalize core PPO run %s; preserving the training error",
+                    root,
+                )
     return model
 
 
@@ -356,11 +449,8 @@ class PolicyCheckpoint:
             raise ValueError("Checkpoint/environment mismatch for policy action range")
 
 
-def load_checkpoint(path: str | Path) -> PolicyCheckpoint:
-    """Read v1/v2 checkpoints on CPU without constructing simulation resources."""
-    # Deserialize and hash the same bytes even if the source file is replaced.
-    payload = Path(path).read_bytes()
-    checkpoint = torch.load(io.BytesIO(payload), map_location="cpu", weights_only=True)
+def _policy_checkpoint(checkpoint: dict, checksum: str) -> PolicyCheckpoint:
+    """Build the evaluation bundle from already-read and hashed checkpoint data."""
     if checkpoint["schema_version"] not in (1, 2):
         raise ValueError("Unsupported checkpoint")
     model = ActorCritic(**checkpoint.get("model_spec", {}))
@@ -374,11 +464,51 @@ def load_checkpoint(path: str | Path) -> PolicyCheckpoint:
         model,
         env_config,
         checkpoint.get("env_spec", {}),
-        sha256=hashlib.sha256(payload).hexdigest(),
+        sha256=checksum,
     )
     if bundle.env_spec:
         bundle.validate_environment(bundle.env_spec)
     return bundle
+
+
+def load_checkpoint(path: str | Path) -> PolicyCheckpoint:
+    """Read v1/v2 checkpoints on CPU without constructing simulation resources."""
+    # Deserialize and hash the same bytes even if the source file is replaced.
+    payload = Path(path).read_bytes()
+    checkpoint = torch.load(io.BytesIO(payload), map_location="cpu", weights_only=True)
+    return _policy_checkpoint(checkpoint, hashlib.sha256(payload).hexdigest())
+
+
+@dataclass
+class TrainingCheckpoint:
+    """Verified policy/Adam input shared by CLI configuration and training."""
+
+    bundle: PolicyCheckpoint
+    ppo_config: PPOConfig
+    updates: int
+    optimizer_state: dict
+    source: str
+
+
+def load_training_checkpoint(path: str | Path) -> TrainingCheckpoint:
+    """Load a committed core run or a trained v2 checkpoint exactly once."""
+    source = read_resume(path)
+    checkpoint = torch.load(
+        io.BytesIO(source["payload"]), map_location="cpu", weights_only=True
+    )
+    bundle = _policy_checkpoint(checkpoint, source["sha256"])
+    if checkpoint["schema_version"] != 2 or not isinstance(checkpoint.get("ppo"), dict):
+        raise ValueError("Resume requires a trained core PPO v2 checkpoint")
+    config = PPOConfig(**checkpoint["ppo"])
+    updates = checkpoint.get("updates", config.updates)
+    if type(updates) is not int or updates <= 0:
+        raise ValueError("Invalid core PPO checkpoint update count")
+    if source["saved_updates"] is not None and source["saved_updates"] != updates:
+        raise ValueError("Core PPO checkpoint update count does not match run")
+    optimizer = torch.optim.Adam(bundle.policy.parameters(), lr=config.learning_rate)
+    state = checkpoint.get("optimizer")
+    validate_adam_checkpoint(optimizer, state, label="core PPO optimizer")
+    return TrainingCheckpoint(bundle, config, updates, state, source["source"])
 
 
 def load_policy(path: str | Path) -> ActorCritic:

@@ -111,6 +111,10 @@ def main() -> None:
     parser.add_argument("--steps", type=int, default=300)
     parser.add_argument("--updates", type=int, default=30)
     parser.add_argument(
+        "--resume", type=Path, help="train only: core PPO run directory or checkpoint"
+    )
+    parser.add_argument("--checkpoint-interval", type=int, default=10)
+    parser.add_argument(
         "--chunk-horizon",
         type=int,
         default=1,
@@ -143,6 +147,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.graphics and args.command != "doctor":
         parser.error("--graphics is only supported by doctor")
+    if args.resume and args.command != "train":
+        parser.error("--resume is only supported by train")
     auto_configure_debug_logging()
     if args.log_level is not None or args.log_json:
         setup_logging(args.log_level or "INFO", with_json_format=args.log_json)
@@ -153,16 +159,27 @@ def main() -> None:
         if args.record_buffer_mib <= 0:
             parser.error("--record-buffer-mib must be positive")
     checkpoint = None
+    resume = None
     if args.command == "evaluate":
         if args.checkpoint is None:
             parser.error("evaluate requires --checkpoint")
         from .training import load_checkpoint
 
         checkpoint = load_checkpoint(args.checkpoint)
+    elif args.command == "train" and args.resume is not None:
+        from .training import load_training_checkpoint
+
+        resume = load_training_checkpoint(args.resume)
     config = (
         Config.load(args.config)
         if args.config
-        else (checkpoint.env_config if checkpoint else Config())
+        else (
+            checkpoint.env_config
+            if checkpoint
+            else resume.bundle.env_config
+            if resume
+            else Config()
+        )
     )
     overrides = {
         key: getattr(args, key)
@@ -210,7 +227,18 @@ def main() -> None:
         from .training import PPOConfig, train_ppo
 
         torch.set_num_threads(1)
-        train_ppo(config, PPOConfig(updates=args.updates), args.output)
+        ppo_config = (
+            replace(resume.ppo_config, updates=args.updates)
+            if resume
+            else PPOConfig(updates=args.updates)
+        )
+        train_ppo(
+            config,
+            ppo_config,
+            args.output,
+            resume=resume,
+            checkpoint_interval=args.checkpoint_interval,
+        )
         return
     policy = checkpoint.policy if checkpoint else None
     with VectorEnv(config) as env:
