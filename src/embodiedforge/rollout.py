@@ -174,7 +174,15 @@ def run_rollout(
             executor.reset(ids)
             if on_reset is not None:
                 on_reset(ids.copy())
-            if len(ids) == env.config.num_envs:
+            if (
+                len(ids) == env.config.num_envs
+                and observation.keys() == reset_observation.keys()
+                and all(
+                    value.shape == reset_observation[key].shape
+                    and value.dtype == reset_observation[key].dtype
+                    for key, value in observation.items()
+                )
+            ):
                 # flatnonzero returns canonical row order, and reset already
                 # owns its arrays. There are no surviving rows to preserve.
                 observation = reset_observation

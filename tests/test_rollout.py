@@ -109,6 +109,65 @@ def test_full_reset_keeps_retained_terminal_frames_and_owned_policy_inputs(
                 np.testing.assert_array_equal(result.observation[key], expected[key])
 
 
+@pytest.mark.parametrize("layout", ["dtype", "broadcast", "extra_reset_key"])
+def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layout):
+    class DynamicTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            resetting = not state.time.any()
+            shape = (3, 1 if resetting and layout == "broadcast" else 2)
+            dtype = np.float32 if resetting and layout == "dtype" else np.float64
+            observation["extra"] = np.full(shape, 9.9, dtype=dtype)
+            if resetting and layout == "extra_reset_key":
+                observation["reset_only"] = np.ones((3, 1))
+            return observation
+
+    class Policy:
+        def __init__(self):
+            self.inputs = []
+
+        def act(self, observation):
+            self.inputs.append(observation)
+            return np.zeros((3, 1, 2), dtype=np.float32)
+
+    policy = Policy()
+    with VectorEnv(Config(num_envs=3, max_steps=1), task=DynamicTask()) as env:
+        run_rollout(env, policy, steps=3)
+    assert policy.inputs[0]["extra"].dtype == (
+        np.float32 if layout == "dtype" else np.float64
+    )
+    for observation in policy.inputs[1:]:
+        # Replacement into the terminal layout preserves its dtype, broadcasts
+        # compatible reset shapes and ignores additional reset-only fields.
+        assert observation["extra"].dtype == np.float64
+        assert observation["extra"].shape == (3, 2)
+        expected = np.float64(np.float32(9.9)) if layout == "dtype" else 9.9
+        np.testing.assert_array_equal(observation["extra"], expected)
+        assert "reset_only" not in observation
+
+
+def test_full_reset_keeps_missing_extra_field_error_before_next_inference():
+    class DynamicTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            if state.time.any():
+                observation["terminal_only"] = np.ones((3, 1))
+            return observation
+
+    class Policy:
+        calls = 0
+
+        def act(self, observation):
+            self.calls += 1
+            return np.zeros((3, 1, 2), dtype=np.float32)
+
+    policy = Policy()
+    with VectorEnv(Config(num_envs=3, max_steps=1), task=DynamicTask()) as env:
+        with pytest.raises(KeyError, match="terminal_only"):
+            run_rollout(env, policy, steps=2)
+        assert policy.calls == 1
+
+
 def test_chunk_runner_replans_and_resets_only_finished_rows():
     policy = ChunkPolicy()
     writer = RetainingWriter(policy)
