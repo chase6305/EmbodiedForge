@@ -72,6 +72,36 @@ def _dataset_manifest(root: Path) -> dict:
     return manifest
 
 
+def _all_finite(value: Array) -> bool:
+    """Avoid an episode-sized boolean temporary for large numeric fields."""
+    if value.size <= 4 * 1024 * 1024:
+        return bool(np.isfinite(value).all())
+    with np.nditer(
+        value,
+        flags=["external_loop", "buffered", "zerosize_ok"],
+        op_flags=["readonly"],
+        buffersize=max(1, 1024 * 1024 // value.dtype.itemsize),
+    ) as chunks:
+        return all(np.isfinite(chunk).all() for chunk in chunks)
+
+
+def _array_equal(first: Array, second: Array) -> bool:
+    """Compare numeric fields without flattening or copying strided inputs."""
+    if first.shape != second.shape:
+        return False
+    if first.size <= 4 * 1024 * 1024:
+        return np.array_equal(first, second)
+    with np.nditer(
+        [first, second],
+        flags=["external_loop", "buffered", "zerosize_ok"],
+        op_flags=[["readonly"], ["readonly"]],
+        buffersize=max(
+            1, 1024 * 1024 // max(first.dtype.itemsize, second.dtype.itemsize)
+        ),
+    ) as chunks:
+        return all(np.array_equal(left, right) for left, right in chunks)
+
+
 def _validate_observation(observation: Observation, count: int) -> None:
     """Validate the numeric batch and identifiers common to writer and reader."""
     if not _REQUIRED_OBSERVATIONS <= observation.keys():
@@ -83,7 +113,7 @@ def _validate_observation(observation: Observation, count: int) -> None:
             or len(value) != count
             or value.dtype.kind not in "biuf"
             or value.dtype.kind == "f"
-            and not np.isfinite(value).all()
+            and not _all_finite(value)
         ):
             raise ValueError(f"Invalid numeric observation field: {name}")
     for name in ("env_id", "episode_id", "step_id"):
@@ -643,7 +673,7 @@ def _load_episode(
         if (
             value.shape != following[name].shape
             or value.dtype != following[name].dtype
-            or not np.array_equal(value[1:], following[name][:-1])
+            or not _array_equal(value[1:], following[name][:-1])
         ):
             raise ValueError(f"Observation continuity broken for {name}: {path}")
     if schema == 2 and owned:
