@@ -155,3 +155,12 @@ def test_invalid_format_does_not_create_output(tmp_path, episode_format):
         with pytest.raises(ValueError, match="episode_format"):
             EpisodeRecorder(tmp_path / "invalid", env, episode_format=episode_format)
     assert not (tmp_path / "invalid").exists()
+
+
+@pytest.mark.parametrize("reader", [read_episodes, action_windows])
+def test_training_directory_is_not_reported_as_an_empty_dataset(tmp_path, reader):
+    (tmp_path / "run.json").write_text(
+        json.dumps({"schema_version": 1, "kind": "core-ppo", "status": "complete"})
+    )
+    with pytest.raises(ValueError, match="core PPO training run"):
+        list(reader(tmp_path))

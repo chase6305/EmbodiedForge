@@ -57,6 +57,20 @@ def _json_atomic(path: Path, value: dict) -> None:
     temporary.replace(path)
 
 
+def _dataset_manifest(root: Path) -> dict:
+    manifest = json.loads((root / "run.json").read_text())
+    if manifest.get("kind") == "core-ppo":
+        raise ValueError(
+            "Expected an episode dataset, received a core PPO training run"
+        )
+    if (
+        type(manifest.get("schema_version")) is not int
+        or manifest["schema_version"] != 1
+    ):
+        raise ValueError("Unsupported run schema")
+    return manifest
+
+
 def _validate_observation(observation: Observation, count: int) -> None:
     """Validate the numeric batch and identifiers common to writer and reader."""
     if not _REQUIRED_OBSERVATIONS <= observation.keys():
@@ -410,9 +424,7 @@ def read_episodes(
     """
     options = options or EpisodeReadOptions()
     root = Path(directory)
-    manifest = json.loads((root / "run.json").read_text())
-    if manifest["schema_version"] != 1:
-        raise ValueError("Unsupported run schema")
+    _dataset_manifest(root)
     completed_index = 0
     for path in sorted(root.glob("*.npz")):
         marker = path.with_suffix(".json")
@@ -544,7 +556,7 @@ def action_windows(
     """
     if any(type(value) is not int or value <= 0 for value in (history, horizon)):
         raise ValueError("history and horizon must be positive integers")
-    manifest = json.loads((Path(directory) / "run.json").read_text())
+    manifest = _dataset_manifest(Path(directory))
     instruction = manifest["env_spec"]["instruction"]
     for episode in read_episodes(directory, options=options):
         for t in range(history - 1, len(episode["action"]) - horizon + 1):
