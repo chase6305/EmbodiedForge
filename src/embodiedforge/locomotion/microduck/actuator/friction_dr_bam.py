@@ -101,7 +101,9 @@ class BacklashEncoderBamActuator(FrictionDRBamActuator):
 
     def get_command(self, data) -> ActuatorCmd:
         cmd = super().get_command(data)
-        pos = cmd.pos + data.joint_pos[:, self._backlash_joint_ids] * self._backlash_mask
+        pos = (
+            cmd.pos + data.joint_pos[:, self._backlash_joint_ids] * self._backlash_mask
+        )
         return dataclasses.replace(cmd, pos=pos)
 
 
