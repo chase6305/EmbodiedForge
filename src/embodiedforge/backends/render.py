@@ -56,6 +56,37 @@ class RasterRenderer(NullRenderer):
             [[20, 24, 32], [70, 155, 255], [65, 210, 120]], dtype=np.uint8
         )
 
+    def _draw_disk(self, labels: Array, positions: Array, radius: float, entity: int):
+        size = self.config.image_size
+        width = min(size, int(np.ceil(2 * min(radius, 3) * size / 3)) + 3)
+        if len(positions) * size**2 < 65536 or width * 2 >= size:
+            mask = (
+                (self.x[None] - positions[:, 0, None, None]) ** 2
+                + (self.y[None] - positions[:, 1, None, None]) ** 2
+            ) <= radius**2
+            labels[mask] = entity
+            return
+        # Bound the work to each disk's pixel rectangle. Expand by a pixel on
+        # either side before the original distance test, including tangent
+        # pixels despite rounding in the rectangle bounds. Large disks and
+        # small images use the cheaper full-frame broadcast above.
+        coord = self.x[0]
+        bounds = np.asarray(
+            positions, dtype=np.result_type(positions.dtype, np.float64)
+        )
+        offsets = np.arange(width)
+        x0 = np.clip(np.searchsorted(coord, bounds[:, 0] - radius) - 1, 0, size - width)
+        y0 = np.clip(
+            np.searchsorted(coord, -bounds[:, 1] - radius) - 1, 0, size - width
+        )
+        xs, ys = x0[:, None] + offsets, y0[:, None] + offsets
+        mask = (
+            (coord[xs][:, None, :] - positions[:, 0, None, None]) ** 2
+            + (-coord[ys][:, :, None] - positions[:, 1, None, None]) ** 2
+        ) <= radius**2
+        row, y, x = np.nonzero(mask)
+        labels[row, ys[row, y], xs[row, x]] = entity
+
     def render(self, ids: Array) -> RenderBatch:
         s = self.config.image_size
         labels = np.zeros((len(ids), 1, s, s), dtype=np.int32)
@@ -63,14 +94,11 @@ class RasterRenderer(NullRenderer):
             (2, self.entities["target"], 0.10),
             (1, self.entities["agent"], self.scene.radius),
         ):
-            p = positions[ids]
-            mask = (
-                (self.x[None] - p[:, 0, None, None]) ** 2
-                + (self.y[None] - p[:, 1, None, None]) ** 2
-            ) <= radius**2
-            labels[:, 0][mask] = entity
+            self._draw_disk(labels[:, 0], positions[ids], radius, entity)
+        # Labels are constructed here and always in [0, 2]. take copies the
+        # three-byte palette entries faster than general advanced indexing.
         values = {
-            "rgb": lambda: self.palette[labels],
+            "rgb": lambda: np.take(self.palette, labels, axis=0, mode="clip"),
             "depth": lambda: np.where(labels != 0, 2.0, 0.0).astype(np.float32),
             "instance_id": lambda: labels.copy(),
             "semantic_id": lambda: labels.copy(),

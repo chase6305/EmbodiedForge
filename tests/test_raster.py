@@ -57,3 +57,33 @@ def test_raster_matches_dense_reference_including_overlap_and_edge(size, radius)
             size,
             3,
         )
+
+
+@pytest.mark.parametrize("size,count", [(32, 128), (64, 16), (256, 1), (257, 7)])
+@pytest.mark.parametrize("radius", [1e-12, 0.06, 0.1, 0.35, 1.5, 4.0])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64, np.longdouble])
+def test_bounded_disk_matches_full_frame_at_tangencies(size, count, radius, dtype):
+    from embodiedforge.backends.render import RasterRenderer
+    from embodiedforge.core import SceneSpec
+
+    renderer = RasterRenderer()
+    renderer.build(SceneSpec(radius=radius), Config(image_size=size))
+    coord = (np.arange(size) + 0.5) * 3 / size - 1.5
+    rng = np.random.default_rng(13)
+    positions = rng.uniform(-2 - radius, 2 + radius, (count, 2)).astype(dtype)
+    for axis in range(2):
+        for sign in (-1, 1):
+            # A circle tangent at a pixel center, and its two neighboring
+            # representable centers, exercise both rectangle and disk bounds.
+            center = dtype(coord[size // 3]) * (1 if axis == 0 else -1)
+            center += sign * dtype(radius)
+            positions[0, 1 - axis] = coord[size // 2] * (-1 if axis == 0 else 1)
+            for delta in (-np.inf, center, np.inf):
+                positions[0, axis] = np.nextafter(center, dtype(delta))
+                expected = (
+                    (coord[None, None, :] - positions[:, 0, None, None]) ** 2
+                    + (-coord[None, :, None] - positions[:, 1, None, None]) ** 2
+                ) <= radius**2
+                actual = np.full((count, size, size), 2, dtype=np.int32)
+                renderer._draw_disk(actual, positions, radius, 1)
+                np.testing.assert_array_equal(actual, np.where(expected, 1, 2))
