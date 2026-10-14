@@ -38,7 +38,7 @@ class VectorEnv:
         self.renderer: RenderBackend | None = None
         self.closed = False
         self.failure: BaseException | None = None
-        self.cleanup_errors: list[Exception] = []
+        self.cleanup_errors: list[BaseException] = []
         try:
             self.task.build(self.config.num_envs)
             self.physics = physics.factory()
@@ -101,7 +101,7 @@ class VectorEnv:
         """Cleanup diagnostics must not mask an error already being propagated."""
         try:
             self.close()
-        except Exception:
+        except BaseException:
             # close retains every backend exception in cleanup_errors.
             pass
 
@@ -289,8 +289,14 @@ class VectorEnv:
             if backend is not None:
                 try:
                     backend.close()
-                except Exception as error:
+                except BaseException as error:
                     self.cleanup_errors.append(error)
+        # A cancellation must still release both backends and retain its
+        # original type. Error-preserving cleanup suppresses it only while an
+        # earlier operation/context error is already being propagated.
+        for error in self.cleanup_errors:
+            if not isinstance(error, Exception):
+                raise error
         if self.cleanup_errors:
             raise RuntimeError(
                 "Backend cleanup failed: "
