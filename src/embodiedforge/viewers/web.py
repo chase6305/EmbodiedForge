@@ -14,6 +14,7 @@ from collections import deque
 from dataclasses import asdict, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from socketserver import BaseServer
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -668,7 +669,21 @@ class WebViewer:
         operations = []
         if self.server is not None:
             if self.thread is not None and self.thread.is_alive():
-                operations.append(self.server.shutdown)
+
+                def shutdown():
+                    try:
+                        self.server.shutdown()
+                    except BaseException:
+                        # An interruption can precede shutdown's stop request.
+                        # Finish the standard server handshake before closing
+                        # its socket, preserving the first interruption.
+                        try:
+                            BaseServer.shutdown(self.server)
+                        except BaseException:
+                            LOGGER.exception("Web server shutdown retry also failed")
+                        raise
+
+                operations.append(shutdown)
             operations.append(self.server.server_close)
             if self.thread is not None and self.thread.ident is not None:
                 operations.append(lambda: self.thread.join(timeout=3))

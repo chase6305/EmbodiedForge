@@ -391,20 +391,22 @@ def test_failed_renderer_candidate_closes_and_preserves_primary_error(
 
 @pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit, OSError])
 @pytest.mark.parametrize("secondary_type", [None, KeyboardInterrupt, OSError])
+@pytest.mark.parametrize("stop_requested", [False, True])
 def test_shutdown_interruption_still_releases_socket_and_renderer(
-    session, monkeypatch, error_type, secondary_type
+    session, monkeypatch, error_type, secondary_type, stop_requested
 ):
     _, viewer = session
     server, thread = viewer.server, viewer.thread
     original_close = server.server_close
+    original_shutdown = server.shutdown
     original_render_close = viewer.renderer.close
     calls = []
     error = error_type("shutdown interrupted")
 
     def shutdown():
         calls.append("shutdown")
-        # BaseServer.shutdown sets this flag before its interruptible wait.
-        server._BaseServer__shutdown_request = True
+        if stop_requested:
+            server._BaseServer__shutdown_request = True
         raise error
 
     def server_close():
@@ -430,6 +432,7 @@ def test_shutdown_interruption_still_releases_socket_and_renderer(
         viewer.close()
         assert calls == ["shutdown", "socket", "renderer"]
     finally:
+        original_shutdown()
         original_close()
         thread.join(timeout=3)
 
