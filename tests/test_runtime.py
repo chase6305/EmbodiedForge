@@ -233,3 +233,24 @@ def test_numpy_physics_matches_masked_substeps_through_active_transitions(count,
             np.testing.assert_array_equal(
                 getattr(after, name)[~active], getattr(before, name)[~active]
             )
+
+
+@pytest.mark.parametrize(
+    "active",
+    [
+        np.array([True]),
+        np.array([False]),
+        np.ones((2, 1), dtype=bool),
+        np.zeros((2, 1), dtype=bool),
+    ],
+)
+def test_numpy_physics_fast_path_does_not_accept_malformed_masks(active):
+    physics = NumpyPhysics()
+    physics.build(SceneSpec(), Config(num_envs=2))
+    physics.apply_control(np.ones((2, 2)))
+    before = physics.snapshot()
+    with pytest.raises(IndexError):
+        physics.step(0.02, 4, active)
+    after = physics.snapshot()
+    for name, value in vars(before).items():
+        np.testing.assert_array_equal(getattr(after, name), value)
