@@ -20,77 +20,8 @@ gait/feet terms, curriculum-ramped action-rate smoothing), with:
 import math
 from copy import deepcopy
 
-NUM_STEPS_PER_ENV = 24
-
-# Fraction of envs commanded to spin on the spot (lin=0, |ang| ∈ [0.4·max, max]).
-TURN_IN_PLACE_FRACTION = 0.15
-
-# Symmetry
-ENABLE_SYMMETRY = False
-
-# Domain randomization toggles
-ENABLE_COM_RANDOMIZATION = True
-ENABLE_HEAD_COM_RANDOMIZATION = True  # Randomize CoM of the head assembly bodies
-ENABLE_KP_RANDOMIZATION = False # Was True
-ENABLE_KD_RANDOMIZATION = False # Was True
-ENABLE_MASS_INERTIA_RANDOMIZATION = True  # Can enable once walking is stable
-ENABLE_JOINT_FRICTION_RANDOMIZATION = True  # Scales BAM's friction budget per-env via FrictionDRBamActuator.friction_scale
-ENABLE_JOINT_DAMPING_RANDOMIZATION = False
-ENABLE_ARMATURE_RANDOMIZATION = True  # Reflected rotor inertia (microban-style). DOES affect BAM (armature is set, not zeroed).
-ENABLE_VELOCITY_PUSHES = True  # Velocity-based pushes for robustness training
-ENABLE_IMU_ORIENTATION_RANDOMIZATION = True  # Simulates mounting errors
-ENABLE_ENCODER_BIAS = True  # Per-env joint encoder calibration offset (actor obs sees joint_pos + bias)
-ENABLE_BASE_ORIENTATION_RANDOMIZATION = False  # Randomize initial tilt to force reactive behavior
-
-# Head/body pose command tracking (replaces the old neck-offset disturbance scheme).
-# Head pose: 4D deltas-from-HOME on neck/head joints; vel env tracks these as a
-# primary objective. Body pose: 6D delta in [x, y, z, roll, pitch, yaw]; vel env
-# samples small ranges + tiny reward weight so input neurons stay alive but
-# tracking isn't the priority (standup env raises the weight).
-HEAD_POSE_CMD_RESAMPLE_S = (2.0, 5.0)
-BODY_POSE_CMD_RESAMPLE_S = (2.0, 5.0)
-
-# Observation configuration
-USE_PROJECTED_GRAVITY = True  # If True, use projected gravity instead of raw accelerometer
-
-# Domain randomization ranges (adjust as needed)
-# Conservative ranges proven to be stable - can increase gradually if needed
-COM_RANDOMIZATION_RANGE = 0.003  # ±3mm initial, ramped to ±8mm via curriculum
-# Head CoM randomization: applied per-episode to every body of the head assembly
-# (neck → neck_pitch → yaw_roll_motion → head-roll body). Same non-accumulating
-# mechanism as the trunk CoM randomization above. The head-roll body is named
-# bottom_head_shell in the walk model and jaw_soft in the 2026-07 roller model,
-# hence the alternation. NOTE: bearing_roll is NOT a head body — in both models
-# it is the right-hip-yaw link (child of trunk_base); it has always been listed
-# here by mistake and is kept only to preserve existing DR behavior.
-HEAD_COM_RANDOMIZATION_RANGE = 0.003  # ±3mm initial, ramped via curriculum
-HEAD_BODY_NAMES = (
-    "neck",
-    "neck_pitch",
-    "yaw_roll_motion",
-    "(bottom_head_shell|jaw_soft)",
-    "bearing_roll",
-)
-MASS_INERTIA_RANDOMIZATION_RANGE = (0.95, 1.05)  # ±5% applied to BOTH mass and inertia together.
-KP_RANDOMIZATION_RANGE = (0.85, 1.15)  # ±15%
-KD_RANDOMIZATION_RANGE = (0.9, 1.1)  # ±10% (can increase to 0.8-1.2)
-JOINT_FRICTION_RANDOMIZATION_RANGE = (0.9, 1.1)
-JOINT_DAMPING_RANDOMIZATION_RANGE = (0.9, 1.1)
-ARMATURE_RANDOMIZATION_RANGE = (0.9, 1.1)  # ±10% reflected rotor inertia (microban: dr.joint_armature, same range)
-VELOCITY_PUSH_INTERVAL_S = (3.0, 6.0)  # Apply pushes every 3-6 seconds
-VELOCITY_PUSH_RANGE = (-0.3, 0.3)  # Velocity change range in m/s. Was ±0.5 — an
-# ADDITIVE kick larger than max walk speed (0.4) every 3-6 s trains a permanently
-# nervous fall-recovery gait (2026-07 audit). ±0.3 keeps push robustness while
-# letting a calmer gait be optimal.
-IMU_ORIENTATION_RANDOMIZATION_ANGLE = 6.0  # up-to-6° random-axis IMU mounting error. NOTE: zero-centered (random axis) — trains tolerance to misalignment *magnitude*, NOT a pitch bias. The real board's systematic ~5° pitch offset is corrected at the source in the runtime (imu-pitch-offset), not here.
-ENCODER_BIAS_RANGE = (-0.015, 0.015)  # ±0.86° per-joint encoder offset (constant per env)
-BASE_ORIENTATION_MAX_PITCH_DEG = 10.0  # ±10° forward/backward tilt at episode start
-BASE_ORIENTATION_MAX_ROLL_DEG = 5.0  # ±5° side-to-side tilt at episode start
-
-import mujoco as _mujoco
 import mjlab.terrains as terrain_gen
-from mjlab.terrains.terrain_generator import TerrainGeneratorCfg
-
+import mujoco as _mujoco
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
@@ -103,8 +34,8 @@ from mjlab.managers import (
 )
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.rl import (
-    RslRlOnPolicyRunnerCfg,
     RslRlModelCfg,
+    RslRlOnPolicyRunnerCfg,
 )
 from mjlab.sensor import (
     ContactMatch,
@@ -116,11 +47,98 @@ from mjlab.sensor import (
 from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
+from mjlab.terrains.terrain_generator import TerrainGeneratorCfg
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 
-from embodiedforge.locomotion.microduck.robot.microduck_constants import MICRODUCK_WALK_ROBOT_CFG
+from embodiedforge.locomotion.microduck.robot.microduck_constants import (
+    MICRODUCK_WALK_ROBOT_CFG,
+)
 from embodiedforge.locomotion.microduck.tasks import mdp as microduck_mdp
-from embodiedforge.locomotion.microduck.tasks.symmetry import PpoWithSymmetryCfg, SYMMETRY_CFG
+from embodiedforge.locomotion.microduck.tasks.symmetry import (
+    SYMMETRY_CFG,
+    PpoWithSymmetryCfg,
+)
+
+NUM_STEPS_PER_ENV = 24
+
+# Fraction of envs commanded to spin on the spot (lin=0, |ang| ∈ [0.4·max, max]).
+TURN_IN_PLACE_FRACTION = 0.15
+
+# Symmetry
+ENABLE_SYMMETRY = False
+
+# Domain randomization toggles
+ENABLE_COM_RANDOMIZATION = True
+ENABLE_HEAD_COM_RANDOMIZATION = True  # Randomize CoM of the head assembly bodies
+ENABLE_KP_RANDOMIZATION = False  # Was True
+ENABLE_KD_RANDOMIZATION = False  # Was True
+ENABLE_MASS_INERTIA_RANDOMIZATION = True  # Can enable once walking is stable
+ENABLE_JOINT_FRICTION_RANDOMIZATION = True  # Scales BAM's friction budget per-env via FrictionDRBamActuator.friction_scale
+ENABLE_JOINT_DAMPING_RANDOMIZATION = False
+ENABLE_ARMATURE_RANDOMIZATION = True  # Reflected rotor inertia (microban-style). DOES affect BAM (armature is set, not zeroed).
+ENABLE_VELOCITY_PUSHES = True  # Velocity-based pushes for robustness training
+ENABLE_IMU_ORIENTATION_RANDOMIZATION = True  # Simulates mounting errors
+ENABLE_ENCODER_BIAS = (
+    True  # Per-env joint encoder calibration offset (actor obs sees joint_pos + bias)
+)
+ENABLE_BASE_ORIENTATION_RANDOMIZATION = (
+    False  # Randomize initial tilt to force reactive behavior
+)
+
+# Head/body pose command tracking (replaces the old neck-offset disturbance scheme).
+# Head pose: 4D deltas-from-HOME on neck/head joints; vel env tracks these as a
+# primary objective. Body pose: 6D delta in [x, y, z, roll, pitch, yaw]; vel env
+# samples small ranges + tiny reward weight so input neurons stay alive but
+# tracking isn't the priority (standup env raises the weight).
+HEAD_POSE_CMD_RESAMPLE_S = (2.0, 5.0)
+BODY_POSE_CMD_RESAMPLE_S = (2.0, 5.0)
+
+# Observation configuration
+USE_PROJECTED_GRAVITY = (
+    True  # If True, use projected gravity instead of raw accelerometer
+)
+
+# Domain randomization ranges (adjust as needed)
+# Conservative ranges proven to be stable - can increase gradually if needed
+COM_RANDOMIZATION_RANGE = 0.003  # ±3mm initial, ramped to ±8mm via curriculum
+# Head CoM randomization: applied per-episode to every body of the head assembly
+# (neck → neck_pitch → yaw_roll_motion → head-roll body). Same non-accumulating
+# mechanism as the trunk CoM randomization above. The head-roll body is named
+# bottom_head_shell in the walk model and jaw_soft in the 2026-07 roller model,
+# hence the alternation. bearing_roll belongs to the right hip and must not
+# receive head-assembly randomization. This corrects the upstream body list;
+# new training runs therefore have a different reset distribution/RNG history.
+HEAD_COM_RANDOMIZATION_RANGE = 0.003  # ±3mm initial, ramped via curriculum
+HEAD_BODY_NAMES = (
+    "neck",
+    "neck_pitch",
+    "yaw_roll_motion",
+    "(bottom_head_shell|jaw_soft)",
+)
+MASS_INERTIA_RANDOMIZATION_RANGE = (
+    0.95,
+    1.05,
+)  # ±5% applied to BOTH mass and inertia together.
+KP_RANDOMIZATION_RANGE = (0.85, 1.15)  # ±15%
+KD_RANDOMIZATION_RANGE = (0.9, 1.1)  # ±10% (can increase to 0.8-1.2)
+JOINT_FRICTION_RANDOMIZATION_RANGE = (0.9, 1.1)
+JOINT_DAMPING_RANDOMIZATION_RANGE = (0.9, 1.1)
+ARMATURE_RANDOMIZATION_RANGE = (
+    0.9,
+    1.1,
+)  # ±10% reflected rotor inertia (microban: dr.joint_armature, same range)
+VELOCITY_PUSH_INTERVAL_S = (3.0, 6.0)  # Apply pushes every 3-6 seconds
+VELOCITY_PUSH_RANGE = (-0.3, 0.3)  # Velocity change range in m/s. Was ±0.5 — an
+# ADDITIVE kick larger than max walk speed (0.4) every 3-6 s trains a permanently
+# nervous fall-recovery gait (2026-07 audit). ±0.3 keeps push robustness while
+# letting a calmer gait be optimal.
+IMU_ORIENTATION_RANDOMIZATION_ANGLE = 6.0  # up-to-6° random-axis IMU mounting error. NOTE: zero-centered (random axis) — trains tolerance to misalignment *magnitude*, NOT a pitch bias. The real board's systematic ~5° pitch offset is corrected at the source in the runtime (imu-pitch-offset), not here.
+ENCODER_BIAS_RANGE = (
+    -0.015,
+    0.015,
+)  # ±0.86° per-joint encoder offset (constant per env)
+BASE_ORIENTATION_MAX_PITCH_DEG = 10.0  # ±10° forward/backward tilt at episode start
+BASE_ORIENTATION_MAX_ROLL_DEG = 5.0  # ±5° side-to-side tilt at episode start
 
 
 # Microduck-specific rough terrain: much gentler than the default ROUGH_TERRAINS_CFG.
@@ -185,7 +203,7 @@ def _soften_terrain_contacts(spec: _mujoco.MjSpec) -> None:
     body = spec.body("terrain")
     count = 0
     for geom in body.geoms:
-        geom.solref = [0.04, 1.0]   # 2× softer time constant (default: 0.02)
+        geom.solref = [0.04, 1.0]  # 2× softer time constant (default: 0.02)
         geom.solimp = [0.85, 0.95, 0.001, 0.5, 2.0]  # slightly softer impedance
         count += 1
     print(f"[rough terrain] spec_fn: softened {count} terrain geoms (solref=0.04)")
@@ -212,7 +230,7 @@ def make_microduck_velocity_env_cfg(
         r".*hip_roll.*": 0.05,  # 0.1→0.06→0.05 — hold the 5°-inward stance, stop the leg splay to vertical
         r".*hip_pitch.*": 0.4,
         r".*knee.*": 0.4,
-        r".*ankle.*": 0.25, # was 0.15
+        r".*ankle.*": 0.25,  # was 0.15
     }
 
     site_names = ["left_foot", "right_foot"]
@@ -327,7 +345,6 @@ def make_microduck_velocity_env_cfg(
         params={"sensor_name": self_collision_cfg.name},
     )
 
-
     # air_time window [0.125, 0.300] s. NOTE: standing still at zero command is
     # taught by the standing_envs curriculum (→25% standing envs by ~iter 2000),
     # not by an explicit stillness/no-stepping term.
@@ -350,10 +367,14 @@ def make_microduck_velocity_env_cfg(
     cfg.rewards["action_rate_l2"].weight = -0.1
 
     cfg.rewards["foot_clearance"].params["command_threshold"] = 0.01
-    cfg.rewards["foot_clearance"].params["target_height"] = 0.02  # Increased from 0.01 to penalize dragging
+    cfg.rewards["foot_clearance"].params["target_height"] = (
+        0.02  # Increased from 0.01 to penalize dragging
+    )
 
     cfg.rewards["foot_swing_height"].params["command_threshold"] = 0.01
-    cfg.rewards["foot_swing_height"].params["target_height"] = 0.02  # Increased from 0.01 to force foot lifting
+    cfg.rewards["foot_swing_height"].params["target_height"] = (
+        0.02  # Increased from 0.01 to force foot lifting
+    )
 
     # NOTE: no neck-only action-rate term — the shared action_rate_l2 sums over
     # ALL action dims (neck included), and head_pose_tracking below gives the
@@ -375,7 +396,10 @@ def make_microduck_velocity_env_cfg(
     cfg.events["foot_friction"].params[
         "asset_cfg"
     ].geom_names = foot_frictions_geom_names
-    cfg.events["foot_friction"].params["ranges"] = (0.7, 1.3)  # Grippier footpad — narrowed from (0.3, 1.2)
+    cfg.events["foot_friction"].params["ranges"] = (
+        0.7,
+        1.3,
+    )  # Grippier footpad — narrowed from (0.3, 1.2)
     # Terminate environments that have gone numerically unstable (NaN physics).
     # MuJoCo can produce NaN joint positions on extreme contact impulses.
     # Terminating immediately resets to a valid state before NaN propagates
@@ -544,7 +568,9 @@ def make_microduck_velocity_env_cfg(
     )
 
     # Determine gravity/accelerometer term name based on flag
-    gravity_term_name = "projected_gravity" if USE_PROJECTED_GRAVITY else "raw_accelerometer"
+    gravity_term_name = (
+        "projected_gravity" if USE_PROJECTED_GRAVITY else "raw_accelerometer"
+    )
 
     # Replace projected_gravity with raw_accelerometer if flag is False
     if not USE_PROJECTED_GRAVITY:
@@ -563,11 +589,15 @@ def make_microduck_velocity_env_cfg(
     )
 
     cfg.observations["actor"].terms["base_ang_vel"].delay_min_lag = 0
-    cfg.observations["actor"].terms["base_ang_vel"].delay_max_lag = 1  # was 3 (=60 ms worst case); real dxl IMU path is fast — ±20 ms envelope (2026-07 audit)
+    cfg.observations["actor"].terms[
+        "base_ang_vel"
+    ].delay_max_lag = 1  # was 3 (=60 ms worst case); real dxl IMU path is fast — ±20 ms envelope (2026-07 audit)
     cfg.observations["actor"].terms["base_ang_vel"].delay_update_period = 64
 
     cfg.observations["actor"].terms[gravity_term_name].delay_min_lag = 0
-    cfg.observations["actor"].terms[gravity_term_name].delay_max_lag = 1  # was 3 (=60 ms worst case); real dxl IMU path is fast — ±20 ms envelope (2026-07 audit)
+    cfg.observations["actor"].terms[
+        gravity_term_name
+    ].delay_max_lag = 1  # was 3 (=60 ms worst case); real dxl IMU path is fast — ±20 ms envelope (2026-07 audit)
     cfg.observations["actor"].terms[gravity_term_name].delay_update_period = 64
 
     # The critic's sensor-derived terms are the one obs path `nan_state` cannot
@@ -585,10 +615,18 @@ def make_microduck_velocity_env_cfg(
             cfg.observations["critic"].terms[_term].func = _safe
 
     # Observation noise configuration (edit these values as needed)
-    cfg.observations["actor"].terms["base_ang_vel"].noise = Unoise(n_min=-0.03, n_max=0.03) # was 0.2
-    cfg.observations["actor"].terms[gravity_term_name].noise = Unoise(n_min=-0.01, n_max=0.01)  # was 0.15
-    cfg.observations["actor"].terms["joint_pos"].noise = Unoise(n_min=-0.001, n_max=0.001)  # was 0.05
-    cfg.observations["actor"].terms["joint_vel"].noise = Unoise(n_min=-0.25, n_max=0.25)  # was 2.0
+    cfg.observations["actor"].terms["base_ang_vel"].noise = Unoise(
+        n_min=-0.03, n_max=0.03
+    )  # was 0.2
+    cfg.observations["actor"].terms[gravity_term_name].noise = Unoise(
+        n_min=-0.01, n_max=0.01
+    )  # was 0.15
+    cfg.observations["actor"].terms["joint_pos"].noise = Unoise(
+        n_min=-0.001, n_max=0.001
+    )  # was 0.05
+    cfg.observations["actor"].terms["joint_vel"].noise = Unoise(
+        n_min=-0.25, n_max=0.25
+    )  # was 2.0
 
     # IMU mounting-misalignment DR (per-env constant rotation of the IMU-derived
     # observations). Applied to the ACTOR only (the policy sees a slightly rotated
@@ -621,8 +659,12 @@ def make_microduck_velocity_env_cfg(
     passive_excluded = SceneEntityCfg("robot", joint_names=(r"^(?!passive_).*",))
     for grp in ("actor", "critic"):
         for term in ("joint_pos", "joint_vel"):
-            cfg.observations[grp].terms[term] = deepcopy(cfg.observations[grp].terms[term])
-            cfg.observations[grp].terms[term].params["asset_cfg"] = deepcopy(passive_excluded)
+            cfg.observations[grp].terms[term] = deepcopy(
+                cfg.observations[grp].terms[term]
+            )
+            cfg.observations[grp].terms[term].params["asset_cfg"] = deepcopy(
+                passive_excluded
+            )
 
     # Encoder-bias DR: the base template samples a per-env constant joint-encoder
     # offset (startup event "encoder_bias"), but joint_pos_rel ignores it unless
@@ -640,7 +682,9 @@ def make_microduck_velocity_env_cfg(
     # standup/ground_pick envs mutate commands["twist"] in place, zeroing ranges)
     command: UniformVelocityCommandCfg = deepcopy(cfg.commands["twist"])
     cfg.commands["twist"] = command
-    command.rel_standing_envs = 0.02  # small but non-zero from the start, ramped up by curriculum
+    command.rel_standing_envs = (
+        0.02  # small but non-zero from the start, ramped up by curriculum
+    )
     command.rel_heading_envs = 0.0
     # Modest, FIXED command ranges (no widening curriculum): a ramp to
     # lin ±0.4 / ang ±2.0 outpaced the robot's capability and tracked a
@@ -667,9 +711,9 @@ def make_microduck_velocity_env_cfg(
     cfg.commands["head_pose"] = microduck_mdp.UniformPoseCommandCfg(
         resampling_time_range=HEAD_POSE_CMD_RESAMPLE_S,
         ranges=(
-            (-0.05, 0.05),    # neck_pitch
-            (-0.05, 0.05),    # head_pitch
-            (-0.07, 0.07),    # head_yaw
+            (-0.05, 0.05),  # neck_pitch
+            (-0.05, 0.05),  # head_pitch
+            (-0.07, 0.07),  # head_yaw
             (-0.015, 0.015),  # head_roll (tighter — much smaller mechanical range)
         ),
     )
@@ -683,9 +727,9 @@ def make_microduck_velocity_env_cfg(
             (-0.005, 0.005),  # x (m)
             (-0.005, 0.005),  # y (m)
             (-0.005, 0.005),  # z (m)
-            (-0.05, 0.05),    # roll (rad)
-            (-0.05, 0.05),    # pitch (rad)
-            (-0.05, 0.05),    # yaw (rad)
+            (-0.05, 0.05),  # roll (rad)
+            (-0.05, 0.05),  # pitch (rad)
+            (-0.05, 0.05),  # yaw (rad)
         ),
     )
 
@@ -760,13 +804,13 @@ def make_microduck_velocity_env_cfg(
         # The velocity env default nconmax=35 is tight for rough terrain: when the
         # robot falls and multiple body links hit multiple boxes simultaneously,
         # contacts overflow → some are silently dropped → sudden decompression → NaN.
-        cfg.sim.nconmax = 200   # was 35
+        cfg.sim.nconmax = 200  # was 35
 
         # The velocity env uses only 10 solver iterations (vs the default 100),
         # which is too few to resolve edge contacts on rough box terrain.
         # Tripling iterations significantly reduces contact resolution failures
         # with a modest compute cost on GPU (MJWarp parallelises across envs).
-        cfg.sim.mujoco.iterations = 30    # was 10
+        cfg.sim.mujoco.iterations = 30  # was 10
         cfg.sim.mujoco.ls_iterations = 50  # was 20
 
         if play:
@@ -797,12 +841,12 @@ def make_microduck_velocity_env_cfg(
         params={
             "command_name": "twist",
             "standing_stages": [
-                {"step": 0,           "rel_standing_envs": 0.02},
-                {"step": 500 * 24,    "rel_standing_envs": 0.05},
-                {"step": 750 * 24,    "rel_standing_envs": 0.1},
-                {"step": 1000 * 24,   "rel_standing_envs": 0.15},
-                {"step": 1500 * 24,   "rel_standing_envs": 0.2},
-                {"step": 2000 * 24,   "rel_standing_envs": 0.25},
+                {"step": 0, "rel_standing_envs": 0.02},
+                {"step": 500 * 24, "rel_standing_envs": 0.05},
+                {"step": 750 * 24, "rel_standing_envs": 0.1},
+                {"step": 1000 * 24, "rel_standing_envs": 0.15},
+                {"step": 1500 * 24, "rel_standing_envs": 0.2},
+                {"step": 2000 * 24, "rel_standing_envs": 0.25},
             ],
         },
     )
@@ -820,11 +864,51 @@ def make_microduck_velocity_env_cfg(
             "command_name": "head_pose",
             "range_stages": [
                 # step,                ranges = ((neck_pitch), (head_pitch), (head_yaw),  (head_roll))
-                {"step": 0,         "ranges": ((-0.05, 0.05),  (-0.05, 0.05),  (-0.07, 0.07),  (-0.015, 0.015))},
-                {"step": 500 * 24,  "ranges": ((-0.17, 0.17),  (-0.17, 0.17),  (-0.21, 0.21),  (-0.047, 0.047))},
-                {"step": 1000 * 24, "ranges": ((-0.39, 0.39),  (-0.39, 0.39),  (-0.49, 0.49),  (-0.11, 0.11))},
-                {"step": 1500 * 24, "ranges": ((-0.72, 0.72),  (-0.72, 0.72),  (-0.91, 0.91),  (-0.20, 0.20))},
-                {"step": 2000 * 24, "ranges": ((-1.10, 1.10),  (-1.10, 1.10),  (-1.40, 1.40),  (-0.31, 0.31))},
+                {
+                    "step": 0,
+                    "ranges": (
+                        (-0.05, 0.05),
+                        (-0.05, 0.05),
+                        (-0.07, 0.07),
+                        (-0.015, 0.015),
+                    ),
+                },
+                {
+                    "step": 500 * 24,
+                    "ranges": (
+                        (-0.17, 0.17),
+                        (-0.17, 0.17),
+                        (-0.21, 0.21),
+                        (-0.047, 0.047),
+                    ),
+                },
+                {
+                    "step": 1000 * 24,
+                    "ranges": (
+                        (-0.39, 0.39),
+                        (-0.39, 0.39),
+                        (-0.49, 0.49),
+                        (-0.11, 0.11),
+                    ),
+                },
+                {
+                    "step": 1500 * 24,
+                    "ranges": (
+                        (-0.72, 0.72),
+                        (-0.72, 0.72),
+                        (-0.91, 0.91),
+                        (-0.20, 0.20),
+                    ),
+                },
+                {
+                    "step": 2000 * 24,
+                    "ranges": (
+                        (-1.10, 1.10),
+                        (-1.10, 1.10),
+                        (-1.40, 1.40),
+                        (-0.31, 0.31),
+                    ),
+                },
             ],
         },
     )
@@ -836,14 +920,17 @@ def make_microduck_velocity_env_cfg(
         params={
             "command_name": "body_pose",
             "range_stages": [
-                {"step": 0, "ranges": (
-                    (-0.005, 0.005),  # x (m)
-                    (-0.005, 0.005),  # y (m)
-                    (-0.005, 0.005),  # z (m)
-                    (-0.05, 0.05),    # roll
-                    (-0.05, 0.05),    # pitch
-                    (-0.05, 0.05),    # yaw
-                )},
+                {
+                    "step": 0,
+                    "ranges": (
+                        (-0.005, 0.005),  # x (m)
+                        (-0.005, 0.005),  # y (m)
+                        (-0.005, 0.005),  # z (m)
+                        (-0.05, 0.05),  # roll
+                        (-0.05, 0.05),  # pitch
+                        (-0.05, 0.05),  # yaw
+                    ),
+                },
             ],
         },
     )
@@ -861,10 +948,10 @@ def make_microduck_velocity_env_cfg(
                     # support, forcing a wide/fast hyper-reactive gait and making
                     # BACKWARD balance untrainable. Regression timeline matched the
                     # ramp increases: 0.015 → 0.02 → 0.03 as policies got worse.
-                    {"step": 0,          "range": 0.003},
-                    {"step": 500 * 24,  "range": 0.005},
-                    {"step": 1000 * 24,  "range": 0.01},
-                    {"step": 1500 * 24,  "range": 0.015},
+                    {"step": 0, "range": 0.003},
+                    {"step": 500 * 24, "range": 0.005},
+                    {"step": 1000 * 24, "range": 0.01},
+                    {"step": 1500 * 24, "range": 0.015},
                 ],
             },
         )
@@ -878,9 +965,9 @@ def make_microduck_velocity_env_cfg(
                 "range_stages": [
                     # Capped at ±10 mm (2026-07 audit — same over-conservatism
                     # concern as trunk CoM; head is a large lever arm).
-                    {"step": 0,          "range": 0.003},
-                    {"step": 500 * 24,  "range": 0.005},
-                    {"step": 1000 * 24,  "range": 0.01},
+                    {"step": 0, "range": 0.003},
+                    {"step": 500 * 24, "range": 0.005},
+                    {"step": 1000 * 24, "range": 0.01},
                 ],
             },
         )

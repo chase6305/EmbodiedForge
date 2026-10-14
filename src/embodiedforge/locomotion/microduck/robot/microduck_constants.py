@@ -1,28 +1,24 @@
 # Adapted for EmbodiedForge: retain flat-walking configuration only; see NOTICE.
 
 import os
-
 from pathlib import Path
 
 import mujoco
-
-from mjlab.actuator import XmlActuatorCfg
+from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
+from mjlab.utils.spec_config import CollisionCfg
 
 from embodiedforge.locomotion.microduck.actuator import (
-    BacklashEncoderBamActuatorCfg,
     FrictionDRBamActuatorCfg,
 )
-
-from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
-
-from mjlab.utils.spec_config import CollisionCfg
 
 _ROBOT_DIR: Path = Path(os.path.dirname(__file__)) / "microduck"
 
 MICRODUCK_WALK_XML: Path = _ROBOT_DIR / "robot_walk.xml"
 
+
 def get_walk_spec() -> mujoco.MjSpec:
     return mujoco.MjSpec.from_file(str(MICRODUCK_WALK_XML))
+
 
 HOME_FRAME = EntityCfg.InitialStateCfg(
     joint_pos={
