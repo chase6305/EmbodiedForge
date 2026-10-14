@@ -124,6 +124,12 @@ def main() -> None:
         help="Retained recording array budget in MiB; excludes compression scratch",
     )
     parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument(
+        "--record-format",
+        choices=("transitions", "compact"),
+        default="transitions",
+        help="compact stores T+1 observations once; readers return the same transitions",
+    )
     parser.add_argument("--dataset", type=Path)
     parser.add_argument(
         "--graphics",
@@ -221,6 +227,7 @@ def main() -> None:
                 args.output,
                 env,
                 max_buffer_bytes=args.record_buffer_mib * 1024 * 1024,
+                episode_format=args.record_format,
             )
             if args.output
             else nullcontext()

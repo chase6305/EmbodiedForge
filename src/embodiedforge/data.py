@@ -67,7 +67,8 @@ def _validate_observation(observation: Observation, count: int) -> None:
             or value.ndim < 1
             or len(value) != count
             or value.dtype.kind not in "biuf"
-            or not np.isfinite(value).all()
+            or value.dtype.kind == "f"
+            and not np.isfinite(value).all()
         ):
             raise ValueError(f"Invalid numeric observation field: {name}")
     for name in ("env_id", "episode_id", "step_id"):
@@ -94,9 +95,16 @@ class EpisodeRecorder:
         env: VectorEnv,
         *,
         max_buffer_bytes: int = 256 * 1024 * 1024,
+        episode_format: str = "transitions",
     ) -> None:
         if type(max_buffer_bytes) is not int or max_buffer_bytes <= 0:
             raise ValueError("max_buffer_bytes must be a positive integer")
+        if not isinstance(episode_format, str) or episode_format not in (
+            "transitions",
+            "compact",
+        ):
+            raise ValueError("episode_format must be transitions or compact")
+        self.episode_format = episode_format
         self._max_buffer_bytes = max_buffer_bytes
         self.buffered_bytes = 0
         self.root = Path(directory)
@@ -141,6 +149,7 @@ class EpisodeRecorder:
             "task": env.task.spec.id,
             "seed": env.seed,
             "max_buffer_bytes": max_buffer_bytes,
+            "episode_format": episode_format,
         }
         _json_atomic(self.root / "run.json", self.manifest)
 
@@ -197,6 +206,15 @@ class EpisodeRecorder:
             result.truncated,
         )
         incoming_bytes = len(active_ids) * sum(v.nbytes // count for v in payload)
+        if self.episode_format == "compact":
+            # Continuing obs_t is the already-owned next observation from t-1.
+            continuing = sum(
+                (int(i), int(observation["episode_id"][i])) in self.pending
+                for i in active_ids
+            )
+            incoming_bytes -= continuing * sum(
+                value.nbytes // count for value in observation.values()
+            )
         if self.buffered_bytes + incoming_bytes > self.max_buffer_bytes:
             raise BufferError(
                 f"Recorder buffer budget exceeded: retained={self.buffered_bytes}, "
@@ -244,7 +262,14 @@ class EpisodeRecorder:
                     or not np.array_equal(values[i], rows[-1][f"next/{name}"])
                 ):
                     raise ValueError(f"Observation continuity broken for {name}")
-            row = {f"obs/{k}": v[i].copy() for k, v in observation.items()}
+            row = {
+                f"obs/{k}": (
+                    rows[-1][f"next/{k}"]
+                    if rows and self.episode_format == "compact"
+                    else v[i].copy()
+                )
+                for k, v in observation.items()
+            }
             row.update(
                 {f"next/{k}": v[i].copy() for k, v in result.observation.items()}
             )
@@ -272,13 +297,26 @@ class EpisodeRecorder:
         prepared = self._prepare(observation, result)
         try:
             for key, row, complete in prepared:
-                self.pending.setdefault(key, []).append(row)
-                self.buffered_bytes += sum(value.nbytes for value in row.values())
+                rows = self.pending.setdefault(key, [])
+                self.buffered_bytes += self._row_bytes(row, continuing=bool(rows))
+                rows.append(row)
                 if complete:
                     self._finish(key)
         except BaseException as error:
             self.failure = error
             raise
+
+    def _row_bytes(self, row: dict, *, continuing: bool) -> int:
+        """Count only new owned payloads; compact rows share adjacent observations."""
+        return sum(
+            value.nbytes
+            for name, value in row.items()
+            if not (
+                continuing
+                and self.episode_format == "compact"
+                and name.startswith("obs/")
+            )
+        )
 
     def _finish(self, key: tuple[int, int]) -> None:
         rows = self.pending[key]
@@ -287,15 +325,29 @@ class EpisodeRecorder:
         if path.exists():
             raise ValueError("Duplicate episode ID; do not reseed a recording run")
         temporary = self.root / f"{stem}.npz.tmp"
-        with temporary.open("wb") as stream:
-            np.savez_compressed(
-                stream, **{k: np.stack([row[k] for row in rows]) for k in rows[0]}
+        if self.episode_format == "compact":
+            arrays = {
+                f"state/{name[4:]}": np.stack(
+                    [row[name] for row in rows] + [rows[-1][f"next/{name[4:]}"]]
+                )
+                for name in rows[0]
+                if name.startswith("obs/")
+            }
+            arrays.update(
+                {
+                    name: np.stack([row[name] for row in rows])
+                    for name in ("action", "reward", "terminated", "truncated")
+                }
             )
+        else:
+            arrays = {name: np.stack([row[name] for row in rows]) for name in rows[0]}
+        with temporary.open("wb") as stream:
+            np.savez_compressed(stream, **arrays)
         temporary.replace(path)
         _json_atomic(
             self.root / f"{stem}.json",
             {
-                "schema_version": 1,
+                "schema_version": 2 if self.episode_format == "compact" else 1,
                 "complete": True,
                 "steps": len(rows),
                 "env_id": key[0],
@@ -303,7 +355,7 @@ class EpisodeRecorder:
             },
         )
         self.buffered_bytes -= sum(
-            value.nbytes for row in rows for value in row.values()
+            self._row_bytes(row, continuing=index > 0) for index, row in enumerate(rows)
         )
         del self.pending[key]
         self.manifest["completed_episodes"] += 1
@@ -362,19 +414,34 @@ def read_episodes(
         if not marker.exists():
             continue
         metadata = json.loads(marker.read_text())
-        if metadata.get("schema_version") != 1 or not metadata.get("complete"):
+        schema = metadata.get("schema_version")
+        if not metadata.get("complete"):
             continue
+        if type(schema) is not int or schema not in (1, 2):
+            raise ValueError(f"Unsupported episode schema: {path}")
         selected = completed_index % options.num_shards == options.shard_index
         completed_index += 1
         if not selected:
             continue
+        n = metadata["steps"]
+        if type(n) is not int or n < 1:
+            raise ValueError(f"Corrupt episode lengths: {path}")
         with np.load(path, allow_pickle=False) as archive:
             keys = archive.files
-            if options.observation_keys is not None:
-                obs_keys = {k[4:] for k in keys if k.startswith("obs/")}
+            prefix = "state/" if schema == 2 else "obs/"
+            obs_keys = {k[len(prefix) :] for k in keys if k.startswith(prefix)}
+            if schema == 2:
+                if any(
+                    not k.startswith("state/")
+                    and k not in {"action", "reward", "terminated", "truncated"}
+                    for k in keys
+                ):
+                    raise ValueError(f"Invalid compact episode fields: {path}")
+            elif options.observation_keys is not None:
                 next_keys = {k[5:] for k in keys if k.startswith("next/")}
                 if obs_keys != next_keys:
                     raise ValueError(f"Observation schema changed: {path}")
+            if options.observation_keys is not None:
                 requested = _REQUIRED_OBSERVATIONS | set(options.observation_keys)
                 missing = requested - obs_keys
                 if missing:
@@ -386,19 +453,31 @@ def read_episodes(
                     for k in keys
                     if (
                         k in {"action", "reward", "terminated", "truncated"}
-                        or k.startswith("obs/")
-                        and k[4:] in requested
+                        or k.startswith(prefix)
+                        and k[len(prefix) :] in requested
                         or k.startswith("next/")
                         and k[5:] in requested
                     )
                 ]
             data = {k: archive[k] for k in keys}
-        n = metadata["steps"]
-        if (
-            type(n) is not int
-            or n < 1
-            or any(v.ndim < 1 or len(v) != n for v in data.values())
-        ):
+        if schema == 2:
+            states = {
+                name[6:]: value
+                for name, value in data.items()
+                if name.startswith("state/")
+            }
+            if any(value.ndim < 1 or len(value) != n + 1 for value in states.values()):
+                raise ValueError(f"Corrupt compact observation lengths: {path}")
+            data = {
+                name: value
+                for name, value in data.items()
+                if not name.startswith("state/")
+            }
+            # Keep the public transition schema and independent owned arrays.
+            for name, values in states.items():
+                data[f"obs/{name}"] = values[:-1].copy()
+                data[f"next/{name}"] = values[1:].copy()
+        if any(v.ndim < 1 or len(v) != n for v in data.values()):
             raise ValueError(f"Corrupt episode lengths: {path}")
         required = {"action", "reward", "terminated", "truncated"}
         if not required <= data.keys():

@@ -151,7 +151,7 @@ with VectorEnv(Config(task="my_hold")) as env:
 - checkpoint 写入 schema v2，包含 model_spec/env_spec；加载器继续支持初版六维 reach 的 v1。
 - CLI evaluate 默认采用 checkpoint 的环境配置；显式覆盖 task、场景、控制周期或动作语义不兼容时拒绝评估。
 
-持久化 Episode 仍是 schema v1，此轮仅新增任务、seed 和 scene_spec 元数据，原有数组和字段含义不变。此前的 `expert_action`、`load_policy` 便捷入口继续保留。
+默认持久化 Episode 仍是 schema v1，包含任务、seed 和 scene_spec 元数据；可选紧凑格式使用 episode schema v2，读取后保留相同数组和字段含义。Run manifest 仍为 schema v1。此前的 `expert_action`、`load_policy` 便捷入口继续保留。
 
 ## 6. 在 ef 环境验证
 
@@ -225,6 +225,17 @@ embodiedforge rollout --physics newton --render raster --num-envs 4 \
 ```
 
 记录器还将每批次的未完成 episode 查找改为按环境 ID 建表，避免每行重复扫描全部缓存。离线 `action_windows` 严格要求 history/horizon 为正整数，在访问文件前拒绝布尔值和浮点数。
+
+### 紧凑 episode
+
+`EpisodeRecorder(..., episode_format="compact")` 将 T 次转换的观测保存为 `state/*` 的 T+1 行序列，转换字段仍为 T 行。缓存中的相邻 obs/next 共享记录器持有的同一份观测，预算只计一次；调用者传入的数组仍被复制，连续性验证保留。默认 `episode_format="transitions"` 继续写原来的独立 obs/next 数组。
+
+`read_episodes` 支持两种格式，均返回独立的 `obs/*` 和 `next/*` 数组；`action_windows` 和数据导出方无需改变接口。投影读取时不解压未选择的 `state/rgb` 等载荷。紧凑格式仍同步堆叠、压缩并发布完整 episode，预算不包含压缩/堆叠临时内存，也没有提供按帧磁盘映射。
+
+```bash
+embodiedforge rollout --render raster --num-envs 4 \
+  --record-format compact --output runs/compact-recording
+```
 
 ## 10. 离线读取与 worker 分片
 
