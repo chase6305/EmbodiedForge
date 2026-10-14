@@ -74,7 +74,7 @@ def _dataset_manifest(root: Path) -> dict:
 
 def _all_finite(value: Array) -> bool:
     """Avoid an episode-sized boolean temporary for large numeric fields."""
-    if value.size <= 4 * 1024 * 1024:
+    if type(value) is not np.ndarray or value.size <= 4 * 1024 * 1024:
         return bool(np.isfinite(value).all())
     with np.nditer(
         value,
@@ -89,7 +89,11 @@ def _array_equal(first: Array, second: Array) -> bool:
     """Compare numeric fields without flattening or copying strided inputs."""
     if first.shape != second.shape:
         return False
-    if first.size <= 4 * 1024 * 1024:
+    if (
+        type(first) is not np.ndarray
+        or type(second) is not np.ndarray
+        or first.size <= 4 * 1024 * 1024
+    ):
         return np.array_equal(first, second)
     with np.nditer(
         [first, second],

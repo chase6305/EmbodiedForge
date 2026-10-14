@@ -66,6 +66,17 @@ def test_large_validation_has_bounded_boolean_scratch():
         assert peak < 2 * 1024 * 1024
 
 
+def test_large_masked_numeric_fields_keep_numpy_finite_semantics():
+    value = np.ma.array(np.ones(4 * 1024 * 1024 + 17, dtype=np.float32), mask=False)
+    value[-1] = np.nan
+    value.mask[-1] = True
+    # nditer operates on underlying data, so subclasses keep NumPy's dispatch
+    # rather than losing their mask or custom ufunc behavior in chunked checks.
+    assert _all_finite(value) == bool(np.isfinite(value).all()) is True
+    value.mask[-1] = False
+    assert _all_finite(value) == bool(np.isfinite(value).all()) is False
+
+
 @pytest.mark.parametrize("damage", ["first", "last", "nonfinite"])
 def test_reader_rejects_corrupt_large_numeric_fields(tmp_path, damage):
     directory = tmp_path / "dataset"

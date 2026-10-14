@@ -178,13 +178,17 @@ def run_rollout(
                 len(ids) == env.config.num_envs
                 and tuple(observation) == tuple(reset_observation)
                 and all(
-                    value.shape == reset_observation[key].shape
+                    type(value) is np.ndarray
+                    and type(reset_observation[key]) is np.ndarray
+                    and reset_observation[key].flags.c_contiguous
+                    and value.shape == reset_observation[key].shape
                     and value.dtype == reset_observation[key].dtype
                     for key, value in observation.items()
                 )
             ):
                 # flatnonzero returns canonical row order, and reset already
-                # owns its arrays. There are no surviving rows to preserve.
+                # owns its arrays. Matching base-array layouts preserve the
+                # replacement path's C order and custom array copy behavior.
                 observation = reset_observation
             else:
                 observation = {key: value.copy() for key, value in observation.items()}

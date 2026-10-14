@@ -110,9 +110,14 @@ def test_full_reset_keeps_retained_terminal_frames_and_owned_policy_inputs(
 
 
 @pytest.mark.parametrize(
-    "layout", ["dtype", "broadcast", "extra_reset_key", "key_order"]
+    "layout",
+    ["dtype", "broadcast", "extra_reset_key", "key_order", "strides", "subclass"],
 )
 def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layout):
+    class TaggedArray(np.ndarray):
+        def __array_finalize__(self, source):
+            self.stage = getattr(source, "stage", None)
+
     class DynamicTask(ReachTask):
         def observe(self, state):
             observation = super().observe(state)
@@ -120,6 +125,13 @@ def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layo
             shape = (3, 1 if resetting and layout == "broadcast" else 2)
             dtype = np.float32 if resetting and layout == "dtype" else np.float64
             observation["extra"] = np.full(shape, 9.9, dtype=dtype)
+            if layout == "strides":
+                observation["extra"] = np.asfortranarray(
+                    np.full((3, 2, 3), 9.9, dtype=dtype)
+                )
+            if layout == "subclass":
+                observation["extra"] = observation["extra"].view(TaggedArray)
+                observation["extra"].stage = "reset" if resetting else "terminal"
             if resetting and layout == "extra_reset_key":
                 observation["reset_only"] = np.ones((3, 1))
             if layout == "key_order":
@@ -145,12 +157,18 @@ def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layo
         # Replacement into the terminal layout preserves its dtype, broadcasts
         # compatible reset shapes and ignores additional reset-only fields.
         assert observation["extra"].dtype == np.float64
-        assert observation["extra"].shape == (3, 2)
+        assert observation["extra"].shape == (
+            (3, 2, 3) if layout == "strides" else (3, 2)
+        )
         expected = np.float64(np.float32(9.9)) if layout == "dtype" else 9.9
         np.testing.assert_array_equal(observation["extra"], expected)
         assert "reset_only" not in observation
         if layout == "key_order":
             assert tuple(observation)[-2:] == ("second", "first")
+        if layout == "strides":
+            assert observation["extra"].flags.c_contiguous
+        if layout == "subclass":
+            assert observation["extra"].stage == "terminal"
 
 
 def test_full_reset_keeps_missing_extra_field_error_before_next_inference():
