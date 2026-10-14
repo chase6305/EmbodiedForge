@@ -154,6 +154,20 @@ class H1:
         self.velocity, self.gyro = [
             self.batch.sensor(n) for n in ("native_velocity", "native_gyro")
         ]
+        # All these views share the already-bound sensordata buffer and remain
+        # current after batch.step/forward; avoid repeated name lookups per tick.
+        self._foot_touch = tuple(
+            self.batch.sensor("native_touch_" + name)
+            for name in ("left_ankle_link", "right_ankle_link")
+        )
+        self._foot_velocity = tuple(
+            self.batch.sensor("native_vel_" + name)[:, :2]
+            for name in ("left_ankle_link", "right_ankle_link")
+        )
+        self._torso_touch = self.batch.sensor("native_touch_torso_link")[:, 0]
+        limits = model.jnt_range[model.actuator_trnid[:, 0]]
+        self._joint_limit_middle = limits.mean(1)
+        self._joint_limit_half = np.diff(limits, axis=1)[:, 0] * 0.45
         self.rotation = self.batch.bind("xmat")[:, model.body("torso_link").id].reshape(
             num_envs, 3, 3
         )
@@ -238,13 +252,7 @@ class H1:
         self.robot.set_joint_position_targets(self.default + ACTION_SCALE * actions)
         self.robot.step(DECIMATION)
         self.steps += 1
-        foot_force = np.concatenate(
-            [
-                self.batch.sensor("native_touch_" + n)
-                for n in ("left_ankle_link", "right_ankle_link")
-            ],
-            axis=1,
-        )
+        foot_force = np.concatenate(self._foot_touch, axis=1)
         contact = foot_force > 1
         self.air = np.where(contact, 0, self.air + CTRL_DT)
         self.contact_time = np.where(contact, self.contact_time + CTRL_DT, 0)
@@ -268,20 +276,18 @@ class H1:
         # Native safeguard also terminates a tipped/sub-floor base, including a
         # fall whose torso contact occurred between the sampled control ticks.
         self.termination_reasons = {
-            "torso_contact": self.batch.sensor("native_touch_torso_link")[:, 0] > 1,
+            "torso_contact": self._torso_touch > 1,
             "base_height": self.robot.qpos[:, 2] < 0.45,
             "base_tilt": self.rotation[:, 2, 2] < 0.2,
         }
         fell = np.logical_or.reduce(list(self.termination_reasons.values()))
         q = self.robot.qpos[:, self.robot.qadr]
-        joint_ids = self.model.actuator_trnid[:, 0]
-        limits = self.model.jnt_range[joint_ids]
-        middle, half = limits.mean(1), np.diff(limits, axis=1)[:, 0] * 0.45
-        excess = np.maximum(abs(q - middle) - half, 0)[:, self.groups["feet"]].sum(1)
+        excess = np.maximum(
+            abs(q - self._joint_limit_middle) - self._joint_limit_half, 0
+        )[:, self.groups["feet"]].sum(1)
         slide = sum(
-            np.linalg.norm(self.batch.sensor("native_vel_" + n)[:, :2], axis=1)
-            * contact[:, i]
-            for i, n in enumerate(("left_ankle_link", "right_ankle_link"))
+            np.linalg.norm(velocity, axis=1) * contact[:, i]
+            for i, velocity in enumerate(self._foot_velocity)
         )
         terms = {
             "track_linear": np.exp(

@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from torch.distributions import Normal
 
+from embodiedforge._ppo_parameters import bounded_log_std
 from embodiedforge.training import generalized_advantage
 
 from .h1_native import ACT_DIM, OBS_DIM
@@ -31,7 +32,7 @@ class Policy(nn.Module):
         nn.init.zeros_(self.actor[-1].bias)
 
     def distribution(self, observation):
-        return Normal(self.actor(observation), self.log_std.clamp(-5, 2).exp())
+        return Normal(self.actor(observation), bounded_log_std(self.log_std).exp())
 
     def value(self, observation):
         return self.critic(observation).squeeze(-1)

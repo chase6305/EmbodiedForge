@@ -19,6 +19,7 @@ from torch.distributions import Normal
 from ._adam_checkpoint import validate_adam_checkpoint
 from ._core_run import publish_checkpoint, read_resume, write_json
 from ._microduck_process import termination_signals
+from ._ppo_parameters import bounded_log_std
 from ._training_runtime import record_training_runtime
 from .core import Array, Config, Observation
 from .env import VectorEnv
@@ -97,7 +98,7 @@ class ActorCritic(nn.Module):
         nn.init.zeros_(self.actor[-1].bias)
 
     def distribution(self, obs: torch.Tensor) -> Normal:
-        return Normal(self.actor(obs), self.log_std.clamp(-5, 2).exp())
+        return Normal(self.actor(obs), bounded_log_std(self.log_std).exp())
 
     def value(self, obs: torch.Tensor) -> torch.Tensor:
         return self.critic(obs).squeeze(-1)
@@ -273,13 +274,13 @@ def train_ppo(
     if type(checkpoint_interval) is not int or checkpoint_interval <= 0:
         raise ValueError("checkpoint_interval must be a positive integer")
     root = Path(directory)
-    restored = (
-        resume
-        if isinstance(resume, TrainingCheckpoint)
-        else load_training_checkpoint(resume)
-        if resume is not None
-        else None
-    )
+    restored = None
+    if resume is not None:
+        restored = (
+            resume
+            if isinstance(resume, TrainingCheckpoint)
+            else load_training_checkpoint(resume)
+        )
     if restored and (type(restored.updates) is not int or restored.updates <= 0):
         raise ValueError("Invalid core PPO checkpoint update count")
     start = restored.updates if restored else 0
@@ -451,8 +452,15 @@ class PolicyCheckpoint:
 
 def _policy_checkpoint(checkpoint: dict, checksum: str) -> PolicyCheckpoint:
     """Build the evaluation bundle from already-read and hashed checkpoint data."""
-    if checkpoint["schema_version"] not in (1, 2):
+    if (
+        not isinstance(checkpoint, dict)
+        or type(checkpoint.get("schema_version")) is not int
+        or checkpoint["schema_version"] not in (1, 2)
+    ):
         raise ValueError("Unsupported checkpoint")
+    env_spec = checkpoint.get("env_spec", {})
+    if not isinstance(env_spec, dict):
+        raise ValueError("Checkpoint environment specification must be a mapping")
     model = ActorCritic(**checkpoint.get("model_spec", {}))
     model.load_state_dict(checkpoint["model"])
     for name, parameter in model.named_parameters():
@@ -463,7 +471,7 @@ def _policy_checkpoint(checkpoint: dict, checksum: str) -> PolicyCheckpoint:
     bundle = PolicyCheckpoint(
         model,
         env_config,
-        checkpoint.get("env_spec", {}),
+        env_spec,
         sha256=checksum,
     )
     if bundle.env_spec:
@@ -499,6 +507,19 @@ def load_training_checkpoint(path: str | Path) -> TrainingCheckpoint:
     bundle = _policy_checkpoint(checkpoint, source["sha256"])
     if checkpoint["schema_version"] != 2 or not isinstance(checkpoint.get("ppo"), dict):
         raise ValueError("Resume requires a trained core PPO v2 checkpoint")
+    semantic_fields = {
+        "task",
+        "scene",
+        "control_dt",
+        "action_shape",
+        "action_range",
+        "action_units",
+        "proprio_shape",
+    }
+    if not semantic_fields <= bundle.env_spec.keys():
+        raise ValueError(
+            "Resume requires a complete core PPO environment specification"
+        )
     config = PPOConfig(**checkpoint["ppo"])
     updates = checkpoint.get("updates", config.updates)
     if type(updates) is not int or updates <= 0:

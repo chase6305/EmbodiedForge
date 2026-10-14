@@ -113,6 +113,8 @@ The Python API's `PPOConfig` validates positive integer training counts, a finit
 
 `load_checkpoint` / `load_policy` check loaded actor, critic, and `log_std` parameters on CPU, rejecting NaN/Inf with the affected parameter name before returning a policy. Action bounds must be finite and strictly increasing. When a checkpoint includes an environment specification, loading also checks that the policy's observation dimensions, action dimensions, and action range match that record, without creating simulation resources. Existing v1/v2 checkpoints remain supported; legacy models without an environment specification must also match the actual environment's dimensions and action range during evaluation.
 
+Core and native H1 PPO explicitly retain unit `log_std` gradients at both endpoints of `[-5, 2]`, with zero gradients outside. Forward values and NaN propagation remain unchanged. [PyTorch 2.14 changed clamp's endpoint gradients](https://github.com/pytorch/pytorch/issues/195931), which otherwise freezes parameters projected exactly onto a bound. The helper is verified on Torch 2.9, 2.13 and 2.14; exploration bounds and entropy coefficients are unchanged.
+
 To compare trained and untrained policies, run these commands in an environment with core training dependencies. The script preserves the checkpoint’s task, physics, control period, and episode length. Both policies use matching network dimensions and evaluation seeds. Output includes the model SHA256 and environment configuration for comparison provenance. The digest comes from the `sha256` returned by `load_checkpoint`, computed from the same bytes used for deserialization. Replacing the source file after loading cannot make the report identify a different model's hash.
 
 ```bash
