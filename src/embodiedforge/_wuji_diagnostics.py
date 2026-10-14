@@ -1,10 +1,11 @@
 """Streaming per-trial diagnostics; no simulation or training SDK dependencies."""
 
-import hashlib
 import json
 import subprocess
 
 import numpy as np
+
+from ._hashing import file_sha256
 
 
 def verify_video(result, output):
@@ -48,7 +49,7 @@ def verify_video(result, output):
         raise ValueError("Wuji video dimensions, frame rate or frame count mismatch")
     return {
         "path": str(path.relative_to(output.resolve())),
-        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "sha256": file_sha256(path),
         **stream,
     }
 
