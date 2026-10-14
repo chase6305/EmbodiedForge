@@ -104,7 +104,8 @@ def read_resume(path: str | Path) -> dict:
         metadata = json.loads((source / "run.json").read_text())
         updates = metadata.get("saved_updates")
         if (
-            metadata.get("schema_version") != 1
+            type(metadata.get("schema_version")) is not int
+            or metadata.get("schema_version") != 1
             or metadata.get("kind") != "core-ppo"
             or type(updates) is not int
             or updates <= 0

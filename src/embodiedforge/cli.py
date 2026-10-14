@@ -170,17 +170,14 @@ def main() -> None:
         from .training import load_training_checkpoint
 
         resume = load_training_checkpoint(args.resume)
-    config = (
-        Config.load(args.config)
-        if args.config
-        else (
-            checkpoint.env_config
-            if checkpoint
-            else resume.bundle.env_config
-            if resume
-            else Config()
-        )
-    )
+    if args.config:
+        config = Config.load(args.config)
+    elif checkpoint:
+        config = checkpoint.env_config
+    elif resume:
+        config = resume.bundle.env_config
+    else:
+        config = Config()
     overrides = {
         key: getattr(args, key)
         for key in ("task", "physics", "render", "num_envs")

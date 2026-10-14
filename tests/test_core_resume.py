@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import signal
 import sys
 from copy import deepcopy
 
@@ -10,12 +11,13 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from embodiedforge import (  # noqa: E402  # noqa: E402
+from embodiedforge import (  # noqa: E402
     Config,
     VectorEnv,
     _core_run,
     training,
 )
+from embodiedforge._microduck_process import termination_signals  # noqa: E402
 from embodiedforge.training import (  # noqa: E402
     PPOConfig,
     _collect_rollout,
@@ -181,7 +183,41 @@ def test_periodic_snapshots_keep_two_committed_files(tmp_path):
     ).read_bytes()
 
 
-@pytest.mark.parametrize("damage", ["optimizer", "update", "hash", "path"])
+def test_signal_context_works_without_sighup_and_restores_handlers(monkeypatch):
+    previous = signal.getsignal(signal.SIGTERM)
+    monkeypatch.delattr(signal, "SIGHUP", raising=False)
+    with termination_signals():
+        assert signal.getsignal(signal.SIGTERM) is not previous
+    assert signal.getsignal(signal.SIGTERM) is previous
+
+
+def test_alias_copy_failure_still_has_a_verified_recovery_point(tmp_path, monkeypatch):
+    original = _core_run.shutil.copyfile
+
+    def copy(source, target):
+        if source.name == "checkpoint-000000002.pt":
+            target.write_bytes(b"partial alias")
+            raise OSError("alias copy failed")
+        return original(source, target)
+
+    monkeypatch.setattr(_core_run.shutil, "copyfile", copy)
+    root = tmp_path / "alias-failed"
+    with pytest.raises(OSError, match="alias copy failed"):
+        train_ppo(
+            Config(num_envs=4),
+            PPOConfig(updates=2, rollout_steps=8, epochs=1, minibatch_size=16),
+            root,
+            checkpoint_interval=1,
+        )
+    assert not list(root.rglob("*.tmp"))
+    assert load_training_checkpoint(root).updates == 2
+    assert torch.load(root / "checkpoint.pt", weights_only=True)["updates"] == 1
+    assert json.loads((root / "run.json").read_text())["status"] == "failed"
+
+
+@pytest.mark.parametrize(
+    "damage", ["optimizer", "update", "hash", "path", "spec", "spec_type"]
+)
 def test_invalid_resume_rejected_before_environment_or_output_creation(
     trained, tmp_path, monkeypatch, damage
 ):
@@ -192,6 +228,10 @@ def test_invalid_resume_rejected_before_environment_or_output_creation(
         checkpoint["optimizer"]["state"].clear()
     elif damage == "update":
         checkpoint["updates"] = True
+    elif damage == "spec":
+        checkpoint["env_spec"].pop("control_dt")
+    elif damage == "spec_type":
+        checkpoint["env_spec"] = None
     elif damage == "hash":
         record = json.loads((source / "run.json").read_text())
         record["checkpoint_sha256"] = "wrong"
