@@ -176,7 +176,7 @@ def run_rollout(
                 on_reset(ids.copy())
             if (
                 len(ids) == env.config.num_envs
-                and observation.keys() == reset_observation.keys()
+                and tuple(observation) == tuple(reset_observation)
                 and all(
                     value.shape == reset_observation[key].shape
                     and value.dtype == reset_observation[key].dtype

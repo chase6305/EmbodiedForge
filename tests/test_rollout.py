@@ -109,7 +109,9 @@ def test_full_reset_keeps_retained_terminal_frames_and_owned_policy_inputs(
                 np.testing.assert_array_equal(result.observation[key], expected[key])
 
 
-@pytest.mark.parametrize("layout", ["dtype", "broadcast", "extra_reset_key"])
+@pytest.mark.parametrize(
+    "layout", ["dtype", "broadcast", "extra_reset_key", "key_order"]
+)
 def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layout):
     class DynamicTask(ReachTask):
         def observe(self, state):
@@ -120,6 +122,9 @@ def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layo
             observation["extra"] = np.full(shape, 9.9, dtype=dtype)
             if resetting and layout == "extra_reset_key":
                 observation["reset_only"] = np.ones((3, 1))
+            if layout == "key_order":
+                names = ("first", "second") if resetting else ("second", "first")
+                observation.update({name: np.ones((3, 1)) for name in names})
             return observation
 
     class Policy:
@@ -144,6 +149,8 @@ def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layo
         expected = np.float64(np.float32(9.9)) if layout == "dtype" else 9.9
         np.testing.assert_array_equal(observation["extra"], expected)
         assert "reset_only" not in observation
+        if layout == "key_order":
+            assert tuple(observation)[-2:] == ("second", "first")
 
 
 def test_full_reset_keeps_missing_extra_field_error_before_next_inference():
