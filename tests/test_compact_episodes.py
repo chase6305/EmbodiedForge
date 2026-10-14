@@ -1,6 +1,7 @@
 """Compact storage preserves public transitions and bounds unique owned payloads."""
 
 import json
+import weakref
 
 import numpy as np
 import pytest
@@ -127,8 +128,11 @@ def test_compact_projection_does_not_decompress_images(tmp_path, monkeypatch):
     assert "obs/rgb" not in episodes[0]
 
 
-@pytest.mark.parametrize("damage", ["length", "nonfinite", "identity", "field", "done"])
-def test_compact_reader_rejects_corrupt_payloads(tmp_path, damage):
+@pytest.mark.parametrize("reader", [read_episodes, action_windows])
+@pytest.mark.parametrize(
+    "damage", ["length", "nonfinite", "identity", "field", "done", "time", "step"]
+)
+def test_compact_reader_rejects_corrupt_payloads(tmp_path, damage, reader):
     root = tmp_path / "compact"
     record(root, "compact")
     path = sorted(root.glob("*.npz"))[0]
@@ -142,11 +146,80 @@ def test_compact_reader_rejects_corrupt_payloads(tmp_path, damage):
         arrays["state/env_id"][-1] = 100
     elif damage == "field":
         arrays["obs/proprio"] = arrays["state/proprio"][:-1]
+    elif damage == "time":
+        arrays["state/time"][-1] = arrays["state/time"][-2]
+    elif damage == "step":
+        arrays["state/step_id"][-1] = 100
     else:
         arrays["truncated"][-1] = False
     np.savez_compressed(path, **arrays)
     with pytest.raises(ValueError):
-        list(read_episodes(root))
+        list(reader(root))
+
+
+def test_overlapping_compact_windows_remain_independent_after_mutation(tmp_path):
+    root = tmp_path / "compact"
+    record(root, "compact")
+    iterator = action_windows(root, history=2, horizon=2)
+    first = next(iterator)
+    expected = {key: value.copy() for key, value in first["observation"].items()}
+    for value in first["observation"].values():
+        value[:] = 99
+    first["action"][:] = 99
+    second = next(iterator)
+    iterator.close()
+    for key, value in second["observation"].items():
+        np.testing.assert_array_equal(value[0], expected[key][-1])
+        assert value.flags.owndata
+        assert not np.shares_memory(value, first["observation"][key])
+    assert second["action"].flags.owndata
+    assert not (second["action"] == 99).any()
+
+
+def test_windows_release_previous_compact_state_before_loading_next_archive(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "compact"
+    record(root, "compact")
+    states = []
+    getitem = np.lib.npyio.NpzFile.__getitem__
+    load = np.load
+
+    def read(archive, key):
+        value = getitem(archive, key)
+        if key == "state/rgb":
+            states.append(weakref.ref(value))
+        return value
+
+    def open_archive(path, **kwargs):
+        assert all(state() is None for state in states)
+        return load(path, **kwargs)
+
+    monkeypatch.setattr(np.lib.npyio.NpzFile, "__getitem__", read)
+    monkeypatch.setattr(np, "load", open_archive)
+    windows = list(action_windows(root, history=2, horizon=2))
+    assert len(windows) == 12
+    assert len(states) == 4
+    assert all(state() is None for state in states)
+
+
+@pytest.mark.parametrize("shuffle_buffer", [0, 7])
+def test_compact_batches_match_legacy_across_episodes(tmp_path, shuffle_buffer):
+    from embodiedforge.batching import BatchOptions, window_batches
+
+    legacy, compact = tmp_path / "legacy", tmp_path / "compact"
+    record(legacy, "transitions")
+    record(compact, "compact")
+    options = BatchOptions(batch_size=5, shuffle_buffer=shuffle_buffer)
+    for expected, actual in zip(
+        window_batches(legacy, history=2, horizon=2, batching=options),
+        window_batches(compact, history=2, horizon=2, batching=options),
+        strict=True,
+    ):
+        np.testing.assert_array_equal(actual.action, expected.action)
+        assert actual.instruction == expected.instruction
+        for key, value in expected.observation.items():
+            np.testing.assert_array_equal(actual.observation[key], value)
 
 
 @pytest.mark.parametrize("episode_format", [None, "unknown", [], 2])

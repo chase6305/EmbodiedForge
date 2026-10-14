@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from .core import Array, Observation
-from .data import EpisodeReadOptions, action_windows
+from .data import EpisodeReadOptions, _episode_windows, action_windows
 
 
 @dataclass(frozen=True)
@@ -100,6 +100,104 @@ def _collate(samples: list[dict]) -> WindowBatch:
     )
 
 
+def _owned_chunk(
+    observation, action, instruction, start, count, *, normalize=True
+) -> WindowBatch:
+    if not isinstance(instruction, str):
+        raise ValueError("Batch instructions must be strings")
+
+    def owned(value):
+        # Preserve np.stack's native output byte order. Pending tails retain
+        # their original dtypes until the cross-episode layout check.
+        dtype = value.dtype.newbyteorder("=") if normalize else value.dtype
+        return np.array(value[start : start + count], dtype=dtype, copy=True, order="C")
+
+    return WindowBatch(
+        {key: owned(value) for key, value in observation.items()},
+        owned(action),
+        (instruction,) * count,
+    )
+
+
+def _join_chunks(chunks: list[WindowBatch]) -> WindowBatch:
+    first = chunks[0]
+    for chunk in chunks[1:]:
+        if chunk.observation.keys() != first.observation.keys():
+            raise ValueError("Cannot batch different observation schemas")
+        for name, value in {
+            "action": chunk.action,
+            **{f"obs/{key}": value for key, value in chunk.observation.items()},
+        }.items():
+            reference = (
+                first.action if name == "action" else first.observation[name[4:]]
+            )
+            if value.shape[1:] != reference.shape[1:] or value.dtype != reference.dtype:
+                raise ValueError(f"Cannot batch different shapes/dtypes for {name}")
+    if len(chunks) == 1:
+
+        def native(value):
+            return (
+                value
+                if value.dtype.isnative
+                else value.astype(value.dtype.newbyteorder("="))
+            )
+
+        return WindowBatch(
+            {key: native(value) for key, value in first.observation.items()},
+            native(first.action),
+            first.instruction,
+        )
+    return WindowBatch(
+        {
+            key: np.concatenate([chunk.observation[key] for chunk in chunks])
+            for key in first.observation
+        },
+        np.concatenate([chunk.action for chunk in chunks]),
+        tuple(text for chunk in chunks for text in chunk.instruction),
+    )
+
+
+def _ordered_batches(episodes, size, drop_last) -> Iterator[WindowBatch]:
+    """Copy full batches once; crossing-episode tails own only their used rows."""
+    pending = []
+    filled = 0
+    for observation, action, instruction in episodes:
+        start, count = 0, len(action)
+        if filled:
+            take = min(size - filled, count)
+            pending.append(
+                _owned_chunk(
+                    observation, action, instruction, start, take, normalize=False
+                )
+            )
+            start += take
+            filled += take
+            if filled == size:
+                yield _join_chunks(pending)
+                pending.clear()
+                filled = 0
+        while count - start >= size:
+            yield _owned_chunk(observation, action, instruction, start, size)
+            start += size
+        if start < count:
+            pending.append(
+                _owned_chunk(
+                    observation,
+                    action,
+                    instruction,
+                    start,
+                    count - start,
+                    normalize=False,
+                )
+            )
+            filled += count - start
+        # Pending tails contain copies; never retain old episode backing arrays
+        # while fetching the next episode, even with a very long action horizon.
+        del observation, action
+    if filled and not drop_last:
+        yield _join_chunks(pending)
+
+
 def window_batches(
     directory: str | Path,
     history: int = 1,
@@ -117,6 +215,13 @@ def window_batches(
     """
     options = options or EpisodeReadOptions()
     batching = batching or BatchOptions()
+    if batching.shuffle_buffer == 0:
+        yield from _ordered_batches(
+            _episode_windows(directory, history, horizon, options=options),
+            batching.batch_size,
+            batching.drop_last,
+        )
+        return
     rng = np.random.default_rng(
         np.random.SeedSequence(
             [

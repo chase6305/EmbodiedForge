@@ -134,6 +134,12 @@ def main() -> None:
         default="transitions",
         help="compact stores T+1 observations once; readers return the same transitions",
     )
+    parser.add_argument(
+        "--record-workers",
+        type=int,
+        default=0,
+        help="Background episode writers for recording; 0 writes synchronously",
+    )
     parser.add_argument("--dataset", type=Path)
     parser.add_argument(
         "--graphics",
@@ -149,6 +155,12 @@ def main() -> None:
         parser.error("--graphics is only supported by doctor")
     if args.resume and args.command != "train":
         parser.error("--resume is only supported by train")
+    if args.record_workers < 0:
+        parser.error("--record-workers must be nonnegative")
+    if args.record_workers and (
+        args.command not in ("rollout", "evaluate") or args.output is None
+    ):
+        parser.error("--record-workers requires rollout/evaluate with --output")
     auto_configure_debug_logging()
     if args.log_level is not None or args.log_json:
         setup_logging(args.log_level or "INFO", with_json_format=args.log_json)
@@ -253,6 +265,7 @@ def main() -> None:
                 env,
                 max_buffer_bytes=args.record_buffer_mib * 1024 * 1024,
                 episode_format=args.record_format,
+                write_workers=args.record_workers,
             )
             if args.output
             else nullcontext()

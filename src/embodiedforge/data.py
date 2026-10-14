@@ -4,13 +4,14 @@ import json
 import platform
 import uuid
 from collections.abc import Iterator
+from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from importlib.metadata import PackageNotFoundError, distribution, version
 from pathlib import Path
 
 import numpy as np
 
-from .core import Observation, StepResult
+from .core import Array, Observation, StepResult
 from .env import VectorEnv
 
 _REQUIRED_OBSERVATIONS = frozenset(
@@ -94,12 +95,15 @@ def _validate_observation(observation: Observation, count: int) -> None:
 
 
 class EpisodeRecorder:
-    """Synchronous, bounded recorder: slow storage applies explicit backpressure.
+    """Bounded recorder: slow storage applies explicit backpressure.
 
     One episode buffers at most max_steps per environment, within a shared byte
     budget for retained array payloads. Python objects, caller-owned batches and
     compression/stacking scratch space are additional memory. Overflow is an error;
-    incomplete buffers are discarded on close and listed in the run manifest.
+    write_workers=0 writes synchronously; positive values compress/write completed
+    episodes in background threads. Queued payloads share the same byte budget;
+    append waits for storage only when queued episodes can relieve that budget.
+    Incomplete buffers are discarded on close and listed in the run manifest.
     Readers only accept shards with an adjacent completion metadata file.
     """
 
@@ -110,9 +114,12 @@ class EpisodeRecorder:
         *,
         max_buffer_bytes: int = 256 * 1024 * 1024,
         episode_format: str = "transitions",
+        write_workers: int = 0,
     ) -> None:
         if type(max_buffer_bytes) is not int or max_buffer_bytes <= 0:
             raise ValueError("max_buffer_bytes must be a positive integer")
+        if type(write_workers) is not int or write_workers < 0:
+            raise ValueError("write_workers must be a nonnegative integer")
         if not isinstance(episode_format, str) or episode_format not in (
             "transitions",
             "compact",
@@ -128,7 +135,9 @@ class EpisodeRecorder:
         self.max_steps = env.config.max_steps
         self.num_envs = env.config.num_envs
         self.failure: BaseException | None = None
-        self.close_error: Exception | None = None
+        self.close_error: BaseException | None = None
+        self._writes: dict[tuple[int, int], tuple[Future, list[dict], int]] = {}
+        self._executor: ThreadPoolExecutor | None = None
         packages = {}
         sources = {}
         for name in (
@@ -164,8 +173,13 @@ class EpisodeRecorder:
             "seed": env.seed,
             "max_buffer_bytes": max_buffer_bytes,
             "episode_format": episode_format,
+            "write_workers": write_workers,
         }
         _json_atomic(self.root / "run.json", self.manifest)
+        if write_workers:
+            self._executor = ThreadPoolExecutor(
+                max_workers=write_workers, thread_name_prefix="episode-writer"
+            )
 
     @property
     def max_buffer_bytes(self) -> int:
@@ -259,7 +273,10 @@ class EpisodeRecorder:
                 )
             if len(rows) >= self.max_steps:
                 raise BufferError("Episode exceeds configured recorder capacity")
-            if (self.root / f"env{key[0]:05d}-episode{key[1]:08d}.npz").exists():
+            if (
+                key in self._writes
+                or (self.root / f"env{key[0]:05d}-episode{key[1]:08d}.npz").exists()
+            ):
                 raise ValueError("Duplicate episode ID; do not reseed a recording run")
             if (
                 result.observation["episode_id"][i] != episode
@@ -313,7 +330,20 @@ class EpisodeRecorder:
             raise RuntimeError("Recorder failed; create a new run") from self.failure
         if self.closed:
             raise RuntimeError("Recorder is closed")
-        prepared = self._prepare(observation, result)
+        error = self._collect_writes()
+        if error is not None:
+            raise error
+        while True:
+            try:
+                prepared = self._prepare(observation, result)
+                break
+            except BufferError:
+                if not self._writes:
+                    raise
+                # Waiting can free queued payloads, never incomplete episodes.
+                error = self._collect_writes(wait_for=next(iter(self._writes)))
+                if error is not None:
+                    raise error from None
         try:
             for key, row, complete in prepared:
                 rows = self.pending.setdefault(key, [])
@@ -339,6 +369,20 @@ class EpisodeRecorder:
 
     def _finish(self, key: tuple[int, int]) -> None:
         rows = self.pending[key]
+        if self._executor is None:
+            self._write_episode(key, rows)
+            self._release_episode(key, rows)
+        else:
+            size = sum(
+                self._row_bytes(row, continuing=index > 0)
+                for index, row in enumerate(rows)
+            )
+            future = self._executor.submit(self._write_episode, key, rows)
+            self._writes[key] = (future, rows, size)
+            del self.pending[key]
+
+    def _write_episode(self, key: tuple[int, int], rows: list[dict]) -> None:
+        """Publish files only; worker threads never mutate recorder bookkeeping."""
         stem = f"env{key[0]:05d}-episode{key[1]:08d}"
         path = self.root / f"{stem}.npz"
         if path.exists():
@@ -373,16 +417,53 @@ class EpisodeRecorder:
                 "episode_id": key[1],
             },
         )
+
+    def _release_episode(self, key: tuple[int, int], rows: list[dict]) -> None:
         self.buffered_bytes -= sum(
             self._row_bytes(row, continuing=index > 0) for index, row in enumerate(rows)
         )
         del self.pending[key]
         self.manifest["completed_episodes"] += 1
 
+    def _collect_writes(
+        self, *, wait_for: tuple[int, int] | None = None
+    ) -> BaseException | None:
+        """Reap finished work on the caller thread, retaining failed rows for close."""
+        error = None
+        for key, (future, rows, size) in list(self._writes.items()):
+            if key != wait_for and not future.done():
+                continue
+            try:
+                future.result()
+            except BaseException as caught:
+                if not future.done():
+                    # A signal interrupted the caller's wait, not the write.
+                    raise
+                if future.cancelled():
+                    if not isinstance(caught, CancelledError):
+                        raise
+                elif future.exception() is not caught:
+                    # The write may finish just as the caller receives a signal.
+                    # Do not mistake that signal for a worker/storage failure.
+                    raise
+                self.failure = self.failure or caught
+                error = error or caught
+                self.pending[key] = rows
+            else:
+                self.buffered_bytes -= size
+                self.manifest["completed_episodes"] += 1
+            del self._writes[key]
+        return error
+
     def close(self) -> None:
-        """Finalize the run manifest; list incomplete buffers without publishing them."""
+        """Wait for queued writes, finalize the manifest and discard incomplete rows."""
         if self.closed:
             return
+        error = None
+        if self._executor is not None:
+            self._executor.shutdown(wait=True)
+            self._executor = None
+            error = self._collect_writes()
         self.manifest.update(
             status="failed" if self.failure is not None else "closed",
             incomplete_episodes=[
@@ -390,10 +471,19 @@ class EpisodeRecorder:
                 for k, v in self.pending.items()
             ],
         )
-        _json_atomic(self.root / "run.json", self.manifest)
+        try:
+            _json_atomic(self.root / "run.json", self.manifest)
+        except BaseException as caught:
+            self.failure = self.failure or caught
+            if error is not None:
+                self.close_error = caught
+                raise error from caught
+            raise
         self.pending.clear()
         self.buffered_bytes = 0
         self.closed = True
+        if error is not None:
+            raise error
 
     def __enter__(self) -> "EpisodeRecorder":
         if self.closed or self.failure is not None:
@@ -407,7 +497,7 @@ class EpisodeRecorder:
             self.failure = self.failure or exc_value
             try:
                 self.close()
-            except Exception as error:
+            except BaseException as error:
                 self.close_error = error
 
 
@@ -422,6 +512,16 @@ def read_episodes(
     full observation key schema but validates only selected payloads plus the
     mandatory transition/state fields. Use the default for a full dataset audit.
     """
+    yield from _read_episodes(directory, options=options, owned=True)
+
+
+def _read_episodes(
+    directory: str | Path,
+    *,
+    options: EpisodeReadOptions | None,
+    owned: bool,
+) -> Iterator[Observation]:
+    """Internal compact views stay private; window results copy their slices."""
     options = options or EpisodeReadOptions()
     root = Path(directory)
     _dataset_manifest(root)
@@ -440,106 +540,117 @@ def read_episodes(
         completed_index += 1
         if not selected:
             continue
-        n = metadata["steps"]
-        if type(n) is not int or n < 1:
-            raise ValueError(f"Corrupt episode lengths: {path}")
-        with np.load(path, allow_pickle=False) as archive:
-            keys = archive.files
-            prefix = "state/" if schema == 2 else "obs/"
-            obs_keys = {k[len(prefix) :] for k in keys if k.startswith(prefix)}
-            if schema == 2:
-                if any(
-                    not k.startswith("state/")
-                    and k not in {"action", "reward", "terminated", "truncated"}
-                    for k in keys
-                ):
-                    raise ValueError(f"Invalid compact episode fields: {path}")
-            elif options.observation_keys is not None:
-                next_keys = {k[5:] for k in keys if k.startswith("next/")}
-                if obs_keys != next_keys:
-                    raise ValueError(f"Observation schema changed: {path}")
-            if options.observation_keys is not None:
-                requested = _REQUIRED_OBSERVATIONS | set(options.observation_keys)
-                missing = requested - obs_keys
-                if missing:
-                    raise ValueError(
-                        f"Missing requested observations {sorted(missing)}: {path}"
-                    )
-                keys = [
-                    k
-                    for k in keys
-                    if (
-                        k in {"action", "reward", "terminated", "truncated"}
-                        or k.startswith(prefix)
-                        and k[len(prefix) :] in requested
-                        or k.startswith("next/")
-                        and k[5:] in requested
-                    )
-                ]
-            data = {k: archive[k] for k in keys}
+        yield _load_episode(path, metadata, options, owned=owned)
+
+
+def _load_episode(
+    path: Path, metadata: dict, options: EpisodeReadOptions, *, owned: bool
+) -> Observation:
+    """Decode and validate in a short-lived scope so scratch arrays are released."""
+    schema = metadata["schema_version"]
+    n = metadata["steps"]
+    if type(n) is not int or n < 1:
+        raise ValueError(f"Corrupt episode lengths: {path}")
+    with np.load(path, allow_pickle=False) as archive:
+        keys = archive.files
+        prefix = "state/" if schema == 2 else "obs/"
+        obs_keys = {k[len(prefix) :] for k in keys if k.startswith(prefix)}
         if schema == 2:
-            states = {
-                name[6:]: value
-                for name, value in data.items()
-                if name.startswith("state/")
-            }
-            if any(value.ndim < 1 or len(value) != n + 1 for value in states.values()):
-                raise ValueError(f"Corrupt compact observation lengths: {path}")
-            data = {
-                name: value
-                for name, value in data.items()
-                if not name.startswith("state/")
-            }
-            # Keep the public transition schema and independent owned arrays.
-            for name, values in states.items():
-                data[f"obs/{name}"] = values[:-1].copy()
-                data[f"next/{name}"] = values[1:].copy()
-        if any(v.ndim < 1 or len(v) != n for v in data.values()):
-            raise ValueError(f"Corrupt episode lengths: {path}")
-        required = {"action", "reward", "terminated", "truncated"}
-        if not required <= data.keys():
-            raise ValueError(f"Missing transition fields: {path}")
-        observation = {k[4:]: v for k, v in data.items() if k.startswith("obs/")}
-        following = {k[5:]: v for k, v in data.items() if k.startswith("next/")}
+            if any(
+                not k.startswith("state/")
+                and k not in {"action", "reward", "terminated", "truncated"}
+                for k in keys
+            ):
+                raise ValueError(f"Invalid compact episode fields: {path}")
+        elif options.observation_keys is not None:
+            next_keys = {k[5:] for k in keys if k.startswith("next/")}
+            if obs_keys != next_keys:
+                raise ValueError(f"Observation schema changed: {path}")
+        if options.observation_keys is not None:
+            requested = _REQUIRED_OBSERVATIONS | set(options.observation_keys)
+            missing = requested - obs_keys
+            if missing:
+                raise ValueError(
+                    f"Missing requested observations {sorted(missing)}: {path}"
+                )
+            keys = [
+                k
+                for k in keys
+                if (
+                    k in {"action", "reward", "terminated", "truncated"}
+                    or k.startswith(prefix)
+                    and k[len(prefix) :] in requested
+                    or k.startswith("next/")
+                    and k[5:] in requested
+                )
+            ]
+        data = {k: archive[k] for k in keys}
+    if schema == 2:
+        states = {
+            name[6:]: value for name, value in data.items() if name.startswith("state/")
+        }
+        if any(value.ndim < 1 or len(value) != n + 1 for value in states.values()):
+            raise ValueError(f"Corrupt compact observation lengths: {path}")
+        data = {
+            name: value for name, value in data.items() if not name.startswith("state/")
+        }
+        # Validate compact states before allocating independent public arrays.
+        for name, values in states.items():
+            data[f"obs/{name}"] = values[:-1]
+            data[f"next/{name}"] = values[1:]
+    if any(v.ndim < 1 or len(v) != n for v in data.values()):
+        raise ValueError(f"Corrupt episode lengths: {path}")
+    required = {"action", "reward", "terminated", "truncated"}
+    if not required <= data.keys():
+        raise ValueError(f"Missing transition fields: {path}")
+    observation = {k[4:]: v for k, v in data.items() if k.startswith("obs/")}
+    following = {k[5:]: v for k, v in data.items() if k.startswith("next/")}
+    if schema == 2:
+        _validate_observation(states, n + 1)
+    else:
         _validate_observation(observation, n)
         _validate_observation(following, n)
-        if observation.keys() != following.keys():
-            raise ValueError(f"Observation schema changed: {path}")
-        for name in ("terminated", "truncated"):
-            if data[name].shape != (n,) or data[name].dtype != bool:
-                raise ValueError(f"Invalid {name}: {path}")
-        if (data["terminated"] & data["truncated"]).any():
-            raise ValueError(f"Conflicting terminal flags: {path}")
-        if (
-            data["action"].ndim != 2
-            or not np.isfinite(data["action"]).all()
-            or data["reward"].shape != (n,)
-            or not np.isfinite(data["reward"]).all()
+    if observation.keys() != following.keys():
+        raise ValueError(f"Observation schema changed: {path}")
+    for name in ("terminated", "truncated"):
+        if data[name].shape != (n,) or data[name].dtype != bool:
+            raise ValueError(f"Invalid {name}: {path}")
+    if (data["terminated"] & data["truncated"]).any():
+        raise ValueError(f"Conflicting terminal flags: {path}")
+    if (
+        data["action"].ndim != 2
+        or not np.isfinite(data["action"]).all()
+        or data["reward"].shape != (n,)
+        or not np.isfinite(data["reward"]).all()
+    ):
+        raise ValueError(f"Invalid action/reward: {path}")
+    done = data["terminated"] | data["truncated"]
+    if not done[-1] or done[:-1].any():
+        raise ValueError(f"Invalid episode boundary: {path}")
+    if not np.array_equal(data["obs/step_id"], np.arange(n)):
+        raise ValueError(f"Nonconsecutive episode: {path}")
+    if not np.array_equal(following["step_id"], np.arange(1, n + 1)):
+        raise ValueError(f"Invalid next step IDs: {path}")
+    for name in ("env_id", "episode_id"):
+        if not (
+            (observation[name] == metadata[name]).all()
+            and (following[name] == metadata[name]).all()
         ):
-            raise ValueError(f"Invalid action/reward: {path}")
-        done = data["terminated"] | data["truncated"]
-        if not done[-1] or done[:-1].any():
-            raise ValueError(f"Invalid episode boundary: {path}")
-        if not np.array_equal(data["obs/step_id"], np.arange(n)):
-            raise ValueError(f"Nonconsecutive episode: {path}")
-        if not np.array_equal(following["step_id"], np.arange(1, n + 1)):
-            raise ValueError(f"Invalid next step IDs: {path}")
-        for name in ("env_id", "episode_id"):
-            if not (
-                (observation[name] == metadata[name]).all()
-                and (following[name] == metadata[name]).all()
-            ):
-                raise ValueError(f"Episode identity mismatch: {path}")
-        if not (following["time"] > observation["time"]).all():
-            raise ValueError(f"Time must advance: {path}")
-        for name, value in observation.items():
-            if (
-                value.shape != following[name].shape
-                or value.dtype != following[name].dtype
-                or not np.array_equal(value[1:], following[name][:-1])
-            ):
-                raise ValueError(f"Observation continuity broken for {name}: {path}")
-        yield data
+            raise ValueError(f"Episode identity mismatch: {path}")
+    if not (following["time"] > observation["time"]).all():
+        raise ValueError(f"Time must advance: {path}")
+    for name, value in observation.items() if schema == 1 else ():
+        if (
+            value.shape != following[name].shape
+            or value.dtype != following[name].dtype
+            or not np.array_equal(value[1:], following[name][:-1])
+        ):
+            raise ValueError(f"Observation continuity broken for {name}: {path}")
+    if schema == 2 and owned:
+        for name in states:
+            data[f"obs/{name}"] = observation[name].copy()
+            data[f"next/{name}"] = following[name].copy()
+    return data
 
 
 def action_windows(
@@ -554,18 +665,55 @@ def action_windows(
     Action at t aligns with the last observation in its history. Episodes too
     short for a full window are skipped; no windows span reset boundaries.
     """
+    for observation, action, instruction in _episode_windows(
+        directory, history, horizon, options=options
+    ):
+        for index in range(len(action)):
+            yield {
+                "observation": {
+                    key: value[index].copy() for key, value in observation.items()
+                },
+                "action": action[index].copy(),
+                "instruction": instruction,
+            }
+        del observation, action
+
+
+def _episode_windows(
+    directory: str | Path,
+    history: int,
+    horizon: int,
+    *,
+    options: EpisodeReadOptions | None,
+) -> Iterator[tuple[Observation, Array, str]]:
+    """Private read-only window views; consumers must copy before advancing."""
     if any(type(value) is not int or value <= 0 for value in (history, horizon)):
         raise ValueError("history and horizon must be positive integers")
     manifest = _dataset_manifest(Path(directory))
     instruction = manifest["env_spec"]["instruction"]
-    for episode in read_episodes(directory, options=options):
-        for t in range(history - 1, len(episode["action"]) - horizon + 1):
-            yield {
-                "observation": {
-                    k[4:]: v[t - history + 1 : t + 1].copy()
-                    for k, v in episode.items()
-                    if k.startswith("obs/")
-                },
-                "action": episode["action"][t : t + horizon].copy(),
-                "instruction": instruction,
+    for episode in _read_episodes(directory, options=options, owned=False):
+        count = max(0, len(episode["action"]) - history - horizon + 2)
+        if count:
+            observation = {
+                key[4:]: np.moveaxis(
+                    np.lib.stride_tricks.sliding_window_view(value, history, axis=0),
+                    -1,
+                    1,
+                )[:count]
+                for key, value in episode.items()
+                if key.startswith("obs/")
             }
+            action = np.moveaxis(
+                np.lib.stride_tricks.sliding_window_view(
+                    episode["action"], horizon, axis=0
+                ),
+                -1,
+                1,
+            )[history - 1 : history - 1 + count]
+            # Following/reward/terminal arrays were validated, but no longer
+            # need to stay resident while consumers copy observation windows.
+            del episode
+            yield observation, action, instruction
+            del observation, action
+            continue
+        del episode

@@ -242,7 +242,8 @@ def test_batch_shuffle_consumes_bounded_prefix(monkeypatch):
 
 
 @pytest.mark.parametrize("fault", ["shape", "dtype", "schema"])
-def test_batch_rejects_incompatible_samples(monkeypatch, fault):
+@pytest.mark.parametrize("shuffle_buffer", [0, 2])
+def test_batch_rejects_incompatible_samples(monkeypatch, fault, shuffle_buffer):
     from embodiedforge import batching as module
 
     first = {
@@ -260,9 +261,26 @@ def test_batch_rejects_incompatible_samples(monkeypatch, fault):
     monkeypatch.setattr(
         module, "action_windows", lambda *a, **kw: iter([first, second])
     )
+    monkeypatch.setattr(
+        module,
+        "_episode_windows",
+        lambda *a, **kw: iter(
+            (
+                {key: value[None] for key, value in sample["observation"].items()},
+                sample["action"][None],
+                sample["instruction"],
+            )
+            for sample in (first, second)
+        ),
+    )
     with pytest.raises(ValueError, match="Cannot batch different"):
         next(
-            module.window_batches("unused", batching=module.BatchOptions(batch_size=2))
+            module.window_batches(
+                "unused",
+                batching=module.BatchOptions(
+                    batch_size=2, shuffle_buffer=shuffle_buffer
+                ),
+            )
         )
 
 
