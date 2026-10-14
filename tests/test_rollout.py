@@ -171,6 +171,35 @@ def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layo
             assert observation["extra"].stage == "terminal"
 
 
+@pytest.mark.parametrize("array_metadata", [False, True])
+def test_full_reset_preserves_terminal_dtype_metadata(array_metadata):
+    class DynamicTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            value = 1 if state.time.any() else 0
+            metadata = {"stage": np.array([value, value]) if array_metadata else value}
+            observation["extra"] = np.ones(
+                (3, 2), dtype=np.dtype("f8", metadata=metadata)
+            )
+            return observation
+
+    class Policy:
+        def __init__(self):
+            self.stages = []
+
+        def act(self, observation):
+            self.stages.append(observation["extra"].dtype.metadata["stage"])
+            return np.zeros((3, 1, 2), dtype=np.float32)
+
+    policy = Policy()
+    with VectorEnv(Config(num_envs=3, max_steps=1), task=DynamicTask()) as env:
+        run_rollout(env, policy, steps=3)
+    for actual, expected in zip(policy.stages, (0, 1, 1), strict=True):
+        np.testing.assert_array_equal(
+            actual, [expected, expected] if array_metadata else expected
+        )
+
+
 def test_full_reset_keeps_missing_extra_field_error_before_next_inference():
     class DynamicTask(ReachTask):
         def observe(self, state):
