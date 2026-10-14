@@ -190,3 +190,46 @@ def test_failed_renderer_initialization_closes_both_backends(monkeypatch):
     with pytest.raises(RuntimeError, match="initialization failed"):
         VectorEnv(Config(physics="test", render="test"))
     assert closed == ["renderer", "physics"]
+
+
+@pytest.mark.parametrize("count", [1, 7, 128])
+@pytest.mark.parametrize("mass", [0.3, 1.0, 7.0])
+def test_numpy_physics_matches_masked_substeps_through_active_transitions(count, mass):
+    physics = NumpyPhysics()
+    physics.build(SceneSpec(mass=mass), Config(num_envs=count))
+    rng = np.random.default_rng(57)
+    physics.position[:] = rng.normal(size=(count, 2))
+    physics.velocity[:] = rng.normal(size=(count, 2))
+    position, velocity = physics.position.copy(), physics.velocity.copy()
+    time, version = physics.time.copy(), physics.version.copy()
+    for step in range(48):
+        active = (
+            np.ones(count, dtype=bool)
+            if step % 4 == 0
+            else np.zeros(count, dtype=bool)
+            if step % 4 == 1
+            else rng.random(count) < 0.5
+        )
+        substeps = 1 + step % 7
+        dt = 0.01 + step % 3 * 0.005
+        action = rng.uniform(-1, 1, (count, 2))
+        h = dt / substeps
+        for _ in range(substeps):
+            velocity[active] += action[active] * h / mass
+            position[active] += velocity[active] * h
+        time[active] += dt
+        version[active] += 1
+        before = physics.snapshot()
+        physics.apply_control(action)
+        physics.step(dt, substeps, active)
+        after = physics.snapshot()
+        for name, reference in (
+            ("position", position),
+            ("velocity", velocity),
+            ("time", time),
+            ("version", version),
+        ):
+            np.testing.assert_array_equal(getattr(after, name), reference)
+            np.testing.assert_array_equal(
+                getattr(after, name)[~active], getattr(before, name)[~active]
+            )

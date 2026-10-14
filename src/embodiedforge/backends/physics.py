@@ -41,11 +41,18 @@ class NumpyPhysics:
     def step(self, dt: float, substeps: int, active: Array) -> None:
         """Semi-implicit Euler; active rows advance by a total of dt seconds."""
         h = dt / substeps
+        count = np.count_nonzero(active)
+        if not count:
+            return
+        # Full slices avoid repeated boolean gathers and scatters when every
+        # row is active. Keep the same substep arithmetic and selected-row
+        # path when completed environments must remain frozen.
+        rows = slice(None) if count == len(active) else active
         for _ in range(substeps):
-            self.velocity[active] += self.control[active] * h / self.scene.mass
-            self.position[active] += self.velocity[active] * h
-        self.time[active] += dt
-        self.version[active] += 1
+            self.velocity[rows] += self.control[rows] * h / self.scene.mass
+            self.position[rows] += self.velocity[rows] * h
+        self.time[rows] += dt
+        self.version[rows] += 1
 
     def snapshot(self) -> StateSnapshot:
         return StateSnapshot(
