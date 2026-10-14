@@ -351,6 +351,44 @@ def test_renderer_switch_is_transactional_on_main_thread(session, monkeypatch, f
         assert calls == ["create", "render"]
 
 
+@pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit, RuntimeError])
+@pytest.mark.parametrize("close_error_type", [None, KeyboardInterrupt, SystemExit])
+def test_failed_renderer_candidate_closes_and_preserves_primary_error(
+    session, monkeypatch, error_type, close_error_type
+):
+    env, viewer = session
+    original = viewer.renderer
+    error = error_type("render failed")
+    calls = []
+
+    class Candidate:
+        def render(self, *args):
+            calls.append("render")
+            raise error
+
+        def close(self):
+            calls.append("close")
+            if close_error_type is not None:
+                raise close_error_type("cleanup failed")
+
+    monkeypatch.setattr(web, "create_frame_renderer", lambda *args: Candidate())
+    viewer._pending_backend = "mujoco"
+    if error_type is RuntimeError:
+        publish(env, viewer)
+        assert "render failed" in viewer._state["error"]
+        assert viewer._state["ready"]
+    else:
+        with pytest.raises(error_type) as caught:
+            publish(env, viewer)
+        assert caught.value is error
+        # A subsequent update still uses the previously accepted renderer.
+        publish(env, viewer)
+        assert viewer._state["ready"]
+    assert calls == ["render", "close"]
+    assert viewer.renderer is original
+    assert viewer.backend == "raster"
+
+
 def test_mjpeg_disconnect_and_shutdown_release_waiting_reader(session):
     env, viewer = session
     publish(env, viewer)

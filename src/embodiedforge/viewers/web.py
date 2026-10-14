@@ -561,12 +561,14 @@ class WebViewer:
                         scene, observation, self.selected_env, self.camera
                     )
                     frame = self._encode(pixels)
-                except Exception as error:
+                except BaseException as error:
                     if candidate is not None:
                         try:
                             candidate.close()
-                        except Exception:
+                        except BaseException:
                             LOGGER.exception("Failed to clean up unavailable renderer")
+                    if not isinstance(error, Exception):
+                        raise
                     pixels = None
                     self._error = f"{name} {width}x{height}: {error}"
                     LOGGER.exception(
