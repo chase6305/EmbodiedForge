@@ -389,6 +389,88 @@ def test_failed_renderer_candidate_closes_and_preserves_primary_error(
     assert viewer.backend == "raster"
 
 
+@pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit, OSError])
+@pytest.mark.parametrize("secondary_type", [None, KeyboardInterrupt, OSError])
+def test_shutdown_interruption_still_releases_socket_and_renderer(
+    session, monkeypatch, error_type, secondary_type
+):
+    _, viewer = session
+    server, thread = viewer.server, viewer.thread
+    original_close = server.server_close
+    original_render_close = viewer.renderer.close
+    calls = []
+    error = error_type("shutdown interrupted")
+
+    def shutdown():
+        calls.append("shutdown")
+        # BaseServer.shutdown sets this flag before its interruptible wait.
+        server._BaseServer__shutdown_request = True
+        raise error
+
+    def server_close():
+        calls.append("socket")
+        original_close()
+        if secondary_type is not None:
+            raise secondary_type("socket cleanup failed")
+
+    def renderer_close():
+        calls.append("renderer")
+        original_render_close()
+
+    monkeypatch.setattr(server, "shutdown", shutdown)
+    monkeypatch.setattr(server, "server_close", server_close)
+    monkeypatch.setattr(viewer.renderer, "close", renderer_close)
+    try:
+        with pytest.raises(error_type) as caught:
+            viewer.close()
+        assert caught.value is error
+        assert calls == ["shutdown", "socket", "renderer"]
+        assert server.socket.fileno() == -1
+        assert not thread.is_alive()
+        viewer.close()
+        assert calls == ["shutdown", "socket", "renderer"]
+    finally:
+        original_close()
+        thread.join(timeout=3)
+
+
+@pytest.mark.parametrize("primary_type", [OSError, KeyboardInterrupt, SystemExit])
+@pytest.mark.parametrize("cleanup_type", [OSError, SystemExit])
+def test_startup_preserves_error_when_renderer_cleanup_also_fails(
+    monkeypatch, primary_type, cleanup_type
+):
+    error = primary_type("thread startup failed")
+    servers, calls = [], []
+    original_server = web.ThreadingHTTPServer
+
+    class Renderer:
+        def close(self):
+            calls.append("renderer")
+            raise cleanup_type("renderer cleanup failed")
+
+    def server(*args, **kwargs):
+        result = original_server(*args, **kwargs)
+        servers.append(result)
+        return result
+
+    def start(self):
+        raise error
+
+    monkeypatch.setattr(web, "create_frame_renderer", lambda *args: Renderer())
+    monkeypatch.setattr(web, "ThreadingHTTPServer", server)
+    monkeypatch.setattr(web.threading.Thread, "start", start)
+    try:
+        with VectorEnv(Config(num_envs=1)) as env:
+            with pytest.raises(primary_type) as caught:
+                create_viewer("web", env.config, env.task.scene, port=0)
+        assert caught.value is error
+        assert calls == ["renderer"]
+        assert len(servers) == 1 and servers[0].socket.fileno() == -1
+    finally:
+        for instance in servers:
+            instance.server_close()
+
+
 def test_mjpeg_disconnect_and_shutdown_release_waiting_reader(session):
     env, viewer = session
     publish(env, viewer)

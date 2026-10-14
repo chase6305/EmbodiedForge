@@ -121,7 +121,7 @@ class WebViewer:
         except BaseException:
             try:
                 self.close()
-            except Exception:
+            except BaseException:
                 LOGGER.exception("Web viewer cleanup also failed during startup")
             raise
 
@@ -665,12 +665,22 @@ class WebViewer:
                 return
             self.closed = True
             self._condition.notify_all()
-        try:
-            if self.server is not None:
-                if self.thread is not None and self.thread.is_alive():
-                    self.server.shutdown()
-                self.server.server_close()
-                if self.thread is not None:
-                    self.thread.join(timeout=3)
-        finally:
-            self.renderer.close()
+        operations = []
+        if self.server is not None:
+            if self.thread is not None and self.thread.is_alive():
+                operations.append(self.server.shutdown)
+            operations.append(self.server.server_close)
+            if self.thread is not None and self.thread.ident is not None:
+                operations.append(lambda: self.thread.join(timeout=3))
+        operations.append(self.renderer.close)
+        failure = None
+        for operation in operations:
+            try:
+                operation()
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                else:
+                    LOGGER.exception("Additional Web viewer cleanup failure")
+        if failure is not None:
+            raise failure
