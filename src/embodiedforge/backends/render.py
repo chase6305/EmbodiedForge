@@ -95,6 +95,10 @@ class RasterRenderer(NullRenderer):
             (1, self.entities["agent"], self.scene.radius),
         ):
             self._draw_disk(labels[:, 0], positions[ids], radius, entity)
+        if self.config.channels == ("rgb",):
+            # Release the int32 labels before take allocates RGB. Otherwise
+            # its intp index conversion stays live alongside both arrays.
+            labels = labels.astype(np.intp, copy=False)
         # Labels are constructed here and always in [0, 2]. take copies the
         # three-byte palette entries faster than general advanced indexing.
         values = {

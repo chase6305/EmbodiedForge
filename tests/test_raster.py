@@ -87,3 +87,40 @@ def test_bounded_disk_matches_full_frame_at_tangencies(size, count, radius, dtyp
                 actual = np.full((count, size, size), 2, dtype=np.int32)
                 renderer._draw_disk(actual, positions, radius, 1)
                 np.testing.assert_array_equal(actual, np.where(expected, 1, 2))
+
+
+@pytest.mark.parametrize("size,count", [(64, 1), (540, 1), (256, 128)])
+@pytest.mark.parametrize("radius", [0.06, 0.35, 4.0])
+def test_rgb_only_cast_keeps_owned_exact_pixels(size, count, radius):
+    from embodiedforge.backends.render import RasterRenderer
+    from embodiedforge.core import SceneSpec, SceneUpdate, StateSnapshot
+
+    rng = np.random.default_rng(53)
+    positions = rng.uniform(-2, 2, (count, 2))
+    targets = rng.uniform(-2, 2, (count, 2))
+    state = StateSnapshot(
+        positions, np.zeros_like(positions), np.zeros(count), np.zeros(count, np.int64)
+    )
+    update = SceneUpdate(state, {"agent": positions, "target": targets})
+    renderer = RasterRenderer()
+    renderer.build(
+        SceneSpec(radius=radius),
+        Config(num_envs=count, image_size=size, channels=("rgb",)),
+    )
+    renderer.sync(update)
+    ids = np.arange(count - 1, -1, -1)
+    actual = renderer.render(ids).images["rgb"]
+    coord = (np.arange(size) + 0.5) * 3 / size - 1.5
+    labels = np.zeros((count, 1, size, size), np.int32)
+    for entity, centers, disk_radius in ((2, targets, 0.1), (1, positions, radius)):
+        mask = (
+            (coord[None, None, :] - centers[ids, 0, None, None]) ** 2
+            + (-coord[None, :, None] - centers[ids, 1, None, None]) ** 2
+        ) <= disk_radius**2
+        labels[:, 0][mask] = entity
+    palette = np.array([[20, 24, 32], [70, 155, 255], [65, 210, 120]], np.uint8)
+    expected = palette[labels]
+    np.testing.assert_array_equal(actual, expected)
+    assert actual.dtype == np.uint8 and actual.flags.owndata
+    actual[:] = 0
+    np.testing.assert_array_equal(renderer.render(ids).images["rgb"], expected)
