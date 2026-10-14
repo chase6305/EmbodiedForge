@@ -13,11 +13,16 @@ from embodiedforge import Config, VectorEnv
 from embodiedforge.backends.render import RasterRenderer
 
 
-def measure(num_envs, image_size, frames):
+def measure(
+    num_envs,
+    image_size,
+    frames,
+    channels=("rgb", "depth", "instance_id", "semantic_id"),
+):
     config = Config(
         num_envs=num_envs,
         image_size=image_size,
-        channels=("rgb", "depth", "instance_id", "semantic_id"),
+        channels=channels,
     )
     rng = np.random.default_rng(19)
     positions = rng.uniform(-1.6, 1.6, (frames, 2, num_envs, 2))
@@ -57,17 +62,23 @@ def main():
     parser.add_argument("--num-envs", type=int, default=32)
     parser.add_argument("--image-size", type=int, default=128)
     parser.add_argument("--frames", type=int, default=100)
+    parser.add_argument(
+        "--channels",
+        nargs="+",
+        choices=("rgb", "depth", "instance_id", "semantic_id"),
+        default=["rgb", "depth", "instance_id", "semantic_id"],
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if min(args.num_envs, args.image_size, args.frames) <= 0:
         parser.error("Counts must be positive")
     report = {
-        "scope": "CPU reference raster only; all four channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
         "arguments": {
             key: str(value) if isinstance(value, Path) else value
             for key, value in vars(args).items()
         },
-        **measure(args.num_envs, args.image_size, args.frames),
+        **measure(args.num_envs, args.image_size, args.frames, args.channels),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("x") as stream:
