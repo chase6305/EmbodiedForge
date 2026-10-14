@@ -172,15 +172,17 @@ def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layo
 
 
 @pytest.mark.parametrize("array_metadata", [False, True])
-def test_full_reset_preserves_terminal_dtype_metadata(array_metadata):
+@pytest.mark.parametrize("structured", [False, True])
+def test_full_reset_preserves_terminal_dtype_metadata(array_metadata, structured):
     class DynamicTask(ReachTask):
         def observe(self, state):
             observation = super().observe(state)
             value = 1 if state.time.any() else 0
             metadata = {"stage": np.array([value, value]) if array_metadata else value}
-            observation["extra"] = np.ones(
-                (3, 2), dtype=np.dtype("f8", metadata=metadata)
-            )
+            dtype = np.dtype("f8", metadata=metadata)
+            if structured:
+                dtype = np.dtype([("payload", dtype)])
+            observation["extra"] = np.ones((3, 2), dtype=dtype)
             return observation
 
     class Policy:
@@ -188,7 +190,10 @@ def test_full_reset_preserves_terminal_dtype_metadata(array_metadata):
             self.stages = []
 
         def act(self, observation):
-            self.stages.append(observation["extra"].dtype.metadata["stage"])
+            dtype = observation["extra"].dtype
+            if structured:
+                dtype = dtype.fields["payload"][0]
+            self.stages.append(dtype.metadata["stage"])
             return np.zeros((3, 1, 2), dtype=np.float32)
 
     policy = Policy()
@@ -198,6 +203,35 @@ def test_full_reset_preserves_terminal_dtype_metadata(array_metadata):
         np.testing.assert_array_equal(
             actual, [expected, expected] if array_metadata else expected
         )
+
+
+def test_full_reset_preserves_explicit_native_byteorder_dtype():
+    reset_dtype = np.dtype("f8")
+    terminal_dtype = reset_dtype.newbyteorder("<" if np.little_endian else ">")
+    assert reset_dtype == terminal_dtype and reset_dtype is not terminal_dtype
+
+    class DynamicTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            dtype = terminal_dtype if state.time.any() else reset_dtype
+            observation["extra"] = np.ones((3, 2), dtype=dtype)
+            return observation
+
+    class Policy:
+        def __init__(self):
+            self.dtypes = []
+
+        def act(self, observation):
+            self.dtypes.append(observation["extra"].dtype)
+            return np.zeros((3, 1, 2), dtype=np.float32)
+
+    policy = Policy()
+    with VectorEnv(Config(num_envs=3, max_steps=1), task=DynamicTask()) as env:
+        run_rollout(env, policy, steps=3)
+    assert policy.dtypes[0] is reset_dtype
+    for dtype in policy.dtypes[1:]:
+        assert dtype is terminal_dtype
+        assert dtype.byteorder == terminal_dtype.byteorder
 
 
 def test_full_reset_keeps_missing_extra_field_error_before_next_inference():

@@ -182,16 +182,17 @@ def run_rollout(
                     and type(reset_observation[key]) is np.ndarray
                     and reset_observation[key].flags.c_contiguous
                     and value.shape == reset_observation[key].shape
-                    and value.dtype == reset_observation[key].dtype
+                    and value.dtype is reset_observation[key].dtype
+                    and value.dtype.kind in "biuf"
                     and value.dtype.metadata is None
-                    and reset_observation[key].dtype.metadata is None
                     for key, value in observation.items()
                 )
             ):
                 # flatnonzero returns canonical row order, and reset already
                 # owns its arrays. Matching base-array layouts preserve the
                 # replacement path's C order and custom array copy behavior.
-                # dtype equality ignores metadata; keep it on the copy path.
+                # dtype equality ignores metadata and native byteorder spelling.
+                # Share only plain numeric dtype objects; copy custom layouts.
                 observation = reset_observation
             else:
                 observation = {key: value.copy() for key, value in observation.items()}
