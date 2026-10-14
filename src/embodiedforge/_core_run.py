@@ -92,28 +92,45 @@ def publish_checkpoint(root: Path, checkpoint: dict, optimizer, metadata: dict) 
                 )
 
 
-def read_resume(path: str | Path) -> dict:
-    """Read exactly the verified bytes; a run directory selects its committed file.
+def _resume_manifest(root: Path) -> dict:
+    metadata = json.loads((root / "run.json").read_text())
+    updates = metadata.get("saved_updates")
+    if (
+        type(metadata.get("schema_version")) is not int
+        or metadata.get("schema_version") != 1
+        or metadata.get("kind") != "core-ppo"
+        or type(updates) is not int
+        or updates <= 0
+        or metadata.get("checkpoint") != f"checkpoints/checkpoint-{updates:09d}.pt"
+    ):
+        raise ValueError("Expected a core PPO run with a committed checkpoint")
+    return metadata
 
-    Reading a running directory is allowed: this selects its saved snapshot,
-    while the source process continues independently in its original directory.
+
+def read_resume(path: str | Path) -> dict:
+    """Read verified bytes, retrying a directory reference pruned by live training.
+
+    Reading a running directory is allowed: select a saved snapshot while the
+    source continues independently. At most three reads are attempted if its
+    committed progress advances and removes the previously selected snapshot.
     """
     source = Path(path)
     metadata = None
     if source.is_dir():
-        metadata = json.loads((source / "run.json").read_text())
-        updates = metadata.get("saved_updates")
-        if (
-            type(metadata.get("schema_version")) is not int
-            or metadata.get("schema_version") != 1
-            or metadata.get("kind") != "core-ppo"
-            or type(updates) is not int
-            or updates <= 0
-            or metadata.get("checkpoint") != f"checkpoints/checkpoint-{updates:09d}.pt"
-        ):
-            raise ValueError("Expected a core PPO run with a committed checkpoint")
-        source = source / metadata["checkpoint"]
-    payload = source.read_bytes()
+        root = source
+        metadata = _resume_manifest(root)
+        for attempt in range(3):
+            source = root / metadata["checkpoint"]
+            try:
+                payload = source.read_bytes()
+                break
+            except FileNotFoundError:
+                newer = _resume_manifest(root)
+                if attempt == 2 or newer["saved_updates"] <= metadata["saved_updates"]:
+                    raise
+                metadata = newer
+    else:
+        payload = source.read_bytes()
     checksum = hashlib.sha256(payload).hexdigest()
     if metadata is not None and checksum != metadata.get("checkpoint_sha256"):
         raise ValueError("Core PPO checkpoint hash mismatch")

@@ -105,7 +105,7 @@ python -m embodiedforge train --resume runs/commands-reach \
   --updates 100 --checkpoint-interval 10 --output runs/commands-reach-resumed
 ```
 
-`--updates` 是本次追加的更新数。目录输入选择 `run.json` 中已提交且哈希匹配的快照，也可传入包含 Adam 的旧版 v2 checkpoint 文件。运行中的目录可用于从最近保存点启动独立分支；不会停止或修改来源运行。CLI 默认继承来源的环境配置和 PPO 参数，可用原有环境参数覆盖兼容的环境数量/后端；任务、观测/动作语义和控制周期必须兼容。恢复策略与 Adam 后，环境和 RNG 重新初始化，因此不是原进程逐步连续执行的精确恢复。指标中的 `update` 为累计更新编号，`transitions` 只统计本次运行。
+`--updates` 是本次追加的更新数。目录输入选择 `run.json` 中已提交且哈希匹配的快照，也可传入包含 Adam 的旧版 v2 checkpoint 文件。运行中的目录可用于从最近保存点启动独立分支；不会停止或修改来源运行。如果来源在文件打开前清理了已选择的旧快照，reader 仅在已提交更新数前移时重新选择，最多尝试三次。引用未变化的缺失文件与哈希不匹配仍报错。CLI 默认继承来源的环境配置和 PPO 参数，可用原有环境参数覆盖兼容的环境数量/后端；任务、观测/动作语义和控制周期必须兼容。恢复策略与 Adam 后，环境和 RNG 重新初始化，因此不是原进程逐步连续执行的精确恢复。指标中的 `update` 为累计更新编号，`transitions` 只统计本次运行。
 
 Python API 支持 `train_ppo(env_config, ppo_config, new_directory, resume=source, checkpoint_interval=10)`；显式传入的 `ppo_config` 定义本次预算和超参数，其中学习率替换保存的 Adam 学习率。`load_training_checkpoint` 可一次读取并校验恢复输入后传给训练，避免配置选择与训练之间重新读取被替换的文件。
 

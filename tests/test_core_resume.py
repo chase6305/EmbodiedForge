@@ -5,6 +5,7 @@ import json
 import signal
 import sys
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -318,3 +319,94 @@ def test_cli_uses_one_verified_input_and_inherits_training_configuration(
     assert saved.ppo_config.minibatch_size == ppo.minibatch_size
     record = json.loads((target / "run.json").read_text())
     assert record["resume"]["sha256"] == calls[0]
+
+
+def resume_record(root, update, payload):
+    checkpoint = f"checkpoints/checkpoint-{update:09d}.pt"
+    (root / checkpoint).parent.mkdir(exist_ok=True)
+    (root / checkpoint).write_bytes(payload)
+    _core_run.write_json(
+        root / "run.json",
+        {
+            "schema_version": 1,
+            "kind": "core-ppo",
+            "status": "running",
+            "saved_updates": update,
+            "checkpoint": checkpoint,
+            "checkpoint_sha256": hashlib.sha256(payload).hexdigest(),
+        },
+    )
+    return root / checkpoint
+
+
+def test_read_live_resume_retries_a_pruned_snapshot(tmp_path, monkeypatch):
+    old = resume_record(tmp_path, 1, b"old snapshot")
+    original = Path.read_bytes
+    reads = []
+
+    def read(path):
+        reads.append(path.name)
+        if path == old:
+            # Two subsequent commits can prune the selected file between
+            # reading run.json and opening it. Use the new committed reference.
+            resume_record(tmp_path, 3, b"new snapshot")
+            old.unlink()
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", read)
+    result = _core_run.read_resume(tmp_path)
+    assert result["payload"] == b"new snapshot"
+    assert result["saved_updates"] == 3
+    assert result["sha256"] == hashlib.sha256(result["payload"]).hexdigest()
+    assert reads == ["checkpoint-000000001.pt", "checkpoint-000000003.pt"]
+
+
+def test_missing_resume_without_new_commit_is_not_retried(tmp_path, monkeypatch):
+    path = resume_record(tmp_path, 1, b"snapshot")
+    path.unlink()
+    original = Path.read_bytes
+    reads = []
+
+    def read(path):
+        reads.append(path)
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", read)
+    with pytest.raises(FileNotFoundError):
+        _core_run.read_resume(tmp_path)
+    assert reads == [path]
+
+
+def test_live_resume_retry_limit_is_bounded(tmp_path, monkeypatch):
+    resume_record(tmp_path, 1, b"snapshot")
+    original = Path.read_bytes
+    reads = []
+
+    def read(path):
+        reads.append(path.name)
+        update = int(path.stem.removeprefix("checkpoint-"))
+        resume_record(tmp_path, update + 2, b"next snapshot")
+        path.unlink()
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", read)
+    with pytest.raises(FileNotFoundError):
+        _core_run.read_resume(tmp_path)
+    assert len(reads) == 3
+
+
+def test_live_resume_does_not_retry_or_hide_a_hash_mismatch(tmp_path, monkeypatch):
+    old = resume_record(tmp_path, 1, b"snapshot")
+    original = Path.read_bytes
+    reads = []
+
+    def read(path):
+        reads.append(path)
+        payload = original(path)
+        resume_record(tmp_path, 3, b"new snapshot")
+        return payload + b"corrupt"
+
+    monkeypatch.setattr(Path, "read_bytes", read)
+    with pytest.raises(ValueError, match="hash mismatch"):
+        _core_run.read_resume(tmp_path)
+    assert reads == [old]
