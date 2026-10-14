@@ -177,6 +177,15 @@ class H1:
         self.action = np.zeros((num_envs, ACT_DIM))
         self.air = np.zeros((num_envs, 2))
         self.contact_time = np.zeros_like(self.air)
+        self._observation_noise_scale = np.r_[
+            np.full(3, 0.1),
+            np.full(3, 0.2),
+            np.full(3, 0.05),
+            np.zeros(3),
+            np.full(ACT_DIM, 0.01),
+            np.full(ACT_DIM, 1.5),
+            np.zeros(ACT_DIM),
+        ]
         self.rng = np.random.default_rng(seed)
         self.reset()
 
@@ -230,16 +239,10 @@ class H1:
             axis=1,
         )
         if self.training:
-            scale = np.r_[
-                np.full(3, 0.1),
-                np.full(3, 0.2),
-                np.full(3, 0.05),
-                np.zeros(3),
-                np.full(19, 0.01),
-                np.full(19, 1.5),
-                np.zeros(19),
-            ]
-            observation += self.rng.uniform(-1, 1, observation.shape) * scale
+            observation += (
+                self.rng.uniform(-1, 1, observation.shape)
+                * self._observation_noise_scale
+            )
         return observation.astype(np.float32)
 
     def step(self, actions):
@@ -248,6 +251,7 @@ class H1:
             -ACTION_LIMIT,
             ACTION_LIMIT,
         )
+        # Preserve C layout: changing it changes acceleration reduction rounding.
         previous_velocity = self.robot.qvel[:, self.robot.vadr].copy()
         self.robot.set_joint_position_targets(self.default + ACTION_SCALE * actions)
         self.robot.step(DECIMATION)
@@ -310,10 +314,11 @@ class H1:
             "ankle_limits": -excess,
             "termination": -200 * fell.astype(float),
         }
+        deviation = np.abs(q - self.default)
         for name, weight in (("hip", 0.2), ("arms", 0.2), ("torso", 0.1)):
-            terms[name + "_deviation"] = -weight * np.abs(q - self.default)[
-                :, self.groups[name]
-            ].sum(1)
+            terms[name + "_deviation"] = -weight * deviation[:, self.groups[name]].sum(
+                1
+            )
         reward = (sum(terms.values()) * CTRL_DT).astype(np.float32)
         self.action[:] = actions
         # Changing the command happens after crediting the completed transition.
