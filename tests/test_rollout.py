@@ -51,6 +51,64 @@ class RetainingWriter:
         )
 
 
+@pytest.mark.parametrize("num_envs", [1, 3])
+@pytest.mark.parametrize("channels", [(), ("rgb", "depth", "instance_id")])
+def test_full_reset_keeps_retained_terminal_frames_and_owned_policy_inputs(
+    num_envs, channels
+):
+    class TimeoutTask(ReachTask):
+        def evaluate(self, state, actions, previous):
+            return (
+                np.ones(num_envs, dtype=np.float32),
+                np.zeros(num_envs, dtype=bool),
+                np.zeros(num_envs, dtype=bool),
+            )
+
+    class Writer:
+        def __init__(self):
+            self.inputs, self.results, self.copies = [], [], []
+
+        def append(self, observation, result):
+            self.inputs.append(observation)
+            self.results.append(result)
+            self.copies.append({k: v.copy() for k, v in result.observation.items()})
+
+    class ZeroPolicy:
+        def act(self, observation):
+            return np.zeros((len(observation["env_id"]), 1, 2), dtype=np.float32)
+
+    writer = Writer()
+    resets = []
+    with VectorEnv(
+        Config(num_envs=num_envs, max_steps=1, render="raster", channels=channels),
+        task=TimeoutTask(),
+    ) as env:
+        summary = run_rollout(
+            env, ZeroPolicy(), steps=4, writer=writer, on_reset=resets.append
+        )
+        assert summary.completed_episodes == 4 * num_envs
+        assert len(resets) == 4
+        for ids in resets:
+            np.testing.assert_array_equal(ids, np.arange(num_envs))
+        for index, (observation, result, expected) in enumerate(
+            zip(writer.inputs, writer.results, writer.copies, strict=True)
+        ):
+            np.testing.assert_array_equal(observation["episode_id"], index + 1)
+            np.testing.assert_array_equal(observation["step_id"], 0)
+            np.testing.assert_array_equal(result.observation["step_id"], 1)
+            for key, value in observation.items():
+                assert value.flags.owndata
+                assert not np.shares_memory(value, result.observation[key])
+                np.testing.assert_array_equal(result.observation[key], expected[key])
+        # Consumers can mutate a retained input without changing other episodes
+        # or the terminal observations held by the writer.
+        for value in writer.inputs[0].values():
+            value[...] = 0
+        for result, expected in zip(writer.results, writer.copies, strict=True):
+            for key in expected:
+                np.testing.assert_array_equal(result.observation[key], expected[key])
+
+
 def test_chunk_runner_replans_and_resets_only_finished_rows():
     policy = ChunkPolicy()
     writer = RetainingWriter(policy)

@@ -174,9 +174,14 @@ def run_rollout(
             executor.reset(ids)
             if on_reset is not None:
                 on_reset(ids.copy())
-            observation = {key: value.copy() for key, value in observation.items()}
-            for key in observation:
-                observation[key][ids] = reset_observation[key]
+            if len(ids) == env.config.num_envs:
+                # flatnonzero returns canonical row order, and reset already
+                # owns its arrays. There are no surviving rows to preserve.
+                observation = reset_observation
+            else:
+                observation = {key: value.copy() for key, value in observation.items()}
+                for key in observation:
+                    observation[key][ids] = reset_observation[key]
     return RolloutSummary(
         completed_episodes=completed,
         success_rate=successes / completed if completed else None,
