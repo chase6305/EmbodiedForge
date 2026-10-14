@@ -110,6 +110,31 @@ def test_render_time_depth_and_mapping():
         np.testing.assert_allclose(result.observation["frame_age"], 0)
 
 
+@pytest.mark.parametrize("ids", [[3, 1], [], [0, 1, 2, 3]])
+def test_visual_reset_returns_owned_selected_rows_without_changing_other_caches(ids):
+    config = Config(
+        num_envs=4,
+        render="raster",
+        channels=("rgb", "depth", "instance_id"),
+        image_size=16,
+    )
+    with VectorEnv(config) as env:
+        env.step(np.full((4, 2), 0.3))
+        before = env.observe()
+        selected = env.reset(ids)
+        after = env.observe()
+        assert selected.keys() == after.keys()
+        assert selected["env_id"].tolist() == ids
+        for key, value in selected.items():
+            np.testing.assert_array_equal(value, after[key][ids])
+            assert not np.shares_memory(value, after[key])
+            value[:] = 99
+        unchanged = [index for index in range(4) if index not in ids]
+        for key in before:
+            np.testing.assert_array_equal(after[key][unchanged], before[key][unchanged])
+            np.testing.assert_array_equal(env.observe()[key], after[key])
+
+
 def test_validation_and_close():
     env = VectorEnv(Config(num_envs=2))
     for actions in (np.zeros((1, 2)), np.full((2, 2), np.nan), np.ones((2, 2)) * 2):

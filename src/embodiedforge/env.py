@@ -159,21 +159,28 @@ class VectorEnv:
         self.terminated[ids] = self.truncated[ids] = False
         state = self.physics.snapshot()
         self._sample(ids, state)
-        return {key: value[ids].copy() for key, value in self._observe(state).items()}
+        return self._observe(state, env_ids=ids)
 
     def _sample(self, ids: Array, state: StateSnapshot) -> None:
         if len(ids) and self.config.channels:
             self.sensors.sample(ids, self.task.scene_update(state))
 
-    def _observe(self, state: StateSnapshot) -> Observation:
+    def _observe(
+        self, state: StateSnapshot, *, env_ids: Array | None = None
+    ) -> Observation:
+        def owned_rows(value: Array) -> Array:
+            return value.copy() if env_ids is None else value[env_ids]
+
         metadata = {
-            "env_id": np.arange(self.config.num_envs),
-            "episode_id": self.episodes.copy(),
-            "step_id": self.steps.copy(),
-            "time": state.time.copy(),
-            "state_version": state.version.copy(),
+            "env_id": np.arange(self.config.num_envs)
+            if env_ids is None
+            else env_ids.copy(),
+            "episode_id": owned_rows(self.episodes),
+            "step_id": owned_rows(self.steps),
+            "time": owned_rows(state.time),
+            "state_version": owned_rows(state.version),
         }
-        sensors = self.sensors.observe(state.time)
+        sensors = self.sensors.observe(state.time, env_ids=env_ids)
         features = self.task.observe(state)
         reserved = set(metadata) | set(sensors)
         if features.keys() & reserved:
@@ -203,7 +210,7 @@ class VectorEnv:
         return {
             **metadata,
             **sensors,
-            **{name: value.copy() for name, value in features.items()},
+            **{name: owned_rows(value) for name, value in features.items()},
         }
 
     def observe(self) -> Observation:

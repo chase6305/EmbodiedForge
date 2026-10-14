@@ -89,10 +89,19 @@ class SensorPipeline:
         self.frame_time[ids], self.frame_version[ids] = batch.time, batch.version
         self.calibration = deepcopy(batch.calibration)
 
-    def observe(self, time: Array) -> Observation:
-        """Return owned images and timestamps; low-rate frames report their age."""
+    def observe(self, time: Array, *, env_ids: Array | None = None) -> Observation:
+        """Return owned selected images/timestamps; IDs are validated by VectorEnv."""
         if not self.images:
             return {}
+        if env_ids is not None:
+            # Integer row indexing already owns its output. Select before
+            # copying instead of copying every cached image for a partial reset.
+            return {
+                **{name: value[env_ids] for name, value in self.images.items()},
+                "frame_time": self.frame_time[env_ids],
+                "frame_version": self.frame_version[env_ids],
+                "frame_age": time[env_ids] - self.frame_time[env_ids],
+            }
         return {
             **{name: value.copy() for name, value in self.images.items()},
             "frame_time": self.frame_time.copy(),

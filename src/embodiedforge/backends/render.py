@@ -49,7 +49,12 @@ class RasterRenderer(NullRenderer):
         super().build(scene, config)
         s = config.image_size
         coord = (np.arange(s) + 0.5) * 3 / s - 1.5
-        self.x, self.y = np.meshgrid(coord, -coord)
+        # Squared distances are separable: broadcast two axes only when adding.
+        # This avoids computing each axis's difference/square S times per frame.
+        self.x, self.y = coord[None, :], -coord[:, None]
+        self.palette = np.array(
+            [[20, 24, 32], [70, 155, 255], [65, 210, 120]], dtype=np.uint8
+        )
 
     def render(self, ids: Array) -> RenderBatch:
         s = self.config.image_size
@@ -64,11 +69,8 @@ class RasterRenderer(NullRenderer):
                 + (self.y[None] - p[:, 1, None, None]) ** 2
             ) <= radius**2
             labels[:, 0][mask] = entity
-        palette = np.array(
-            [[20, 24, 32], [70, 155, 255], [65, 210, 120]], dtype=np.uint8
-        )
         values = {
-            "rgb": lambda: palette[labels],
+            "rgb": lambda: self.palette[labels],
             "depth": lambda: np.where(labels != 0, 2.0, 0.0).astype(np.float32),
             "instance_id": lambda: labels.copy(),
             "semantic_id": lambda: labels.copy(),
