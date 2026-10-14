@@ -104,7 +104,7 @@ class EpisodeRecorder:
             "compact",
         ):
             raise ValueError("episode_format must be transitions or compact")
-        self.episode_format = episode_format
+        self._episode_format = episode_format
         self._max_buffer_bytes = max_buffer_bytes
         self.buffered_bytes = 0
         self.root = Path(directory)
@@ -157,6 +157,11 @@ class EpisodeRecorder:
     def max_buffer_bytes(self) -> int:
         """Fixed payload budget for this run, also recorded in its manifest."""
         return self._max_buffer_bytes
+
+    @property
+    def episode_format(self) -> str:
+        """Fixed storage layout; changing it mid-run would invalidate byte accounting."""
+        return self._episode_format
 
     def _prepare(self, observation: Observation, result: StepResult) -> list[tuple]:
         """Validate and copy an entire batch without changing memory or disk state."""

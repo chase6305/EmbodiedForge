@@ -42,6 +42,9 @@ def measure(root, *, episode_format, num_envs, steps, image_size, images, noise)
                     result.observation["depth"][:] = rng.random(
                         result.observation["depth"].shape, dtype=np.float32
                     )
+                    result.observation["depth_valid"][:] = (
+                        result.observation["depth"] > 0
+                    )
                 start = time.perf_counter()
                 writer.append(observation, result)
                 timings.append(time.perf_counter() - start)

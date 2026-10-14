@@ -228,7 +228,7 @@ embodiedforge rollout --physics newton --render raster --num-envs 4 \
 
 ### 紧凑 episode
 
-`EpisodeRecorder(..., episode_format="compact")` 将 T 次转换的观测保存为 `state/*` 的 T+1 行序列，转换字段仍为 T 行。缓存中的相邻 obs/next 共享记录器持有的同一份观测，预算只计一次；调用者传入的数组仍被复制，连续性验证保留。默认 `episode_format="transitions"` 继续写原来的独立 obs/next 数组。
+`EpisodeRecorder(..., episode_format="compact")` 将 T 次转换的观测保存为 `state/*` 的 T+1 行序列，转换字段仍为 T 行。格式在构造后不可修改，确保缓存计数与磁盘布局一致。缓存中的相邻 obs/next 共享记录器持有的同一份观测，预算只计一次；调用者传入的数组仍被复制，连续性验证保留。默认 `episode_format="transitions"` 继续写原来的独立 obs/next 数组。
 
 `read_episodes` 支持两种格式，均返回独立的 `obs/*` 和 `next/*` 数组；`action_windows` 和数据导出方无需改变接口。投影读取时不解压未选择的 `state/rgb` 等载荷。紧凑格式仍同步堆叠、压缩并发布完整 episode，预算不包含压缩/堆叠临时内存，也没有提供按帧磁盘映射。
 

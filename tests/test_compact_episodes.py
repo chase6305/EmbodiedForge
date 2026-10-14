@@ -86,6 +86,9 @@ def test_compact_shares_only_owned_continuous_observations_and_releases_budget(
         ) as writer:
             writer.append(obs, first)
             assert writer.buffered_bytes == first_bytes
+            with pytest.raises(AttributeError):
+                writer.episode_format = "transitions"
+            assert writer.episode_format == "compact"
             obs = env.observe()
             second = env.step(np.zeros((1, 2)))
             changed = {k: v.copy() for k, v in obs.items()}
