@@ -321,8 +321,8 @@ class EpisodeRecorder:
             ):
                 raise ValueError("Duplicate episode ID; do not reseed a recording run")
             if (
-                result.observation["episode_id"][i] != episode
-                or result.observation["step_id"][i] != step + 1
+                int(result.observation["episode_id"][i]) != episode
+                or int(result.observation["step_id"][i]) != step + 1
                 or result.observation["time"][i] <= observation["time"][i]
             ):
                 raise ValueError(
@@ -584,6 +584,9 @@ def _load_episode(
 ) -> Observation:
     """Decode and validate in a short-lived scope so scratch arrays are released."""
     schema = metadata["schema_version"]
+    for name in ("env_id", "episode_id"):
+        if type(metadata.get(name)) is not int or metadata[name] < 0:
+            raise ValueError(f"Invalid episode identity: {path}")
     n = metadata["steps"]
     if type(n) is not int or n < 1:
         raise ValueError(f"Corrupt episode lengths: {path}")
@@ -669,7 +672,9 @@ def _load_episode(
         raise ValueError(f"Invalid next step IDs: {path}")
     for name in ("env_id", "episode_id"):
         if not (
-            (observation[name] == metadata[name]).all()
+            metadata[name] <= np.iinfo(observation[name].dtype).max
+            and metadata[name] <= np.iinfo(following[name].dtype).max
+            and (observation[name] == metadata[name]).all()
             and (following[name] == metadata[name]).all()
         ):
             raise ValueError(f"Episode identity mismatch: {path}")
