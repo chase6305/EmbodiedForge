@@ -12,6 +12,60 @@ import pytest
 from embodiedforge import go1_live
 
 
+@pytest.mark.parametrize("stage", ["settimeout", "asset-cache"])
+@pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
+def test_prelaunch_failure_closes_both_real_sockets_with_retained_traceback(
+    tmp_path, monkeypatch, stage, error_type
+):
+    from embodiedforge.recipes import sha256
+
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"snapshot")
+    manifest = {
+        "result": {
+            "checkpoint_sha256": sha256(checkpoint),
+            "runtime": {"executable": sys.executable},
+        }
+    }
+    monkeypatch.setattr(go1_live, "checkpoint_input", lambda *a: (checkpoint, manifest))
+    monkeypatch.setattr(go1_live, "recorded_go1_assets", lambda *a: None)
+    monkeypatch.setattr(go1_live, "copy_go1_implementation", lambda *a: None)
+    parent, child = socket.socketpair()
+    primary = error_type("prelaunch failed")
+
+    class ParentSocket:
+        def settimeout(self, timeout):
+            if stage == "settimeout":
+                raise primary
+            parent.settimeout(timeout)
+
+        def close(self):
+            parent.close()
+
+    monkeypatch.setattr(go1_live.socket, "socketpair", lambda: (ParentSocket(), child))
+    if stage == "asset-cache":
+        monkeypatch.setattr(
+            go1_live, "reuse_asset_cache", MagicMock(side_effect=primary)
+        )
+    launch = MagicMock(side_effect=AssertionError("Must fail before launch"))
+    monkeypatch.setattr(go1_live.subprocess, "Popen", launch)
+    before = set(Path(tempfile.gettempdir()).glob("embodiedforge-go1-live-*"))
+    try:
+        with pytest.raises(BaseException) as caught:
+            go1_live.LivePolicyProcess(tmp_path)
+        assert caught.value is primary
+        # Keep caught/primary and their tracebacks alive: GC must not be needed
+        # to release the inherited child end retained in the constructor frame.
+        assert parent.fileno() == child.fileno() == -1
+        assert (
+            set(Path(tempfile.gettempdir()).glob("embodiedforge-go1-live-*")) == before
+        )
+        launch.assert_not_called()
+    finally:
+        parent.close()
+        child.close()
+
+
 def session_with_fault(stage, error):
     owner = object.__new__(go1_live.LivePolicyProcess)
     owner.closed = False

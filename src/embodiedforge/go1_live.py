@@ -79,10 +79,6 @@ class LivePolicyProcess:
             if sha256(copied) != self.contract["checkpoint_sha256"]:
                 raise ValueError("Copied checkpoint SHA256 mismatch")
             self.socket, child = socket.socketpair()
-            self.socket.settimeout(120)
-            environment = dict(os.environ)
-            reuse_asset_cache(environment, self.contract.get("assets"))
-            environment["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
 
             def close_child():
                 try:
@@ -97,6 +93,10 @@ class LivePolicyProcess:
                     raise
 
             try:
+                self.socket.settimeout(120)
+                environment = dict(os.environ)
+                reuse_asset_cache(environment, self.contract.get("assets"))
+                environment["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
                 self.process = subprocess.Popen(
                     [
                         str(executable),
