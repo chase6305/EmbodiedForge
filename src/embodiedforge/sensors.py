@@ -17,6 +17,37 @@ CHANNEL_DTYPES = {
 }
 
 
+def _valid_depth(depth: Array) -> bool:
+    """Keep validation scratch bounded for large, plain numeric image batches."""
+    if type(depth) is not np.ndarray or depth.size <= 4 * 1024 * 1024:
+        return bool(np.isfinite(depth).all() and not (depth < 0).any())
+    with np.nditer(
+        depth,
+        flags=["external_loop", "buffered", "zerosize_ok"],
+        op_flags=["readonly"],
+        buffersize=256 * 1024,
+    ) as chunks:
+        return all(
+            np.isfinite(chunk).all() and not (chunk < 0).any() for chunk in chunks
+        )
+
+
+def _matching_depth_validity(depth: Array, valid: Array) -> bool:
+    if (
+        type(depth) is not np.ndarray
+        or type(valid) is not np.ndarray
+        or depth.size <= 4 * 1024 * 1024
+    ):
+        return np.array_equal(depth > 0, valid)
+    with np.nditer(
+        [depth, valid],
+        flags=["external_loop", "buffered", "zerosize_ok"],
+        op_flags=[["readonly"], ["readonly"]],
+        buffersize=256 * 1024,
+    ) as chunks:
+        return all(np.array_equal(values > 0, mask) for values, mask in chunks)
+
+
 class SensorPipeline:
     """Own camera caches, independent of task state and physics stepping.
 
@@ -63,13 +94,11 @@ class SensorPipeline:
                 or values.dtype != np.dtype(dtype)
             ):
                 raise ValueError(f"Invalid renderer layout/dtype for {name}")
-            if name == "depth" and (
-                not np.isfinite(values).all() or (values < 0).any()
-            ):
+            if name == "depth" and not _valid_depth(values):
                 raise ValueError("Depth must be finite and nonnegative")
         if "depth" in batch.images:
-            if not np.array_equal(
-                batch.images["depth"] > 0, batch.images["depth_valid"]
+            if not _matching_depth_validity(
+                batch.images["depth"], batch.images["depth_valid"]
             ):
                 raise ValueError("Depth validity must match positive depth pixels")
 
