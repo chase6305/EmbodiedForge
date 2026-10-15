@@ -78,10 +78,15 @@ class ActionExecutor:
                 or (value < 0).any()
             ):
                 raise ValueError(f"{name} must be nonnegative integer[N]")
-        return np.flatnonzero(
-            (observation["episode_id"] != self._episode)
-            | (observation["step_id"] != self._step + 1)
-        )
+        episode = observation["episode_id"]
+        step = observation["step_id"]
+        # uint64/int64 comparisons promote to float64 and can lose identity.
+        # Compare their exact bit patterns in signed views, preserving byte order.
+        if episode.dtype.kind == "u" and episode.dtype.itemsize == 8:
+            episode = episode.view(episode.dtype.str.replace("u", "i"))
+        if step.dtype.kind == "u" and step.dtype.itemsize == 8:
+            step = step.view(step.dtype.str.replace("u", "i"))
+        return np.flatnonzero((episode != self._episode) | (step != self._step + 1))
 
     def act(self, observation: Observation, policy: Policy) -> Array:
         """policy.act receives only rows requiring replanning, returns [B,H,A]."""
@@ -119,4 +124,9 @@ class ActionExecutor:
         if "episode_id" in observation:
             self._episode[:] = observation["episode_id"]
             self._step[:] = observation["step_id"]
+            step = observation["step_id"]
+            if step.dtype.kind == "u" and step.dtype.itemsize == 8:
+                # No valid integer step can follow uint64's maximum. Exhaust
+                # these rows so a wrap to zero cannot reuse a stale chunk.
+                self.length[step == np.iinfo(np.uint64).max] = 0
         return action
