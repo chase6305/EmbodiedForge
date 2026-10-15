@@ -1,6 +1,7 @@
 """Interrupted renderer cleanup must still reap its owned child process."""
 
 import multiprocessing
+import signal
 import time
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -8,6 +9,57 @@ from unittest.mock import MagicMock
 import pytest
 
 from embodiedforge.viewers import frames
+
+
+def _ignore_termination(connection):
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    connection.send("ready")
+    time.sleep(60)
+
+
+@pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
+def test_interrupted_kill_reaps_a_termination_resistant_child(monkeypatch, error_type):
+    context = multiprocessing.get_context("spawn")
+    worker = object.__new__(frames.IsolatedFrames)
+    worker.closed = False
+    worker.connection, child = context.Pipe()
+    worker.process = context.Process(target=_ignore_termination, args=(child,))
+    worker.process.start()
+    child.close()
+    join, kill = worker.process.join, worker.process.kill
+    primary = error_type("kill interrupted before signaling")
+    calls = 0
+
+    def interrupt_once():
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise primary
+        kill()
+
+    monkeypatch.setattr(worker.process, "kill", interrupt_once)
+    # Preserve escalation order while keeping the fault test fast.
+    monkeypatch.setattr(worker.process, "join", lambda timeout: join(min(timeout, 0.1)))
+    try:
+        assert worker.connection.poll(10)
+        assert worker.connection.recv() == "ready"
+        with pytest.raises(error_type) as caught:
+            worker.close()
+        assert caught.value is primary
+        assert worker.connection.closed
+        with pytest.raises(ValueError, match="closed"):
+            worker.process.is_alive()
+        assert calls == 2
+        worker.close()
+    finally:
+        worker.connection.close()
+        try:
+            if worker.process.is_alive():
+                kill()
+            join(5)
+            worker.process.close()
+        except ValueError:
+            pass
 
 
 def worker_with_fault(stage, error):

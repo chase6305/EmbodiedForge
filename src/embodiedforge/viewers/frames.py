@@ -364,7 +364,8 @@ class IsolatedFrames:
                     attempt(self.process.terminate)
                     attempt(lambda: self.process.join(timeout=2))
                 if alive():
-                    attempt(self.process.kill)
+                    if attempt(self.process.kill, default=failed) is failed:
+                        attempt(self.process.kill)
                     attempt(lambda: self.process.join(timeout=2))
         finally:
             if attempt(self.connection.close, default=failed) is failed:
