@@ -62,16 +62,21 @@ def measure(value, packet, count, *, allocation=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--payload-bytes", type=int, default=256 * 1024)
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--payload-bytes", type=int)
+    source.add_argument("--input", type=Path, help="Use a representative JSON message")
     parser.add_argument("--messages", type=int, default=100)
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    if args.payload_bytes < 0 or min(args.messages, args.repeats) < 1:
+    payload_bytes = args.payload_bytes if args.payload_bytes is not None else 256 * 1024
+    if payload_bytes < 0 or min(args.messages, args.repeats) < 1:
         parser.error("Require a nonnegative payload and positive counts")
-    value = {
-        "state": ("aZ09-_" * ((args.payload_bytes + 5) // 6))[: args.payload_bytes]
-    }
+    value = (
+        json.loads(args.input.read_text())
+        if args.input is not None
+        else {"state": ("aZ09-_" * ((payload_bytes + 5) // 6))[:payload_bytes]}
+    )
     data = json.dumps(value, allow_nan=False, separators=(",", ":")).encode()
     if len(data) > JsonChannel.LIMIT:
         parser.error("Encoded JSON exceeds the channel's 4 MiB limit")
@@ -82,7 +87,8 @@ def main():
     allocation = measure(value, packet, 1, allocation=True)
     report = {
         "scope": "Real local socketpair, preframed sender, receive/JSON decode/equality; tracer includes sender thread Python activity but excludes prebuilt inputs, kernel buffers and RSS. No training or robot throughput claim.",
-        "payload_bytes": args.payload_bytes,
+        "payload_bytes": payload_bytes if args.input is None else None,
+        "input_path": str(args.input) if args.input is not None else None,
         "encoded_bytes": len(data),
         "messages_per_repeat": args.messages,
         "input_sha256": hashlib.sha256(data).hexdigest(),
