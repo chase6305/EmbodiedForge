@@ -315,3 +315,67 @@ def test_successful_training_propagates_preview_close_failure_inside_except(
                 pass
     assert caught.value is failure
     assert Wrapper.step is original
+
+
+@pytest.mark.parametrize("failure_type", [OSError, KeyboardInterrupt, SystemExit])
+@pytest.mark.parametrize("secondary_type", [None, KeyboardInterrupt])
+def test_preview_interrupted_server_close_still_releases_listener(
+    monkeypatch, failure_type, secondary_type
+):
+    preview = TrainingPreview(port=0)
+    original = preview.server.server_close
+    primary = failure_type("before closing listener")
+    calls = []
+
+    def server_close():
+        calls.append("server")
+        raise primary
+
+    def renderer_close():
+        calls.append("renderer")
+        if secondary_type:
+            raise secondary_type("secondary renderer cleanup")
+
+    preview.renderer = SimpleNamespace(close=renderer_close)
+    monkeypatch.setattr(preview.server, "server_close", server_close)
+    try:
+        with pytest.raises(failure_type) as caught:
+            preview.close()
+        assert caught.value is primary
+        assert preview.server.fileno() == -1
+        assert not preview.thread.is_alive()
+        assert calls == ["server", "renderer"]
+        preview.close()
+        assert calls == ["server", "renderer"]
+    finally:
+        original()
+
+
+def test_preview_startup_failure_releases_listener_if_server_close_is_interrupted(
+    monkeypatch,
+):
+    from embodiedforge import _wuji_training_viewer as module
+
+    servers = []
+    factory = module.ThreadingHTTPServer
+    primary = KeyboardInterrupt("startup interrupted")
+
+    def server(*args, **kwargs):
+        instance = factory(*args, **kwargs)
+        servers.append(instance)
+
+        def server_close():
+            raise OSError("before closing listener")
+
+        monkeypatch.setattr(instance, "server_close", server_close)
+        return instance
+
+    def start(*args):
+        raise primary
+
+    monkeypatch.setattr(module, "ThreadingHTTPServer", server)
+    monkeypatch.setattr(module.Thread, "start", start)
+    with pytest.raises(KeyboardInterrupt) as caught:
+        TrainingPreview(port=0)
+    assert caught.value is primary
+    assert len(servers) == 1 and servers[0].fileno() == -1

@@ -815,3 +815,66 @@ def test_web_velocity_validation_precedes_queue(session, value):
     with pytest.raises(ValueError):
         viewer.submit({"action": "velocity", "env_id": 0, "value": value})
     assert not viewer._commands
+
+
+@pytest.mark.parametrize("failure_type", [OSError, KeyboardInterrupt, SystemExit])
+@pytest.mark.parametrize("secondary_type", [None, KeyboardInterrupt])
+def test_interrupted_server_close_still_releases_listener(
+    session, monkeypatch, failure_type, secondary_type
+):
+    _, viewer = session
+    original_socket_close = viewer.server.server_close
+    original_renderer_close = viewer.renderer.close
+    primary = failure_type("before closing listener")
+    calls = []
+
+    def server_close():
+        calls.append("server")
+        raise primary
+
+    def renderer_close():
+        calls.append("renderer")
+        original_renderer_close()
+        if secondary_type:
+            raise secondary_type("secondary renderer cleanup")
+
+    monkeypatch.setattr(viewer.server, "server_close", server_close)
+    monkeypatch.setattr(viewer.renderer, "close", renderer_close)
+    try:
+        with pytest.raises(failure_type) as caught:
+            viewer.close()
+        assert caught.value is primary
+        assert viewer.server.fileno() == -1
+        assert not viewer.thread.is_alive()
+        assert calls == ["server", "renderer"]
+        viewer.close()
+        assert calls == ["server", "renderer"]
+    finally:
+        original_socket_close()
+
+
+def test_startup_failure_releases_listener_if_server_close_is_interrupted(monkeypatch):
+    servers = []
+    factory = web.ThreadingHTTPServer
+    primary = KeyboardInterrupt("startup interrupted")
+
+    def server(*args, **kwargs):
+        instance = factory(*args, **kwargs)
+        servers.append(instance)
+
+        def server_close():
+            raise OSError("before closing listener")
+
+        monkeypatch.setattr(instance, "server_close", server_close)
+        return instance
+
+    def start(*args):
+        raise primary
+
+    monkeypatch.setattr(web, "ThreadingHTTPServer", server)
+    monkeypatch.setattr(web.threading.Thread, "start", start)
+    with VectorEnv(Config(num_envs=1)) as env:
+        with pytest.raises(KeyboardInterrupt) as caught:
+            create_viewer("web", env.config, env.task.scene, port=0)
+    assert caught.value is primary
+    assert len(servers) == 1 and servers[0].fileno() == -1

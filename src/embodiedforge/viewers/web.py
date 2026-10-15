@@ -685,6 +685,8 @@ class WebViewer:
 
                 operations.append(shutdown)
             operations.append(self.server.server_close)
+            # server_close may be interrupted before it releases the listener.
+            operations.append(self.server.socket.close)
             if self.thread is not None and self.thread.ident is not None:
                 operations.append(lambda: self.thread.join(timeout=3))
         operations.append(self.renderer.close)
