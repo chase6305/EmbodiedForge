@@ -155,15 +155,38 @@ class LivePolicyProcess:
             raise
 
     def _receive(self):
-        value = self.channel.receive()
+        try:
+            value = self.channel.receive()
+            if (
+                not isinstance(value, dict)
+                or type(value.get("ok")) is not bool
+                or (value["ok"] and not isinstance(value.get("state"), dict))
+                or (not value["ok"] and not isinstance(value.get("error"), str))
+            ):
+                raise ValueError("Invalid live policy response")
+        except BaseException:
+            # A timeout or interrupt may have consumed part of a frame. The
+            # stream has no request IDs with which to recover its alignment.
+            self._close_preserving_error()
+            raise
         if not value["ok"]:
             raise RuntimeError(value["error"])
         return value
 
+    def _close_preserving_error(self):
+        try:
+            self.close()
+        except BaseException:
+            get_logger(__name__).exception("Failed to clean up live policy worker")
+
     def request(self, action, **kwargs):
         if self.closed:
             raise RuntimeError("Policy session is closed")
-        self.channel.send({"action": action, **kwargs})
+        try:
+            self.channel.send({"action": action, **kwargs})
+        except (OSError, KeyboardInterrupt, SystemExit):
+            self._close_preserving_error()
+            raise
         self.state = self._receive()["state"]
         return self.state
 
