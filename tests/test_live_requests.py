@@ -49,6 +49,20 @@ def test_response_timeout_closes_session_and_prevents_stale_reply(session, prefi
         owner.request("step")
 
 
+@pytest.mark.parametrize("failure", ["timeout", "broken-pipe"])
+def test_real_send_failure_closes_session(session, failure):
+    owner, peer = session
+    owner.socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 4096)
+    if failure == "broken-pipe":
+        peer.close()
+    with pytest.raises(OSError):
+        owner.request("velocity", value="x" * 100000)
+    assert owner.closed
+    assert owner.socket.fileno() == -1
+    assert owner.state == {"step": [0]}
+    assert not Path(owner.directory.name).exists()
+
+
 @pytest.mark.parametrize(
     "value",
     [
