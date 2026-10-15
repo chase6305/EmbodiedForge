@@ -83,6 +83,19 @@ class LivePolicyProcess:
             environment = dict(os.environ)
             reuse_asset_cache(environment, self.contract.get("assets"))
             environment["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
+
+            def close_child():
+                try:
+                    child.close()
+                except BaseException:
+                    try:
+                        child.close()
+                    except BaseException:
+                        get_logger(__name__).exception(
+                            "Additional live worker socket cleanup failure"
+                        )
+                    raise
+
             try:
                 self.process = subprocess.Popen(
                     [
@@ -100,12 +113,12 @@ class LivePolicyProcess:
                 )
             except BaseException:
                 try:
-                    child.close()
+                    close_child()
                 except BaseException:
                     get_logger(__name__).exception("Failed to close live worker socket")
                 raise
             else:
-                child.close()
+                close_child()
             self.channel = JsonChannel(self.socket)
             self.channel.send(
                 {

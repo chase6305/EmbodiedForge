@@ -255,3 +255,60 @@ def test_real_handles_close_after_an_interrupt_before_release(monkeypatch, stage
         owner.process.stdout.close()
         sock.close()
         cleanup()
+
+
+@pytest.mark.parametrize("launched", [False, True])
+@pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
+def test_startup_socket_interrupt_releases_both_real_descriptors(
+    tmp_path, monkeypatch, launched, error_type
+):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"weights")
+    from embodiedforge.recipes import sha256
+
+    manifest = {
+        "result": {
+            "checkpoint_sha256": sha256(checkpoint),
+            "runtime": {"executable": sys.executable},
+        }
+    }
+    monkeypatch.setattr(
+        go1_live, "checkpoint_input", lambda *args: (checkpoint, manifest)
+    )
+    monkeypatch.setattr(go1_live, "recorded_go1_assets", lambda *args: None)
+    monkeypatch.setattr(go1_live, "copy_go1_implementation", lambda *args: None)
+    parent, child = socket.socketpair()
+    primary = RuntimeError("launch failed")
+    interrupted = error_type("child socket close interrupted")
+    calls = 0
+
+    class ChildSocket:
+        fileno = staticmethod(child.fileno)
+
+        @staticmethod
+        def close():
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise interrupted
+            child.close()
+
+    monkeypatch.setattr(go1_live.socket, "socketpair", lambda: (parent, ChildSocket()))
+    process = MagicMock()
+    process.poll.return_value = 0
+    launch = (
+        MagicMock(return_value=process) if launched else MagicMock(side_effect=primary)
+    )
+    monkeypatch.setattr(go1_live.subprocess, "Popen", launch)
+    expected = interrupted if launched else primary
+    try:
+        with pytest.raises(type(expected)) as caught:
+            go1_live.LivePolicyProcess(tmp_path)
+        assert caught.value is expected
+        assert parent.fileno() == child.fileno() == -1
+        assert calls == 2
+        if launched:
+            process.wait.assert_called_once_with(timeout=5)
+    finally:
+        parent.close()
+        child.close()
