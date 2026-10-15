@@ -391,15 +391,13 @@ class EpisodeRecorder:
 
     def _row_bytes(self, row: dict, *, continuing: bool) -> int:
         """Count only new owned payloads; compact rows share adjacent observations."""
-        return sum(
-            value.nbytes
-            for name, value in row.items()
-            if not (
-                continuing
-                and self.episode_format == "compact"
-                and name.startswith("obs/")
+        if continuing and self.episode_format == "compact":
+            return sum(
+                value.nbytes
+                for name, value in row.items()
+                if not name.startswith("obs/")
             )
-        )
+        return sum(value.nbytes for value in row.values())
 
     def _finish(self, key: tuple[int, int]) -> None:
         rows = self.pending[key]
