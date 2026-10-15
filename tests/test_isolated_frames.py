@@ -33,7 +33,7 @@ def test_cleanup_reaps_worker_after_an_interrupted_operation(stage, error_type):
         worker.close()
     assert caught.value is error
     assert not alive[0]
-    worker.connection.close.assert_called_once()
+    assert worker.connection.close.call_count == (2 if stage == "close" else 1)
     worker.process.close.assert_called_once()
     assert worker.closed
     worker.close()
@@ -48,6 +48,28 @@ def test_render_failure_survives_secondary_cleanup_failure(primary_type, cleanup
     worker._receive = MagicMock(side_effect=primary)
     with pytest.raises(primary_type) as caught:
         worker.render(None, {}, 0, frames.OrbitCamera())
+    assert caught.value is primary
+    assert not alive[0]
+    worker.connection.close.assert_called_once()
+    worker.process.close.assert_called_once()
+
+
+@pytest.mark.parametrize("interrupted_probe", [0, 1, 2, 3])
+def test_interrupted_liveness_probe_still_releases_process_handle(interrupted_probe):
+    worker, alive = worker_with_fault("join", None)
+    primary = KeyboardInterrupt("liveness query interrupted")
+    probes = 0
+
+    def is_alive():
+        nonlocal probes
+        probes += 1
+        if probes == interrupted_probe + 1:
+            raise primary
+        return alive[0]
+
+    worker.process.is_alive.side_effect = is_alive
+    with pytest.raises(KeyboardInterrupt) as caught:
+        worker.close()
     assert caught.value is primary
     assert not alive[0]
     worker.connection.close.assert_called_once()
@@ -122,3 +144,59 @@ def test_interrupted_join_terminates_and_reaps_a_real_child(monkeypatch):
             worker.process.close()
         except ValueError:
             pass  # The successful path already closed the Process handle.
+
+
+def test_interrupted_handle_closes_release_real_descriptors(monkeypatch):
+    context = multiprocessing.get_context("spawn")
+    worker = object.__new__(frames.IsolatedFrames)
+    worker.closed = False
+    worker.connection, child = context.Pipe()
+    worker.process = context.Process(target=time.sleep, args=(60,))
+    worker.process.start()
+    child.close()
+    join, close_pipe, close_process = (
+        worker.process.join,
+        worker.connection.close,
+        worker.process.close,
+    )
+    primary = KeyboardInterrupt("join interrupted")
+
+    def once_then(operation, error):
+        first = True
+
+        def interrupted(*args, **kwargs):
+            nonlocal first
+            if first:
+                first = False
+                raise error
+            return operation(*args, **kwargs)
+
+        return interrupted
+
+    monkeypatch.setattr(worker.process, "join", once_then(join, primary))
+    monkeypatch.setattr(
+        worker.connection,
+        "close",
+        once_then(close_pipe, OSError("pipe close interrupted")),
+    )
+    monkeypatch.setattr(
+        worker.process,
+        "close",
+        once_then(close_process, SystemExit("process handle close interrupted")),
+    )
+    try:
+        with pytest.raises(KeyboardInterrupt) as caught:
+            worker.close()
+        assert caught.value is primary
+        assert worker.connection.closed
+        with pytest.raises(ValueError, match="closed"):
+            worker.process.is_alive()
+    finally:
+        close_pipe()
+        try:
+            if worker.process.is_alive():
+                worker.process.kill()
+            join(timeout=3)
+            close_process()
+        except ValueError:
+            pass

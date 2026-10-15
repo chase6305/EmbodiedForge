@@ -327,20 +327,30 @@ class IsolatedFrames:
             return
         self.closed = True
         error = None
+        failed = object()
 
-        def attempt(operation):
+        def attempt(operation, *, default=None):
             nonlocal error
             try:
-                operation()
+                return operation()
             except BaseException as caught:
                 if error is None:
                     error = caught
                 else:
                     LOGGER.exception("Additional isolated renderer cleanup failure")
+                return default
+
+        def alive():
+            result = attempt(self.process.is_alive, default=failed)
+            return (
+                attempt(self.process.is_alive, default=True)
+                if result is failed
+                else result
+            )
 
         try:
             if self.process.pid is not None:
-                if self.process.is_alive():
+                if alive():
 
                     def request_close():
                         try:
@@ -350,16 +360,20 @@ class IsolatedFrames:
 
                     attempt(request_close)
                 attempt(lambda: self.process.join(timeout=5))
-                if self.process.is_alive():
+                if alive():
                     attempt(self.process.terminate)
                     attempt(lambda: self.process.join(timeout=2))
-                if self.process.is_alive():
+                if alive():
                     attempt(self.process.kill)
                     attempt(lambda: self.process.join(timeout=2))
         finally:
-            attempt(self.connection.close)
-            if self.process.pid is not None and not self.process.is_alive():
-                attempt(self.process.close)
+            if attempt(self.connection.close, default=failed) is failed:
+                # These standard handles support repeated close; an interrupt
+                # may arrive before the descriptor release actually happens.
+                attempt(self.connection.close)
+            if self.process.pid is not None and not alive():
+                if attempt(self.process.close, default=failed) is failed:
+                    attempt(self.process.close)
         if error is not None:
             raise error
 
