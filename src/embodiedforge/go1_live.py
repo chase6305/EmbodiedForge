@@ -389,18 +389,21 @@ def main(argv=None):
         pass
     finally:
         active_error = sys.exc_info()[0] is not None
-        try:
+        cleanup_error = None
+        for owner in (viewer, policy):
+            if owner is None:
+                continue
             try:
-                if viewer is not None:
-                    viewer.close()
-            finally:
-                policy.close()
-        except Exception:
-            if not active_error:
-                raise
-            logger.exception(
-                "Live session cleanup also failed; preserving the original error"
-            )
+                owner.close()
+            except BaseException as error:
+                if active_error or cleanup_error is not None:
+                    logger.exception(
+                        "Live session cleanup also failed; preserving the original error"
+                    )
+                else:
+                    cleanup_error = error
+        if cleanup_error is not None:
+            raise cleanup_error
         logger.info("Live Go1 stopped")
 
 
