@@ -241,7 +241,9 @@ def test_batch_shuffle_consumes_bounded_prefix(monkeypatch):
     iterator.close()
 
 
-@pytest.mark.parametrize("fault", ["shape", "dtype", "schema"])
+@pytest.mark.parametrize(
+    "fault", ["shape", "dtype", "schema", "observation_shape", "observation_dtype"]
+)
 @pytest.mark.parametrize("shuffle_buffer", [0, 2])
 def test_batch_rejects_incompatible_samples(monkeypatch, fault, shuffle_buffer):
     from embodiedforge import batching as module
@@ -256,8 +258,12 @@ def test_batch_rejects_incompatible_samples(monkeypatch, fault, shuffle_buffer):
         second["action"] = np.zeros((2, 2), dtype=np.float32)
     elif fault == "dtype":
         second["action"] = first["action"].astype(np.float64)
-    else:
+    elif fault == "schema":
         second["observation"] = {"other": np.zeros((1, 2))}
+    elif fault == "observation_shape":
+        second["observation"] = {"proprio": np.zeros((1, 3))}
+    else:
+        second["observation"] = {"proprio": np.zeros((1, 2), dtype=np.float32)}
     monkeypatch.setattr(
         module, "action_windows", lambda *a, **kw: iter([first, second])
     )

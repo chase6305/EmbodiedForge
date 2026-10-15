@@ -76,18 +76,17 @@ def _shuffle(
 def _collate(samples: list[dict]) -> WindowBatch:
     """Reject incompatible layouts before stacking, including silent dtype casts."""
     first = samples[0]
+    first_observation, first_action = first["observation"], first["action"]
     for sample in samples:
-        if sample["observation"].keys() != first["observation"].keys():
+        observation, action = sample["observation"], sample["action"]
+        if observation.keys() != first_observation.keys():
             raise ValueError("Cannot batch different observation schemas")
-        for name, value in {
-            "action": sample["action"],
-            **{f"obs/{key}": array for key, array in sample["observation"].items()},
-        }.items():
-            reference = (
-                first["action"] if name == "action" else first["observation"][name[4:]]
-            )
+        if action.shape != first_action.shape or action.dtype != first_action.dtype:
+            raise ValueError("Cannot batch different shapes/dtypes for action")
+        for key, value in observation.items():
+            reference = first_observation[key]
             if value.shape != reference.shape or value.dtype != reference.dtype:
-                raise ValueError(f"Cannot batch different shapes/dtypes for {name}")
+                raise ValueError(f"Cannot batch different shapes/dtypes for obs/{key}")
         if not isinstance(sample["instruction"], str):
             raise ValueError("Batch instructions must be strings")
     return WindowBatch(
