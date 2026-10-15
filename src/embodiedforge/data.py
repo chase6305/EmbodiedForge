@@ -291,6 +291,14 @@ class EpisodeRecorder:
             )
         # One pending episode per environment; compute the lookup once per batch.
         pending_episodes = {key[0]: key[1] for key in self.pending}
+        fields = [
+            (name, f"obs/{name}", f"next/{name}", values)
+            for name, values in observation.items()
+        ]
+        next_fields = [
+            (f"next/{name}", values) for name, values in result.observation.items()
+        ]
+        compact = self.episode_format == "compact"
         prepared = []
         for i in active_ids:
             episode = int(observation["episode_id"][i])
@@ -320,7 +328,7 @@ class EpisodeRecorder:
                 raise ValueError(
                     "next observation must precede reset and advance exactly one step"
                 )
-            for name, values in observation.items():
+            for name, _, next_name, values in fields:
                 next_values = result.observation[name]
                 if (
                     values.shape != next_values.shape
@@ -328,21 +336,17 @@ class EpisodeRecorder:
                 ):
                     raise ValueError(f"Observation layout changed for {name}")
                 if rows and (
-                    f"next/{name}" not in rows[-1]
-                    or not np.array_equal(values[i], rows[-1][f"next/{name}"])
+                    next_name not in rows[-1]
+                    or not np.array_equal(values[i], rows[-1][next_name])
                 ):
                     raise ValueError(f"Observation continuity broken for {name}")
             row = {
-                f"obs/{k}": (
-                    rows[-1][f"next/{k}"]
-                    if rows and self.episode_format == "compact"
-                    else v[i].copy()
+                obs_name: (
+                    rows[-1][next_name] if rows and compact else values[i].copy()
                 )
-                for k, v in observation.items()
+                for _, obs_name, next_name, values in fields
             }
-            row.update(
-                {f"next/{k}": v[i].copy() for k, v in result.observation.items()}
-            )
+            row.update({name: values[i].copy() for name, values in next_fields})
             row.update(
                 action=action[i].copy(),
                 reward=result.reward[i].copy(),
