@@ -1,10 +1,13 @@
 """Read-only browser preview for native and Light Loco Go1 training."""
 
+import logging
 from contextlib import contextmanager
 
 import numpy as np
 
 from ._wuji_training_viewer import TrainingPreview
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Go1Preview(TrainingPreview):
@@ -31,8 +34,9 @@ class Go1Preview(TrainingPreview):
 
 @contextmanager
 def training_preview(env, request):
-    preview = Go1Preview(request["viewer_port"], request["viewer_fps"])
     original = env.step
+    inherited = hasattr(env, "__dict__") and "step" not in vars(env)
+    preview = Go1Preview(request["viewer_port"], request["viewer_fps"])
 
     def step(actions):
         result = original(actions)
@@ -41,7 +45,18 @@ def training_preview(env, request):
 
     env.step = step
     try:
-        yield preview
-    finally:
-        del env.step
+        try:
+            yield preview
+        finally:
+            if inherited:
+                del env.step
+            else:
+                env.step = original
+    except BaseException:
+        try:
+            preview.close()
+        except BaseException:
+            LOGGER.exception("Go1 preview cleanup after training failure")
+        raise
+    else:
         preview.close()
