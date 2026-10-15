@@ -80,8 +80,9 @@ class ActionExecutor:
                 raise ValueError(f"{name} must be nonnegative integer[N]")
         episode = observation["episode_id"]
         step = observation["step_id"]
-        # uint64/int64 comparisons promote to float64 and can lose identity.
-        # Compare their exact bit patterns in signed views, preserving byte order.
+        # Tracking buffers store int64, including wrapped uint64 bit patterns.
+        # Match that signed encoding so large unsigned IDs compare correctly;
+        # preserve byte order and borrow the input without copying its payload.
         if episode.dtype.kind == "u" and episode.dtype.itemsize == 8:
             episode = episode.view(episode.dtype.str.replace("u", "i"))
         if step.dtype.kind == "u" and step.dtype.itemsize == 8:
