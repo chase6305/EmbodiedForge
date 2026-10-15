@@ -98,7 +98,13 @@ class LivePolicyProcess:
                     stdout=sys.stderr,
                     stderr=sys.stderr,
                 )
-            finally:
+            except BaseException:
+                try:
+                    child.close()
+                except BaseException:
+                    get_logger(__name__).exception("Failed to close live worker socket")
+                raise
+            else:
                 child.close()
             self.channel = JsonChannel(self.socket)
             self.channel.send(
@@ -129,7 +135,10 @@ class LivePolicyProcess:
                 raise ValueError("Compiled model SHA256 mismatch")
             self.socket.settimeout(30)
         except BaseException:
-            self.close()
+            try:
+                self.close()
+            except BaseException:
+                get_logger(__name__).exception("Failed to clean up live policy worker")
             raise
 
     def _receive(self):
@@ -178,30 +187,64 @@ class LivePolicyProcess:
         )
 
     def close(self):
+        """Reap the worker and release local resources after cleanup interruptions."""
         if self.closed:
             return
         self.closed = True
-        try:
-            if self.process is not None:
-                if self.process.poll() is None and self.socket is not None:
+        error = None
+        failed = object()
+
+        def attempt(operation, *, default=None):
+            nonlocal error
+            try:
+                return operation()
+            except BaseException as caught:
+                if error is None:
+                    error = caught
+                else:
+                    get_logger(__name__).exception(
+                        "Additional live worker cleanup failure"
+                    )
+                return default
+
+        def running():
+            status = attempt(self.process.poll, default=failed)
+            if status is failed:
+                status = attempt(self.process.poll, default=None)
+            return status is None
+
+        def wait(timeout):
+            try:
+                self.process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                pass
+
+        if self.process is not None:
+            if running() and self.socket is not None:
+
+                def request_close():
                     try:
                         self.socket.settimeout(0.2)
                         JsonChannel(self.socket).send({"action": "close"})
                     except OSError:
                         pass
-                try:
-                    self.process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    self.process.terminate()
-                    try:
-                        self.process.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        self.process.kill()
-                        self.process.wait(timeout=2)
-        finally:
-            if self.socket is not None:
-                self.socket.close()
-            self.directory.cleanup()
+
+                attempt(request_close)
+            attempt(lambda: wait(5))
+            if running():
+                attempt(self.process.terminate)
+                attempt(lambda: wait(2))
+            if running():
+                if attempt(self.process.kill, default=failed) is failed:
+                    attempt(self.process.kill)
+                attempt(lambda: wait(2))
+        if self.socket is not None:
+            if attempt(self.socket.close, default=failed) is failed:
+                attempt(self.socket.close)
+        if attempt(self.directory.cleanup, default=failed) is failed:
+            attempt(self.directory.cleanup)
+        if error is not None:
+            raise error
 
 
 def main(argv=None):
