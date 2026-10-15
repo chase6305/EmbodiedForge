@@ -68,6 +68,36 @@ def test_chunk_reset_only_replans_selected_rows():
     assert policy.calls == [[0, 1], [1]]
 
 
+@pytest.mark.parametrize("num_envs, action_dim, horizon", [(1, 1, 1), (3, 7, 3)])
+def test_executed_actions_remain_owned_across_mutation_and_partial_reset(
+    num_envs, action_dim, horizon
+):
+    class Policy:
+        def act(self, observation):
+            self.predicted = np.full(
+                (len(observation["env_id"]), horizon, action_dim),
+                0.25,
+                dtype=np.float32,
+            )
+            return self.predicted
+
+    policy = Policy()
+    executor = ActionExecutor(num_envs, action_dim, horizon)
+    observation = {"env_id": np.arange(num_envs)}
+    action = executor.act(observation, policy)
+    assert action.flags.owndata and action.flags.c_contiguous
+    assert not np.shares_memory(action, executor.chunks)
+    assert not np.shares_memory(action, policy.predicted)
+    action[:] = -0.75
+    executor.reset([0])
+    following = executor.act(observation, policy)
+    np.testing.assert_array_equal(action, -0.75)
+    np.testing.assert_array_equal(following, 0.25)
+    following[:] = 0.5
+    np.testing.assert_array_equal(action, -0.75)
+    np.testing.assert_array_equal(executor.chunks[0], 0.25)
+
+
 def test_recorder_rejects_missing_transition(tmp_path):
     with (
         VectorEnv(Config(num_envs=1)) as env,

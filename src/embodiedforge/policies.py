@@ -113,7 +113,8 @@ class ActionExecutor:
             self.chunks[ids, : chunks.shape[1]] = chunks
             self.cursor[ids] = 0
             self.length[ids] = chunks.shape[1]
-        action = self.chunks[np.arange(len(self.cursor)), self.cursor].copy()
+        # Integer indexing already allocates an independent action batch.
+        action = self.chunks[np.arange(len(self.cursor)), self.cursor]
         self.cursor += 1
         if "episode_id" in observation:
             self._episode[:] = observation["episode_id"]
