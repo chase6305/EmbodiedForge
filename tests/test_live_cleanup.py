@@ -30,6 +30,12 @@ def test_prelaunch_failure_closes_both_real_sockets_with_retained_traceback(
     monkeypatch.setattr(go1_live, "checkpoint_input", lambda *a: (checkpoint, manifest))
     monkeypatch.setattr(go1_live, "recorded_go1_assets", lambda *a: None)
     monkeypatch.setattr(go1_live, "copy_go1_implementation", lambda *a: None)
+    temporary_directory = tempfile.TemporaryDirectory
+    monkeypatch.setattr(
+        go1_live.tempfile,
+        "TemporaryDirectory",
+        lambda **kwargs: temporary_directory(dir=tmp_path, **kwargs),
+    )
     parent, child = socket.socketpair()
     primary = error_type("prelaunch failed")
 
@@ -49,7 +55,7 @@ def test_prelaunch_failure_closes_both_real_sockets_with_retained_traceback(
         )
     launch = MagicMock(side_effect=AssertionError("Must fail before launch"))
     monkeypatch.setattr(go1_live.subprocess, "Popen", launch)
-    before = set(Path(tempfile.gettempdir()).glob("embodiedforge-go1-live-*"))
+    before = set(tmp_path.glob("embodiedforge-go1-live-*"))
     try:
         with pytest.raises(BaseException) as caught:
             go1_live.LivePolicyProcess(tmp_path)
@@ -57,9 +63,7 @@ def test_prelaunch_failure_closes_both_real_sockets_with_retained_traceback(
         # Keep caught/primary and their tracebacks alive: GC must not be needed
         # to release the inherited child end retained in the constructor frame.
         assert parent.fileno() == child.fileno() == -1
-        assert (
-            set(Path(tempfile.gettempdir()).glob("embodiedforge-go1-live-*")) == before
-        )
+        assert set(tmp_path.glob("embodiedforge-go1-live-*")) == before
         launch.assert_not_called()
     finally:
         parent.close()
