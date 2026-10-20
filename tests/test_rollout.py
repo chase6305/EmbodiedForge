@@ -51,6 +51,211 @@ class RetainingWriter:
         )
 
 
+@pytest.mark.parametrize("num_envs", [1, 3])
+@pytest.mark.parametrize("channels", [(), ("rgb", "depth", "instance_id")])
+def test_full_reset_keeps_retained_terminal_frames_and_owned_policy_inputs(
+    num_envs, channels
+):
+    class TimeoutTask(ReachTask):
+        def evaluate(self, state, actions, previous):
+            return (
+                np.ones(num_envs, dtype=np.float32),
+                np.zeros(num_envs, dtype=bool),
+                np.zeros(num_envs, dtype=bool),
+            )
+
+    class Writer:
+        def __init__(self):
+            self.inputs, self.results, self.copies = [], [], []
+
+        def append(self, observation, result):
+            self.inputs.append(observation)
+            self.results.append(result)
+            self.copies.append({k: v.copy() for k, v in result.observation.items()})
+
+    class ZeroPolicy:
+        def act(self, observation):
+            return np.zeros((len(observation["env_id"]), 1, 2), dtype=np.float32)
+
+    writer = Writer()
+    resets = []
+    with VectorEnv(
+        Config(num_envs=num_envs, max_steps=1, render="raster", channels=channels),
+        task=TimeoutTask(),
+    ) as env:
+        summary = run_rollout(
+            env, ZeroPolicy(), steps=4, writer=writer, on_reset=resets.append
+        )
+        assert summary.completed_episodes == 4 * num_envs
+        assert len(resets) == 4
+        for ids in resets:
+            np.testing.assert_array_equal(ids, np.arange(num_envs))
+        for index, (observation, result, expected) in enumerate(
+            zip(writer.inputs, writer.results, writer.copies, strict=True)
+        ):
+            np.testing.assert_array_equal(observation["episode_id"], index + 1)
+            np.testing.assert_array_equal(observation["step_id"], 0)
+            np.testing.assert_array_equal(result.observation["step_id"], 1)
+            for key, value in observation.items():
+                assert value.flags.owndata
+                assert not np.shares_memory(value, result.observation[key])
+                np.testing.assert_array_equal(result.observation[key], expected[key])
+        # Consumers can mutate a retained input without changing other episodes
+        # or the terminal observations held by the writer.
+        for value in writer.inputs[0].values():
+            value[...] = 0
+        for result, expected in zip(writer.results, writer.copies, strict=True):
+            for key in expected:
+                np.testing.assert_array_equal(result.observation[key], expected[key])
+
+
+@pytest.mark.parametrize(
+    "layout",
+    ["dtype", "broadcast", "extra_reset_key", "key_order", "strides", "subclass"],
+)
+def test_full_reset_preserves_replacement_behavior_for_dynamic_extra_fields(layout):
+    class TaggedArray(np.ndarray):
+        def __array_finalize__(self, source):
+            self.stage = getattr(source, "stage", None)
+
+    class DynamicTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            resetting = not state.time.any()
+            shape = (3, 1 if resetting and layout == "broadcast" else 2)
+            dtype = np.float32 if resetting and layout == "dtype" else np.float64
+            observation["extra"] = np.full(shape, 9.9, dtype=dtype)
+            if layout == "strides":
+                observation["extra"] = np.asfortranarray(
+                    np.full((3, 2, 3), 9.9, dtype=dtype)
+                )
+            if layout == "subclass":
+                observation["extra"] = observation["extra"].view(TaggedArray)
+                observation["extra"].stage = "reset" if resetting else "terminal"
+            if resetting and layout == "extra_reset_key":
+                observation["reset_only"] = np.ones((3, 1))
+            if layout == "key_order":
+                names = ("first", "second") if resetting else ("second", "first")
+                observation.update({name: np.ones((3, 1)) for name in names})
+            return observation
+
+    class Policy:
+        def __init__(self):
+            self.inputs = []
+
+        def act(self, observation):
+            self.inputs.append(observation)
+            return np.zeros((3, 1, 2), dtype=np.float32)
+
+    policy = Policy()
+    with VectorEnv(Config(num_envs=3, max_steps=1), task=DynamicTask()) as env:
+        run_rollout(env, policy, steps=3)
+    assert policy.inputs[0]["extra"].dtype == (
+        np.float32 if layout == "dtype" else np.float64
+    )
+    for observation in policy.inputs[1:]:
+        # Replacement into the terminal layout preserves its dtype, broadcasts
+        # compatible reset shapes and ignores additional reset-only fields.
+        assert observation["extra"].dtype == np.float64
+        assert observation["extra"].shape == (
+            (3, 2, 3) if layout == "strides" else (3, 2)
+        )
+        expected = np.float64(np.float32(9.9)) if layout == "dtype" else 9.9
+        np.testing.assert_array_equal(observation["extra"], expected)
+        assert "reset_only" not in observation
+        if layout == "key_order":
+            assert tuple(observation)[-2:] == ("second", "first")
+        if layout == "strides":
+            assert observation["extra"].flags.c_contiguous
+        if layout == "subclass":
+            assert observation["extra"].stage == "terminal"
+
+
+@pytest.mark.parametrize("array_metadata", [False, True])
+@pytest.mark.parametrize("structured", [False, True])
+def test_full_reset_preserves_terminal_dtype_metadata(array_metadata, structured):
+    class DynamicTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            value = 1 if state.time.any() else 0
+            metadata = {"stage": np.array([value, value]) if array_metadata else value}
+            dtype = np.dtype("f8", metadata=metadata)
+            if structured:
+                dtype = np.dtype([("payload", dtype)])
+            observation["extra"] = np.ones((3, 2), dtype=dtype)
+            return observation
+
+    class Policy:
+        def __init__(self):
+            self.stages = []
+
+        def act(self, observation):
+            dtype = observation["extra"].dtype
+            if structured:
+                dtype = dtype.fields["payload"][0]
+            self.stages.append(dtype.metadata["stage"])
+            return np.zeros((3, 1, 2), dtype=np.float32)
+
+    policy = Policy()
+    with VectorEnv(Config(num_envs=3, max_steps=1), task=DynamicTask()) as env:
+        run_rollout(env, policy, steps=3)
+    for actual, expected in zip(policy.stages, (0, 1, 1), strict=True):
+        np.testing.assert_array_equal(
+            actual, [expected, expected] if array_metadata else expected
+        )
+
+
+def test_full_reset_preserves_explicit_native_byteorder_dtype():
+    reset_dtype = np.dtype("f8")
+    terminal_dtype = reset_dtype.newbyteorder("<" if np.little_endian else ">")
+    assert reset_dtype == terminal_dtype and reset_dtype is not terminal_dtype
+
+    class DynamicTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            dtype = terminal_dtype if state.time.any() else reset_dtype
+            observation["extra"] = np.ones((3, 2), dtype=dtype)
+            return observation
+
+    class Policy:
+        def __init__(self):
+            self.dtypes = []
+
+        def act(self, observation):
+            self.dtypes.append(observation["extra"].dtype)
+            return np.zeros((3, 1, 2), dtype=np.float32)
+
+    policy = Policy()
+    with VectorEnv(Config(num_envs=3, max_steps=1), task=DynamicTask()) as env:
+        run_rollout(env, policy, steps=3)
+    assert policy.dtypes[0] is reset_dtype
+    for dtype in policy.dtypes[1:]:
+        assert dtype is terminal_dtype
+        assert dtype.byteorder == terminal_dtype.byteorder
+
+
+def test_full_reset_keeps_missing_extra_field_error_before_next_inference():
+    class DynamicTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            if state.time.any():
+                observation["terminal_only"] = np.ones((3, 1))
+            return observation
+
+    class Policy:
+        calls = 0
+
+        def act(self, observation):
+            self.calls += 1
+            return np.zeros((3, 1, 2), dtype=np.float32)
+
+    policy = Policy()
+    with VectorEnv(Config(num_envs=3, max_steps=1), task=DynamicTask()) as env:
+        with pytest.raises(KeyError, match="terminal_only"):
+            run_rollout(env, policy, steps=2)
+        assert policy.calls == 1
+
+
 def test_chunk_runner_replans_and_resets_only_finished_rows():
     policy = ChunkPolicy()
     writer = RetainingWriter(policy)

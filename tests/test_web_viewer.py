@@ -351,6 +351,129 @@ def test_renderer_switch_is_transactional_on_main_thread(session, monkeypatch, f
         assert calls == ["create", "render"]
 
 
+@pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit, RuntimeError])
+@pytest.mark.parametrize("close_error_type", [None, KeyboardInterrupt, SystemExit])
+def test_failed_renderer_candidate_closes_and_preserves_primary_error(
+    session, monkeypatch, error_type, close_error_type
+):
+    env, viewer = session
+    original = viewer.renderer
+    error = error_type("render failed")
+    calls = []
+
+    class Candidate:
+        def render(self, *args):
+            calls.append("render")
+            raise error
+
+        def close(self):
+            calls.append("close")
+            if close_error_type is not None:
+                raise close_error_type("cleanup failed")
+
+    monkeypatch.setattr(web, "create_frame_renderer", lambda *args: Candidate())
+    viewer._pending_backend = "mujoco"
+    if error_type is RuntimeError:
+        publish(env, viewer)
+        assert "render failed" in viewer._state["error"]
+        assert viewer._state["ready"]
+    else:
+        with pytest.raises(error_type) as caught:
+            publish(env, viewer)
+        assert caught.value is error
+        # A subsequent update still uses the previously accepted renderer.
+        publish(env, viewer)
+        assert viewer._state["ready"]
+    assert calls == ["render", "close"]
+    assert viewer.renderer is original
+    assert viewer.backend == "raster"
+
+
+@pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit, OSError])
+@pytest.mark.parametrize("secondary_type", [None, KeyboardInterrupt, OSError])
+@pytest.mark.parametrize("stop_requested", [False, True])
+def test_shutdown_interruption_still_releases_socket_and_renderer(
+    session, monkeypatch, error_type, secondary_type, stop_requested
+):
+    _, viewer = session
+    server, thread = viewer.server, viewer.thread
+    original_close = server.server_close
+    original_shutdown = server.shutdown
+    original_render_close = viewer.renderer.close
+    calls = []
+    error = error_type("shutdown interrupted")
+
+    def shutdown():
+        calls.append("shutdown")
+        if stop_requested:
+            server._BaseServer__shutdown_request = True
+        raise error
+
+    def server_close():
+        calls.append("socket")
+        original_close()
+        if secondary_type is not None:
+            raise secondary_type("socket cleanup failed")
+
+    def renderer_close():
+        calls.append("renderer")
+        original_render_close()
+
+    monkeypatch.setattr(server, "shutdown", shutdown)
+    monkeypatch.setattr(server, "server_close", server_close)
+    monkeypatch.setattr(viewer.renderer, "close", renderer_close)
+    try:
+        with pytest.raises(error_type) as caught:
+            viewer.close()
+        assert caught.value is error
+        assert calls == ["shutdown", "socket", "renderer"]
+        assert server.socket.fileno() == -1
+        assert not thread.is_alive()
+        viewer.close()
+        assert calls == ["shutdown", "socket", "renderer"]
+    finally:
+        original_shutdown()
+        original_close()
+        thread.join(timeout=3)
+
+
+@pytest.mark.parametrize("primary_type", [OSError, KeyboardInterrupt, SystemExit])
+@pytest.mark.parametrize("cleanup_type", [OSError, SystemExit])
+def test_startup_preserves_error_when_renderer_cleanup_also_fails(
+    monkeypatch, primary_type, cleanup_type
+):
+    error = primary_type("thread startup failed")
+    servers, calls = [], []
+    original_server = web.ThreadingHTTPServer
+
+    class Renderer:
+        def close(self):
+            calls.append("renderer")
+            raise cleanup_type("renderer cleanup failed")
+
+    def server(*args, **kwargs):
+        result = original_server(*args, **kwargs)
+        servers.append(result)
+        return result
+
+    def start(self):
+        raise error
+
+    monkeypatch.setattr(web, "create_frame_renderer", lambda *args: Renderer())
+    monkeypatch.setattr(web, "ThreadingHTTPServer", server)
+    monkeypatch.setattr(web.threading.Thread, "start", start)
+    try:
+        with VectorEnv(Config(num_envs=1)) as env:
+            with pytest.raises(primary_type) as caught:
+                create_viewer("web", env.config, env.task.scene, port=0)
+        assert caught.value is error
+        assert calls == ["renderer"]
+        assert len(servers) == 1 and servers[0].socket.fileno() == -1
+    finally:
+        for instance in servers:
+            instance.server_close()
+
+
 def test_mjpeg_disconnect_and_shutdown_release_waiting_reader(session):
     env, viewer = session
     publish(env, viewer)
@@ -692,3 +815,66 @@ def test_web_velocity_validation_precedes_queue(session, value):
     with pytest.raises(ValueError):
         viewer.submit({"action": "velocity", "env_id": 0, "value": value})
     assert not viewer._commands
+
+
+@pytest.mark.parametrize("failure_type", [OSError, KeyboardInterrupt, SystemExit])
+@pytest.mark.parametrize("secondary_type", [None, KeyboardInterrupt])
+def test_interrupted_server_close_still_releases_listener(
+    session, monkeypatch, failure_type, secondary_type
+):
+    _, viewer = session
+    original_socket_close = viewer.server.server_close
+    original_renderer_close = viewer.renderer.close
+    primary = failure_type("before closing listener")
+    calls = []
+
+    def server_close():
+        calls.append("server")
+        raise primary
+
+    def renderer_close():
+        calls.append("renderer")
+        original_renderer_close()
+        if secondary_type:
+            raise secondary_type("secondary renderer cleanup")
+
+    monkeypatch.setattr(viewer.server, "server_close", server_close)
+    monkeypatch.setattr(viewer.renderer, "close", renderer_close)
+    try:
+        with pytest.raises(failure_type) as caught:
+            viewer.close()
+        assert caught.value is primary
+        assert viewer.server.fileno() == -1
+        assert not viewer.thread.is_alive()
+        assert calls == ["server", "renderer"]
+        viewer.close()
+        assert calls == ["server", "renderer"]
+    finally:
+        original_socket_close()
+
+
+def test_startup_failure_releases_listener_if_server_close_is_interrupted(monkeypatch):
+    servers = []
+    factory = web.ThreadingHTTPServer
+    primary = KeyboardInterrupt("startup interrupted")
+
+    def server(*args, **kwargs):
+        instance = factory(*args, **kwargs)
+        servers.append(instance)
+
+        def server_close():
+            raise OSError("before closing listener")
+
+        monkeypatch.setattr(instance, "server_close", server_close)
+        return instance
+
+    def start(*args):
+        raise primary
+
+    monkeypatch.setattr(web, "ThreadingHTTPServer", server)
+    monkeypatch.setattr(web.threading.Thread, "start", start)
+    with VectorEnv(Config(num_envs=1)) as env:
+        with pytest.raises(KeyboardInterrupt) as caught:
+            create_viewer("web", env.config, env.task.scene, port=0)
+    assert caught.value is primary
+    assert len(servers) == 1 and servers[0].fileno() == -1

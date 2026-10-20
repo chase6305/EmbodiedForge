@@ -352,7 +352,7 @@ def go1_evaluate_case(request, owner, learner, checkpoint):
                 motion.append(
                     (metrics.steps + 1) * owner.CTRL_DT,
                     np.concatenate(
-                        (positions[0, 1:], np.stack(env.foot_pos, axis=1)[0])
+                        (positions[0, 1:], np.stack([pos[0] for pos in env.foot_pos]))
                     ),
                     np.roll(
                         np.concatenate((quaternions[0, 1:], foot_quaternions)),

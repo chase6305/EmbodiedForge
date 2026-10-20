@@ -1,0 +1,861 @@
+{
+  "schema_version": 1,
+  "scope": "EmbodiedForge two-hour repository optimization; local measurements and validation, not real-robot certification",
+  "branch": "optimize/platform-20261014",
+  "baseline_commit": "389d95694f6234f1ab37671400a1cd0b9653a564",
+  "code_revision": "464007af18458af34e3616c3c60dd89b632f3e26",
+  "started_utc": "2026-10-14T06:25:11Z",
+  "requested_end_utc": "2026-10-14T08:25:11Z",
+  "raw_artifacts": {
+    "root": "runs/platform-optimization-20261014",
+    "tracked": false,
+    "note": "Runs, weights, source snapshots and raw logs remain local; this report contains their measurements and identities."
+  },
+  "changes": [
+    "Microduck: preserve effective pose helper signature, remove shadowed definition, maintain distinct SDK defaults, correct head CoM selector",
+    "Data: optional compact T+1 observation layout, compatible readers/projection, unique owned payload accounting, immutable format",
+    "Core PPO: periodic versioned checkpoints, committed recovery points, policy/Adam resume with environment/RNG restart",
+    "PPO: explicit inclusive endpoint gradients on Torch 2.9/2.13/2.14",
+    "H1: cache fixed limits and live sensor views",
+    "CI: Python 3.10 core and Python 3.12 portable MuJoCo/mjbatch contracts, Web/Node tests, wheel packaging checks"
+  ],
+  "checks": [
+    {
+      "environment": "clean Python 3.10, Torch 2.14.1; optional robot SDKs absent",
+      "passed": 976,
+      "skipped": 95,
+      "seconds": 23.02,
+      "log": "runs/platform-optimization-20261014/ci310-pytest-final.log",
+      "log_sha256": "6bd94bf0d042c5e702f97d623f6f985cda9bffe24df691ce77c6a611edbee3b6"
+    },
+    {
+      "environment": "clean Python 3.12, Torch 2.14.1, MuJoCo 3.11.0, mjbatch 0.1.0",
+      "passed": 1037,
+      "skipped": 84,
+      "seconds": 32.11,
+      "log": "runs/platform-optimization-20261014/ci312-pytest-final.log",
+      "log_sha256": "c345cb24a5a027fd16a83fefae693e1104e30e481e3d0d51475c7c3773e755e0"
+    },
+    {
+      "environment": "Python 3.12, Torch 2.9.0 native H1/PPO/recovery contracts",
+      "passed": 81,
+      "skipped": 6,
+      "seconds": 9.4,
+      "log": "runs/platform-optimization-20261014/pytest-torch29-native-final.log",
+      "log_sha256": "50213221455f4f8c9486e5ebf0ced22aac00d0b6b3530d4e3e8eacb42d7da08e"
+    },
+    {
+      "environment": "Python 3.12, Torch 2.9.1, mjlab 1.3.0 native task/asset/checkpoint contracts",
+      "passed": 25,
+      "skipped": 0,
+      "seconds": 4.17,
+      "log": "runs/platform-optimization-20261014/pytest-microduck-final.log",
+      "log_sha256": "44725e52c6e9a5f53fc82fb3d9ce903c11fc1580e2f57db1d1e193b50cdb8cda"
+    }
+  ],
+  "wheel": {
+    "isolated_core_only_install": "passed",
+    "plan_without_torch_or_mujoco": "passed",
+    "web_and_robot_assets": "passed",
+    "compact_rollout_and_inspect": "passed",
+    "wheel_sha256": "87f3821559cde73d57043d2e18507775c54e3e9cff8d47a47df5049759187767"
+  },
+  "recorder": {
+    "scope": "8 NumPy environments, 60 transitions/environment, 64x64 RGB/depth, 5 alternating pairs; recorder validation/copies/NPZ compression; excludes simulation/render time; retained payload excludes container/stacking/compression scratch",
+    "results": [
+      {
+        "image_payload": "raster",
+        "images": false,
+        "transitions_identical": true,
+        "medians": {
+          "transitions": {
+            "append_seconds": 0.022978281995165162,
+            "max_append_seconds": 0.009646107999287779,
+            "peak_retained_payload_bytes": 67024,
+            "archive_bytes": 61948,
+            "read_seconds": 0.0063586659998691175
+          },
+          "compact": {
+            "append_seconds": 0.01960876399789413,
+            "max_append_seconds": 0.006682148001345922,
+            "peak_retained_payload_bytes": 37328,
+            "archive_bytes": 37488,
+            "read_seconds": 0.004637517000446678
+          }
+        },
+        "append_speedup": 1.17183734771008,
+        "retained_payload_reduction_fraction": 0.44306517068512774,
+        "archive_reduction_fraction": 0.3948472912765545
+      },
+      {
+        "image_payload": "raster",
+        "images": true,
+        "transitions_identical": true,
+        "medians": {
+          "transitions": {
+            "append_seconds": 0.11011918899566808,
+            "max_append_seconds": 0.08513727899844525,
+            "peak_retained_payload_bytes": 31022672,
+            "archive_bytes": 157149,
+            "read_seconds": 0.06378147599934891
+          },
+          "compact": {
+            "append_seconds": 0.06450875500195252,
+            "max_append_seconds": 0.04199511899969366,
+            "peak_retained_payload_bytes": 15777488,
+            "archive_bytes": 85812,
+            "read_seconds": 0.04226600099900679
+          }
+        },
+        "append_speedup": 1.7070425400759175,
+        "retained_payload_reduction_fraction": 0.491420726106378,
+        "archive_reduction_fraction": 0.4539449821506978
+      },
+      {
+        "image_payload": "synthetic noise",
+        "images": false,
+        "transitions_identical": true,
+        "medians": {
+          "transitions": {
+            "append_seconds": 0.020839159002207452,
+            "max_append_seconds": 0.008206045000406448,
+            "peak_retained_payload_bytes": 67024,
+            "archive_bytes": 61948,
+            "read_seconds": 0.005681242999344249
+          },
+          "compact": {
+            "append_seconds": 0.01789366600678477,
+            "max_append_seconds": 0.005886060000193538,
+            "peak_retained_payload_bytes": 37328,
+            "archive_bytes": 37488,
+            "read_seconds": 0.004216027000438771
+          }
+        },
+        "append_speedup": 1.164610929605249,
+        "retained_payload_reduction_fraction": 0.44306517068512774,
+        "archive_reduction_fraction": 0.3948472912765545
+      },
+      {
+        "image_payload": "synthetic noise",
+        "images": true,
+        "transitions_identical": true,
+        "medians": {
+          "transitions": {
+            "append_seconds": 0.5805047930043656,
+            "max_append_seconds": 0.5556280969994987,
+            "peak_retained_payload_bytes": 31022672,
+            "archive_bytes": 25750582,
+            "read_seconds": 0.07559820300048159
+          },
+          "compact": {
+            "append_seconds": 0.2988333739958762,
+            "max_append_seconds": 0.2772822510014521,
+            "peak_retained_payload_bytes": 15777488,
+            "archive_bytes": 12990904,
+            "read_seconds": 0.04700562699872535
+          }
+        },
+        "append_speedup": 1.9425701528651096,
+        "retained_payload_reduction_fraction": 0.491420726106378,
+        "archive_reduction_fraction": 0.49551027623375654
+      }
+    ]
+  },
+  "h1_step": {
+    "scope": "MuJoCo 3.11/mjbatch 0.1, two physics threads, 1200 steps, 10 warmup steps excluded, 5 alternating pairs; excludes resets/inference/hashing/construction",
+    "results": [
+      {
+        "num_envs": 1,
+        "baseline_median_step_seconds": 0.0001793901949627873,
+        "cached_median_step_seconds": 0.00015613834201292224,
+        "speedup": 1.1489182775358322,
+        "all_trajectory_hashes_identical": true,
+        "trajectory_sha256": "bc1499a251686bc651b26c6b3248bc16f80d63b366399ba0e755f47c41ebb876"
+      },
+      {
+        "num_envs": 32,
+        "baseline_median_step_seconds": 0.0012185949731193593,
+        "cached_median_step_seconds": 0.001185097598343938,
+        "speedup": 1.0282654988266204,
+        "all_trajectory_hashes_identical": true,
+        "trajectory_sha256": "97d6a43f61d89f1313d89bad68959f43b51a85eb2567f8f9410b4326344d21a7"
+      },
+      {
+        "num_envs": 128,
+        "baseline_median_step_seconds": 0.004375488863847788,
+        "cached_median_step_seconds": 0.00424714685797743,
+        "speedup": 1.0302184054759709,
+        "all_trajectory_hashes_identical": true,
+        "trajectory_sha256": "841ad72d22ffa44c2d36488e79773e885401689021753a1a22c7fa185462b972"
+      }
+    ],
+    "trained_policy_randomized_reset_check": {
+      "num_envs": 32,
+      "steps": 1200,
+      "falls": 0,
+      "timeouts": 32,
+      "trajectory_sha256": "f9b6a4a7ed0aa56dda0fb74e894ef0243ddbfced635086a1042e7dcf9532662b",
+      "exact_match": true
+    }
+  },
+  "core_training": {
+    "scope": "Core reach/NumPy, 32 environments, 100 PPO updates, CPU single thread, Torch 2.13.0; three alternating training-seed pairs, includes periodic saves and runtime setup",
+    "all_policy_adam_rng_hashes_identical": true,
+    "median_paired_baseline_over_candidate_seconds": 0.9809964693415419,
+    "median_paired_candidate_over_baseline_seconds": 1.019371660604664,
+    "samples": [
+      {
+        "pair": 0,
+        "mode": "baseline",
+        "task": "reach",
+        "physics": "numpy",
+        "seed": 0,
+        "updates": 100,
+        "seconds": 10.102207698000711,
+        "policy_adam_rng_sha256": "6ef4ed29234c2342c79bb677ddf8f1b376653f9291dee180897a60c7305feb5d"
+      },
+      {
+        "pair": 0,
+        "mode": "candidate",
+        "task": "reach",
+        "physics": "numpy",
+        "seed": 0,
+        "updates": 100,
+        "seconds": 10.257899969999926,
+        "policy_adam_rng_sha256": "6ef4ed29234c2342c79bb677ddf8f1b376653f9291dee180897a60c7305feb5d"
+      },
+      {
+        "pair": 1,
+        "mode": "candidate",
+        "task": "reach",
+        "physics": "numpy",
+        "seed": 1,
+        "updates": 100,
+        "seconds": 10.421556317998693,
+        "policy_adam_rng_sha256": "b5d67fa354e7f0ec128cd6dd761d7b46db6f7fb109ac3ad42630fb60cd8686c8"
+      },
+      {
+        "pair": 1,
+        "mode": "baseline",
+        "task": "reach",
+        "physics": "numpy",
+        "seed": 1,
+        "updates": 100,
+        "seconds": 10.223509953000757,
+        "policy_adam_rng_sha256": "b5d67fa354e7f0ec128cd6dd761d7b46db6f7fb109ac3ad42630fb60cd8686c8"
+      },
+      {
+        "pair": 2,
+        "mode": "baseline",
+        "task": "reach",
+        "physics": "numpy",
+        "seed": 2,
+        "updates": 100,
+        "seconds": 10.059335732001273,
+        "policy_adam_rng_sha256": "dbfb8706bd0a509333ce6ce2daf0a78e6b39019cd51d31b15041d7111a87cf1a"
+      },
+      {
+        "pair": 2,
+        "mode": "candidate",
+        "task": "reach",
+        "physics": "numpy",
+        "seed": 2,
+        "updates": 100,
+        "seconds": 10.370207844998731,
+        "policy_adam_rng_sha256": "dbfb8706bd0a509333ce6ce2daf0a78e6b39019cd51d31b15041d7111a87cf1a"
+      }
+    ]
+  },
+  "microduck": {
+    "status": "complete",
+    "scope": "Single paired training seed 0, equal model_750.pt checkpoints (751 completed updates, 256 environments x 24 steps); baseline evaluation implementation reused for both policies; 5 fixed commands x 2 evaluation seeds x 32 initial episodes x 600 steps, no pushes",
+    "selection": "Time-budget decision before policy-quality evaluation; no score-based checkpoint selection",
+    "planned_train_seeds": [
+      0,
+      1,
+      2
+    ],
+    "executed_train_seeds": [
+      0
+    ],
+    "unstarted_train_seeds": [
+      1,
+      2
+    ],
+    "evaluation_reports_completed": 20,
+    "velocity_metric_scope": "All control steps, including terminal steps and subsequent reset episodes; initial-episode survival is reported separately",
+    "limitations": [
+      "Single training seed and limited budget; not evidence of a mature-policy or multi-seed improvement",
+      "Training reset distribution and RNG consumption change with the anatomical body-list correction",
+      "CUDA trajectories are not guaranteed bitwise deterministic; quality and throughput vary with shared GPU workload"
+    ],
+    "cases": [
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "stand",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07728996614092337,
+        "yaw_rmse_rad_s": 0.7743441707266335,
+        "mean_actual_velocity": [
+          0.014385539311011306,
+          0.001600664720868063,
+          0.13963351769362786
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "stand",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.08566814962552768,
+        "yaw_rmse_rad_s": 0.7991288239262985,
+        "mean_actual_velocity": [
+          0.02077615654991148,
+          0.0013680694231850794,
+          0.12601738832913573
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "stand",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07500674577211347,
+        "yaw_rmse_rad_s": 0.8018035090179729,
+        "mean_actual_velocity": [
+          -0.0008315577360881324,
+          -0.0028966091581218486,
+          -0.23837999924517933
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "stand",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07746828298097194,
+        "yaw_rmse_rad_s": 0.9159281641559748,
+        "mean_actual_velocity": [
+          -0.002554208863037134,
+          -0.003285004798719875,
+          -0.310116135941319
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "forward",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 30,
+        "planar_rmse_m_s": 0.23786020662369411,
+        "yaw_rmse_rad_s": 0.8393735123323376,
+        "mean_actual_velocity": [
+          0.02703069731614491,
+          -0.0005765824282773716,
+          0.21256952083150304
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "forward",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 30,
+        "planar_rmse_m_s": 0.23591768977139305,
+        "yaw_rmse_rad_s": 0.8666413486279676,
+        "mean_actual_velocity": [
+          0.03306267447265861,
+          0.0002815603692267861,
+          0.19420735479566378
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "forward",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.26014564319637806,
+        "yaw_rmse_rad_s": 0.9573404306318698,
+        "mean_actual_velocity": [
+          0.006693721845292917,
+          -0.003343112480269781,
+          -0.2412075492226361
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "forward",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.2593487002360386,
+        "yaw_rmse_rad_s": 1.0187410912983976,
+        "mean_actual_velocity": [
+          0.0074835343174965395,
+          -0.0032835466198954917,
+          -0.2818063138300383
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "reverse",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.2167128813175194,
+        "yaw_rmse_rad_s": 0.6704096184855641,
+        "mean_actual_velocity": [
+          0.005550993606057896,
+          0.0024143515305143025,
+          0.039798195447203366
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "reverse",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.22327169498311733,
+        "yaw_rmse_rad_s": 0.69900802375779,
+        "mean_actual_velocity": [
+          0.011520522370643445,
+          0.002791400467055096,
+          0.0416438565756287
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "reverse",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.2064980652949,
+        "yaw_rmse_rad_s": 0.7573194219655401,
+        "mean_actual_velocity": [
+          -0.004670094948148756,
+          -0.00263210144857202,
+          -0.23959511167162895
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "reverse",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.2078155388998178,
+        "yaw_rmse_rad_s": 0.8340292273725647,
+        "mean_actual_velocity": [
+          -0.0040672284503041395,
+          -0.0018521146845242539,
+          -0.29248287268827433
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "left",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.08096323029586533,
+        "yaw_rmse_rad_s": 0.8922120180772628,
+        "mean_actual_velocity": [
+          0.012903094326205653,
+          0.0015864284715840784,
+          0.1127874971724493
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "left",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.0864620461287882,
+        "yaw_rmse_rad_s": 0.8989354271719654,
+        "mean_actual_velocity": [
+          0.020547589783507975,
+          0.0011164859395882587,
+          0.08991564215575959
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "left",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07271092496713304,
+        "yaw_rmse_rad_s": 1.0045620135775637,
+        "mean_actual_velocity": [
+          -0.001984943934118135,
+          -0.0026997190156637417,
+          -0.18737936206799685
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "left",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07753482238002493,
+        "yaw_rmse_rad_s": 1.1135668336255284,
+        "mean_actual_velocity": [
+          -0.002668480340822133,
+          -0.0033329375134883883,
+          -0.24707322338385856
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "right",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07599854817979702,
+        "yaw_rmse_rad_s": 0.971076505429497,
+        "mean_actual_velocity": [
+          0.01388595643951195,
+          0.002017603269578032,
+          0.1430701809278358
+        ],
+        "finite": true
+      },
+      {
+        "mode": "baseline",
+        "train_seed": 0,
+        "command": "right",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "72d59941dce9a4c46cb6627ff127ac4571062f37b270e96342719df66912454f",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07921452777319152,
+        "yaw_rmse_rad_s": 0.9287118381211975,
+        "mean_actual_velocity": [
+          0.018779642441992442,
+          0.002479787257920818,
+          0.11434297620810602
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "right",
+        "eval_seed": 9001,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07372026279663699,
+        "yaw_rmse_rad_s": 0.8214177945914399,
+        "mean_actual_velocity": [
+          0.001786503638693458,
+          -0.002605759290275695,
+          -0.2734082357716427
+        ],
+        "finite": true
+      },
+      {
+        "mode": "candidate",
+        "train_seed": 0,
+        "command": "right",
+        "eval_seed": 9002,
+        "num_envs": 32,
+        "steps_per_env": 600,
+        "checkpoint_iteration": 750,
+        "checkpoint_sha256": "5b0c20c96a5c2d4f511ed405db1125e19c9d02f1ae105737c0bf32a8bbdf58b7",
+        "survived_initial_episodes": 32,
+        "planar_rmse_m_s": 0.07593353266372424,
+        "yaw_rmse_rad_s": 0.8934637575647739,
+        "mean_actual_velocity": [
+          -8.227041275622e-06,
+          -0.0023110286958530563,
+          -0.3714115580213927
+        ],
+        "finite": true
+      }
+    ],
+    "product_comparisons": [
+      {
+        "command": "stand",
+        "product_compare": "passed",
+        "source_verification": {
+          "level": "local_implementation_and_requirements",
+          "fields": {
+            "revision": "53b8971b61baf5b7f3c16d135dd7cac37623de4b",
+            "uv_lock_sha256": "2eeeb680025baa737e7ccf3a87da3695a9d49b228de0bb60d8af0c022ab5f1aa",
+            "implementation": "embodiedforge.locomotion.microduck",
+            "implementation_sha256": "793c64950ca839456541463ffa23170054479d4c68fdef993ec9f1174ca90de8",
+            "requirements_sha256": "d3204824d54a23156368cfc440b82b9140a48f31cc488a6e2de2eddd8156178a"
+          }
+        },
+        "artifact": "runs/platform-optimization-20261014/comparison-stand.json/comparison.json"
+      },
+      {
+        "command": "forward",
+        "product_compare": "passed",
+        "source_verification": {
+          "level": "local_implementation_and_requirements",
+          "fields": {
+            "revision": "53b8971b61baf5b7f3c16d135dd7cac37623de4b",
+            "uv_lock_sha256": "2eeeb680025baa737e7ccf3a87da3695a9d49b228de0bb60d8af0c022ab5f1aa",
+            "implementation": "embodiedforge.locomotion.microduck",
+            "implementation_sha256": "793c64950ca839456541463ffa23170054479d4c68fdef993ec9f1174ca90de8",
+            "requirements_sha256": "d3204824d54a23156368cfc440b82b9140a48f31cc488a6e2de2eddd8156178a"
+          }
+        },
+        "artifact": "runs/platform-optimization-20261014/comparison-forward.json/comparison.json"
+      },
+      {
+        "command": "reverse",
+        "product_compare": "passed",
+        "source_verification": {
+          "level": "local_implementation_and_requirements",
+          "fields": {
+            "revision": "53b8971b61baf5b7f3c16d135dd7cac37623de4b",
+            "uv_lock_sha256": "2eeeb680025baa737e7ccf3a87da3695a9d49b228de0bb60d8af0c022ab5f1aa",
+            "implementation": "embodiedforge.locomotion.microduck",
+            "implementation_sha256": "793c64950ca839456541463ffa23170054479d4c68fdef993ec9f1174ca90de8",
+            "requirements_sha256": "d3204824d54a23156368cfc440b82b9140a48f31cc488a6e2de2eddd8156178a"
+          }
+        },
+        "artifact": "runs/platform-optimization-20261014/comparison-reverse.json/comparison.json"
+      },
+      {
+        "command": "left",
+        "product_compare": "passed",
+        "source_verification": {
+          "level": "local_implementation_and_requirements",
+          "fields": {
+            "revision": "53b8971b61baf5b7f3c16d135dd7cac37623de4b",
+            "uv_lock_sha256": "2eeeb680025baa737e7ccf3a87da3695a9d49b228de0bb60d8af0c022ab5f1aa",
+            "implementation": "embodiedforge.locomotion.microduck",
+            "implementation_sha256": "793c64950ca839456541463ffa23170054479d4c68fdef993ec9f1174ca90de8",
+            "requirements_sha256": "d3204824d54a23156368cfc440b82b9140a48f31cc488a6e2de2eddd8156178a"
+          }
+        },
+        "artifact": "runs/platform-optimization-20261014/comparison-left.json/comparison.json"
+      },
+      {
+        "command": "right",
+        "product_compare": "passed",
+        "source_verification": {
+          "level": "local_implementation_and_requirements",
+          "fields": {
+            "revision": "53b8971b61baf5b7f3c16d135dd7cac37623de4b",
+            "uv_lock_sha256": "2eeeb680025baa737e7ccf3a87da3695a9d49b228de0bb60d8af0c022ab5f1aa",
+            "implementation": "embodiedforge.locomotion.microduck",
+            "implementation_sha256": "793c64950ca839456541463ffa23170054479d4c68fdef993ec9f1174ca90de8",
+            "requirements_sha256": "d3204824d54a23156368cfc440b82b9140a48f31cc488a6e2de2eddd8156178a"
+          }
+        },
+        "artifact": "runs/platform-optimization-20261014/comparison-right.json/comparison.json"
+      }
+    ],
+    "summary": [
+      {
+        "command": "stand",
+        "mode": "baseline",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.08147905788322553,
+        "mean_report_yaw_rmse_rad_s": 0.786736497326466
+      },
+      {
+        "command": "stand",
+        "mode": "candidate",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.0762375143765427,
+        "mean_report_yaw_rmse_rad_s": 0.8588658365869739
+      },
+      {
+        "command": "forward",
+        "mode": "baseline",
+        "survived_initial_trials": 60,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.23688894819754358,
+        "mean_report_yaw_rmse_rad_s": 0.8530074304801526
+      },
+      {
+        "command": "forward",
+        "mode": "candidate",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.2597471717162083,
+        "mean_report_yaw_rmse_rad_s": 0.9880407609651337
+      },
+      {
+        "command": "reverse",
+        "mode": "baseline",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.21999228815031835,
+        "mean_report_yaw_rmse_rad_s": 0.6847088211216771
+      },
+      {
+        "command": "reverse",
+        "mode": "candidate",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.2071568020973589,
+        "mean_report_yaw_rmse_rad_s": 0.7956743246690524
+      },
+      {
+        "command": "left",
+        "mode": "baseline",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.08371263821232677,
+        "mean_report_yaw_rmse_rad_s": 0.8955737226246141
+      },
+      {
+        "command": "left",
+        "mode": "candidate",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.07512287367357898,
+        "mean_report_yaw_rmse_rad_s": 1.059064423601546
+      },
+      {
+        "command": "right",
+        "mode": "baseline",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.07760653797649428,
+        "mean_report_yaw_rmse_rad_s": 0.9498941717753473
+      },
+      {
+        "command": "right",
+        "mode": "candidate",
+        "survived_initial_trials": 64,
+        "trial_instances": 64,
+        "mean_report_planar_rmse_m_s": 0.07482689773018061,
+        "mean_report_yaw_rmse_rad_s": 0.8574407760781069
+      }
+    ],
+    "conclusion": "Anatomical body selection is verified. This limited matched-checkpoint experiment improves observed survival but has mixed tracking results; no overall or multi-seed quality improvement claim."
+  },
+  "modified_python_sources_sha256": {
+    "benchmarks/recorder.py": "f37c43b1722071dffaf8b7f76e9134bbd999d268e265b0b31687f01ae1edc149",
+    "src/embodiedforge/_core_run.py": "b4bbdffc38f1d1179384930cb706c3806ec2ca27588e55686da2f6285a261132",
+    "src/embodiedforge/_microduck_process.py": "938c9422178db124bba1891d176d268a76cfd27a9b09dce9b313f9ac24cc0028",
+    "src/embodiedforge/_ppo_parameters.py": "a1417de3bda65982d1dc6cc639560dbbf80cee3fcbf42b8e96079674408e64d2",
+    "src/embodiedforge/cli.py": "582047af4c2ffd755f5e31ecd55b0dafcb1275dec3c1b0a894f4c30390ef5f63",
+    "src/embodiedforge/data.py": "85752f9b65c41f1897d6c57044fccc12287bd2d4bd5fc83bc08709462fc4f1e8",
+    "src/embodiedforge/locomotion/h1_native.py": "043553068290c35e017a0bdec32960c95da6cc2bbfeae0d31abcd7498a9dbaed",
+    "src/embodiedforge/locomotion/h1_ppo.py": "10858edf12c0c4a5886080aeb4fc9808c4c53b5de28252bdd718a7c350bdd15d",
+    "src/embodiedforge/locomotion/microduck/actuator/friction_dr_bam.py": "03d0461caf973419bbd3f746f2cba73fe9464d00ae59ff3e8f8cd158d8f2e832",
+    "src/embodiedforge/locomotion/microduck/robot/microduck_constants.py": "cbd2a8ed29a42b3eb7184ddab51df77f2bb0c8239e2450e1373465ff92f050e0",
+    "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+    "src/embodiedforge/locomotion/microduck/tasks/microduck_velocity_env_cfg.py": "02ef1c12bef07fd591b8a9cdd85e46bd0de8fd674b82569528bb1c29de42945c",
+    "src/embodiedforge/locomotion/microduck/tasks/symmetry.py": "f84f19cc1f93afa7cb1d6e98152a70dcf7f38d6df0720d8675ed8ea93c663941",
+    "src/embodiedforge/training.py": "af15a3173281c1e92e847e8232d30bfa32b726f89bd184ee17ababe38bc8bf3b",
+    "tests/test_compact_episodes.py": "0b9568d25d6243d79f4a3097bda8bef82b8293033303cd957c94f0e27cf3699e",
+    "tests/test_core_resume.py": "70c0dc2b0c65d91b23b547eaeab20b19ed23c242f02cc875ab2c083ca573d8df",
+    "tests/test_microduck_task.py": "a0fed6badc9b7b8b2c813ecda71b1f511a8b42ad9092b78628408ce895e44dcb",
+    "tests/test_training.py": "f6d156091e54b24de5c5423c09a7bde21f92ff0c96e250b8e487db9b323f38d6"
+  },
+  "style_checks": {
+    "ruff_0_16_5": "passed",
+    "ruff_0_17_0": "passed",
+    "format_check": "passed",
+    "git_diff_check": "passed"
+  }
+}

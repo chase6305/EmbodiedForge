@@ -14,6 +14,7 @@ from collections import deque
 from dataclasses import asdict, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from socketserver import BaseServer
 from urllib.parse import urlsplit
 
 import numpy as np
@@ -121,7 +122,7 @@ class WebViewer:
         except BaseException:
             try:
                 self.close()
-            except Exception:
+            except BaseException:
                 LOGGER.exception("Web viewer cleanup also failed during startup")
             raise
 
@@ -561,12 +562,14 @@ class WebViewer:
                         scene, observation, self.selected_env, self.camera
                     )
                     frame = self._encode(pixels)
-                except Exception as error:
+                except BaseException as error:
                     if candidate is not None:
                         try:
                             candidate.close()
-                        except Exception:
+                        except BaseException:
                             LOGGER.exception("Failed to clean up unavailable renderer")
+                    if not isinstance(error, Exception):
+                        raise
                     pixels = None
                     self._error = f"{name} {width}x{height}: {error}"
                     LOGGER.exception(
@@ -663,12 +666,38 @@ class WebViewer:
                 return
             self.closed = True
             self._condition.notify_all()
-        try:
-            if self.server is not None:
-                if self.thread is not None and self.thread.is_alive():
-                    self.server.shutdown()
-                self.server.server_close()
-                if self.thread is not None:
-                    self.thread.join(timeout=3)
-        finally:
-            self.renderer.close()
+        operations = []
+        if self.server is not None:
+            if self.thread is not None and self.thread.is_alive():
+
+                def shutdown():
+                    try:
+                        self.server.shutdown()
+                    except BaseException:
+                        # An interruption can precede shutdown's stop request.
+                        # Finish the standard server handshake before closing
+                        # its socket, preserving the first interruption.
+                        try:
+                            BaseServer.shutdown(self.server)
+                        except BaseException:
+                            LOGGER.exception("Web server shutdown retry also failed")
+                        raise
+
+                operations.append(shutdown)
+            operations.append(self.server.server_close)
+            # server_close may be interrupted before it releases the listener.
+            operations.append(self.server.socket.close)
+            if self.thread is not None and self.thread.ident is not None:
+                operations.append(lambda: self.thread.join(timeout=3))
+        operations.append(self.renderer.close)
+        failure = None
+        for operation in operations:
+            try:
+                operation()
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                else:
+                    LOGGER.exception("Additional Web viewer cleanup failure")
+        if failure is not None:
+            raise failure

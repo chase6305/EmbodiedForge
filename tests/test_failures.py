@@ -162,3 +162,77 @@ def test_reader_rejects_corrupt_transition_identity_or_continuity(tmp_path, fiel
     np.savez_compressed(path, **data)
     with pytest.raises(ValueError):
         list(read_episodes(root))
+
+
+@pytest.mark.parametrize("interrupt_type", [KeyboardInterrupt, SystemExit])
+@pytest.mark.parametrize("primary", ["context", "operation", "none"])
+def test_cleanup_cancellation_releases_all_backends_and_preserves_primary(
+    monkeypatch, interrupt_type, primary
+):
+    env = VectorEnv(Config(num_envs=1))
+    calls = []
+    interrupt = interrupt_type("render cleanup interrupted")
+    physics_error = OSError("physics cleanup failed")
+
+    def close_render():
+        calls.append("render")
+        raise interrupt
+
+    def close_physics():
+        calls.append("physics")
+        raise physics_error
+
+    original = KeyError("original failure")
+
+    def broken_step(*args):
+        raise original
+
+    monkeypatch.setattr(env.renderer, "close", close_render)
+    monkeypatch.setattr(env.physics, "close", close_physics)
+    expected = interrupt if primary == "none" else original
+    with pytest.raises(type(expected)) as caught:
+        if primary == "context":
+            with env:
+                raise original
+        elif primary == "operation":
+            monkeypatch.setattr(env.physics, "step", broken_step)
+            env.step(np.zeros((1, 2)))
+        else:
+            env.close()
+    assert caught.value is expected
+    assert env.cleanup_errors == [interrupt, physics_error]
+    assert calls == ["render", "physics"]
+    assert env.closed
+    env.close()
+    assert calls == ["render", "physics"]
+
+
+@pytest.mark.parametrize("interrupt_type", [KeyboardInterrupt, SystemExit])
+def test_partial_build_cleanup_cancellation_keeps_build_error(
+    monkeypatch, interrupt_type
+):
+    from embodiedforge.backends import PHYSICS, RENDER, Registration
+    from embodiedforge.backends.physics import NumpyPhysics
+    from embodiedforge.core import Capabilities
+
+    calls = []
+    original = ValueError("renderer build failed")
+
+    class Physics(NumpyPhysics):
+        def close(self):
+            calls.append("physics")
+
+    class Renderer:
+        def build(self, scene, config):
+            raise original
+
+        def close(self):
+            calls.append("renderer")
+            raise interrupt_type("renderer cleanup interrupted")
+
+    monkeypatch.setitem(PHYSICS, "partial", Registration(Physics, Physics.capabilities))
+    monkeypatch.setitem(RENDER, "partial", Registration(Renderer, Capabilities()))
+    with pytest.raises(ValueError) as caught:
+        VectorEnv(Config(physics="partial", render="partial"))
+    assert caught.value is original
+    assert calls == ["renderer", "physics"]

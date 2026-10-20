@@ -4,7 +4,6 @@ Run in a separate LeRobot environment; importing this module only requires NumPy
 """
 
 import argparse
-import hashlib
 import json
 import os
 import shutil
@@ -18,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ._hashing import file_sha256
 from .core import Config
 from .data import read_episodes
 
@@ -392,9 +392,7 @@ def resume(args):
             "source_status": report["status"],
             "selection": selection,
             "dataset_verification": verification,
-            "checkpoint_sha256": hashlib.sha256(
-                (model / "model.safetensors").read_bytes()
-            ).hexdigest(),
+            "checkpoint_sha256": file_sha256(model / "model.safetensors"),
         },
     )
 

@@ -4,13 +4,17 @@ Rendering stays on the training thread; HTTP threads only read encoded images.
 No renderer, HTTP service, or optional imports are created in headless training.
 """
 
+import logging
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import BytesIO
 from pathlib import Path
+from socketserver import BaseServer
 from tempfile import TemporaryDirectory
 from threading import Thread
 from time import monotonic
+
+LOGGER = logging.getLogger(__name__)
 
 PAGE = b"""<!doctype html><html lang="en"><meta charset="utf-8">
 <title>Wuji training preview</title>
@@ -44,6 +48,8 @@ class TrainingPreview:
         self.steps = 0
         self.frame = (b"", 0)
         self.renderer = None
+        self.closed = False
+        self.thread = None
         owner = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -74,8 +80,15 @@ class TrainingPreview:
                     pass
 
         self.server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-        self.thread = Thread(target=self.server.serve_forever, daemon=True)
-        self.thread.start()
+        try:
+            self.thread = Thread(target=self.server.serve_forever, daemon=True)
+            self.thread.start()
+        except BaseException:
+            try:
+                self.close()
+            except BaseException:
+                LOGGER.exception("Training preview startup cleanup failed")
+            raise
 
     def _initialize_renderer(self, env):
         import mujoco
@@ -145,13 +158,42 @@ class TrainingPreview:
             self.camera.lookat[:] = self.data.xpos[palm] + np.array([0.0, 0.0, 0.06])
 
     def close(self):
-        try:
-            self.server.shutdown()
-            self.server.server_close()
-            self.thread.join(timeout=2)
-        finally:
-            if self.renderer is not None:
-                self.renderer.close()
+        if self.closed:
+            return
+        self.closed = True
+        operations = []
+        if self.thread is not None and self.thread.is_alive():
+
+            def shutdown():
+                try:
+                    self.server.shutdown()
+                except BaseException:
+                    # Complete the stop handshake if interrupted before its flag.
+                    try:
+                        BaseServer.shutdown(self.server)
+                    except BaseException:
+                        LOGGER.exception("Training preview shutdown retry failed")
+                    raise
+
+            operations.append(shutdown)
+        operations.append(self.server.server_close)
+        # server_close may be interrupted before it releases the listener.
+        operations.append(self.server.socket.close)
+        if self.thread is not None and self.thread.ident is not None:
+            operations.append(lambda: self.thread.join(timeout=2))
+        if self.renderer is not None:
+            operations.append(self.renderer.close)
+        failure = None
+        for operation in operations:
+            try:
+                operation()
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                else:
+                    LOGGER.exception("Additional training preview cleanup failure")
+        if failure is not None:
+            raise failure
 
 
 @contextmanager
@@ -170,10 +212,18 @@ def training_preview(request):
 
     WujiWrapper.step = step
     try:
-        yield preview
-    finally:
-        if inherited:
-            del WujiWrapper.step
-        else:
-            WujiWrapper.step = original
+        try:
+            yield preview
+        finally:
+            if inherited:
+                del WujiWrapper.step
+            else:
+                WujiWrapper.step = original
+    except BaseException:
+        try:
+            preview.close()
+        except BaseException:
+            LOGGER.exception("Training preview cleanup after training failure")
+        raise
+    else:
         preview.close()

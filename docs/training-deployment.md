@@ -96,11 +96,24 @@ python -m embodiedforge evaluate \
   --checkpoint runs/commands-hold/checkpoint.pt --num-envs 32 --steps 300
 ```
 
-核心 PPO 使用 proprio，不训练图像策略。评估从 checkpoint 恢复配置；不要随意更换任务或物理。核心 CLI 当前没有续训或 ONNX 导出命令；点任务 `visualization` 运行示范控制器，不加载这些 PPO checkpoint。
+核心 PPO 使用 proprio，不训练图像策略。评估从 checkpoint 恢复配置；不要随意更换任务或物理。点任务 `visualization` 运行示范控制器，不加载这些 PPO checkpoint。核心 CLI 支持续训，尚无 ONNX 导出入口。
+
+新训练在第一次更新、每 10 次更新和训练结束时保存；`--checkpoint-interval` 可调整间隔。`checkpoints/` 保留最近两份已提交快照，`checkpoint.pt` 是最近成功发布的便捷副本。`run.json` 记录运行状态、完成更新数、保存更新数、快照路径与 SHA256。保存或清单发布失败保留上一份可恢复快照；Ctrl+C / SIGTERM 将运行标为 `interrupted`，其他异常标为 `failed`。原子替换不提供断电持久性保证。
+
+```bash
+python -m embodiedforge train --resume runs/commands-reach \
+  --updates 100 --checkpoint-interval 10 --output runs/commands-reach-resumed
+```
+
+`--updates` 是本次追加的更新数。目录输入选择 `run.json` 中已提交且哈希匹配的快照，也可传入包含 Adam 的旧版 v2 checkpoint 文件。运行中的目录可用于从最近保存点启动独立分支；不会停止或修改来源运行。如果来源在文件打开前清理了已选择的旧快照，reader 仅在已提交更新数前移时重新选择，最多尝试三次。引用未变化的缺失文件与哈希不匹配仍报错。CLI 默认继承来源的环境配置和 PPO 参数，可用原有环境参数覆盖兼容的环境数量/后端；任务、观测/动作语义和控制周期必须兼容。恢复策略与 Adam 后，环境和 RNG 重新初始化，因此不是原进程逐步连续执行的精确恢复。指标中的 `update` 为累计更新编号，`transitions` 只统计本次运行。
+
+Python API 支持 `train_ppo(env_config, ppo_config, new_directory, resume=source, checkpoint_interval=10)`；显式传入的 `ppo_config` 定义本次预算和超参数，其中学习率替换保存的 Adam 学习率。`load_training_checkpoint` 可一次读取并校验恢复输入后传给训练，避免配置选择与训练之间重新读取被替换的文件。
 
 Python API 的 `PPOConfig` 在构造时检查训练计数为正整数、学习率为有限正数、seed 为 `[0, 2**64 - 1]` 内的整数。无效配置在创建训练输出目录或仿真环境前报错；布尔值不能作为计数或 seed。
 
 `load_checkpoint` / `load_policy` 在 CPU 上检查加载后的 actor、critic 与 `log_std` 参数，遇到 NaN/Inf 时报告具体参数名并拒绝返回策略；动作范围的上下界必须有限且严格递增。checkpoint 含环境描述时，加载还会核对策略的观测维度、动作维度和动作范围与记录一致，不创建仿真资源。现有 v1/v2 checkpoint 仍受支持；没有环境描述的旧版模型在评估时也必须通过与实际环境的维度、动作范围核对。
+
+核心和原生 H1 PPO 显式保留 `log_std` 在 `[-5, 2]` 两个端点的单位梯度，范围外梯度为零；前向数值和 NaN 传播与原限幅一致。[PyTorch 2.14 的限幅边界梯度变化](https://github.com/pytorch/pytorch/issues/195931) 会让投影到端点的参数再次冻结，因此不再依赖 `torch.clamp` 的版本相关端点梯度。已在 Torch 2.9、2.13 和 2.14 验证；没有改变探索上下限或熵系数。
 
 要比较训练前后的策略，可在安装了核心训练依赖的环境执行以下命令。脚本沿用 checkpoint 的任务、物理、控制周期和回合长度；初始策略使用相同网络维度，两个策略使用相同评估种子。输出包含模型 SHA256 和环境配置，便于核对比较条件。SHA256 取自 `load_checkpoint` 返回的 `sha256`，与反序列化使用同一份文件字节；加载后替换原文件不会让报告引用另一份模型的哈希。
 

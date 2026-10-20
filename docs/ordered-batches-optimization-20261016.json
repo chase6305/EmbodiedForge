@@ -1,0 +1,790 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "status": "complete",
+  "component": "Ordered offline batch validation",
+  "baseline_revision": "7bb4da9774d782ab7c8e5520610aa2e4c14982aa",
+  "source_sha256": {
+    "baseline_batching": "20801fbf1c760b0eced3ee591e2258e5f540a70fa9084e1c959fadcecbd7d659",
+    "candidate_batching": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+    "benchmark": "c6ae3a7868fcc75e86f0b3a4b9f9403412e5b193a83d7935ddb418e7bc583451"
+  },
+  "change": "Validate each chunk's action shape/dtype and observation shape/dtypes directly. Remove temporary merged dictionaries, prefixed observation-key strings and prefix slicing for every chunk. Preserve schema-first/action-first validation and input byte-order checks before NumPy concatenation; output array construction is unchanged.",
+  "measured_result": "Short-episode decoded collation elapsed time decreases 5.16% for 64px RGB and 7.81% for 1px RGB. Other decoded configurations show 0-3.5% changes; aligned full batches are unchanged. Actual NPZ timing remains dominated by decoding and has no established overall speedup; actual pipeline traced peak is effectively unchanged.",
+  "validation": {
+    "full_suites": [
+      {
+        "label": "py310",
+        "command": [
+          "/tmp/ef-ci310-20261014/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests",
+          "--tb=short"
+        ],
+        "returncode": 0,
+        "seconds": 45.68445372581482,
+        "log": "/tmp/ef-ordered-batches-20261016/full-py310.log",
+        "log_sha256": "31daf3fa0f38f06e891df2a784355c86482b4cc04b5e9e06c8f9db68219b7136",
+        "result": "1716 passed, 95 skipped, 11 warnings in 44.53s"
+      },
+      {
+        "label": "py312",
+        "command": [
+          "/tmp/ef-ci312-20261014/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests",
+          "--tb=short"
+        ],
+        "returncode": 0,
+        "seconds": 53.79735064506531,
+        "log": "/tmp/ef-ordered-batches-20261016/full-py312.log",
+        "log_sha256": "9895cfcd54f9d6ba3efa2efd099a303137b8d75a20157ee36b3597b2791e67b0",
+        "result": "1778 passed, 84 skipped, 11 warnings in 52.75s"
+      }
+    ],
+    "numpy124": {
+      "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /tmp/ef-numpy124-20261014/bin/python -m pytest -q tests/test_ordered_batches.py tests/test_dataset_reads.py tests/test_data_validation.py tests/test_compact_episodes.py tests/test_episode_identity.py",
+      "result": "242 passed in 5.80s",
+      "log_sha256": "a53df340a34e381a3f8e9442c053bb713a2c59e58b3849d15c80eb019b621fb4",
+      "returncode": 0
+    },
+    "style": {
+      "ruff_check": "passed: src tests benchmarks examples",
+      "ruff_format_check": "211 files already formatted",
+      "git_diff_check": "passed"
+    },
+    "benchmark_smoke": [
+      {
+        "python": "3.10.0",
+        "numpy": "2.2.6",
+        "samples": 1600,
+        "sha256": "a0f3152e37ba0891c798fe313c624320eccfafe802d0601efaba28be620cfef4"
+      },
+      {
+        "python": "3.10.0",
+        "numpy": "1.24.4",
+        "samples": 1600,
+        "sha256": "a0f3152e37ba0891c798fe313c624320eccfafe802d0601efaba28be620cfef4"
+      }
+    ],
+    "regression_coverage": [
+      "Both episode storage formats and independent original transition-slice equivalence",
+      "Completed crossing batches and incomplete tails release whole backing arrays before the next NPZ opens",
+      "Overlapping/reversed-stride read-only inputs and both byte orders; owned native contiguous outputs",
+      "Multiple-episode instruction alignment and drop_last",
+      "Mixed byte orders rejected before concatenation; nonstring instructions rejected"
+    ]
+  },
+  "decoded_collation": {
+    "schema_version": 1,
+    "date": "2026-10-16",
+    "baseline_revision": "7bb4da9774d782ab7c8e5520610aa2e4c14982aa",
+    "scope": "Alternating baseline/candidate ordered collation in one process, 11 timed passes per case following one warmup each; trace/checksum passes separate. Synthetic decoded overlapping windows reuse backing arrays; excludes NPZ IO, validation, training, construction and checksums from timing. Shared host; no claim about end-to-end training throughput or RSS. Both implementations imported from exact source snapshots; benchmark checks independently owned contiguous outputs. All configuration sample counts and SHA256 output hashes agree.",
+    "python": "3.12.0",
+    "numpy": "2.5.4",
+    "source_sha256": {
+      "baseline_batching": "20801fbf1c760b0eced3ee591e2258e5f540a70fa9084e1c959fadcecbd7d659",
+      "candidate_batching": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+      "benchmark": "c6ae3a7868fcc75e86f0b3a4b9f9403412e5b193a83d7935ddb418e7bc583451"
+    },
+    "cases": [
+      {
+        "label": "short-1",
+        "arguments": {
+          "episode_windows": [
+            1
+          ],
+          "image_size": 1,
+          "episodes": 10000,
+          "batch_size": 32,
+          "history": 4,
+          "horizon": 8
+        },
+        "seconds": {
+          "baseline": [
+            0.024027093983022496,
+            0.023816405999241397,
+            0.02435131900710985,
+            0.02409928201814182,
+            0.024628924002172425,
+            0.02406555798370391,
+            0.02378677000524476,
+            0.024018467986024916,
+            0.02434216099209152,
+            0.023514524014899507,
+            0.02850045097875409
+          ],
+          "candidate": [
+            0.022099435998825356,
+            0.022238498990191147,
+            0.022018954012310132,
+            0.022251765010878444,
+            0.022116979002021253,
+            0.022683562012389302,
+            0.0221869419910945,
+            0.02236469800118357,
+            0.02214850898599252,
+            0.02202399302041158,
+            0.024814594973577186
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.02406555798370391,
+          "candidate": 0.0221869419910945
+        },
+        "peak_traced_bytes": {
+          "baseline": 35272,
+          "candidate": 35040
+        },
+        "samples": 10000,
+        "sha256": "8a3ed7f2032ffd785e1aac4ed8f752642cd0de5e480b3beb98a169e7503e9052",
+        "seconds_reduction_pct": 7.806243237250198,
+        "traced_peak_reduction_pct": 0.6577455205261984
+      },
+      {
+        "label": "crossing-64",
+        "arguments": {
+          "episode_windows": [
+            1,
+            31
+          ],
+          "image_size": 64,
+          "episodes": 2000,
+          "batch_size": 32,
+          "history": 4,
+          "horizon": 8
+        },
+        "seconds": {
+          "baseline": [
+            0.09364535700296983,
+            0.08769956298056059,
+            0.08784256500075571,
+            0.08783480999409221,
+            0.08797868300462142,
+            0.08779977398808114,
+            0.08881962398299947,
+            0.0876451609947253,
+            0.08855616499204189,
+            0.0885502640157938,
+            0.08801533098448999
+          ],
+          "candidate": [
+            0.08780069497879595,
+            0.08738615098991431,
+            0.08755591200315394,
+            0.08718089197645895,
+            0.08740947500336915,
+            0.08785506800631993,
+            0.08741147900582291,
+            0.08719908600323834,
+            0.08794500899966806,
+            0.08773566302261315,
+            0.08779235000838526
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.08797868300462142,
+          "candidate": 0.08755591200315394
+        },
+        "peak_traced_bytes": {
+          "baseline": 4729628,
+          "candidate": 4729396
+        },
+        "samples": 32000,
+        "sha256": "d25335e26caee5af4536ef853e5b50a021e102e0b3c6ed122fa55519eba4dc94",
+        "seconds_reduction_pct": 0.4805379974206603,
+        "traced_peak_reduction_pct": 0.004905248362030434
+      },
+      {
+        "label": "mixed-64",
+        "arguments": {
+          "episode_windows": [
+            17,
+            33,
+            65
+          ],
+          "image_size": 64,
+          "episodes": 600,
+          "batch_size": 32,
+          "history": 4,
+          "horizon": 8
+        },
+        "seconds": {
+          "baseline": [
+            0.11658849997911602,
+            0.11595254801795818,
+            0.1162515829782933,
+            0.11613152700010687,
+            0.116095677978592,
+            0.11624142399523407,
+            0.11635540900169872,
+            0.11542455799644813,
+            0.11565272000734694,
+            0.11538455297704786,
+            0.11535892399842851
+          ],
+          "candidate": [
+            0.11596988001838326,
+            0.11590451601659879,
+            0.11604678598814644,
+            0.11700092200771905,
+            0.11587003199383616,
+            0.11611701900255866,
+            0.11509825100074522,
+            0.11660055399988778,
+            0.11565841099945828,
+            0.11516277299961075,
+            0.11598344601225108
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.116095677978592,
+          "candidate": 0.11596988001838326
+        },
+        "peak_traced_bytes": {
+          "baseline": 4737020,
+          "candidate": 4736732
+        },
+        "samples": 23000,
+        "sha256": "5da412d8b38a5e18bb0827414ed75c0a3cc31398d05a9f3cbdda936a5335c1f3",
+        "seconds_reduction_pct": 0.10835714334854751,
+        "traced_peak_reduction_pct": 0.006079771670797207
+      },
+      {
+        "label": "aligned-64",
+        "arguments": {
+          "episode_windows": [
+            32
+          ],
+          "image_size": 64,
+          "episodes": 1000,
+          "batch_size": 32,
+          "history": 4,
+          "horizon": 8
+        },
+        "seconds": {
+          "baseline": [
+            0.022194315999513492,
+            0.02220996600226499,
+            0.02224494199617766,
+            0.022237548022530973,
+            0.022278485994320363,
+            0.022233120020246133,
+            0.022285458020633087,
+            0.02257180999731645,
+            0.022374717984348536,
+            0.022361342009389773,
+            0.02236996899591759
+          ],
+          "candidate": [
+            0.022249280009418726,
+            0.022203884000191465,
+            0.022255382005823776,
+            0.022258045995840803,
+            0.02228058999753557,
+            0.022262996004428715,
+            0.022461961983935907,
+            0.022513610980240628,
+            0.02241791001870297,
+            0.022324552002828568,
+            0.022288092994131148
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.022278485994320363,
+          "candidate": 0.02228058999753557
+        },
+        "peak_traced_bytes": {
+          "baseline": 3152712,
+          "candidate": 3152712
+        },
+        "samples": 32000,
+        "sha256": "b212ec9ed494b6ed4d3310257f2c53619820fbbb5d678bb942285774e25b51c2",
+        "seconds_reduction_pct": -0.009444103229205858,
+        "traced_peak_reduction_pct": 0.0
+      },
+      {
+        "label": "short-64",
+        "arguments": {
+          "episode_windows": [
+            1
+          ],
+          "image_size": 64,
+          "episodes": 2000,
+          "batch_size": 32,
+          "history": 4,
+          "horizon": 8
+        },
+        "seconds": {
+          "baseline": [
+            0.008387334004510194,
+            0.008309035998536274,
+            0.008320638007717207,
+            0.00853741800528951,
+            0.008483826997689903,
+            0.008835011016344652,
+            0.00863397098146379,
+            0.008445954998023808,
+            0.008199067990062758,
+            0.009168321994366124,
+            0.00817847900907509
+          ],
+          "candidate": [
+            0.00797435300773941,
+            0.008217783004511148,
+            0.008224716002587229,
+            0.007972158986376598,
+            0.008058081002673134,
+            0.008010010002180934,
+            0.008077548001892865,
+            0.00789170598727651,
+            0.008109187998343259,
+            0.0078059950028546154,
+            0.008000933012226596
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.008445954998023808,
+          "candidate": 0.008010010002180934
+        },
+        "peak_traced_bytes": {
+          "baseline": 4752712,
+          "candidate": 4752480
+        },
+        "samples": 2000,
+        "sha256": "f7ef7aeb47c01c41f4cba018af6c06ff8016c53f56b446554244cc073c7c4f7c",
+        "seconds_reduction_pct": 5.161583218770128,
+        "traced_peak_reduction_pct": 0.0048814234904215326
+      },
+      {
+        "label": "crossing-8",
+        "arguments": {
+          "episode_windows": [
+            1,
+            31
+          ],
+          "image_size": 8,
+          "episodes": 10000,
+          "batch_size": 32,
+          "history": 4,
+          "horizon": 8
+        },
+        "seconds": {
+          "baseline": [
+            0.03514713098411448,
+            0.033931730984477326,
+            0.03393633000086993,
+            0.03416868898784742,
+            0.03394340298837051,
+            0.05316745798336342,
+            0.06127019299310632,
+            0.034434081986546516,
+            0.03628548499546014,
+            0.03593527298653498,
+            0.035493156989105046
+          ],
+          "candidate": [
+            0.0341224719886668,
+            0.03357683899230324,
+            0.03300077898893505,
+            0.03302708902629092,
+            0.04365050501655787,
+            0.03753034200053662,
+            0.033930618985323235,
+            0.03370783699210733,
+            0.034473285981221125,
+            0.034829709999030456,
+            0.03416088499943726
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.03514713098411448,
+          "candidate": 0.0341224719886668
+        },
+        "peak_traced_bytes": {
+          "baseline": 84764,
+          "candidate": 84532
+        },
+        "samples": 160000,
+        "sha256": "e79a0ec4703a14901e6b476e36fbf2c37baed5e4acc98265dc86a956bb4399f8",
+        "seconds_reduction_pct": 2.915341783973202,
+        "traced_peak_reduction_pct": 0.2737010995233824
+      },
+      {
+        "label": "crossing-128",
+        "arguments": {
+          "episode_windows": [
+            1,
+            31
+          ],
+          "image_size": 128,
+          "episodes": 400,
+          "batch_size": 32,
+          "history": 4,
+          "horizon": 8
+        },
+        "seconds": {
+          "baseline": [
+            0.08779808098915964,
+            0.08903282802202739,
+            0.0791442230110988,
+            0.0729784140130505,
+            0.079756682011066,
+            0.09917434299131855,
+            0.07678921599290334,
+            0.07731745598721318,
+            0.09684504501638003,
+            0.07661089798784815,
+            0.07412278899573721
+          ],
+          "candidate": [
+            0.07707736099837348,
+            0.09574473201064393,
+            0.07638825700269081,
+            0.07167984600528143,
+            0.0728558209957555,
+            0.07395021198317409,
+            0.07561485300539061,
+            0.08405406601377763,
+            0.0893936210195534,
+            0.07937744399532676,
+            0.07261706900317222
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.0791442230110988,
+          "candidate": 0.07638825700269081
+        },
+        "peak_traced_bytes": {
+          "baseline": 18885400,
+          "candidate": 18885168
+        },
+        "samples": 6400,
+        "sha256": "c923e046ad389c81ed3556f1e554f06866b8f83826168efa5170227ec918196d",
+        "seconds_reduction_pct": 3.482207422797634,
+        "traced_peak_reduction_pct": 0.0012284621983105204
+      }
+    ]
+  },
+  "recorded_npz_same_process": {
+    "scope": "End-to-end public window_batches reads on 24 actual VectorEnv/compact EpisodeRecorder NPZ episodes, 41 steps each, RGB/depth 64px, history4/horizon8, batch32; all observations and state-only projection. Alternating exact baseline/candidate, 11 timed repetitions following warmup, checksum separate, cached filesystem and shared host; excludes recording and training. No speedup guarantee for other datasets.",
+    "dataset": {
+      "path": "/tmp/ef-ordered-batches-20261016/recorded-compact",
+      "episodes": 24,
+      "steps_per_episode": 41,
+      "num_envs": 2,
+      "image_size": 64,
+      "format": "compact",
+      "history": 4,
+      "horizon": 8,
+      "batch_size": 32
+    },
+    "source_sha256": {
+      "baseline": "20801fbf1c760b0eced3ee591e2258e5f540a70fa9084e1c959fadcecbd7d659",
+      "candidate": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae"
+    },
+    "cases": [
+      {
+        "observation_keys": null,
+        "seconds": {
+          "baseline": [
+            0.0655121220042929,
+            0.07372319299611263,
+            0.07135813700733706,
+            0.06590028700884432,
+            0.06562358298106119,
+            0.07392253098078072,
+            0.06807593500707299,
+            0.06922492999001406,
+            0.0657721439783927,
+            0.07247785601066425,
+            0.06624628201825544
+          ],
+          "candidate": [
+            0.06635675099096261,
+            0.06662540999241173,
+            0.0689645069942344,
+            0.08084260797477327,
+            0.06824407301610336,
+            0.066606373002287,
+            0.07761782401939854,
+            0.0647950150014367,
+            0.06743065398768522,
+            0.07186439502402209,
+            0.08879226399585605
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.06807593500707299,
+          "candidate": 0.06824407301610336
+        },
+        "seconds_reduction_pct": -0.24698597090573315,
+        "samples": 744,
+        "sha256": "a2d52c413bf8ec0a3bd73e383ec86a0a48e59e68befb3afca876301398b27805"
+      },
+      {
+        "observation_keys": [],
+        "seconds": {
+          "baseline": [
+            0.009379402996273711,
+            0.010497859009774402,
+            0.011108655016869307,
+            0.010194664995651692,
+            0.009675883018644527,
+            0.009854570991592482,
+            0.009483308007474989,
+            0.009690250008134171,
+            0.009340118005638942,
+            0.009221072978107259,
+            0.009769559983396903
+          ],
+          "candidate": [
+            0.009275544987758622,
+            0.009289140987675637,
+            0.011105187993962318,
+            0.0102883719955571,
+            0.009720867994474247,
+            0.009498486993834376,
+            0.01128053999855183,
+            0.009133356012171134,
+            0.009271829010685906,
+            0.009456147003220394,
+            0.010019984998507425
+          ]
+        },
+        "median_seconds": {
+          "baseline": 0.009690250008134171,
+          "candidate": 0.009498486993834376
+        },
+        "seconds_reduction_pct": 1.9789274181659433,
+        "samples": 744,
+        "sha256": "c4bc5be38d34d022b55a8178325c7b30743123f4c49b158ceaedb91b1f4a306e"
+      }
+    ]
+  },
+  "recorded_npz_fresh_processes": {
+    "scope": "Alternating fresh baseline/candidate subprocesses, nine per implementation/projection; each process performs three warmup and five timed public NPZ window_batches passes; medians of per-process medians. Same 24 real recorded episodes as end-to-end.json, cached filesystem, shared host. This checks sensitivity to same-process allocator interactions; does not imply general end-to-end or training speedup.",
+    "cases": [
+      {
+        "projection": "all",
+        "median_seconds": {
+          "baseline": 0.061878455977421254,
+          "candidate": 0.06264353400911205
+        },
+        "seconds_reduction_pct": -1.236420688922757,
+        "per_process_median_seconds": {
+          "baseline": [
+            0.06333567399997264,
+            0.061854881001636386,
+            0.06176870799390599,
+            0.061409638001350686,
+            0.06168753499514423,
+            0.06213924998883158,
+            0.061878455977421254,
+            0.0652742839884013,
+            0.06260796697461046
+          ],
+          "candidate": [
+            0.06316590201458894,
+            0.06496244299341924,
+            0.06121496998821385,
+            0.06447141300304793,
+            0.06177679399843328,
+            0.06089786998927593,
+            0.06145099698915146,
+            0.06264353400911205,
+            0.06587082298938185
+          ]
+        }
+      },
+      {
+        "projection": "state-only",
+        "median_seconds": {
+          "baseline": 0.008733188995392993,
+          "candidate": 0.008699875994352624
+        },
+        "seconds_reduction_pct": 0.38145288116336884,
+        "per_process_median_seconds": {
+          "baseline": [
+            0.008724051003810018,
+            0.008479618991259485,
+            0.00868852500570938,
+            0.008800927986158058,
+            0.009245168010238558,
+            0.008733188995392993,
+            0.00853458300116472,
+            0.00878116997773759,
+            0.008765209990087897
+          ],
+          "candidate": [
+            0.008909583004424348,
+            0.008699875994352624,
+            0.00847171401255764,
+            0.008463578997179866,
+            0.00848378799855709,
+            0.008578386012231931,
+            0.009437862987397239,
+            0.008793843997409567,
+            0.008736075018532574
+          ]
+        }
+      }
+    ]
+  },
+  "recorded_npz_allocations": {
+    "scope": "Separate traced-allocation passes through the actual RGB/depth NPZ public window_batches pipeline; same recorded dataset/options as end-to-end.json. Three alternating passes per implementation; no timing from these passes. Traced peak is not RSS, native/CUDA memory or a hard byte bound.",
+    "peak_traced_bytes": {
+      "baseline": [
+        14256695,
+        14207536,
+        14208725
+      ],
+      "candidate": [
+        14208760,
+        14207834,
+        14209579
+      ]
+    },
+    "median_peak_traced_bytes": {
+      "baseline": 14208725,
+      "candidate": 14208760
+    },
+    "traced_peak_reduction_pct": -0.0002463275205810689
+  },
+  "rejected_experiment": {
+    "status": "rejected",
+    "change": "Borrow the current episode slice when it completes a batch, avoiding its temporary owned copy before concatenate.",
+    "reason": "Large decoded-only collation speedups did not translate to reliable actual-reader gains. The actual recorded all-observations reader slowed 6.74% in same-process runs and 2.23% in fresh-process runs, with only 2.56% lower actual pipeline traced peak. Reverted in favor of simpler layout validation with unchanged array-copy behavior.",
+    "source_sha256": {
+      "baseline_batching": "20801fbf1c760b0eced3ee591e2258e5f540a70fa9084e1c959fadcecbd7d659",
+      "candidate_batching": "51053bc08e05801ef4edb6d2d5d4c3bf315c2340812c845820e6c3b39df0f79f",
+      "benchmark": "c6ae3a7868fcc75e86f0b3a4b9f9403412e5b193a83d7935ddb418e7bc583451"
+    },
+    "decoded_collation": [
+      {
+        "label": "crossing-64",
+        "median_seconds": {
+          "baseline": 0.08675128198228776,
+          "candidate": 0.027485224010888487
+        },
+        "peak_traced_bytes": {
+          "baseline": 4729628,
+          "candidate": 3204044
+        },
+        "seconds_reduction_pct": 68.31721286090018,
+        "traced_peak_reduction_pct": 32.25589834972222
+      },
+      {
+        "label": "mixed-64",
+        "median_seconds": {
+          "baseline": 0.11476362499524839,
+          "candidate": 0.07394683800521307
+        },
+        "peak_traced_bytes": {
+          "baseline": 4737020,
+          "candidate": 4687856
+        },
+        "seconds_reduction_pct": 35.56596176857021,
+        "traced_peak_reduction_pct": 1.0378676889690186
+      },
+      {
+        "label": "aligned-64",
+        "median_seconds": {
+          "baseline": 0.022040716983610764,
+          "candidate": 0.02190680301282555
+        },
+        "peak_traced_bytes": {
+          "baseline": 3152712,
+          "candidate": 3152752
+        },
+        "seconds_reduction_pct": 0.6075753837082143,
+        "traced_peak_reduction_pct": -0.001268748937421904
+      },
+      {
+        "label": "short-64",
+        "median_seconds": {
+          "baseline": 0.008299706998514012,
+          "candidate": 0.008130147005431354
+        },
+        "peak_traced_bytes": {
+          "baseline": 4752712,
+          "candidate": 4703848
+        },
+        "seconds_reduction_pct": 2.0429636023659103,
+        "traced_peak_reduction_pct": 1.0281287820511742
+      },
+      {
+        "label": "crossing-8",
+        "median_seconds": {
+          "baseline": 0.03322635299991816,
+          "candidate": 0.027996372984489426
+        },
+        "peak_traced_bytes": {
+          "baseline": 84764,
+          "candidate": 59084
+        },
+        "seconds_reduction_pct": 15.740457628442151,
+        "traced_peak_reduction_pct": 30.295880326553725
+      },
+      {
+        "label": "crossing-128",
+        "median_seconds": {
+          "baseline": 0.0647208130103536,
+          "candidate": 0.017612845986150205
+        },
+        "peak_traced_bytes": {
+          "baseline": 18885400,
+          "candidate": 12788680
+        },
+        "seconds_reduction_pct": 72.78642654978296,
+        "traced_peak_reduction_pct": 32.282715748673574
+      }
+    ],
+    "recorded_same_process": [
+      {
+        "observation_keys": null,
+        "median_seconds": {
+          "baseline": 0.06069445199682377,
+          "candidate": 0.0647833660186734
+        },
+        "seconds_reduction_pct": -6.736882675971123
+      },
+      {
+        "observation_keys": [],
+        "median_seconds": {
+          "baseline": 0.008688364003319293,
+          "candidate": 0.00862570499884896
+        },
+        "seconds_reduction_pct": 0.7211830034560607
+      }
+    ],
+    "recorded_fresh_processes": [
+      {
+        "projection": "all",
+        "median_seconds": {
+          "baseline": 0.0617306639906019,
+          "candidate": 0.06310626599588431
+        },
+        "seconds_reduction_pct": -2.2283933402884593
+      },
+      {
+        "projection": "state-only",
+        "median_seconds": {
+          "baseline": 0.008575493993703276,
+          "candidate": 0.008498628012603149
+        },
+        "seconds_reduction_pct": 0.8963446438953526
+      }
+    ]
+  },
+  "limits": [
+    "Decoded microbenchmarks exclude NPZ IO, validation, neural inference and training; synthetic episodes reuse backing arrays. The 5-8% result applies to the listed short-episode collation workloads, not general dataset reads.",
+    "Actual recorded all-observations candidate timing is 0.25% slower in same-process runs and 1.24% slower in fresh-process runs; state-only projection is 1.98% and 0.38% faster, respectively. Shared-host variation and decoding dominate; no whole-reader or training-throughput speedup is established.",
+    "Actual pipeline traced peak is effectively unchanged. Tracemalloc bytes are not RSS, native/CUDA memory or a hard bound; tracing, checksums and timing use separate passes.",
+    "Optional integration tests remain skipped where dependencies or assets are unavailable; full-suite counts apply only to the listed environments."
+  ]
+}

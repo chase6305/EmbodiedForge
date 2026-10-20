@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 from ._adam_checkpoint import validate_adam_checkpoint
+from ._hashing import file_sha256
 from ._microduck_process import termination_signals
 from ._training_runtime import record_training_runtime
 
@@ -21,7 +22,7 @@ def write_json(path, value):
 
 
 def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return file_sha256(path)
 
 
 def save_checkpoint(root, checkpoint, optimizer, metadata):

@@ -196,8 +196,16 @@ class Go1:
         self.friction[ids[:, None], self.feet, 0] = self.rng.uniform(*FRICTION, (n, 1))
         self.batch.forward(selected)  # sensordata is stale until forward runs
         # The keyframe stands 2.4 cm lower than this pose needs, which buries the feet.
+        # Gathering height first helps large sparse resets; dense stacking is
+        # faster for small batches and keeps full-reset work unchanged.
         self.qpos[ids, 2] -= (
-            np.stack(self.foot_pos, 1)[ids, :, 2].min(1) - FOOT_RADIUS - 0.001
+            (
+                np.stack([position[ids, 2] for position in self.foot_pos], 1).min(1)
+                if len(self.steps) >= 1024 and 4 * n < len(self.steps)
+                else np.stack(self.foot_pos, 1)[ids, :, 2].min(1)
+            )
+            - FOOT_RADIUS
+            - 0.001
         )
         self.batch.forward(selected)
         self.clock[ids] = self.rng.uniform(0.0, 1.0, n)

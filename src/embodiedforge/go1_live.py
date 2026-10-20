@@ -79,11 +79,24 @@ class LivePolicyProcess:
             if sha256(copied) != self.contract["checkpoint_sha256"]:
                 raise ValueError("Copied checkpoint SHA256 mismatch")
             self.socket, child = socket.socketpair()
-            self.socket.settimeout(120)
-            environment = dict(os.environ)
-            reuse_asset_cache(environment, self.contract.get("assets"))
-            environment["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
+
+            def close_child():
+                try:
+                    child.close()
+                except BaseException:
+                    try:
+                        child.close()
+                    except BaseException:
+                        get_logger(__name__).exception(
+                            "Additional live worker socket cleanup failure"
+                        )
+                    raise
+
             try:
+                self.socket.settimeout(120)
+                environment = dict(os.environ)
+                reuse_asset_cache(environment, self.contract.get("assets"))
+                environment["PYTHONPATH"] = str(Path(__file__).resolve().parent.parent)
                 self.process = subprocess.Popen(
                     [
                         str(executable),
@@ -98,8 +111,14 @@ class LivePolicyProcess:
                     stdout=sys.stderr,
                     stderr=sys.stderr,
                 )
-            finally:
-                child.close()
+            except BaseException:
+                try:
+                    close_child()
+                except BaseException:
+                    get_logger(__name__).exception("Failed to close live worker socket")
+                raise
+            else:
+                close_child()
             self.channel = JsonChannel(self.socket)
             self.channel.send(
                 {
@@ -129,19 +148,45 @@ class LivePolicyProcess:
                 raise ValueError("Compiled model SHA256 mismatch")
             self.socket.settimeout(30)
         except BaseException:
-            self.close()
+            try:
+                self.close()
+            except BaseException:
+                get_logger(__name__).exception("Failed to clean up live policy worker")
             raise
 
     def _receive(self):
-        value = self.channel.receive()
+        try:
+            value = self.channel.receive()
+            if (
+                not isinstance(value, dict)
+                or type(value.get("ok")) is not bool
+                or (value["ok"] and not isinstance(value.get("state"), dict))
+                or (not value["ok"] and not isinstance(value.get("error"), str))
+            ):
+                raise ValueError("Invalid live policy response")
+        except BaseException:
+            # A timeout or interrupt may have consumed part of a frame. The
+            # stream has no request IDs with which to recover its alignment.
+            self._close_preserving_error()
+            raise
         if not value["ok"]:
             raise RuntimeError(value["error"])
         return value
 
+    def _close_preserving_error(self):
+        try:
+            self.close()
+        except BaseException:
+            get_logger(__name__).exception("Failed to clean up live policy worker")
+
     def request(self, action, **kwargs):
         if self.closed:
             raise RuntimeError("Policy session is closed")
-        self.channel.send({"action": action, **kwargs})
+        try:
+            self.channel.send({"action": action, **kwargs})
+        except (OSError, KeyboardInterrupt, SystemExit):
+            self._close_preserving_error()
+            raise
         self.state = self._receive()["state"]
         return self.state
 
@@ -178,30 +223,64 @@ class LivePolicyProcess:
         )
 
     def close(self):
+        """Reap the worker and release local resources after cleanup interruptions."""
         if self.closed:
             return
         self.closed = True
-        try:
-            if self.process is not None:
-                if self.process.poll() is None and self.socket is not None:
+        error = None
+        failed = object()
+
+        def attempt(operation, *, default=None):
+            nonlocal error
+            try:
+                return operation()
+            except BaseException as caught:
+                if error is None:
+                    error = caught
+                else:
+                    get_logger(__name__).exception(
+                        "Additional live worker cleanup failure"
+                    )
+                return default
+
+        def running():
+            status = attempt(self.process.poll, default=failed)
+            if status is failed:
+                status = attempt(self.process.poll, default=None)
+            return status is None
+
+        def wait(timeout):
+            try:
+                self.process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                pass
+
+        if self.process is not None:
+            if running() and self.socket is not None:
+
+                def request_close():
                     try:
                         self.socket.settimeout(0.2)
                         JsonChannel(self.socket).send({"action": "close"})
                     except OSError:
                         pass
-                try:
-                    self.process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    self.process.terminate()
-                    try:
-                        self.process.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        self.process.kill()
-                        self.process.wait(timeout=2)
-        finally:
-            if self.socket is not None:
-                self.socket.close()
-            self.directory.cleanup()
+
+                attempt(request_close)
+            attempt(lambda: wait(5))
+            if running():
+                attempt(self.process.terminate)
+                attempt(lambda: wait(2))
+            if running():
+                if attempt(self.process.kill, default=failed) is failed:
+                    attempt(self.process.kill)
+                attempt(lambda: wait(2))
+        if self.socket is not None:
+            if attempt(self.socket.close, default=failed) is failed:
+                attempt(self.socket.close)
+        if attempt(self.directory.cleanup, default=failed) is failed:
+            attempt(self.directory.cleanup)
+        if error is not None:
+            raise error
 
 
 def main(argv=None):
@@ -310,18 +389,21 @@ def main(argv=None):
         pass
     finally:
         active_error = sys.exc_info()[0] is not None
-        try:
+        cleanup_error = None
+        for owner in (viewer, policy):
+            if owner is None:
+                continue
             try:
-                if viewer is not None:
-                    viewer.close()
-            finally:
-                policy.close()
-        except Exception:
-            if not active_error:
-                raise
-            logger.exception(
-                "Live session cleanup also failed; preserving the original error"
-            )
+                owner.close()
+            except BaseException as error:
+                if active_error or cleanup_error is not None:
+                    logger.exception(
+                        "Live session cleanup also failed; preserving the original error"
+                    )
+                else:
+                    cleanup_error = error
+        if cleanup_error is not None:
+            raise cleanup_error
         logger.info("Live Go1 stopped")
 
 

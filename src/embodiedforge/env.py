@@ -22,6 +22,24 @@ from .sensors import SensorPipeline
 from .tasks import make_task
 
 
+def _executed_action(actions: Array, active: Array) -> Array:
+    """Own executed float32 actions, avoiding masking scratch for uniform batches."""
+    if (
+        type(actions) is np.ndarray
+        and actions.ndim == 2
+        and actions.dtype == np.float64
+        and actions.size >= 2048
+        and type(active) is np.ndarray
+        and active.dtype == np.bool_
+        and active.shape == (len(actions),)
+    ):
+        if active.all():
+            return actions.astype(np.float32)
+        if not active.any():
+            return np.zeros_like(actions, dtype=np.float32)
+    return np.where(active[:, None], actions, 0).astype(np.float32)
+
+
 class VectorEnv:
     """Synchronous CPU environment; owns one task and both backend lifetimes.
 
@@ -38,7 +56,7 @@ class VectorEnv:
         self.renderer: RenderBackend | None = None
         self.closed = False
         self.failure: BaseException | None = None
-        self.cleanup_errors: list[Exception] = []
+        self.cleanup_errors: list[BaseException] = []
         try:
             self.task.build(self.config.num_envs)
             self.physics = physics.factory()
@@ -101,7 +119,7 @@ class VectorEnv:
         """Cleanup diagnostics must not mask an error already being propagated."""
         try:
             self.close()
-        except Exception:
+        except BaseException:
             # close retains every backend exception in cleanup_errors.
             pass
 
@@ -159,21 +177,28 @@ class VectorEnv:
         self.terminated[ids] = self.truncated[ids] = False
         state = self.physics.snapshot()
         self._sample(ids, state)
-        return {key: value[ids].copy() for key, value in self._observe(state).items()}
+        return self._observe(state, env_ids=ids)
 
     def _sample(self, ids: Array, state: StateSnapshot) -> None:
         if len(ids) and self.config.channels:
             self.sensors.sample(ids, self.task.scene_update(state))
 
-    def _observe(self, state: StateSnapshot) -> Observation:
+    def _observe(
+        self, state: StateSnapshot, *, env_ids: Array | None = None
+    ) -> Observation:
+        def owned_rows(value: Array) -> Array:
+            return value.copy() if env_ids is None else value[env_ids]
+
         metadata = {
-            "env_id": np.arange(self.config.num_envs),
-            "episode_id": self.episodes.copy(),
-            "step_id": self.steps.copy(),
-            "time": state.time.copy(),
-            "state_version": state.version.copy(),
+            "env_id": np.arange(self.config.num_envs)
+            if env_ids is None
+            else env_ids.copy(),
+            "episode_id": owned_rows(self.episodes),
+            "step_id": owned_rows(self.steps),
+            "time": owned_rows(state.time),
+            "state_version": owned_rows(state.version),
         }
-        sensors = self.sensors.observe(state.time)
+        sensors = self.sensors.observe(state.time, env_ids=env_ids)
         features = self.task.observe(state)
         reserved = set(metadata) | set(sensors)
         if features.keys() & reserved:
@@ -203,7 +228,7 @@ class VectorEnv:
         return {
             **metadata,
             **sensors,
-            **{name: value.copy() for name, value in features.items()},
+            **{name: owned_rows(value) for name, value in features.items()},
         }
 
     def observe(self) -> Observation:
@@ -267,9 +292,7 @@ class VectorEnv:
             {
                 "active": active,
                 "success": success & active,
-                "executed_action": np.where(active[:, None], actions, 0).astype(
-                    np.float32
-                ),
+                "executed_action": _executed_action(actions, active),
             },
         )
 
@@ -282,8 +305,14 @@ class VectorEnv:
             if backend is not None:
                 try:
                     backend.close()
-                except Exception as error:
+                except BaseException as error:
                     self.cleanup_errors.append(error)
+        # A cancellation must still release both backends and retain its
+        # original type. Error-preserving cleanup suppresses it only while an
+        # earlier operation/context error is already being propagated.
+        for error in self.cleanup_errors:
+            if not isinstance(error, Exception):
+                raise error
         if self.cleanup_errors:
             raise RuntimeError(
                 "Backend cleanup failed: "

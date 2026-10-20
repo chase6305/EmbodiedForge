@@ -36,9 +36,12 @@ def termination_signals():
         def interrupt(signum, frame):
             raise ProcessInterrupted(signum)
 
-        for sig in (signal.SIGTERM, signal.SIGHUP):
+        for name in ("SIGTERM", "SIGHUP"):
+            sig = getattr(signal, name, None)
+            if sig is None:
+                continue
             previous = signal.getsignal(sig)
-            if sig == signal.SIGHUP and previous == signal.SIG_IGN:
+            if name == "SIGHUP" and previous == signal.SIG_IGN:
                 continue
             saved[sig] = previous
             signal.signal(sig, interrupt)

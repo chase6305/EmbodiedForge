@@ -43,8 +43,8 @@ Mirroring rules (left-right reflection about the sagittal plane):
 from dataclasses import dataclass
 
 import torch
-from tensordict import TensorDict
 from mjlab.rl import RslRlPpoAlgorithmCfg
+from tensordict import TensorDict
 
 
 @dataclass
@@ -73,30 +73,32 @@ _JOINT_SIGN: list[float] = [-1, -1, -1, -1, -1, 1, 1, -1, -1, -1, -1, -1, -1, -1
 
 # Full 61-dim actor obs permutation (all command slots mirror in place)
 _OBS_PERM: list[int] = (
-    [0, 1, 2]                           # base_ang_vel (indices unchanged)
-    + [3, 4, 5]                         # projected_gravity
-    + [6 + j for j in _JOINT_PERM]     # joint_pos
-    + [20 + j for j in _JOINT_PERM]    # joint_vel
-    + [34 + j for j in _JOINT_PERM]    # last_action
-    + [48, 49, 50]                      # twist command
-    + [51, 52, 53, 54]                  # head command
-    + [55, 56, 57, 58, 59, 60]          # body command
+    [0, 1, 2]  # base_ang_vel (indices unchanged)
+    + [3, 4, 5]  # projected_gravity
+    + [6 + j for j in _JOINT_PERM]  # joint_pos
+    + [20 + j for j in _JOINT_PERM]  # joint_vel
+    + [34 + j for j in _JOINT_PERM]  # last_action
+    + [48, 49, 50]  # twist command
+    + [51, 52, 53, 54]  # head command
+    + [55, 56, 57, 58, 59, 60]  # body command
 )
 
 # Full 61-dim sign vector
 _OBS_SIGN: list[float] = (
-    [-1.0, 1.0, -1.0]   # base_ang_vel: negate roll, yaw
+    [-1.0, 1.0, -1.0]  # base_ang_vel: negate roll, yaw
     + [1.0, -1.0, 1.0]  # projected_gravity: negate gy
-    + _JOINT_SIGN       # joint_pos
-    + _JOINT_SIGN       # joint_vel
-    + _JOINT_SIGN       # last_action
-    + [1.0, -1.0, -1.0] # twist: negate lin_vel_y, ang_vel_z
+    + _JOINT_SIGN  # joint_pos
+    + _JOINT_SIGN  # joint_vel
+    + _JOINT_SIGN  # last_action
+    + [1.0, -1.0, -1.0]  # twist: negate lin_vel_y, ang_vel_z
     + [1.0, 1.0, -1.0, -1.0]  # head: negate head_yaw, head_roll
     + [1.0, -1.0, 1.0, -1.0, 1.0, -1.0]  # body: negate y, roll, yaw
 )
 
 # Cache tensors per device to avoid reallocating on every call
-_cache: dict[torch.device, tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]] = {}
+_cache: dict[
+    torch.device, tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+] = {}
 
 
 def _get_tensors(

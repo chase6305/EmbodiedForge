@@ -96,11 +96,24 @@ python -m embodiedforge evaluate \
   --checkpoint runs/commands-hold/checkpoint.pt --num-envs 32 --steps 300
 ```
 
-Core PPO uses proprioception, not images. Evaluation restores configuration from the checkpoint; avoid changing its task or physics arbitrarily. The core CLI currently has no resume or ONNX export command. Point-task `visualization` runs a demonstration controller rather than loading these PPO checkpoints.
+Core PPO uses proprioception, not images. Evaluation restores configuration from the checkpoint; avoid changing its task or physics arbitrarily. Point-task `visualization` runs a demonstration controller rather than loading these PPO checkpoints. The core CLI supports resume; ONNX export is not available.
+
+New runs save after the first update, every 10 updates, and at completion; `--checkpoint-interval` changes the interval. `checkpoints/` retains the two most recent committed snapshots, and `checkpoint.pt` is a convenience copy of the most recently published snapshot. `run.json` records status, completed and saved update counts, the versioned checkpoint path and SHA256. A failed save or manifest publication preserves the preceding recovery point. Ctrl+C/SIGTERM records `interrupted`; other failures record `failed`. Atomic replacement does not guarantee durability across host power loss.
+
+```bash
+python -m embodiedforge train --resume runs/commands-reach \
+  --updates 100 --checkpoint-interval 10 --output runs/commands-reach-resumed
+```
+
+`--updates` is the additional budget. A directory selects the committed, hash-verified checkpoint referenced by its run record; a trained legacy v2 checkpoint containing Adam state is also accepted. A running directory can supply a saved snapshot for an independent new run without stopping or modifying the source. If the source prunes the selected file before it is opened, the reader makes at most three attempts, selecting a newer committed update only when progress has advanced. Missing files with unchanged progress and hash mismatches still fail. The CLI inherits environment/PPO settings unless compatible environment overrides are supplied. Task, observation/action semantics and control period must match. Policy and Adam are restored, but environments and RNG streams restart; this is not exact continuation of the original process. Metric `update` is cumulative, while `transitions` counts only the new run.
+
+The Python API accepts `train_ppo(env_config, ppo_config, new_directory, resume=source, checkpoint_interval=10)`. The supplied PPO configuration defines the new budget and hyperparameters; its learning rate replaces the saved Adam rate. `load_training_checkpoint` can read and validate an input once and pass that object to training, preventing a later file replacement from changing the loaded input.
 
 The Python API's `PPOConfig` validates positive integer training counts, a finite positive learning rate, and an integer seed in `[0, 2**64 - 1]` at construction. Invalid configurations fail before creating the training output directory or simulation environment; booleans are rejected as counts or seeds.
 
 `load_checkpoint` / `load_policy` check loaded actor, critic, and `log_std` parameters on CPU, rejecting NaN/Inf with the affected parameter name before returning a policy. Action bounds must be finite and strictly increasing. When a checkpoint includes an environment specification, loading also checks that the policy's observation dimensions, action dimensions, and action range match that record, without creating simulation resources. Existing v1/v2 checkpoints remain supported; legacy models without an environment specification must also match the actual environment's dimensions and action range during evaluation.
+
+Core and native H1 PPO explicitly retain unit `log_std` gradients at both endpoints of `[-5, 2]`, with zero gradients outside. Forward values and NaN propagation remain unchanged. [PyTorch 2.14 changed clamp's endpoint gradients](https://github.com/pytorch/pytorch/issues/195931), which otherwise freezes parameters projected exactly onto a bound. The helper is verified on Torch 2.9, 2.13 and 2.14; exploration bounds and entropy coefficients are unchanged.
 
 To compare trained and untrained policies, run these commands in an environment with core training dependencies. The script preserves the checkpoint’s task, physics, control period, and episode length. Both policies use matching network dimensions and evaluation seeds. Output includes the model SHA256 and environment configuration for comparison provenance. The digest comes from the `sha256` returned by `load_checkpoint`, computed from the same bytes used for deserialization. Replacing the source file after loading cannot make the report identify a different model's hash.
 

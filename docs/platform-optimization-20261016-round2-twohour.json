@@ -1,0 +1,3611 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "round": "second-two-hour-round",
+  "status": "complete",
+  "preview_only": false,
+  "duration": {
+    "started_epoch": 1792130585,
+    "deadline_epoch": 1792137785,
+    "observed_epoch": 1792137810.548374,
+    "elapsed_seconds": 7225.548373937607,
+    "required_seconds": 7200,
+    "requirement_met": true,
+    "started_utc": "2026-10-16T06:03:05+00:00",
+    "observed_utc": "2026-10-16T08:03:30.548374+00:00",
+    "scope": "Actual wall clock from this round start; parallel task durations are not summed."
+  },
+  "baseline_revision": "7bb4da9774d782ab7c8e5520610aa2e4c14982aa",
+  "initial_worktree_status": " M benchmarks/action_executor.py\n M docs/interfaces.md\n M src/embodiedforge/batching.py\n M src/embodiedforge/data.py\n M src/embodiedforge/policies.py\n M tests/test_ordered_batches.py\n?? benchmarks/ordered_batches.py\n?? docs/assets/platform-optimization-20261016-twohour-evidence.tar.gz\n?? docs/ordered-batches-optimization-20261016.json\n?? docs/platform-optimization-20261016-twohour-performance.svg\n?? docs/platform-optimization-20261016-twohour.json\n?? tests/test_recorder_close.py\n?? tests/test_recorder_duplicates.py\n",
+  "environment": {
+    "observed_epoch": 1792132138.7762892,
+    "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+    "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+    "machine": "x86_64",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "logical_cpu_count": 32,
+    "affinity_cpu_count": 32,
+    "numpy_matrix": {
+      "py310": {
+        "python": "3.10.0",
+        "numpy": "2.2.6"
+      },
+      "py312": {
+        "python": "3.12.0",
+        "numpy": "2.5.4"
+      },
+      "numpy124": {
+        "python": "3.10.0",
+        "numpy": "1.24.4"
+      }
+    },
+    "thread_environment": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    },
+    "scope": "CPU/shared unpinned host; no exclusive reservation, GPU inference or training in these measurements."
+  },
+  "changes": [
+    {
+      "component": "Completed background-write collection",
+      "paths": [
+        "src/embodiedforge/data.py",
+        "tests/test_recorder_collection_atomic.py"
+      ],
+      "behavior": "Snapshot buffered-byte and completion counts before committing a successful future. If a caller exception interrupts those updates or handle removal, restore this record and counters so append/close retries cannot double-account it. Previously committed records stay committed. Does not resubmit NPZ writes."
+    },
+    {
+      "component": "Trusted internal executor resets",
+      "paths": [
+        "src/embodiedforge/policies.py",
+        "benchmarks/action_executor.py"
+      ],
+      "behavior": "Use a private row-clear operation for internally generated unique, in-range changed-row indices and skip the empty-row call. Public reset retains type/dimension/uniqueness/range validation. Repeated identity benchmark flag and timed policy-call counts expose actual replanning frequency; ownership and tracking behavior remain covered by the integer queue oracle."
+    },
+    {
+      "component": "CPU raster depth conversion",
+      "paths": [
+        "src/embodiedforge/backends/render.py",
+        "tests/test_raster.py"
+      ],
+      "behavior": "Build one boolean validity mask and multiply directly into float32 depth, avoiding float64 intermediate depth and a duplicate validity comparison. All output channels own independent arrays. Prototype source exactly matches the adopted complete render.py file."
+    }
+  ],
+  "validation": {
+    "full_suites": [
+      {
+        "label": "py310-full",
+        "command": [
+          "/tmp/ef-ci310-20261014/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests",
+          "--tb=short"
+        ],
+        "returncode": 0,
+        "started_epoch": 1792131855.6206255,
+        "ended_epoch": 1792131909.0014508,
+        "log": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-round2-twohour/final-py310-full.log",
+        "log_sha256": "3971e82c23f95bc7c36cad62535ed6a777d460d75e73a064c0f0fc14f95ebbfa",
+        "result": "1838 passed, 95 skipped, 11 warnings in 51.22s"
+      },
+      {
+        "label": "py312-full",
+        "command": [
+          "/tmp/ef-ci312-20261014/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests",
+          "--tb=short"
+        ],
+        "returncode": 0,
+        "started_epoch": 1792131855.6208045,
+        "ended_epoch": 1792131921.9296918,
+        "log": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-round2-twohour/final-py312-full.log",
+        "log_sha256": "399998ca380ffc007b528ddcb56cd1f525465ec2ceaf827e97554e169f3ea4a7",
+        "result": "1900 passed, 84 skipped, 11 warnings in 63.95s (0:01:03)"
+      },
+      {
+        "label": "numpy124-focused",
+        "command": [
+          "/tmp/ef-numpy124-20261014/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_raster.py",
+          "tests/test_recorder_collection_atomic.py",
+          "tests/test_executor_metadata.py",
+          "tests/test_rollout.py",
+          "tests/test_recorder_close.py",
+          "tests/test_recorder_duplicates.py",
+          "tests/test_async_recorder.py",
+          "tests/test_recorder_budget.py",
+          "tests/test_compact_episodes.py",
+          "tests/test_data_validation.py",
+          "tests/test_episode_identity.py",
+          "tests/test_data_policy.py",
+          "tests/test_ordered_batches.py",
+          "tests/test_dataset_reads.py",
+          "--tb=short"
+        ],
+        "returncode": 0,
+        "started_epoch": 1792131855.622049,
+        "ended_epoch": 1792131868.4683523,
+        "log": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-round2-twohour/final-numpy124-focused.log",
+        "log_sha256": "82e1b6418efbf51ac84bf5095e05b30ad7a2b5387dcabc56c0eaad3d06954a34",
+        "result": "558 passed in 12.67s"
+      }
+    ],
+    "source_hashes": {
+      "src/embodiedforge/_act_bundle.py": "ac4db52202c51ebe8e65a7ede6558807900a537ced74492ba3a186b6dae33f96",
+      "src/embodiedforge/_act_dataset.py": "b56ed1bd023f5b910fbf0508cc49d105883fce8c99f255fb6bba487f5d9b6f17",
+      "src/embodiedforge/_h1_motion.py": "f647ac363aeb00d2a3ccfdf131dcec396d699a3d58a76afce085a07ef638ec52",
+      "src/embodiedforge/h1.py": "603503cc81f72d980f55430a75e22adb1d23b298f28c40dead1ca2a231fc335a",
+      "src/embodiedforge/_go1_recovery.py": "c4b83a2c8cb700216c50e2ef33c951fdc4edb6697cd8762d447c66d6a7fb86ba",
+      "src/embodiedforge/_rlinf_export.py": "2d6e702a66c09ad3bd47d313f3c75264a0b7ca26da0cc3395b098fd6c8ea161a",
+      "src/embodiedforge/_core_run.py": "1066b1f8a5767ba2ae0e542366a48e2be576c9530e772d3417a48ca37d493f11",
+      "src/embodiedforge/_act_compare.py": "653414ed69604f9802f54b0b9d5b7bcc4feaa3121db1f08254a878785caf944a",
+      "src/embodiedforge/_microduck_native_worker.py": "4b70966a42da1be74ed6078d0e8bec2d339a30b442bb7f5a69f0c50c024484d4",
+      "src/embodiedforge/_rlinf_onnx.py": "78e11cd2aecd119812ad4d35ede2832ecab74db062e332e5c84155b153dbf0ee",
+      "src/embodiedforge/_act_checkpoints.py": "2c1104ca5f501885b7359ac87c23540d13bcb5aaf8e6d11bbc54fd536f6fee80",
+      "src/embodiedforge/native_h1.py": "da6e874122fab590820d05f7f75c9599475aad275e36eb11645db9b396f83284",
+      "src/embodiedforge/sonic.py": "926423c99437256fc00147363eebf05d37eb167471ab84cd565391f3a3282e87",
+      "src/embodiedforge/_rlinf_worker.py": "8be3cb0e896d46d9a5073c81496d3ec881b562bfe7aeef666741953daba8bf76",
+      "src/embodiedforge/diagnostics.py": "982d60b6d88a0c857b996bcefe2d032d6f3efd0d5a22ee085b3ad8fd316d7877",
+      "src/embodiedforge/batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+      "src/embodiedforge/tasks.py": "2550fcf7d1cc3061943178f293e67602082f3bf176e64d3fa8ab3440cc819950",
+      "src/embodiedforge/_h1_worker.py": "5674e9b60d3a2b71ef371907b2d052223dda427fef190aba509103d44eecef89",
+      "src/embodiedforge/_microduck_run.py": "85e7c0a34e8268cc83b60db76a9dd67e97699cd27a3723d8d36064f5ea92ea76",
+      "src/embodiedforge/_go1_resume.py": "b4085ecc1e60ea77a4708c5ba51f9211fe2bc1adfab41dcd849c000c511d3c62",
+      "src/embodiedforge/robot_replay.py": "dd13bd3fcf8045ea093bcf09daf5a50b09a7595517be05c7065b941cb7853440",
+      "src/embodiedforge/env.py": "b627b80a9d6ca28af5a39dfd0935e9fbd5b18d22d8d5b9e4e83d702b8b076cbd",
+      "src/embodiedforge/_go1_assets.py": "5fff5b621c6069549190dc8a50f396ccffa43e396c37428e1f5e4c3a513f4d70",
+      "src/embodiedforge/core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+      "src/embodiedforge/_adam_checkpoint.py": "e6635c3aba8ddbe90652d31be6ae9b7a8a18c73b7144935ac39037a15ad2f9e4",
+      "src/embodiedforge/_weave_evaluation.py": "7bfcd64c31750c952b8a4ad94ed2b4441709742f6042506ef396487aed4ca924",
+      "src/embodiedforge/policies.py": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+      "src/embodiedforge/_motion_clips.py": "515eb4d661253f6c3c4af2c3763637b4f95aeb9da9955d93d42ef67ebe61c7df",
+      "src/embodiedforge/_wuji_recipe.py": "10812e9342639462b3473e8fdaf57b693fd21831cebf93c73af89bbb64ed34f1",
+      "src/embodiedforge/motion.py": "91a7805a8c55c41d082b3a081f4fd60d7bb94184f8e75ff4dc731d9240df9136",
+      "src/embodiedforge/training.py": "af15a3173281c1e92e847e8232d30bfa32b726f89bd184ee17ababe38bc8bf3b",
+      "src/embodiedforge/microduck.py": "08f8190bc323bc873527604367f4d605245be0fc4de24f03cb057bae7fdb5077",
+      "src/embodiedforge/graphics.py": "4e0fe21c13a433cc2552fa4024fb4f03effc6619d0ccaf45e5f91cdef6624107",
+      "src/embodiedforge/__init__.py": "b398f568b4528c2eb0deab750f0c18f2d5ed33a1737d5a39d8d1201911a1ba78",
+      "src/embodiedforge/_go1_metrics.py": "1df410bbe1063aae082114fe1a496343adeecd8b4a3bf474ff8bc3763dac96f7",
+      "src/embodiedforge/_sonic_worker.py": "c91e57ce7fa987ec16dc044b922648e2bef702ff12c74cb3644475c86f62b5a0",
+      "src/embodiedforge/gmr.py": "488a5437edfe57c2d69d1dad11f64ea3cfed35d72887c0fae6ada5893433586e",
+      "src/embodiedforge/_go1_live_worker.py": "729a2a00244493bd14a3cee394365e8da7b72dc76ded43cbc8c78e7e176ad128",
+      "src/embodiedforge/weave.py": "56ade07e341e27612e0bd54842dbe63b403e51bc52f4fa2250edada3367494a4",
+      "src/embodiedforge/_go1_implementation.py": "a3d772a9bab2891ea427c82eec9e98a8dd4d41d2a9e1ede098332665c0955b9b",
+      "src/embodiedforge/sensors.py": "c3ddac620919c71147cb22570c55fed49bc656d09834fcdc757b20c448667a3d",
+      "src/embodiedforge/rlinf.py": "97020783fcdc861c1b22e15312cda7d7573506ade4db2b826ebfcb889a5fe5b4",
+      "src/embodiedforge/_microduck_export.py": "1bc4809b31eb910f610766ad49510f1720023f9c802455a7d37c8f2ae173e7e4",
+      "src/embodiedforge/_go1_checkpoint.py": "f5d4efb5571cb16b845153b81e60153bc0fc889dcc22efe5099d52b0c55c553c",
+      "src/embodiedforge/_go1_training_viewer.py": "d92a43fb4783a1b872bd2375c84cdb44bb1ef77ae741f1545858c6fd0d145e9c",
+      "src/embodiedforge/_weave_worker.py": "11e35b81d9510628f55f8a52eb2444e736811d3a9d9ba86611e28e56d9f55c97",
+      "src/embodiedforge/_microduck_process.py": "938c9422178db124bba1891d176d268a76cfd27a9b09dce9b313f9ac24cc0028",
+      "src/embodiedforge/_mjbatch_recipe.py": "144f114bda3f6cf613b6e160955eafafbbfcf4da44a37fe28de05af49ac7e90f",
+      "src/embodiedforge/_ppo_parameters.py": "a1417de3bda65982d1dc6cc639560dbbf80cee3fcbf42b8e96079674408e64d2",
+      "src/embodiedforge/__main__.py": "a2b6d2c663999e08203c72c9206a9bdd32acf47b8303ea123a4e7ee5727a2d41",
+      "src/embodiedforge/visualization.py": "67e1c40009f25ee033461883fb308c3937a719f50c313b3abfaa8c0185454e18",
+      "src/embodiedforge/_microduck_inputs.py": "1bfe9afe0ad282d638d720bf93254baf92bb8dbea458adcda16e7d9879d56f6e",
+      "src/embodiedforge/go1_live.py": "e25dccb4ed725cba69f090b448219506277b245d04f5d99cc08d787f56781bf5",
+      "src/embodiedforge/_wuji_diagnostics.py": "7d98007b51fac351f46a8e136e26de85349c2919e91533cb97008e00a461454f",
+      "src/embodiedforge/rollout.py": "2684c24b257f363aaafa0867c87bbf0bc7cb016198e157c1e7a2c636bc732a95",
+      "src/embodiedforge/logging.py": "afe275a1536239248212b8bce7ff5ad4bc5cf0c9104fad9222cb3b0bd2194f8e",
+      "src/embodiedforge/_microduck_native.py": "dfd23efe7662c20a2d1fa6d507ec4ccb6c82a0fb152e4a76d0912e50b7fdf1a3",
+      "src/embodiedforge/_wuji_training_viewer.py": "495c9941c0f96935217485d93c97b91385de78668ad607a5932e9dabc906af9d",
+      "src/embodiedforge/_live_channel.py": "508f6b50564f3a9381e641c788da605b10bcea345c0b89af6c6a762db0ecb37b",
+      "src/embodiedforge/_h1_metrics.py": "0c0c5dcf61ad931fa658a5c1520667b0f9f68a2723a75e5b0220f2ff10e4a145",
+      "src/embodiedforge/_recipe_worker.py": "34bad20b4e12bbc40f05abe3277ee8c5323a6ad9c3a20967f1ac250b12e6b489",
+      "src/embodiedforge/recipes.py": "9f22cada5609284152beb122e7cda0e41f5fd68f913d1a0c4a2ee05dfd237654",
+      "src/embodiedforge/cli.py": "db18ca0cb03349e09bd60d8c03629e2470b2f28d47dfeb988272cabc9132d321",
+      "src/embodiedforge/_h1_evaluate.py": "5835bc60e56d8eb6b18f3233cf7d7507af01bf75d3f7ee3441ee336546474242",
+      "src/embodiedforge/_training_runtime.py": "0876004867856090c3843eeba63bd4887404905069127811534f54d9e250721a",
+      "src/embodiedforge/data.py": "0f7550fa0f92551b79e4d68b47b9ceb30cea197462b268f1298d43196b67ea6b",
+      "src/embodiedforge/_microduck_worker.py": "4c434241331db365f3321cd08f292ea782e1ef2021a08c0d9e6880942eaac819",
+      "src/embodiedforge/_motion_sdk.py": "82e683a42fb2204b60dde6e680d1a3da48f82e8ce799fff9d575b469dbaaafb3",
+      "src/embodiedforge/_hashing.py": "03f5bc4b6e902e2ce116d2d8a3791afe141bd11467a33ab9f3480ded0d9211d0",
+      "src/embodiedforge/_gmr_worker.py": "898437ea7c0bac20f0a804e5e3fb236cadc8bb8e50022f580bdaa2c13fe63efd",
+      "src/embodiedforge/_microduck_reports.py": "5d6753a553dc959b29e1967800ce85bc1c0be81433181fcbf1852f33708db3ee",
+      "src/embodiedforge/act.py": "4abb892fdf95bbfb174cc752f6f8fd0f5784ccf68b4de61acfe8a132920684c0",
+      "src/embodiedforge/backends/physics.py": "aacb47526e8cd285d12ec471f5df944d5f3a04cf1dd8fa65495338c937ea40bd",
+      "src/embodiedforge/backends/newton.py": "9cd3860f3ed2db508006d6d2242a7f6c5dd2d8e016b5d8dd668bae11b93561f0",
+      "src/embodiedforge/backends/__init__.py": "7c3caf1568fe29afb073e8d8eff670ea3d15259f7db7895758212aa4238450dd",
+      "src/embodiedforge/backends/render.py": "37b271ba554763b7a0e74e6a47790bc0181f7bb4e65409076567754d16db4887",
+      "src/embodiedforge/backends/mjbatch.py": "5127cb1828f7441c1735755919c46e131b1e69a4074b5e59483604c1b6f0269f",
+      "src/embodiedforge/viewers/frames.py": "129f0ab941e1585bdf8ae7a7807c5be54b2addbb6c641560dd5417bc522ce932",
+      "src/embodiedforge/viewers/newton.py": "d55e2514f06be3702e9e5f1ce55c724308afcf30b4756026c65735843ccfb259",
+      "src/embodiedforge/viewers/__init__.py": "cc4b18f9305f0b90d24da8896f3db37f77353c53a7844abaa6b3adb14419cc52",
+      "src/embodiedforge/viewers/rtx.py": "4d0108d9f997429a46620995c4de810f335c749dcad04d61bd1129e03252e49c",
+      "src/embodiedforge/viewers/web.py": "c087cd064425ab6cb72e11fcc0d306995cfacb979b1c534b4d0c0bb439a7511f",
+      "src/embodiedforge/viewers/viser.py": "6e253b29bf3ca21dbd14eebf6ec0226cfc6499d859e7f9f95a39c75b16348f13",
+      "src/embodiedforge/viewers/robot.py": "c3b83ca63c5da31718b7976c8897ec9501c7dd3a30fd634098fd539182d9c4a9",
+      "src/embodiedforge/viewers/style.py": "a42c5a4114214a6934857818bb2bf745755da40f80fc7e36d8f6732435f4ba60",
+      "src/embodiedforge/viewers/timing.py": "53765d3b3dd7f3352415793dd63a60fcb1dd44bdb65b62de0a946af659a63416",
+      "src/embodiedforge/locomotion/h1_native.py": "0420ddc068ce08d6d20ab88fff9791ac5c56539d952957ed08e310379ae80135",
+      "src/embodiedforge/locomotion/go1_config.py": "869f1c6311d4392d4bad07e113c2fe102a207c5b061949cbecda8040c52f45e0",
+      "src/embodiedforge/locomotion/articulation.py": "58a0abde71ebee6db3dfd11edd994f0673ce355c1ea98357ba0ad59c03be1f6c",
+      "src/embodiedforge/locomotion/go1_ppo.py": "0deb3fe1f817878d37aaf9937393d3885cf950dca9fa09abd459c94b2a4f17d3",
+      "src/embodiedforge/locomotion/h1_ppo.py": "10858edf12c0c4a5886080aeb4fc9808c4c53b5de28252bdd718a7c350bdd15d",
+      "src/embodiedforge/locomotion/__init__.py": "67e07baec885bd1353838c537f8c2df43fb405ebf341b6e9e60cc8f56ee37428",
+      "src/embodiedforge/locomotion/go1_light_loco.py": "99cac844466dd804bad88cbcfc82e14176e3b93ccf125736c2309ffc64aa4b54",
+      "src/embodiedforge/locomotion/go1.py": "ea8c7b4a8220e9faf72648c9182a039eabdcee550345c52675b1389de001d2b9",
+      "src/embodiedforge/locomotion/microduck/__init__.py": "7c93bc82c7bd846e18b67c918e136a2721d41e17737ffca2012dccb5c38c399c",
+      "src/embodiedforge/locomotion/microduck/checkpoint.py": "82fdc32abdab1f5beb7dabbe7061d89f0efe1d121b664661dc12ec894e721105",
+      "src/embodiedforge/locomotion/microduck/export.py": "3bac4b1626abd2b02e060decaabbd313e74ca507fe4e876a10ae536d7a90e7fe",
+      "src/embodiedforge/locomotion/microduck/actuator/friction_dr_bam.py": "03d0461caf973419bbd3f746f2cba73fe9464d00ae59ff3e8f8cd158d8f2e832",
+      "src/embodiedforge/locomotion/microduck/actuator/__init__.py": "b8a82f30822166f14e0bcd7730d67153908097c2353c4d0cdbf3c51d9ad475cc",
+      "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+      "src/embodiedforge/locomotion/microduck/tasks/symmetry.py": "f84f19cc1f93afa7cb1d6e98152a70dcf7f38d6df0720d8675ed8ea93c663941",
+      "src/embodiedforge/locomotion/microduck/tasks/microduck_velocity_env_cfg.py": "02ef1c12bef07fd591b8a9cdd85e46bd0de8fd674b82569528bb1c29de42945c",
+      "src/embodiedforge/locomotion/microduck/tasks/__init__.py": "0e8069547a5ad8b20307adc16a77825660cf3acc3cecf118b7293d5c88a1234d",
+      "src/embodiedforge/locomotion/microduck/robot/__init__.py": "26782f5a79ab0206de698956d9c4ca3879d99b3bbd8080654e773a2530f08181",
+      "src/embodiedforge/locomotion/microduck/robot/microduck_constants.py": "cbd2a8ed29a42b3eb7184ddab51df77f2bb0c8239e2450e1373465ff92f050e0"
+    },
+    "test_environment": {
+      "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    },
+    "new_test_cases": 76,
+    "new_test_breakdown": {
+      "collection_interruptions": 52,
+      "depth_pixels_and_ownership": 24
+    },
+    "initial_negative_control": {
+      "failed_cases": 6,
+      "trigger": "One caller interruption immediately before successful future handle removal; two real completed episodes counted as three",
+      "log": "collection-before.log",
+      "test_source": "negative-control-test.py"
+    },
+    "real_collection_signals": [
+      {
+        "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+        "passed_cases": 40,
+        "baseline_expected_failures": 2,
+        "scope": "Real SIGINT/SIGTERM sent only to the isolated worker itself by a one-shot line tracer immediately before deleting a successfully accounted future. SIGTERM handler raises SystemExit143; no guarantee under default-killing SIGTERM or arbitrary bytecode cancellation. Real NPZ writes, manifest count/read-back, native writer thread exit and FD recovery checked; prior-round baseline deterministically counts its single episode twice."
+      },
+      {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "passed_cases": 40,
+        "baseline_expected_failures": 2,
+        "scope": "Real SIGINT/SIGTERM sent only to the isolated worker itself by a one-shot line tracer immediately before deleting a successfully accounted future. SIGTERM handler raises SystemExit143; no guarantee under default-killing SIGTERM or arbitrary bytecode cancellation. Real NPZ writes, manifest count/read-back, native writer thread exit and FD recovery checked; prior-round baseline deterministically counts its single episode twice."
+      }
+    ],
+    "real_join_signals": [
+      {
+        "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+        "passed_cases": 6,
+        "baseline_positive_controls": 2,
+        "scope": "Real SIGINT and SIGTERM delivered to these isolated child-controller PIDs 20ms after entry into actual ThreadPoolExecutor.shutdown thread joining while an actual writer is blocked. SIGTERM uses a test handler raising SystemExit143, not production default SIGTERM behavior. Candidate drains and closes before propagating the signal; prior-round baseline positive controls retain the existing join cleanup guarantee. Owned native thread IDs and FD recovery checked; no signals to other jobs."
+      },
+      {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "passed_cases": 6,
+        "baseline_positive_controls": 2,
+        "scope": "Real SIGINT and SIGTERM delivered to these isolated child-controller PIDs 20ms after entry into actual ThreadPoolExecutor.shutdown thread joining while an actual writer is blocked. SIGTERM uses a test handler raising SystemExit143, not production default SIGTERM behavior. Candidate drains and closes before propagating the signal; prior-round baseline positive controls retain the existing join cleanup guarantee. Owned native thread IDs and FD recovery checked; no signals to other jobs."
+      }
+    ],
+    "benchmark_cli": {
+      "status": "passed",
+      "rows": [
+        {
+          "label": "py310",
+          "metadata": false,
+          "repeat_every": 0,
+          "python": "3.10.0",
+          "numpy": "2.2.6",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "py310",
+          "metadata": true,
+          "repeat_every": 0,
+          "python": "3.10.0",
+          "numpy": "2.2.6",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "py310",
+          "metadata": true,
+          "repeat_every": 1,
+          "python": "3.10.0",
+          "numpy": "2.2.6",
+          "timed_policy_calls": 64,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "py310",
+          "metadata": true,
+          "repeat_every": 16,
+          "python": "3.10.0",
+          "numpy": "2.2.6",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "py312",
+          "metadata": false,
+          "repeat_every": 0,
+          "python": "3.12.0",
+          "numpy": "2.5.4",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "py312",
+          "metadata": true,
+          "repeat_every": 0,
+          "python": "3.12.0",
+          "numpy": "2.5.4",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "py312",
+          "metadata": true,
+          "repeat_every": 1,
+          "python": "3.12.0",
+          "numpy": "2.5.4",
+          "timed_policy_calls": 64,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "py312",
+          "metadata": true,
+          "repeat_every": 16,
+          "python": "3.12.0",
+          "numpy": "2.5.4",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "numpy124",
+          "metadata": false,
+          "repeat_every": 0,
+          "python": "3.10.0",
+          "numpy": "1.24.4",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "numpy124",
+          "metadata": true,
+          "repeat_every": 0,
+          "python": "3.10.0",
+          "numpy": "1.24.4",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "numpy124",
+          "metadata": true,
+          "repeat_every": 1,
+          "python": "3.10.0",
+          "numpy": "1.24.4",
+          "timed_policy_calls": 64,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        },
+        {
+          "label": "numpy124",
+          "metadata": true,
+          "repeat_every": 16,
+          "python": "3.10.0",
+          "numpy": "1.24.4",
+          "timed_policy_calls": 16,
+          "action_sha256": "91356bf3fe9377c1019dbaf0f0107a7f8dd1c05ee14cce2effaa93936d6372db"
+        }
+      ],
+      "valid_cases": 12,
+      "invalid_cases": 6,
+      "benchmark_sha256": "564c38d307242adb5bd5fbcada568fa515f612b96375606f9895f29ce16a7be7",
+      "scope": "Actual CLI in Python3.10/3.12/NumPy1.24; timed policy calls checked against scalar identity/chunk reference; default and repeat0/1/16, invalid flag combinations create no output."
+    },
+    "large_executor_oracles": [
+      {
+        "status": "passed",
+        "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+        "numpy": "1.24.4",
+        "started_epoch": 1792133273.897681,
+        "ended_epoch": 1792133289.1384706,
+        "rows": [
+          {
+            "dtype": "u8",
+            "num_envs": 8192,
+            "horizon": 4,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": ">u8",
+            "num_envs": 8192,
+            "horizon": 4,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": "i8",
+            "num_envs": 8192,
+            "horizon": 4,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": ">i8",
+            "num_envs": 8192,
+            "horizon": 16,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": "u4",
+            "num_envs": 8192,
+            "horizon": 16,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": ">u4",
+            "num_envs": 8192,
+            "horizon": 16,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          }
+        ],
+        "environment_actions": 2359296,
+        "source_sha256": {
+          "baseline": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+          "candidate": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+          "integer_oracle": "5076c9a6eb58fcb5b34912c51033115cdaa7712e074f466d30fa442d2777f982"
+        },
+        "initial": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 41615360
+        },
+        "final": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 58843136
+        },
+        "scope": "Six integer dtype variants with 8192 environments against baseline and independent Python integer queues; per-row exact actions and policy-call counts on every control, repeated/skipped/wrapped metadata, extreme IDs, partial explicit resets, strided IDs and caller-owned output mutation. Supplemental correctness check, not a timing/RSS benchmark."
+      },
+      {
+        "status": "passed",
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "numpy": "2.5.4",
+        "started_epoch": 1792133273.893714,
+        "ended_epoch": 1792133288.661363,
+        "rows": [
+          {
+            "dtype": "u8",
+            "num_envs": 8192,
+            "horizon": 4,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": ">u8",
+            "num_envs": 8192,
+            "horizon": 4,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": "i8",
+            "num_envs": 8192,
+            "horizon": 4,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": ">i8",
+            "num_envs": 8192,
+            "horizon": 16,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": "u4",
+            "num_envs": 8192,
+            "horizon": 16,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          },
+          {
+            "dtype": ">u4",
+            "num_envs": 8192,
+            "horizon": 16,
+            "controls": 48,
+            "environment_actions": 393216,
+            "status": "passed"
+          }
+        ],
+        "environment_actions": 2359296,
+        "source_sha256": {
+          "baseline": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+          "candidate": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+          "integer_oracle": "5076c9a6eb58fcb5b34912c51033115cdaa7712e074f466d30fa442d2777f982"
+        },
+        "initial": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 46850048
+        },
+        "final": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 65732608
+        },
+        "scope": "Six integer dtype variants with 8192 environments against baseline and independent Python integer queues; per-row exact actions and policy-call counts on every control, repeated/skipped/wrapped metadata, extreme IDs, partial explicit resets, strided IDs and caller-owned output mutation. Supplemental correctness check, not a timing/RSS benchmark."
+      }
+    ],
+    "style": {
+      "status": "passed",
+      "observed_epoch": 1792132138.8997755,
+      "results": [
+        {
+          "command": [
+            "python",
+            "-m",
+            "ruff",
+            "check",
+            "src",
+            "tests",
+            "benchmarks",
+            "examples"
+          ],
+          "returncode": 0,
+          "log": "runs/platform-optimization-20261016-round2-twohour/final-ruff.log",
+          "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+        },
+        {
+          "command": [
+            "python",
+            "-m",
+            "ruff",
+            "format",
+            "--check",
+            "src",
+            "tests",
+            "benchmarks",
+            "examples"
+          ],
+          "returncode": 0,
+          "log": "runs/platform-optimization-20261016-round2-twohour/final-ruff-format.log",
+          "log_sha256": "30c689af56ee22d48140f955e1f13df80526cddcc8deda9c44c1a6b9a9271c51"
+        },
+        {
+          "command": [
+            "git",
+            "diff",
+            "--check"
+          ],
+          "returncode": 0,
+          "log": "runs/platform-optimization-20261016-round2-twohour/final-diff.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  },
+  "collection_fault_cycles": {
+    "status": "passed",
+    "started_epoch": 1792131314.984862,
+    "ended_epoch": 1792131374.6918752,
+    "cases": 3120,
+    "configurations": 52,
+    "recorders_created": 3120,
+    "recorders_released_after_gc": 3120,
+    "initial": {
+      "fd": 4,
+      "threads": 1,
+      "rss_bytes": 47022080
+    },
+    "final": {
+      "fd": 4,
+      "threads": 1,
+      "rss_bytes": 49631232
+    },
+    "samples": [
+      {
+        "case": 1,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49594368
+        }
+      },
+      {
+        "case": 53,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51294208
+        }
+      },
+      {
+        "case": 105,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51269632
+        }
+      },
+      {
+        "case": 157,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51269632
+        }
+      },
+      {
+        "case": 209,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49369088
+        }
+      },
+      {
+        "case": 261,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49373184
+        }
+      },
+      {
+        "case": 313,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49385472
+        }
+      },
+      {
+        "case": 365,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49385472
+        }
+      },
+      {
+        "case": 417,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49385472
+        }
+      },
+      {
+        "case": 469,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51355648
+        }
+      },
+      {
+        "case": 521,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49405952
+        }
+      },
+      {
+        "case": 573,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51372032
+        }
+      },
+      {
+        "case": 625,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49405952
+        }
+      },
+      {
+        "case": 677,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49418240
+        }
+      },
+      {
+        "case": 729,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49422336
+        }
+      },
+      {
+        "case": 781,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49422336
+        }
+      },
+      {
+        "case": 833,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49422336
+        }
+      },
+      {
+        "case": 885,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49434624
+        }
+      },
+      {
+        "case": 937,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49438720
+        }
+      },
+      {
+        "case": 989,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49438720
+        }
+      },
+      {
+        "case": 1041,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49438720
+        }
+      },
+      {
+        "case": 1093,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49455104
+        }
+      },
+      {
+        "case": 1145,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49455104
+        }
+      },
+      {
+        "case": 1197,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49455104
+        }
+      },
+      {
+        "case": 1249,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49455104
+        }
+      },
+      {
+        "case": 1301,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51437568
+        }
+      },
+      {
+        "case": 1353,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49471488
+        }
+      },
+      {
+        "case": 1405,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49475584
+        }
+      },
+      {
+        "case": 1457,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49475584
+        }
+      },
+      {
+        "case": 1509,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51458048
+        }
+      },
+      {
+        "case": 1561,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49491968
+        }
+      },
+      {
+        "case": 1613,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49496064
+        }
+      },
+      {
+        "case": 1665,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49496064
+        }
+      },
+      {
+        "case": 1717,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49512448
+        }
+      },
+      {
+        "case": 1769,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49512448
+        }
+      },
+      {
+        "case": 1821,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49512448
+        }
+      },
+      {
+        "case": 1873,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49512448
+        }
+      },
+      {
+        "case": 1925,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49528832
+        }
+      },
+      {
+        "case": 1977,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49528832
+        }
+      },
+      {
+        "case": 2029,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49528832
+        }
+      },
+      {
+        "case": 2081,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49528832
+        }
+      },
+      {
+        "case": 2133,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49549312
+        }
+      },
+      {
+        "case": 2185,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49549312
+        }
+      },
+      {
+        "case": 2237,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51519488
+        }
+      },
+      {
+        "case": 2289,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49553408
+        }
+      },
+      {
+        "case": 2341,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49569792
+        }
+      },
+      {
+        "case": 2393,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49569792
+        }
+      },
+      {
+        "case": 2445,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49569792
+        }
+      },
+      {
+        "case": 2497,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49569792
+        }
+      },
+      {
+        "case": 2549,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49586176
+        }
+      },
+      {
+        "case": 2601,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49586176
+        }
+      },
+      {
+        "case": 2653,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49586176
+        }
+      },
+      {
+        "case": 2705,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51552256
+        }
+      },
+      {
+        "case": 2757,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49602560
+        }
+      },
+      {
+        "case": 2809,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49602560
+        }
+      },
+      {
+        "case": 2861,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49602560
+        }
+      },
+      {
+        "case": 2913,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49606656
+        }
+      },
+      {
+        "case": 2965,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49618944
+        }
+      },
+      {
+        "case": 3017,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49623040
+        }
+      },
+      {
+        "case": 3069,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 49623040
+        }
+      }
+    ],
+    "source_sha256": "0f7550fa0f92551b79e4d68b47b9ceb30cea197462b268f1298d43196b67ea6b",
+    "test_source_sha256": "5f2070c3b271d344e105311ea4a5e7bd43c4f50256297a33384c7b88497bbd13",
+    "scope": "60 cycles of all 52 collection-interruption regression configurations with real background writes/NPZ readback. Tracked subclass preserves inherited collection bytecode; GC/weakrefs verify recorder release after each case, FD/Python threads return to baseline. Sampled RSS and small point-state payloads do not establish a hard memory limit or an arbitrary-bytecode interruption guarantee."
+  },
+  "mixed_collection_faults": [
+    {
+      "status": "passed",
+      "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+      "numpy": "2.2.6",
+      "started_epoch": 1792135580.1409402,
+      "ended_epoch": 1792135589.2090604,
+      "cases": 576,
+      "configurations": 72,
+      "source_sha256": "0f7550fa0f92551b79e4d68b47b9ceb30cea197462b268f1298d43196b67ea6b",
+      "recorders_released_after_gc": 576,
+      "initial": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 35323904
+      },
+      "final": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 38981632
+      },
+      "samples": [
+        {
+          "case": 1,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 37421056
+          }
+        },
+        {
+          "case": 73,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 38199296
+          }
+        },
+        {
+          "case": 145,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 38232064
+          }
+        },
+        {
+          "case": 217,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 38232064
+          }
+        },
+        {
+          "case": 289,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 38232064
+          }
+        },
+        {
+          "case": 361,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 38252544
+          }
+        },
+        {
+          "case": 433,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 38252544
+          }
+        },
+        {
+          "case": 505,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 38981632
+          }
+        }
+      ],
+      "scope": "Real successful and failed background writers in the same recorder, interrupted successful-handle removal after earlier storage failures, optional original with-body failure. Exact manifest/readback counts, failed identities, first exception/failure state and secondary close error checked; all recorder weakrefs released after GC and per-case FD/Python-thread baseline restored. Small point-state payloads; no arbitrary-bytecode or RSS bound guarantee."
+    },
+    {
+      "status": "passed",
+      "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+      "numpy": "2.5.4",
+      "started_epoch": 1792135580.1418586,
+      "ended_epoch": 1792135589.3218317,
+      "cases": 576,
+      "configurations": 72,
+      "source_sha256": "0f7550fa0f92551b79e4d68b47b9ceb30cea197462b268f1298d43196b67ea6b",
+      "recorders_released_after_gc": 576,
+      "initial": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 39292928
+      },
+      "final": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 43450368
+      },
+      "samples": [
+        {
+          "case": 1,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 41426944
+          }
+        },
+        {
+          "case": 73,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 44474368
+          }
+        },
+        {
+          "case": 145,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 44474368
+          }
+        },
+        {
+          "case": 217,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 45322240
+          }
+        },
+        {
+          "case": 289,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 45334528
+          }
+        },
+        {
+          "case": 361,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 45334528
+          }
+        },
+        {
+          "case": 433,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 45346816
+          }
+        },
+        {
+          "case": 505,
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 45350912
+          }
+        }
+      ],
+      "scope": "Real successful and failed background writers in the same recorder, interrupted successful-handle removal after earlier storage failures, optional original with-body failure. Exact manifest/readback counts, failed identities, first exception/failure state and secondary close error checked; all recorder weakrefs released after GC and per-case FD/Python-thread baseline restored. Small point-state payloads; no arbitrary-bytecode or RSS bound guarantee."
+    }
+  ],
+  "performance": {
+    "executor": {
+      "scope": "Precomputed policy chunks, CPU act plus identity increment/repeat logic; one warmup and nine measured alternating pairs, no stress probes active; shared host, no pinning, no neural inference/physics. Separate consecutive single-act allocation tracing. Every pair matches returned-action hash and timed policy-call count.",
+      "source_sha256": {
+        "baseline": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+        "candidate": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+        "benchmark": "564c38d307242adb5bd5fbcada568fa515f612b96375606f9895f29ce16a7be7"
+      },
+      "cases": [
+        {
+          "arguments": {
+            "num_envs": 1,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 20000,
+            "metadata": false,
+            "repeat_every": 0
+          },
+          "median_seconds": {
+            "baseline": 0.07552253399626352,
+            "candidate": 0.07452803500927985
+          },
+          "reduction_pct": 1.3168241773149125,
+          "seconds": {
+            "baseline": [
+              0.07567085599293932,
+              0.07624226101324894,
+              0.0757582719961647,
+              0.0745529819978401,
+              0.07552253399626352,
+              0.07516202898113988,
+              0.0747814750066027,
+              0.07455380301689729,
+              0.07591556099941954
+            ],
+            "candidate": [
+              0.07487179801682942,
+              0.07552942700567655,
+              0.07502225402276963,
+              0.07383505799225532,
+              0.07363551898743026,
+              0.07452803500927985,
+              0.07454923397745006,
+              0.0741770870226901,
+              0.07435536500997841
+            ]
+          },
+          "action_sha256": "967d36b03b8f7ef53dab00ffadbd9eb5c7d6d5e8cca8de3f8301316d330996a1"
+        },
+        {
+          "arguments": {
+            "num_envs": 1,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 20000,
+            "metadata": true,
+            "repeat_every": 0
+          },
+          "median_seconds": {
+            "baseline": 0.16205302299931645,
+            "candidate": 0.161889383016387
+          },
+          "reduction_pct": 0.10097928437295955,
+          "seconds": {
+            "baseline": [
+              0.16323874599765986,
+              0.16205302299931645,
+              0.1619339459866751,
+              0.16202577098738402,
+              0.16060577100142837,
+              0.16151371601154096,
+              0.16467077398556285,
+              0.16882159002125263,
+              0.16381612900295295
+            ],
+            "candidate": [
+              0.161889383016387,
+              0.1607520000252407,
+              0.16093956597615033,
+              0.16409622400533408,
+              0.16132179199485108,
+              0.16053418401861563,
+              0.16536297000129707,
+              0.16247656400082633,
+              0.16264704801142216
+            ]
+          },
+          "action_sha256": "967d36b03b8f7ef53dab00ffadbd9eb5c7d6d5e8cca8de3f8301316d330996a1"
+        },
+        {
+          "arguments": {
+            "num_envs": 1,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 20000,
+            "metadata": true,
+            "repeat_every": 16
+          },
+          "median_seconds": {
+            "baseline": 0.1635725419910159,
+            "candidate": 0.1598393289896194
+          },
+          "reduction_pct": 2.2822980898600687,
+          "seconds": {
+            "baseline": [
+              0.16438353501143865,
+              0.1637069300049916,
+              0.16765070302062668,
+              0.16241549502592534,
+              0.16200560599099845,
+              0.1628558610100299,
+              0.16393086200696416,
+              0.1635725419910159,
+              0.16332735400646925
+            ],
+            "candidate": [
+              0.160300437011756,
+              0.1614790370222181,
+              0.16276035198825411,
+              0.1575374859967269,
+              0.1577560810255818,
+              0.15911439098999836,
+              0.159532105026301,
+              0.1598393289896194,
+              0.16030688700266182
+            ]
+          },
+          "action_sha256": "967d36b03b8f7ef53dab00ffadbd9eb5c7d6d5e8cca8de3f8301316d330996a1"
+        },
+        {
+          "arguments": {
+            "num_envs": 1,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 20000,
+            "metadata": true,
+            "repeat_every": 1
+          },
+          "median_seconds": {
+            "baseline": 0.30406993100768887,
+            "candidate": 0.25265007198322564
+          },
+          "reduction_pct": 16.910537274783344,
+          "seconds": {
+            "baseline": [
+              0.3081538030237425,
+              0.3024303870042786,
+              0.30845416002557613,
+              0.30777690300601535,
+              0.30711484199855477,
+              0.3038932209892664,
+              0.3033750239992514,
+              0.30277802000637166,
+              0.30406993100768887
+            ],
+            "candidate": [
+              0.2505751110147685,
+              0.2541195430094376,
+              0.251517168013379,
+              0.2531692660122644,
+              0.25424350501270965,
+              0.25000223398092203,
+              0.25148457000614144,
+              0.25265007198322564,
+              0.2531789059867151
+            ]
+          },
+          "action_sha256": "967d36b03b8f7ef53dab00ffadbd9eb5c7d6d5e8cca8de3f8301316d330996a1"
+        },
+        {
+          "arguments": {
+            "num_envs": 128,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 10000,
+            "metadata": false,
+            "repeat_every": 0
+          },
+          "median_seconds": {
+            "baseline": 0.047215770988259465,
+            "candidate": 0.04688669499591924
+          },
+          "reduction_pct": 0.6969620223337025,
+          "seconds": {
+            "baseline": [
+              0.047586115018930286,
+              0.047525939997285604,
+              0.048990071984007955,
+              0.04756107600405812,
+              0.047110371000599116,
+              0.046997074998216704,
+              0.047071256005438045,
+              0.047215770988259465,
+              0.047145146992988884
+            ],
+            "candidate": [
+              0.04714556797989644,
+              0.047249784984160215,
+              0.04716793997795321,
+              0.048639376007486135,
+              0.04626557498704642,
+              0.04647979198489338,
+              0.0464576710073743,
+              0.04688669499591924,
+              0.046655245998408645
+            ]
+          },
+          "action_sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+        },
+        {
+          "arguments": {
+            "num_envs": 128,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 10000,
+            "metadata": true,
+            "repeat_every": 0
+          },
+          "median_seconds": {
+            "baseline": 0.09013847401365638,
+            "candidate": 0.08993154999916442
+          },
+          "reduction_pct": 0.22956236696508592,
+          "seconds": {
+            "baseline": [
+              0.09013847401365638,
+              0.08966040497762151,
+              0.0887436929915566,
+              0.08897708699805662,
+              0.09615478399791755,
+              0.09062323399120942,
+              0.09258852800121531,
+              0.09269809699617326,
+              0.08985352099989541
+            ],
+            "candidate": [
+              0.08968247700249776,
+              0.0883484220248647,
+              0.08796127798268571,
+              0.08959132499876432,
+              0.09235922299558297,
+              0.08997322898358107,
+              0.08993154999916442,
+              0.09296779899159446,
+              0.09128084301482886
+            ]
+          },
+          "action_sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+        },
+        {
+          "arguments": {
+            "num_envs": 128,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 10000,
+            "metadata": true,
+            "repeat_every": 16
+          },
+          "median_seconds": {
+            "baseline": 0.09450747302616946,
+            "candidate": 0.09051311301300302
+          },
+          "reduction_pct": 4.226501762522405,
+          "seconds": {
+            "baseline": [
+              0.09390118101146072,
+              0.09450747302616946,
+              0.09431376500288025,
+              0.094602783996379,
+              0.0944994869932998,
+              0.09435611398657784,
+              0.09480165201239288,
+              0.09453085600398481,
+              0.09465126600116491
+            ],
+            "candidate": [
+              0.09061569900950417,
+              0.09113389300182462,
+              0.08996861899504438,
+              0.08938198498799466,
+              0.09004260000074282,
+              0.09051311301300302,
+              0.09054444299545139,
+              0.09058982800343074,
+              0.09034203697228804
+            ]
+          },
+          "action_sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+        },
+        {
+          "arguments": {
+            "num_envs": 128,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 10000,
+            "metadata": true,
+            "repeat_every": 1
+          },
+          "median_seconds": {
+            "baseline": 0.24388331599766389,
+            "candidate": 0.17906445200787857
+          },
+          "reduction_pct": 26.57781805394437,
+          "seconds": {
+            "baseline": [
+              0.24416064799879678,
+              0.2503857059928123,
+              0.24513615999603644,
+              0.24367547399015166,
+              0.24388331599766389,
+              0.24342307201004587,
+              0.2437859890051186,
+              0.24571086600190029,
+              0.24304185301298276
+            ],
+            "candidate": [
+              0.17882320898934267,
+              0.17895711201708764,
+              0.17879410201567225,
+              0.18082990901893936,
+              0.1792210610001348,
+              0.18242660199757665,
+              0.17906445200787857,
+              0.18083124898839742,
+              0.17790058098034933
+            ]
+          },
+          "action_sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+        },
+        {
+          "arguments": {
+            "num_envs": 8192,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 500,
+            "metadata": false,
+            "repeat_every": 0
+          },
+          "median_seconds": {
+            "baseline": 0.04117151300306432,
+            "candidate": 0.04037982801673934
+          },
+          "reduction_pct": 1.9228950518919707,
+          "seconds": {
+            "baseline": [
+              0.039785490022040904,
+              0.04006126298918389,
+              0.041462095017777756,
+              0.04117151300306432,
+              0.040952126000775024,
+              0.040201559982961044,
+              0.04184284899383783,
+              0.041346004989463836,
+              0.0416534980176948
+            ],
+            "candidate": [
+              0.04683972199563868,
+              0.039987973985262215,
+              0.040272386017022654,
+              0.03981369300163351,
+              0.04284319901489653,
+              0.04024737700819969,
+              0.04037982801673934,
+              0.04117526998743415,
+              0.0411447020014748
+            ]
+          },
+          "action_sha256": "f0aea1d99e84a0631ec5c67b9dd2ae1c6c7e0ed2dbc18bbf0a823fad917d55be"
+        },
+        {
+          "arguments": {
+            "num_envs": 8192,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 500,
+            "metadata": true,
+            "repeat_every": 0
+          },
+          "median_seconds": {
+            "baseline": 0.0472197640046943,
+            "candidate": 0.04727931699017063
+          },
+          "reduction_pct": -0.12611876982360215,
+          "seconds": {
+            "baseline": [
+              0.046995598007924855,
+              0.04750991499167867,
+              0.04739143999177031,
+              0.04709982601343654,
+              0.047211056982632726,
+              0.047411157021997496,
+              0.0472197640046943,
+              0.04713029298000038,
+              0.04750664799939841
+            ],
+            "candidate": [
+              0.04733119599404745,
+              0.04727931699017063,
+              0.04732999298721552,
+              0.0471702900249511,
+              0.04755145398667082,
+              0.04789537700708024,
+              0.0468629960087128,
+              0.04687622099299915,
+              0.046859638998284936
+            ]
+          },
+          "action_sha256": "f0aea1d99e84a0631ec5c67b9dd2ae1c6c7e0ed2dbc18bbf0a823fad917d55be"
+        },
+        {
+          "arguments": {
+            "num_envs": 8192,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 500,
+            "metadata": true,
+            "repeat_every": 16
+          },
+          "median_seconds": {
+            "baseline": 0.06277683100779541,
+            "candidate": 0.05094238498713821
+          },
+          "reduction_pct": 18.851614251104255,
+          "seconds": {
+            "baseline": [
+              0.06929355199099518,
+              0.06277683100779541,
+              0.0687951139989309,
+              0.06763353798305616,
+              0.06682503101183102,
+              0.0621289589907974,
+              0.06153716499102302,
+              0.06142528200871311,
+              0.06271955199190415
+            ],
+            "candidate": [
+              0.05275194501155056,
+              0.04946773499250412,
+              0.04997860500589013,
+              0.05459453401272185,
+              0.05508078899583779,
+              0.05094238498713821,
+              0.050569407001603395,
+              0.05087843397632241,
+              0.05099931400036439
+            ]
+          },
+          "action_sha256": "f0aea1d99e84a0631ec5c67b9dd2ae1c6c7e0ed2dbc18bbf0a823fad917d55be"
+        },
+        {
+          "arguments": {
+            "num_envs": 8192,
+            "action_dim": 2,
+            "horizon": 16,
+            "steps": 500,
+            "metadata": true,
+            "repeat_every": 1
+          },
+          "median_seconds": {
+            "baseline": 0.3372555370151531,
+            "candidate": 0.17384238800150342
+          },
+          "reduction_pct": 48.453807596436114,
+          "seconds": {
+            "baseline": [
+              0.3407724220014643,
+              0.3372555370151531,
+              0.35162821199628524,
+              0.36235635200864635,
+              0.33273237699177116,
+              0.3362190420157276,
+              0.33419692699681036,
+              0.337985304009635,
+              0.33176993200322613
+            ],
+            "candidate": [
+              0.1756451470137108,
+              0.1720478220086079,
+              0.17101109199575149,
+              0.17630222198204137,
+              0.1718179929885082,
+              0.17384238800150342,
+              0.17352282998035662,
+              0.17617505698581226,
+              0.17524421800044365
+            ]
+          },
+          "action_sha256": "f0aea1d99e84a0631ec5c67b9dd2ae1c6c7e0ed2dbc18bbf0a823fad917d55be"
+        },
+        {
+          "arguments": {
+            "num_envs": 128,
+            "action_dim": 32,
+            "horizon": 16,
+            "steps": 10000,
+            "metadata": true,
+            "repeat_every": 16
+          },
+          "median_seconds": {
+            "baseline": 0.10761161599657498,
+            "candidate": 0.10320900002261624
+          },
+          "reduction_pct": 4.0912088654991186,
+          "seconds": {
+            "baseline": [
+              0.10761161599657498,
+              0.10599990302580409,
+              0.10715864499798045,
+              0.10691814799793065,
+              0.10785955502069555,
+              0.11771893702098168,
+              0.10702491001575254,
+              0.10780426999554038,
+              0.10782817599829286
+            ],
+            "candidate": [
+              0.10356361500453204,
+              0.10092386900214478,
+              0.10063189401989803,
+              0.10458919298253022,
+              0.10401098398142494,
+              0.11004252199199982,
+              0.10215464700013399,
+              0.10258419200545177,
+              0.10320900002261624
+            ]
+          },
+          "action_sha256": "20b8126b82aede01716ddc7b099bde93013a3536bbac8bad6e14ec0b68ba343b"
+        },
+        {
+          "arguments": {
+            "num_envs": 128,
+            "action_dim": 2,
+            "horizon": 1,
+            "steps": 10000,
+            "metadata": true,
+            "repeat_every": 0
+          },
+          "median_seconds": {
+            "baseline": 0.15258428297238424,
+            "candidate": 0.15198673799750395
+          },
+          "reduction_pct": 0.39161633376646465,
+          "seconds": {
+            "baseline": [
+              0.15179016400361434,
+              0.15258428297238424,
+              0.15082646202063188,
+              0.15177917198161595,
+              0.15213008798309602,
+              0.15333168199867941,
+              0.15281773399328813,
+              0.15296061499975622,
+              0.1528378019866068
+            ],
+            "candidate": [
+              0.15198673799750395,
+              0.15152549202321097,
+              0.15151448000688106,
+              0.15118617500411347,
+              0.152219598996453,
+              0.1526914850110188,
+              0.15202561902697198,
+              0.15167088498128578,
+              0.15224240100360475
+            ]
+          },
+          "action_sha256": "9462798bdc03d91cb4eee0825dc40def55abd04383efb75de784adf7e09c2b41"
+        }
+      ]
+    },
+    "sparse_executor": {
+      "scope": "Supplemental sparse repeated-step identities; CPU act, observation increments/selected repeats and precomputed chunk gathering plus callback/row counters. One warmup plus nine alternating measured pairs; recording/executor stress active on shared host. Final action hash and policy/row counts match. Excludes physics/neural inference; no general training speed claim.",
+      "source_sha256": {
+        "baseline": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+        "candidate": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974"
+      },
+      "cases": [
+        {
+          "num_envs": 128,
+          "repeat_every": 16,
+          "affected_rows": 1,
+          "steps": 10000,
+          "median_seconds": {
+            "baseline": 0.09645128497504629,
+            "candidate": 0.09524732100544497
+          },
+          "reduction_pct": 1.2482612024430795,
+          "seconds": {
+            "baseline": [
+              0.09590386599302292,
+              0.09946114500053227,
+              0.09955688699847087,
+              0.09249307602294721,
+              0.09547819799627177,
+              0.09608257497893646,
+              0.10154976800549775,
+              0.09962235097191297,
+              0.09645128497504629
+            ],
+            "candidate": [
+              0.09522625099634752,
+              0.09463092099758796,
+              0.09264043500297703,
+              0.09648064101929776,
+              0.10295520402723923,
+              0.09412480998435058,
+              0.09524732100544497,
+              0.09658024899545126,
+              0.09681513500981964
+            ]
+          },
+          "action_sha256": "62cb6d2d72da1615f8bb746a04b621e134bba2a6d0f5f7f829e662da94160337"
+        },
+        {
+          "num_envs": 128,
+          "repeat_every": 1,
+          "affected_rows": 1,
+          "steps": 10000,
+          "median_seconds": {
+            "baseline": 0.1787737809936516,
+            "candidate": 0.1523010249948129
+          },
+          "reduction_pct": 14.807963366719168,
+          "seconds": {
+            "baseline": [
+              0.17273287099669687,
+              0.1749382950074505,
+              0.1840086739975959,
+              0.1765839060244616,
+              0.20776660900446586,
+              0.1791153590020258,
+              0.17925863098935224,
+              0.1787737809936516,
+              0.17558350699255243
+            ],
+            "candidate": [
+              0.16442284500226378,
+              0.16991694900207222,
+              0.14721194098819979,
+              0.14774556198972277,
+              0.16676454598200507,
+              0.14383575398824178,
+              0.15632226399611682,
+              0.14519960098550655,
+              0.1523010249948129
+            ]
+          },
+          "action_sha256": "ca58fd24c0960e7c925c718eb283958d3f622315ca015bc949d640f01fa08f47"
+        },
+        {
+          "num_envs": 128,
+          "repeat_every": 16,
+          "affected_rows": 32,
+          "steps": 10000,
+          "median_seconds": {
+            "baseline": 0.09753666198230349,
+            "candidate": 0.09402889700140804
+          },
+          "reduction_pct": 3.5963553699755235,
+          "seconds": {
+            "baseline": [
+              0.09487905001151375,
+              0.09998861400526948,
+              0.09753666198230349,
+              0.09631023500696756,
+              0.09355752298142761,
+              0.0929904259974137,
+              0.10124187200563028,
+              0.10146006499417126,
+              0.09967719300766475
+            ],
+            "candidate": [
+              0.0920047270192299,
+              0.09240135899744928,
+              0.09402889700140804,
+              0.09728764998726547,
+              0.11190166600863449,
+              0.09381086402572691,
+              0.09907162399031222,
+              0.09801770400372334,
+              0.09202712899423204
+            ]
+          },
+          "action_sha256": "62cb6d2d72da1615f8bb746a04b621e134bba2a6d0f5f7f829e662da94160337"
+        },
+        {
+          "num_envs": 8192,
+          "repeat_every": 16,
+          "affected_rows": 1,
+          "steps": 1000,
+          "median_seconds": {
+            "baseline": 0.10394093100330792,
+            "candidate": 0.10118172600050457
+          },
+          "reduction_pct": 2.654589463620971,
+          "seconds": {
+            "baseline": [
+              0.09952919100760482,
+              0.10026901500532404,
+              0.10097756900358945,
+              0.12801122898235917,
+              0.10010732800583355,
+              0.1049798029998783,
+              0.11587389098713174,
+              0.11970824500895105,
+              0.10394093100330792
+            ],
+            "candidate": [
+              0.10016757299308665,
+              0.10082843698910438,
+              0.10118172600050457,
+              0.10357062899856828,
+              0.10095126900705509,
+              0.10127105601713993,
+              0.11401334099355154,
+              0.11878326098667458,
+              0.09864054498029873
+            ]
+          },
+          "action_sha256": "4ae2bfbd4b8ec122a3e0c49cbd31e51de838a838d533367e00f46db8678f3050"
+        },
+        {
+          "num_envs": 8192,
+          "repeat_every": 1,
+          "affected_rows": 1,
+          "steps": 1000,
+          "median_seconds": {
+            "baseline": 0.10888058200362138,
+            "candidate": 0.10480037098750472
+          },
+          "reduction_pct": 3.747418447837614,
+          "seconds": {
+            "baseline": [
+              0.11756059099570848,
+              0.10821306699654087,
+              0.10888058200362138,
+              0.10705726299784146,
+              0.1093490110069979,
+              0.1082130950235296,
+              0.10575906001031399,
+              0.11136887298198417,
+              0.11735383799532428
+            ],
+            "candidate": [
+              0.12270136398728937,
+              0.10516537399962544,
+              0.10228976697544567,
+              0.10316968697588891,
+              0.10480037098750472,
+              0.10479517100611702,
+              0.10252490302082151,
+              0.10858971002744511,
+              0.10812402601004578
+            ]
+          },
+          "action_sha256": "3861edd93142177f79b77263ebf431f309f1b1390a74e4ddcf0376ca89d5db97"
+        },
+        {
+          "num_envs": 8192,
+          "repeat_every": 16,
+          "affected_rows": 2048,
+          "steps": 1000,
+          "median_seconds": {
+            "baseline": 0.10978751300717704,
+            "candidate": 0.10123856199788861
+          },
+          "reduction_pct": 7.786815435676708,
+          "seconds": {
+            "baseline": [
+              0.10978751300717704,
+              0.10475125798257068,
+              0.11248274499666877,
+              0.11224343100911938,
+              0.11080140600097366,
+              0.13749248400563374,
+              0.10567227398860268,
+              0.1092868410050869,
+              0.10821432698867284
+            ],
+            "candidate": [
+              0.09801396599505097,
+              0.09788086201297119,
+              0.11046946598798968,
+              0.10235418900265358,
+              0.10722171299858019,
+              0.10068747701006941,
+              0.10165632498683408,
+              0.0980139340099413,
+              0.10123856199788861
+            ]
+          },
+          "action_sha256": "4ae2bfbd4b8ec122a3e0c49cbd31e51de838a838d533367e00f46db8678f3050"
+        }
+      ]
+    },
+    "executor_call_profile": {
+      "source_sha256": {
+        "baseline": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+        "candidate": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+        "benchmark": "564c38d307242adb5bd5fbcada568fa515f612b96375606f9895f29ce16a7be7"
+      },
+      "rows": [
+        {
+          "label": "baseline",
+          "repeat_every": 0,
+          "calls": {
+            "reset": 1034,
+            "_reset_rows": 0,
+            "unique": 2
+          }
+        },
+        {
+          "label": "candidate",
+          "repeat_every": 0,
+          "calls": {
+            "reset": 0,
+            "_reset_rows": 2,
+            "unique": 0
+          }
+        },
+        {
+          "label": "baseline",
+          "repeat_every": 16,
+          "calls": {
+            "reset": 1034,
+            "_reset_rows": 0,
+            "unique": 66
+          }
+        },
+        {
+          "label": "candidate",
+          "repeat_every": 16,
+          "calls": {
+            "reset": 0,
+            "_reset_rows": 66,
+            "unique": 0
+          }
+        },
+        {
+          "label": "baseline",
+          "repeat_every": 1,
+          "calls": {
+            "reset": 1034,
+            "_reset_rows": 0,
+            "unique": 1033
+          }
+        },
+        {
+          "label": "candidate",
+          "repeat_every": 1,
+          "calls": {
+            "reset": 0,
+            "_reset_rows": 1033,
+            "unique": 0
+          }
+        }
+      ],
+      "scope": "cProfile actual measure including 32 warmup, 1000 timed and two allocation calls; counts only, profiling timings are not benchmark results. Internal reset avoids public ID validation; external reset retains that validation."
+    },
+    "raster": {
+      "scope": "Actual CPU RasterRenderer including disk labels and requested image conversion; positions vary deterministically by frame. One warmup plus nine alternating measured pairs. Timing excludes separate allocation trace and complete-image hash passes, construction, physics/sensors/web. All frame/image hashes match. Candidate file is an independent prototype; adoption requires its whole source hash to match final backends/render.py. Three recording/executor stress workers active on shared host; not a process RSS/training throughput metric.",
+      "source_sha256": {
+        "baseline": "8c5d456ac44c2bc4103bd134beefb75b9bd32bd186045215891385a09088926f",
+        "candidate": "37b271ba554763b7a0e74e6a47790bc0181f7bb4e65409076567754d16db4887",
+        "benchmark": "ad81d1a36a40b30082fe9536142d125ef72dc100ec9461ccb08b9d9056c5d763"
+      },
+      "cases": [
+        {
+          "num_envs": 1,
+          "image_size": 32,
+          "frames": 200,
+          "channels": [
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.0029840299976058304,
+            "candidate": 0.0029087080038152635
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 31080,
+            "candidate": 31120
+          },
+          "seconds_reduction_pct": 2.5241701273445605,
+          "traced_peak_reduction_pct": -0.12870012870012104,
+          "seconds": {
+            "baseline": [
+              0.002949093992356211,
+              0.002938474004622549,
+              0.0035878059861715883,
+              0.0034981050121132284,
+              0.002970144007122144,
+              0.002946499007521197,
+              0.0036377999931573868,
+              0.0029840299976058304,
+              0.0040448729996569455
+            ],
+            "candidate": [
+              0.00285779099795036,
+              0.003001473000040278,
+              0.003161597007419914,
+              0.002821091009536758,
+              0.0027856340166181326,
+              0.0029087080038152635,
+              0.002858752995962277,
+              0.0035649919882416725,
+              0.004561812995234504
+            ]
+          },
+          "sha256": "ac7d17771c415a7aa696864c6aefdddfc401003bff0274522fd59b90edd8c711"
+        },
+        {
+          "num_envs": 1,
+          "image_size": 32,
+          "frames": 200,
+          "channels": [
+            "rgb",
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.003423463989747688,
+            "candidate": 0.0032873960153665394
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 31080,
+            "candidate": 31120
+          },
+          "seconds_reduction_pct": 3.9745700491851,
+          "traced_peak_reduction_pct": -0.12870012870012104,
+          "seconds": {
+            "baseline": [
+              0.003263641003286466,
+              0.003525276988511905,
+              0.003218714991817251,
+              0.0032296759891323745,
+              0.00354028501897119,
+              0.0033555350091774017,
+              0.003530436981236562,
+              0.0035063300165347755,
+              0.003423463989747688
+            ],
+            "candidate": [
+              0.003150546021061018,
+              0.0033537920098751783,
+              0.003394318977370858,
+              0.0030708549893461168,
+              0.003098446992225945,
+              0.003348271973663941,
+              0.0032873960153665394,
+              0.0041276789852418005,
+              0.0032518780208192766
+            ]
+          },
+          "sha256": "95ef747fd5beefddac162aa6ede57f26cd088a6bfc6827df99ef2f0691d20116"
+        },
+        {
+          "num_envs": 1,
+          "image_size": 32,
+          "frames": 200,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ],
+          "median_seconds": {
+            "baseline": 0.0034070429974235594,
+            "candidate": 0.0032140669936779886
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 31080,
+            "candidate": 31120
+          },
+          "seconds_reduction_pct": 5.664031944753889,
+          "traced_peak_reduction_pct": -0.12870012870012104,
+          "seconds": {
+            "baseline": [
+              0.0035109799937345088,
+              0.0033445539884269238,
+              0.003363961004652083,
+              0.004479536990402266,
+              0.00338732500676997,
+              0.0034070429974235594,
+              0.0034552940051071346,
+              0.003418563981540501,
+              0.0033763250103220344
+            ],
+            "candidate": [
+              0.003494567994493991,
+              0.0035563460260163993,
+              0.003180022002197802,
+              0.0038986649888101965,
+              0.0031713549979031086,
+              0.004642106010578573,
+              0.003193276992533356,
+              0.0031804130121599883,
+              0.0032140669936779886
+            ]
+          },
+          "sha256": "2ed9faf827379b5d12e505a20a861e23db15a9ad92cfe0286623194cef31ba3a"
+        },
+        {
+          "num_envs": 32,
+          "image_size": 128,
+          "frames": 50,
+          "channels": [
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.06460814998717979,
+            "candidate": 0.009238614002242684
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 8390016,
+            "candidate": 4754108
+          },
+          "seconds_reduction_pct": 85.70054396531103,
+          "traced_peak_reduction_pct": 43.33612713015088,
+          "seconds": {
+            "baseline": [
+              0.05929746699985117,
+              0.06639853600063361,
+              0.07734459900530055,
+              0.07403027298278175,
+              0.07864994500414468,
+              0.05135201499797404,
+              0.054757094010710716,
+              0.05602466900018044,
+              0.06460814998717979
+            ],
+            "candidate": [
+              0.00995432201307267,
+              0.01308776598307304,
+              0.009238614002242684,
+              0.009850214002653956,
+              0.008655989018734545,
+              0.009038393996888772,
+              0.008504541998263448,
+              0.00872385798720643,
+              0.013465871976222843
+            ]
+          },
+          "sha256": "73d34f93b1727a8fa4c44619a80811a9dcdce0207fce627e73a87f2775983538"
+        },
+        {
+          "num_envs": 32,
+          "image_size": 128,
+          "frames": 50,
+          "channels": [
+            "rgb",
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.13308108897763304,
+            "candidate": 0.0956810989882797
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 9963096,
+            "candidate": 8390384
+          },
+          "seconds_reduction_pct": 28.103158966214327,
+          "traced_peak_reduction_pct": 15.78537434548457,
+          "seconds": {
+            "baseline": [
+              0.12860576098319143,
+              0.12678539799526334,
+              0.13039194900193252,
+              0.13574777799658477,
+              0.1381575480045285,
+              0.13308108897763304,
+              0.13942577398847789,
+              0.14494321899837814,
+              0.11829549199319445
+            ],
+            "candidate": [
+              0.09548349500983022,
+              0.09487464901758358,
+              0.09305045899236575,
+              0.09623389699845575,
+              0.0956810989882797,
+              0.08687242100131698,
+              0.10605041601229459,
+              0.0975378600123804,
+              0.11236828999244608
+            ]
+          },
+          "sha256": "9804da27e9c1c75debd0862490c22b3e64dda4d1d77f4fda56521a7de9ec5b55"
+        },
+        {
+          "num_envs": 32,
+          "image_size": 128,
+          "frames": 50,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ],
+          "median_seconds": {
+            "baseline": 0.1601619809807744,
+            "candidate": 0.15992524501052685
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 10488728,
+            "candidate": 10488768
+          },
+          "seconds_reduction_pct": 0.14781034100468382,
+          "traced_peak_reduction_pct": -0.00038136178190928405,
+          "seconds": {
+            "baseline": [
+              0.15227039498859085,
+              0.1750908310059458,
+              0.18840974298655055,
+              0.13984260099823587,
+              0.13937686700955965,
+              0.1632348700077273,
+              0.1601619809807744,
+              0.20933999100816436,
+              0.15176146698649973
+            ],
+            "candidate": [
+              0.17127833000267856,
+              0.17462483598501422,
+              0.15992524501052685,
+              0.1470307850104291,
+              0.1504986439831555,
+              0.1807011000055354,
+              0.17664408500422724,
+              0.15435515702120028,
+              0.1587347130116541
+            ]
+          },
+          "sha256": "019fa867b43acb2c869e9c0940e52ae3f6aa2c0eba1ea2e6e7f2fb392f0f7102"
+        },
+        {
+          "num_envs": 128,
+          "image_size": 128,
+          "frames": 20,
+          "channels": [
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.15460361598525196,
+            "candidate": 0.02861621798365377
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 33555840,
+            "candidate": 18909884
+          },
+          "seconds_reduction_pct": 81.4905894656542,
+          "traced_peak_reduction_pct": 43.646518757986684,
+          "seconds": {
+            "baseline": [
+              0.15841467599966563,
+              0.1353652459802106,
+              0.15959191901492886,
+              0.15460361598525196,
+              0.15278080900316127,
+              0.16428357601398602,
+              0.14104831501026638,
+              0.16189948402461596,
+              0.12885098799597472
+            ],
+            "candidate": [
+              0.02945781499147415,
+              0.027712292998330668,
+              0.02861621798365377,
+              0.02446919199428521,
+              0.02696539700264111,
+              0.03399766600341536,
+              0.027176246978342533,
+              0.035488964000251144,
+              0.04498942400095984
+            ]
+          },
+          "sha256": "10d7983acc5bc6bc072a9cdbafb57a3f20a8789bea9d1b7fd0bd9df157b2aa72"
+        },
+        {
+          "num_envs": 128,
+          "image_size": 128,
+          "frames": 20,
+          "channels": [
+            "rgb",
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.24348757401457988,
+            "candidate": 0.17449698300333694
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 39847512,
+            "candidate": 33556208
+          },
+          "seconds_reduction_pct": 28.33433750796327,
+          "traced_peak_reduction_pct": 15.7884487242265,
+          "seconds": {
+            "baseline": [
+              0.2887886189855635,
+              0.24348757401457988,
+              0.2560046440048609,
+              0.21813292999286205,
+              0.22262733499519527,
+              0.2835526429989841,
+              0.2420091060048435,
+              0.22519840000313707,
+              0.24486887801322155
+            ],
+            "candidate": [
+              0.14782959499279968,
+              0.18171483601327054,
+              0.16436068998882547,
+              0.1896411690104287,
+              0.16966870598844253,
+              0.17794503300683573,
+              0.19369223099783994,
+              0.17449698300333694,
+              0.16669824000564404
+            ]
+          },
+          "sha256": "bfa572b1e4498cfd2d696f21ff24756946699403378db75ddf5899fdacf6bf2f"
+        },
+        {
+          "num_envs": 128,
+          "image_size": 128,
+          "frames": 20,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ],
+          "median_seconds": {
+            "baseline": 0.30677434100653045,
+            "candidate": 0.28813533898210153
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 41948168,
+            "candidate": 41948208
+          },
+          "seconds_reduction_pct": 6.075802155836807,
+          "traced_peak_reduction_pct": -9.535577334407463e-05,
+          "seconds": {
+            "baseline": [
+              0.26441466898540966,
+              0.30677434100653045,
+              0.27541630098130554,
+              0.34310621800250374,
+              0.38987012099823914,
+              1.1430470559862442,
+              0.2578295379935298,
+              0.30088568999781273,
+              0.31836178500088863
+            ],
+            "candidate": [
+              0.22219430899713188,
+              0.39952225601882674,
+              1.210972364002373,
+              0.2748757039953489,
+              0.22194575201137923,
+              0.5307660519902129,
+              0.28813533898210153,
+              0.21022036799695343,
+              0.30254710000008345
+            ]
+          },
+          "sha256": "a182286577e49d789c12981bd77e12b37bb7002b402e2749d116ad99d954e350"
+        },
+        {
+          "num_envs": 8,
+          "image_size": 512,
+          "frames": 12,
+          "channels": [
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.07898131999536417,
+            "candidate": 0.014640138018876314
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 33555840,
+            "candidate": 18909884
+          },
+          "seconds_reduction_pct": 81.46379673100472,
+          "traced_peak_reduction_pct": 43.646518757986684,
+          "seconds": {
+            "baseline": [
+              0.08857612800784409,
+              0.07814804001827724,
+              0.07587977702496573,
+              0.07341977200121619,
+              0.08180598798207939,
+              0.06930490699596703,
+              0.08790480499737896,
+              0.09247632502228953,
+              0.07898131999536417
+            ],
+            "candidate": [
+              0.021357937977882102,
+              0.012301381008001044,
+              0.015637237986084074,
+              0.013242496002931148,
+              0.014640138018876314,
+              0.013652865018229932,
+              0.012882865004939958,
+              0.02016396398539655,
+              0.026407074998132885
+            ]
+          },
+          "sha256": "f01b17a9a567c9f11ae963fd726fb6861691b67d56f325e2a4b0eefa4b3ed0db"
+        },
+        {
+          "num_envs": 8,
+          "image_size": 512,
+          "frames": 12,
+          "channels": [
+            "rgb",
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.15654402697691694,
+            "candidate": 0.11656102401320823
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 39847512,
+            "candidate": 33556208
+          },
+          "seconds_reduction_pct": 25.541059429628945,
+          "traced_peak_reduction_pct": 15.7884487242265,
+          "seconds": {
+            "baseline": [
+              0.1331150530022569,
+              0.1335179369780235,
+              0.16880916099762544,
+              0.13194443099200726,
+              0.171402528998442,
+              0.16073715998209082,
+              0.15654402697691694,
+              0.13941428699763492,
+              0.18614653102122247
+            ],
+            "candidate": [
+              0.0984266700106673,
+              0.11656102401320823,
+              0.10306901499279775,
+              0.14329231399460696,
+              0.12509496000711806,
+              0.12356138101313263,
+              0.09265101500204764,
+              0.11234608897939324,
+              0.17076273501152173
+            ]
+          },
+          "sha256": "c4d5fcc330a5efb16c10a180e91971ff12ad4af391a46536f6a6d473df30e187"
+        },
+        {
+          "num_envs": 8,
+          "image_size": 512,
+          "frames": 12,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ],
+          "median_seconds": {
+            "baseline": 0.18315527599770576,
+            "candidate": 0.15005668901721947
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 41945624,
+            "candidate": 41945664
+          },
+          "seconds_reduction_pct": 18.07132598293313,
+          "traced_peak_reduction_pct": -9.536155667344559e-05,
+          "seconds": {
+            "baseline": [
+              0.137734290008666,
+              0.15165627497481182,
+              0.18315527599770576,
+              0.19905661398661323,
+              0.17575101100374013,
+              0.26729047700064257,
+              0.2016932730039116,
+              0.16320526599884033,
+              0.1919093260075897
+            ],
+            "candidate": [
+              0.147937011992326,
+              0.1764283580123447,
+              0.19302927399985492,
+              0.13323392398888245,
+              0.14806173599208705,
+              0.1600102259835694,
+              0.18705956899793819,
+              0.1474213899928145,
+              0.15005668901721947
+            ]
+          },
+          "sha256": "561395fcda16e53118ecaaaef8b6bc228c9d835d235f78314528c30a37bdbfbb"
+        },
+        {
+          "num_envs": 32,
+          "image_size": 128,
+          "frames": 50,
+          "channels": [
+            "rgb"
+          ],
+          "median_seconds": {
+            "baseline": 0.041775582008995116,
+            "candidate": 0.03943394002271816
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 6292080,
+            "candidate": 6292120
+          },
+          "seconds_reduction_pct": 5.6052887205084385,
+          "traced_peak_reduction_pct": -0.0006357198255591001,
+          "seconds": {
+            "baseline": [
+              0.03948847399442457,
+              0.037653984007192776,
+              0.04313923802692443,
+              0.03932961300597526,
+              0.054230062989518046,
+              0.047107052989304066,
+              0.05170039500808343,
+              0.04051093300222419,
+              0.041775582008995116
+            ],
+            "candidate": [
+              0.04138180401059799,
+              0.03855226800078526,
+              0.048595205997116864,
+              0.03943394002271816,
+              0.04120254400186241,
+              0.03838420900865458,
+              0.058861205994617194,
+              0.03864600497763604,
+              0.038770932995248586
+            ]
+          },
+          "sha256": "d137ba10382e3ceb87729b8d3458a05d13682b4e7563056fe5f0a5a502c59bc2"
+        }
+      ]
+    },
+    "raster_replication": {
+      "scope": "Actual CPU RasterRenderer including disk labels and requested image conversion; positions vary deterministically by frame. One warmup plus nine alternating measured pairs. Timing excludes separate allocation trace and complete-image hash passes, construction, physics/sensors/web. All frame/image hashes match. Candidate file is an independent prototype; adoption requires its whole source hash to match final backends/render.py. Only integer executor probe active among this study jobs; recording probe stopped for source update; shared host; not a process RSS/training throughput metric.",
+      "source_sha256": {
+        "baseline": "8c5d456ac44c2bc4103bd134beefb75b9bd32bd186045215891385a09088926f",
+        "candidate": "37b271ba554763b7a0e74e6a47790bc0181f7bb4e65409076567754d16db4887",
+        "benchmark": "ad81d1a36a40b30082fe9536142d125ef72dc100ec9461ccb08b9d9056c5d763"
+      },
+      "cases": [
+        {
+          "num_envs": 32,
+          "image_size": 128,
+          "frames": 50,
+          "channels": [
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.08131853298982605,
+            "candidate": 0.009581429010722786
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 8390016,
+            "candidate": 4754108
+          },
+          "seconds_reduction_pct": 88.21741040025705,
+          "traced_peak_reduction_pct": 43.33612713015088,
+          "seconds": {
+            "baseline": [
+              0.24052118600229733,
+              0.09278175098006614,
+              0.07808593302615918,
+              0.09397114600869827,
+              0.083606931992108,
+              0.05847899298532866,
+              0.08128529999521561,
+              0.08131853298982605,
+              0.07489429000997916
+            ],
+            "candidate": [
+              0.008972915005870163,
+              0.009784763999050483,
+              0.009581429010722786,
+              0.009263676998671144,
+              0.011910186003660783,
+              0.008900096989236772,
+              0.010556027002166957,
+              0.009724891016958281,
+              0.009072583983652294
+            ]
+          },
+          "sha256": "73d34f93b1727a8fa4c44619a80811a9dcdce0207fce627e73a87f2775983538"
+        },
+        {
+          "num_envs": 32,
+          "image_size": 128,
+          "frames": 50,
+          "channels": [
+            "rgb",
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.13202961400384083,
+            "candidate": 0.08545449600205757
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 9963096,
+            "candidate": 8390384
+          },
+          "seconds_reduction_pct": 35.276266126498236,
+          "traced_peak_reduction_pct": 15.78537434548457,
+          "seconds": {
+            "baseline": [
+              0.1369439240079373,
+              0.13492721898364834,
+              0.13202961400384083,
+              0.12772178501472808,
+              0.11733527001342736,
+              0.11781778500881046,
+              0.12121048799599521,
+              0.14052666700445116,
+              0.1426974119967781
+            ],
+            "candidate": [
+              0.10213275201385841,
+              0.08545449600205757,
+              0.08717130101285875,
+              0.08551616198383272,
+              0.08123502400121652,
+              0.0834437920129858,
+              0.10749444799148478,
+              0.0456542230094783,
+              0.04321958601940423
+            ]
+          },
+          "sha256": "9804da27e9c1c75debd0862490c22b3e64dda4d1d77f4fda56521a7de9ec5b55"
+        },
+        {
+          "num_envs": 128,
+          "image_size": 128,
+          "frames": 20,
+          "channels": [
+            "rgb",
+            "depth"
+          ],
+          "median_seconds": {
+            "baseline": 0.2338086609961465,
+            "candidate": 0.1754182869917713
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 39847512,
+            "candidate": 33556208
+          },
+          "seconds_reduction_pct": 24.973571875225588,
+          "traced_peak_reduction_pct": 15.7884487242265,
+          "seconds": {
+            "baseline": [
+              0.23946624202653766,
+              0.2537087989912834,
+              0.1992603589897044,
+              0.2338086609961465,
+              0.2698505349981133,
+              0.20684337700367905,
+              0.225443327013636,
+              0.2123572920099832,
+              0.2711714470060542
+            ],
+            "candidate": [
+              0.1719958489993587,
+              0.17884357398725115,
+              0.16198832198278978,
+              0.18785232698428445,
+              0.16846721700858325,
+              0.16423790698172525,
+              0.1754182869917713,
+              0.2099129070120398,
+              0.17595706798601896
+            ]
+          },
+          "sha256": "bfa572b1e4498cfd2d696f21ff24756946699403378db75ddf5899fdacf6bf2f"
+        },
+        {
+          "num_envs": 32,
+          "image_size": 128,
+          "frames": 50,
+          "channels": [
+            "rgb"
+          ],
+          "median_seconds": {
+            "baseline": 0.03927132801618427,
+            "candidate": 0.039834105991758406
+          },
+          "median_peak_traced_bytes": {
+            "baseline": 6292080,
+            "candidate": 6292120
+          },
+          "seconds_reduction_pct": -1.4330505333107313,
+          "traced_peak_reduction_pct": -0.0006357198255591001,
+          "seconds": {
+            "baseline": [
+              0.040056937985355034,
+              0.03927132801618427,
+              0.04020560998469591,
+              0.03803779900772497,
+              0.03892850800184533,
+              0.03875679199700244,
+              0.038739649986382574,
+              0.045623943995451555,
+              0.04058502899715677
+            ],
+            "candidate": [
+              0.03916529699927196,
+              0.04036904897657223,
+              0.039834105991758406,
+              0.039242644008481875,
+              0.04062169897952117,
+              0.03916126900003292,
+              0.044535038992762566,
+              0.03938719799043611,
+              0.044290485995588824
+            ]
+          },
+          "sha256": "d137ba10382e3ceb87729b8d3458a05d13682b4e7563056fe5f0a5a502c59bc2"
+        }
+      ]
+    },
+    "raster_adoption": {
+      "prototype_sha256": "37b271ba554763b7a0e74e6a47790bc0181f7bb4e65409076567754d16db4887",
+      "final_source_sha256": "37b271ba554763b7a0e74e6a47790bc0181f7bb4e65409076567754d16db4887",
+      "exact_whole_file_match": true
+    },
+    "full_pipeline": {
+      "scope": "Whole isolated baseline/current packages: NumPy physics+raster RGB/depth+recorder append/NPZ+final close, excluding construction and subsequent full decoded audit; all decoded hashes match. Timeout-only task, fixed seed/cycles; synthetic noise labelled. One warmup and five alternating measured pairs. Study integer executor probe concurrently active, shared unpinned host; no neural inference or training throughput claim.",
+      "cases": [
+        {
+          "arguments": {
+            "workers": 0,
+            "episode_format": "transitions",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": false
+          },
+          "median_seconds": {
+            "baseline": 0.13319509499706328,
+            "candidate": 0.12363575800554827
+          },
+          "reduction_pct": 7.17694370932036,
+          "seconds": {
+            "baseline": [
+              0.13319509499706328,
+              0.13390682399040088,
+              0.13141988799907267,
+              0.15817953998339362,
+              0.12522042202181183
+            ],
+            "candidate": [
+              0.12473401098395698,
+              0.1168921210046392,
+              0.12301073299022391,
+              0.13791582500562072,
+              0.12363575800554827
+            ]
+          },
+          "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+        },
+        {
+          "arguments": {
+            "workers": 1,
+            "episode_format": "transitions",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": false
+          },
+          "median_seconds": {
+            "baseline": 0.13781810001819395,
+            "candidate": 0.13043867697706446
+          },
+          "reduction_pct": 5.354465806853592,
+          "seconds": {
+            "baseline": [
+              0.14099393200012855,
+              0.13781810001819395,
+              0.14625255297869444,
+              0.11364176700590178,
+              0.12289353902451694
+            ],
+            "candidate": [
+              0.13043867697706446,
+              0.13482887099962682,
+              0.12298218801151961,
+              0.11423834698507562,
+              0.13203205799800344
+            ]
+          },
+          "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+        },
+        {
+          "arguments": {
+            "workers": 2,
+            "episode_format": "transitions",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": false
+          },
+          "median_seconds": {
+            "baseline": 0.09115060800104402,
+            "candidate": 0.10033363100956194
+          },
+          "reduction_pct": -10.074560345678375,
+          "seconds": {
+            "baseline": [
+              0.10173154200310819,
+              0.09115060800104402,
+              0.08282550200237893,
+              0.09010075699188747,
+              0.0962363010039553
+            ],
+            "candidate": [
+              0.09388790899538435,
+              0.10033363100956194,
+              0.08672089900937863,
+              0.10389679798390716,
+              0.10193849401548505
+            ]
+          },
+          "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+        },
+        {
+          "arguments": {
+            "workers": 0,
+            "episode_format": "compact",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": false
+          },
+          "median_seconds": {
+            "baseline": 0.08436123401043005,
+            "candidate": 0.0784969340020325
+          },
+          "reduction_pct": 6.951415632057389,
+          "seconds": {
+            "baseline": [
+              0.09216517198365182,
+              0.0911183970165439,
+              0.08436123401043005,
+              0.08145083498675376,
+              0.08217191201401874
+            ],
+            "candidate": [
+              0.09050681698136032,
+              0.1009021189820487,
+              0.07503763400018215,
+              0.0784969340020325,
+              0.07635667501017451
+            ]
+          },
+          "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+        },
+        {
+          "arguments": {
+            "workers": 1,
+            "episode_format": "compact",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": false
+          },
+          "median_seconds": {
+            "baseline": 0.07075291001820005,
+            "candidate": 0.07009774699690752
+          },
+          "reduction_pct": 0.9259873850050893,
+          "seconds": {
+            "baseline": [
+              0.07075291001820005,
+              0.08568254899000749,
+              0.06861092799226753,
+              0.06436354402103461,
+              0.07204145300784148
+            ],
+            "candidate": [
+              0.06946624998818152,
+              0.07615919099771418,
+              0.07479879198945127,
+              0.06216490501537919,
+              0.07009774699690752
+            ]
+          },
+          "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+        },
+        {
+          "arguments": {
+            "workers": 2,
+            "episode_format": "compact",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": false
+          },
+          "median_seconds": {
+            "baseline": 0.06184511800529435,
+            "candidate": 0.06293355298112147
+          },
+          "reduction_pct": -1.7599367758243112,
+          "seconds": {
+            "baseline": [
+              0.06492572999559343,
+              0.06223111099097878,
+              0.06098092001047917,
+              0.06184511800529435,
+              0.05496326999855228
+            ],
+            "candidate": [
+              0.06293355298112147,
+              0.06641177699202672,
+              0.06366334698395804,
+              0.05608550799661316,
+              0.06200910999905318
+            ]
+          },
+          "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+        },
+        {
+          "arguments": {
+            "workers": 0,
+            "episode_format": "transitions",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": true
+          },
+          "median_seconds": {
+            "baseline": 0.6315451650007162,
+            "candidate": 0.64150599000277
+          },
+          "reduction_pct": -1.57721498858161,
+          "seconds": {
+            "baseline": [
+              0.6389419549959712,
+              0.6305759009846952,
+              0.6374213980161585,
+              0.6315451650007162,
+              0.6293403010058682
+            ],
+            "candidate": [
+              0.6505863769853022,
+              0.6483035740093328,
+              0.6323646499949973,
+              0.6273816689790692,
+              0.64150599000277
+            ]
+          },
+          "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+        },
+        {
+          "arguments": {
+            "workers": 1,
+            "episode_format": "transitions",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": true
+          },
+          "median_seconds": {
+            "baseline": 0.6377743150223978,
+            "candidate": 0.6424410360050388
+          },
+          "reduction_pct": -0.7317198063200525,
+          "seconds": {
+            "baseline": [
+              0.652484121004818,
+              0.6478083529800642,
+              0.6377743150223978,
+              0.6360469280043617,
+              0.6277087539783679
+            ],
+            "candidate": [
+              0.6403981650073547,
+              0.6424410360050388,
+              0.6322650490037631,
+              0.6500780420028605,
+              0.6509172420192044
+            ]
+          },
+          "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+        },
+        {
+          "arguments": {
+            "workers": 2,
+            "episode_format": "transitions",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": true
+          },
+          "median_seconds": {
+            "baseline": 0.36877173598622903,
+            "candidate": 0.3550220019824337
+          },
+          "reduction_pct": 3.72852164687284,
+          "seconds": {
+            "baseline": [
+              0.3811433049850166,
+              0.36877173598622903,
+              0.3539549300039653,
+              0.37150839300011285,
+              0.35744328299188055
+            ],
+            "candidate": [
+              0.34689812100259587,
+              0.35221414000261575,
+              0.3689302149869036,
+              0.36799733599764295,
+              0.3550220019824337
+            ]
+          },
+          "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+        },
+        {
+          "arguments": {
+            "workers": 0,
+            "episode_format": "compact",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": true
+          },
+          "median_seconds": {
+            "baseline": 0.3559118550037965,
+            "candidate": 0.35510198201518506
+          },
+          "reduction_pct": 0.22754875321666646,
+          "seconds": {
+            "baseline": [
+              0.34632738499203697,
+              0.36094608300481923,
+              0.34574318598606624,
+              0.36404767201747745,
+              0.3559118550037965
+            ],
+            "candidate": [
+              0.35510198201518506,
+              0.3600612950103823,
+              0.3534998029936105,
+              0.35648679599398747,
+              0.35076042800210416
+            ]
+          },
+          "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+        },
+        {
+          "arguments": {
+            "workers": 1,
+            "episode_format": "compact",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": true
+          },
+          "median_seconds": {
+            "baseline": 0.33710598398465663,
+            "candidate": 0.3480782879923936
+          },
+          "reduction_pct": -3.2548529332058207,
+          "seconds": {
+            "baseline": [
+              0.3369633050169796,
+              0.34353173000272363,
+              0.33517569399555214,
+              0.34896682301769033,
+              0.33710598398465663
+            ],
+            "candidate": [
+              0.3567398829909507,
+              0.3318201820075046,
+              0.3390387989929877,
+              0.3480782879923936,
+              0.3592335189750884
+            ]
+          },
+          "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+        },
+        {
+          "arguments": {
+            "workers": 2,
+            "episode_format": "compact",
+            "num_envs": 4,
+            "steps": 40,
+            "cycles": 3,
+            "image_size": 64,
+            "budget_mib": 12,
+            "noise": true
+          },
+          "median_seconds": {
+            "baseline": 0.1864394540025387,
+            "candidate": 0.19650990000809543
+          },
+          "reduction_pct": -5.401456499341384,
+          "seconds": {
+            "baseline": [
+              0.18305639101890847,
+              0.20134252199204639,
+              0.19417505199089646,
+              0.18361843502498232,
+              0.1864394540025387
+            ],
+            "candidate": [
+              0.19132541000726633,
+              0.19741877299384214,
+              0.19650990000809543,
+              0.18051373900379986,
+              0.19728315499378368
+            ]
+          },
+          "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+        },
+        {
+          "arguments": {
+            "workers": 0,
+            "episode_format": "compact",
+            "num_envs": 16,
+            "steps": 10,
+            "cycles": 3,
+            "image_size": 128,
+            "budget_mib": 64,
+            "noise": false
+          },
+          "median_seconds": {
+            "baseline": 0.23233407299267128,
+            "candidate": 0.2302818119933363
+          },
+          "reduction_pct": 0.8833232994627127,
+          "seconds": {
+            "baseline": [
+              0.22707322900532745,
+              0.23311766897677444,
+              0.24375169098493643,
+              0.23233407299267128,
+              0.21623568798531778
+            ],
+            "candidate": [
+              0.25152183501631953,
+              0.21594851498957723,
+              0.2302818119933363,
+              0.23366578700370155,
+              0.21826037700520828
+            ]
+          },
+          "sha256": "9ac874446cc10d226e97d2f07991a02811a47811d8536717ff53a447782f3326"
+        },
+        {
+          "arguments": {
+            "workers": 2,
+            "episode_format": "compact",
+            "num_envs": 16,
+            "steps": 10,
+            "cycles": 3,
+            "image_size": 128,
+            "budget_mib": 64,
+            "noise": false
+          },
+          "median_seconds": {
+            "baseline": 0.1501755919889547,
+            "candidate": 0.1518583330034744
+          },
+          "reduction_pct": -1.1205156525325943,
+          "seconds": {
+            "baseline": [
+              0.1985503640025854,
+              0.12766296800691634,
+              0.14326769500621594,
+              0.1501755919889547,
+              0.1555381500220392
+            ],
+            "candidate": [
+              0.18595029402058572,
+              0.1518583330034744,
+              0.15657500599627383,
+              0.1506685469939839,
+              0.14194479599245824
+            ]
+          },
+          "sha256": "9ac874446cc10d226e97d2f07991a02811a47811d8536717ff53a447782f3326"
+        }
+      ]
+    }
+  },
+  "stress": {
+    "recording": {
+      "status": "passed",
+      "started_epoch": 1792131902.4993272,
+      "ended_epoch": 1792137605.1268847,
+      "elapsed_seconds": 5702.627557516098,
+      "cases": 63589,
+      "episodes": 944934,
+      "transitions": 7372889,
+      "unique_configurations": 6912,
+      "workers": {
+        "baseline": {
+          "ready": true,
+          "source": {
+            "data.py": "bdb8ce929b37d4e0e55f672b2702d28ed67d57eb845857fb88a30b2870c0ce28",
+            "batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+            "env.py": "b627b80a9d6ca28af5a39dfd0935e9fbd5b18d22d8d5b9e4e83d702b8b076cbd",
+            "sensors.py": "c3ddac620919c71147cb22570c55fed49bc656d09834fcdc757b20c448667a3d",
+            "rollout.py": "2684c24b257f363aaafa0867c87bbf0bc7cb016198e157c1e7a2c636bc732a95",
+            "backends/physics.py": "aacb47526e8cd285d12ec471f5df944d5f3a04cf1dd8fa65495338c937ea40bd",
+            "backends/render.py": "8c5d456ac44c2bc4103bd134beefb75b9bd32bd186045215891385a09088926f"
+          },
+          "python": "3.12.0",
+          "numpy": "2.5.4",
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 40476672
+          }
+        },
+        "candidate": {
+          "ready": true,
+          "source": {
+            "data.py": "0f7550fa0f92551b79e4d68b47b9ceb30cea197462b268f1298d43196b67ea6b",
+            "batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+            "env.py": "b627b80a9d6ca28af5a39dfd0935e9fbd5b18d22d8d5b9e4e83d702b8b076cbd",
+            "sensors.py": "c3ddac620919c71147cb22570c55fed49bc656d09834fcdc757b20c448667a3d",
+            "rollout.py": "2684c24b257f363aaafa0867c87bbf0bc7cb016198e157c1e7a2c636bc732a95",
+            "backends/physics.py": "aacb47526e8cd285d12ec471f5df944d5f3a04cf1dd8fa65495338c937ea40bd",
+            "backends/render.py": "37b271ba554763b7a0e74e6a47790bc0181f7bb4e65409076567754d16db4887"
+          },
+          "python": "3.12.0",
+          "numpy": "2.5.4",
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 40497152
+          }
+        }
+      },
+      "scope": "Persistent isolated baseline/candidate NumPy VectorEnv recording and full decoded independent reference, byte-identical public data/window/batch hashes, legacy/compact, 0/1/2 background writers, state/RGB/depth, 8..128px, N1/3/16 capped3 for128px, variable episodes/history/horizon/shuffle, high unsigned/non-native identities, late-row invalid-step atomic retry and caller mutation. FD/thread equality checked after each case; sampled RSS is not a leak proof.",
+      "sample_count": 378,
+      "resources": {
+        "baseline": {
+          "fd_values": [
+            4
+          ],
+          "thread_values": [
+            1
+          ],
+          "min_sampled_rss_bytes": 45166592,
+          "max_sampled_rss_bytes": 260349952,
+          "last_sample": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 178171904
+          }
+        },
+        "candidate": {
+          "fd_values": [
+            4
+          ],
+          "thread_values": [
+            1
+          ],
+          "min_sampled_rss_bytes": 45158400,
+          "max_sampled_rss_bytes": 258551808,
+          "last_sample": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 176439296
+          }
+        }
+      }
+    },
+    "executor": {
+      "status": "passed",
+      "started_epoch": 1792131241.7366664,
+      "ended_epoch": 1792137605.0021434,
+      "elapsed_seconds": 6363.265476942062,
+      "source_sha256": {
+        "baseline": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+        "candidate": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+        "integer_oracle": "5076c9a6eb58fcb5b34912c51033115cdaa7712e074f466d30fa442d2777f982"
+      },
+      "numpy": "1.24.4",
+      "cases": 155735,
+      "controls": 18688200,
+      "environment_actions": 691452480,
+      "initial": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 41730048
+      },
+      "final": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 44212224
+      },
+      "scope": "Baseline and cached-ID executor output and policy-call equivalence against independent Python-integer queue reference. Six signed/unsigned/native/non-native integer types, N1/3/16/128, H1/4/8, 0/2^53/2^63/full-range boundaries, repeated/skipped/wrapped steps, episode changes, local reset, noncontiguous canonical IDs, atomic noncanonical rejection and owned-output mutation. Fresh RNG per case; FD/threads checked each completed case, sampled RSS is not a leak proof.",
+      "coverage_count": 72,
+      "sample_count": 424,
+      "resources": {
+        "fd_values": [
+          4
+        ],
+        "thread_values": [
+          1
+        ],
+        "min_sampled_rss_bytes": 43163648,
+        "max_sampled_rss_bytes": 44277760,
+        "last_sample": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 44195840
+        }
+      }
+    },
+    "rendering": {
+      "status": "passed",
+      "started_epoch": 1792131902.5388803,
+      "ended_epoch": 1792137605.0009801,
+      "cases": 1053318,
+      "frames": 8298860,
+      "pixels": 122979597542,
+      "source_sha256": {
+        "baseline": "8c5d456ac44c2bc4103bd134beefb75b9bd32bd186045215891385a09088926f",
+        "candidate": "37b271ba554763b7a0e74e6a47790bc0181f7bb4e65409076567754d16db4887"
+      },
+      "initial": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 36839424
+      },
+      "final": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 77680640
+      },
+      "scope": "Actual baseline/current rendering versus independent dense geometry and palette/depth reference. 6048 shape/channel/count/coordinate-dtype/radius configurations, all 16 channel subsets; empty/repeated/strided environment selections and strided positions, float32/64/longdouble coordinates. Exact dtype/pixels, independent owned image arrays and next-frame integrity after caller mutation; capture metadata checked. New RNG per case; FD/Python threads after each case, RSS samples not a leak proof or hard budget.",
+      "coverage": 6048,
+      "sample_count": 380,
+      "resources": {
+        "fd_values": [
+          4
+        ],
+        "thread_values": [
+          1
+        ],
+        "min_sampled_rss_bytes": 41160704,
+        "max_sampled_rss_bytes": 139063296,
+        "last_sample": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 68014080
+        }
+      }
+    },
+    "earlier_recording_stage": {
+      "status": "intentionally_stopped_for_source_update",
+      "completed_cases": 4513,
+      "last_sample_transitions": 513438,
+      "last_sample_epoch": 1792131633.7772577,
+      "reason": "Adopt measured depth renderer; final-source probe starts separately",
+      "recording_status_before_stop": "running"
+    }
+  },
+  "reproduction": {
+    "working_directory": "Repository root matching final source hashes; extract the archive elsewhere first. Baseline package and harness paths in evidence/ are self-relative. Optional dependencies/assets are supplied by the checkout, not the archive.",
+    "current_executor": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONPATH=src python benchmarks/action_executor.py --metadata --repeat-every 16 --output /tmp/executor-r2.json",
+    "current_raster": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONPATH=src python benchmarks/raster.py --num-envs 32 --image-size 128 --frames 50 --channels rgb depth --output /tmp/raster-r2.json",
+    "paired_experiments": "Run executor_compare.py, sparse_executor_compare.py, render_compare.py, render_replicate.py or full_pipeline_compare.py from the extracted evidence/scripts/ using the recorded Python and repository cwd. These rewrite measurements only inside the extracted evidence tree.",
+    "endurance": "endurance.py, executor_endurance.py and render_endurance.py accept --until with a future Unix UTC epoch. The recorded absolute default is this study stop time."
+  },
+  "figure": "platform-optimization-20261016-round2-twohour-performance.svg",
+  "limits": [
+    "All measurements are CPU reference workloads on a shared unpinned host; neural inference, GPU training, real robots and web delivery are outside these timings.",
+    "Continuous-frame executor measurements are essentially flat. Larger benefits occur with repeated observations and depend on affected-row count, frequency, N and action layout; no uniform executor or training throughput gain is established.",
+    "Raster depth-only and RGB/depth cases improve, but four-channel cases and the RGB-only control vary. Traced allocation peaks can remain flat when other channels dominate; they are not process RSS or GPU memory.",
+    "Whole-package acquisition timings include positive and negative cases. A uniform end-to-end acquisition gain has not been established; all paired samples and the earlier renderer-stage diagnostic are archived.",
+    "Fault tests cover single interruptions of successful collection bookkeeping, selected rollback/removal failures and shutdown waits; they do not establish transactional cancellation at every arbitrary bytecode or interruption during rollback itself.",
+    "SIGTERM controllers install a handler raising SystemExit143. Default process-killing SIGTERM cleanup is not claimed.",
+    "FD/Python-thread checks and recorder weakref collection apply to tested cases; sampled RSS and payload-size budgets are not general leak proofs or hard process-memory bounds. Optional test skips remain in the recorded environment."
+  ],
+  "final_process_audit": {
+    "status": "passed",
+    "observed_epoch": 1792137810.5620117,
+    "matching_processes": [],
+    "scope": "Exact-run Python command-path scan; excludes reporter and unrelated jobs. Recording controller waits/reaps both worker processes."
+  },
+  "evidence_archive": {
+    "path": "docs/assets/platform-optimization-20261016-round2-twohour-evidence.tar.gz",
+    "sha256": "966ce634d3ff8c1676c48068886b94fde9d429974f8636ba5ce0f5f35462ffed",
+    "bytes": 729037,
+    "scope": "Exact initial package source, final changed source/tests/benchmark excerpts, all harnesses, raw timings/profiles/logs and intentional prior-stage evidence. Synthetic datasets regenerate from scripts; optional external SDK assets and installed dependencies are excluded."
+  }
+}

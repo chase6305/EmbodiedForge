@@ -174,9 +174,30 @@ def run_rollout(
             executor.reset(ids)
             if on_reset is not None:
                 on_reset(ids.copy())
-            observation = {key: value.copy() for key, value in observation.items()}
-            for key in observation:
-                observation[key][ids] = reset_observation[key]
+            if (
+                len(ids) == env.config.num_envs
+                and tuple(observation) == tuple(reset_observation)
+                and all(
+                    type(value) is np.ndarray
+                    and type(reset_observation[key]) is np.ndarray
+                    and reset_observation[key].flags.c_contiguous
+                    and value.shape == reset_observation[key].shape
+                    and value.dtype is reset_observation[key].dtype
+                    and value.dtype.kind in "biuf"
+                    and value.dtype.metadata is None
+                    for key, value in observation.items()
+                )
+            ):
+                # flatnonzero returns canonical row order, and reset already
+                # owns its arrays. Matching base-array layouts preserve the
+                # replacement path's C order and custom array copy behavior.
+                # dtype equality ignores metadata and native byteorder spelling.
+                # Share only plain numeric dtype objects; copy custom layouts.
+                observation = reset_observation
+            else:
+                observation = {key: value.copy() for key, value in observation.items()}
+                for key in observation:
+                    observation[key][ids] = reset_observation[key]
     return RolloutSummary(
         completed_episodes=completed,
         success_rate=successes / completed if completed else None,

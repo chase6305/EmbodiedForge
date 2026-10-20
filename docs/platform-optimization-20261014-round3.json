@@ -1,0 +1,4939 @@
+{
+  "schema_version": 1,
+  "complete": true,
+  "scope": "Requested four-hour continuation: portable NumPy/raster runtime throughput, bounded large-artifact hashing and cancellation-safe backend cleanup; no new robot-policy quality or GPU throughput claim",
+  "branch": "optimize/platform-20261014",
+  "baseline_commit": "0a9d3a2dff0550d32067dce4f26b144186bc789a",
+  "code_revision": "767696ed783aeda33531a76074d9959f04e8ae30",
+  "started_utc": "2026-10-14T10:39:05Z",
+  "requested_end_utc": "2026-10-14T14:39:05Z",
+  "generated_utc": "2026-10-14T14:39:40.886470+00:00",
+  "earlier_reports": [
+    "docs/platform-optimization-20261014.json",
+    "docs/platform-optimization-20261014-round2.json"
+  ],
+  "runtime": {
+    "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+    "numpy": "2.2.6",
+    "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+    "logical_cpus": 32
+  },
+  "changes": [
+    "NumPy integration: full slices for all-active rows, early return for all-frozen rows, and one ascending ID extraction for partial masks; preserve scalar substep order, snapshot ownership and malformed-mask rejection behavior",
+    "Raster: restrict small-disk distance tests to conservatively expanded pixel rectangles for large workloads; keep the dense path for small workloads/large disks; use np.take for exact RGB palette copies",
+    "Environment cleanup: close both backends through KeyboardInterrupt/SystemExit, retain cleanup diagnostics, preserve a primary operation/context/build error, and propagate cancellation on explicit close",
+    "Stream SHA-256 for ACT resume weight identity, native H1 checkpoint publication/model identity, and Wuji accepted-video identity; retain full byte reads used for hash+deserialization verification",
+    "Add a reproducible reference physics/environment benchmark and exact numerical/pixel, invalid-mask, cleanup-cancellation and bounded-allocation regression coverage"
+  ],
+  "source_proof": {
+    "snapshot": "runs/platform-optimization-20261014-round3/candidate-accepted",
+    "python_sources": {
+      "path": "runs/platform-optimization-20261014-round3/candidate-accepted-sources.json",
+      "sha256": "1036c2d2af20e67a77365cefe2aaddd21f10b0a10dfc53a157de5a84eff8b007"
+    },
+    "git_bytes_verification": {
+      "path": "runs/platform-optimization-20261014-round3/git-accepted-source-proof.json",
+      "sha256": "8318fa71ad0105234dd4ab26cc3a30f27c784226cd68937f3c6bd20db4b44775"
+    },
+    "all_current_python_sources_equal_frozen_snapshot": true,
+    "changed_files": [
+      {
+        "path": "src/embodiedforge/_hashing.py",
+        "before_sha256": null,
+        "after_sha256": "03f5bc4b6e902e2ce116d2d8a3791afe141bd11467a33ab9f3480ded0d9211d0"
+      },
+      {
+        "path": "src/embodiedforge/_wuji_diagnostics.py",
+        "before_sha256": "c26a3520a36e6dea9708e97ad568503d30cc1373b97449db25da7d1844aeb0e7",
+        "after_sha256": "7d98007b51fac351f46a8e136e26de85349c2919e91533cb97008e00a461454f"
+      },
+      {
+        "path": "src/embodiedforge/act.py",
+        "before_sha256": "5ee0e990e44b2193de3e0d1c887a9a0bcafd017e9c6be4d84b9a8a7cf5fdd2a9",
+        "after_sha256": "4abb892fdf95bbfb174cc752f6f8fd0f5784ccf68b4de61acfe8a132920684c0"
+      },
+      {
+        "path": "src/embodiedforge/backends/physics.py",
+        "before_sha256": "0ef005b610f8125f857f136adda20905ff96cbc901f93c2b351d7643856c4aba",
+        "after_sha256": "aacb47526e8cd285d12ec471f5df944d5f3a04cf1dd8fa65495338c937ea40bd"
+      },
+      {
+        "path": "src/embodiedforge/backends/render.py",
+        "before_sha256": "2373f7728fbd7fb22296c99a17a5517b7ba955bfa5c25eb8908b49b187764515",
+        "after_sha256": "8c5d456ac44c2bc4103bd134beefb75b9bd32bd186045215891385a09088926f"
+      },
+      {
+        "path": "src/embodiedforge/env.py",
+        "before_sha256": "1e6906abfecdf95f318647400539046575c58ca91b0b8c33a61d12de60019609",
+        "after_sha256": "b627b80a9d6ca28af5a39dfd0935e9fbd5b18d22d8d5b9e4e83d702b8b076cbd"
+      },
+      {
+        "path": "src/embodiedforge/native_h1.py",
+        "before_sha256": "ef21d2b6c2b0eaa45def996c859b41af99443c0acf45c9b9bb6db51eaa63d17d",
+        "after_sha256": "da6e874122fab590820d05f7f75c9599475aad275e36eb11645db9b396f83284"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "environment": "Python 3.10 / Torch 2.14.1 / NumPy 2.2.6; optional robot SDKs absent",
+      "passed": 1213,
+      "skipped": 95,
+      "warnings": 11,
+      "seconds": 34.21,
+      "log": {
+        "path": "runs/platform-optimization-20261014-round3/validation-accepted-full-py310.log",
+        "sha256": "7a55537376d2ad2bfe74ba955b15783e69dba54eff09f33f2646a19218c884f2"
+      }
+    },
+    {
+      "environment": "Python 3.12 / Torch 2.14.1 / MuJoCo 3.11.0 / mjbatch 0.1.0",
+      "passed": 1275,
+      "skipped": 84,
+      "warnings": 11,
+      "seconds": 45.69,
+      "log": {
+        "path": "runs/platform-optimization-20261014-round3/validation-accepted-full-py312.log",
+        "sha256": "b96a0cc87701094a26713b3e8682212e5bef8b49717630959de2ce12b67835cf"
+      }
+    },
+    {
+      "environment": "Python 3.10 / NumPy 1.24.4; Torch/MuJoCo absent",
+      "passed": 1058,
+      "skipped": 116,
+      "warnings": 0,
+      "seconds": 23.45,
+      "log": {
+        "path": "runs/platform-optimization-20261014-round3/validation-accepted-minimum-numpy-full.log",
+        "sha256": "2b5021640e24f721409b062dd2fa8a758d0151101df37dff6e18d02b1f041ac7"
+      }
+    },
+    {
+      "environment": "Python 3.12 / Torch 2.9.0 / MuJoCo 3.11.0 / mjbatch 0.1.0; native H1/core training/recovery subset",
+      "passed": 66,
+      "skipped": 6,
+      "warnings": 0,
+      "seconds": 13.4,
+      "log": {
+        "path": "runs/platform-optimization-20261014-round3/validation-accepted-native29.log",
+        "sha256": "700ab0b6fc05b51a7c73042e1de8d8edf87788aca64bb18c17c0b5900b7476dc"
+      }
+    }
+  ],
+  "style": {
+    "ruff": {
+      "path": "runs/platform-optimization-20261014-round3/validation-accepted-style.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "format": {
+      "path": "runs/platform-optimization-20261014-round3/validation-accepted-format.log",
+      "sha256": "d7c211682ac4a89663dc79f242647c3da0b4c4dc492b512acf58d7f76cf9b71c"
+    },
+    "diff": {
+      "path": "runs/platform-optimization-20261014-round3/validation-accepted-diff.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "remote_ci_run": false
+  },
+  "wheel": {
+    "status": "passed",
+    "wheel": "runs/platform-optimization-20261014-round3/dist-accepted/embodiedforge-0.1.0-py3-none-any.whl",
+    "wheel_sha256": "4ef8a83d413d49bbc838faf895407799bea5312ff14c0ac181d815cbb24938e3",
+    "scope": "Built final wheel; pure NumPy installed-wheel visual acquisition/read/batch/hash/asset checks and independent Torch installed-wheel visual PPO train+resume, all launched with -I from external temporary cwd; no checkout imports.",
+    "core_result": {
+      "package": "/tmp/ef-wheel-check-20261014/lib/python3.10/site-packages/embodiedforge/__init__.py",
+      "pure_numpy": true,
+      "compact_sync_async_equal": true,
+      "owned_ordered_batches": true
+    },
+    "training_result": {
+      "package": "/tmp/ef-ci310-20261014/lib/python3.10/site-packages/embodiedforge/__init__.py",
+      "trained_updates": 2,
+      "resumed_updates": 3,
+      "visual_numpy_runtime": true
+    },
+    "raw_report": {
+      "path": "runs/platform-optimization-20261014-round3/wheel-accepted.json",
+      "sha256": "c646f8182f2d85d6b114e6bb340bbd09240de982b7bcc5d0e13f2e9d9b715b01"
+    }
+  },
+  "performance": {
+    "method": "Five alternating-order paired measurements; frozen source trees; benchmark jobs serialized with no owned endurance or training workers running",
+    "baseline": "Start-of-round 0a9d3a2, not the original PR base",
+    "sample_count": 360,
+    "alternating_pairs": 5,
+    "all_outputs_equal": true,
+    "measurements": [
+      {
+        "name": "environment-1-null",
+        "scope": "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "environment",
+          "num_envs": 1,
+          "steps": 400,
+          "active_fraction": 1.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 1.3386268401529084,
+        "paired_speedup_range": [
+          1.1449661182935211,
+          1.410259834754353
+        ],
+        "baseline_median_seconds": 0.026394446998892818,
+        "candidate_median_seconds": 0.01971755399426911,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.024346564001461957,
+            "candidate_seconds": 0.018361166999966372,
+            "speedup": 1.3259812952796817,
+            "identical_output_sha256": "b9e6edc8cbc704b1f0e799b16d90103d7eba7c0a9a85bd5ab9a890a0080e632f",
+            "baseline_peak_traced_bytes": 11365,
+            "candidate_peak_traced_bytes": 11365
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.02654657600214705,
+            "candidate_seconds": 0.018823890000930987,
+            "speedup": 1.410259834754353,
+            "identical_output_sha256": "b9e6edc8cbc704b1f0e799b16d90103d7eba7c0a9a85bd5ab9a890a0080e632f",
+            "baseline_peak_traced_bytes": 11365,
+            "candidate_peak_traced_bytes": 11365
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.023941498002386652,
+            "candidate_seconds": 0.020910223996907007,
+            "speedup": 1.1449661182935211,
+            "identical_output_sha256": "b9e6edc8cbc704b1f0e799b16d90103d7eba7c0a9a85bd5ab9a890a0080e632f",
+            "baseline_peak_traced_bytes": 11365,
+            "candidate_peak_traced_bytes": 11365
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.026394446998892818,
+            "candidate_seconds": 0.01971755399426911,
+            "speedup": 1.3386268401529084,
+            "identical_output_sha256": "b9e6edc8cbc704b1f0e799b16d90103d7eba7c0a9a85bd5ab9a890a0080e632f",
+            "baseline_peak_traced_bytes": 11365,
+            "candidate_peak_traced_bytes": 11365
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.027066214999649674,
+            "candidate_seconds": 0.020070418002433144,
+            "speedup": 1.3485625957749574,
+            "identical_output_sha256": "b9e6edc8cbc704b1f0e799b16d90103d7eba7c0a9a85bd5ab9a890a0080e632f",
+            "baseline_peak_traced_bytes": 11365,
+            "candidate_peak_traced_bytes": 11365
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "environment-1-raster-540",
+        "scope": "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "environment",
+          "num_envs": 1,
+          "steps": 30,
+          "active_fraction": 1.0,
+          "render": "raster",
+          "image_size": 540
+        },
+        "median_paired_speedup": 2.330647346685918,
+        "paired_speedup_range": [
+          1.981417033886849,
+          2.7358928916930534
+        ],
+        "baseline_median_seconds": 0.04844204599794466,
+        "candidate_median_seconds": 0.02252257600048324,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.05249218199605821,
+            "candidate_seconds": 0.02252257600048324,
+            "speedup": 2.330647346685918,
+            "identical_output_sha256": "abc85b796ddfb4bbd1b33cac6e16c39326af4d7f59b9825ffff89508c73ceda6",
+            "baseline_peak_traced_bytes": 6131591,
+            "candidate_peak_traced_bytes": 5839847
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.04844204599794466,
+            "candidate_seconds": 0.02324210599908838,
+            "speedup": 2.084236514532921,
+            "identical_output_sha256": "abc85b796ddfb4bbd1b33cac6e16c39326af4d7f59b9825ffff89508c73ceda6",
+            "baseline_peak_traced_bytes": 6131591,
+            "candidate_peak_traced_bytes": 5839847
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.045460505003575236,
+            "candidate_seconds": 0.022943431002204306,
+            "speedup": 1.981417033886849,
+            "identical_output_sha256": "abc85b796ddfb4bbd1b33cac6e16c39326af4d7f59b9825ffff89508c73ceda6",
+            "baseline_peak_traced_bytes": 6131591,
+            "candidate_peak_traced_bytes": 5839847
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.05231809399992926,
+            "candidate_seconds": 0.019122858997434378,
+            "speedup": 2.7358928916930534,
+            "identical_output_sha256": "abc85b796ddfb4bbd1b33cac6e16c39326af4d7f59b9825ffff89508c73ceda6",
+            "baseline_peak_traced_bytes": 6131591,
+            "candidate_peak_traced_bytes": 5839847
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.0480643679984496,
+            "candidate_seconds": 0.019631107003078796,
+            "speedup": 2.4483778724710503,
+            "identical_output_sha256": "abc85b796ddfb4bbd1b33cac6e16c39326af4d7f59b9825ffff89508c73ceda6",
+            "baseline_peak_traced_bytes": 6131591,
+            "candidate_peak_traced_bytes": 5839847
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9524195270036765
+      },
+      {
+        "name": "environment-1024-null",
+        "scope": "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "environment",
+          "num_envs": 1024,
+          "steps": 400,
+          "active_fraction": 1.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 1.934961461565877,
+        "paired_speedup_range": [
+          1.8548293035013743,
+          2.048354148606618
+        ],
+        "baseline_median_seconds": 0.16999928800214548,
+        "candidate_median_seconds": 0.09047238399944035,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.1775174779977533,
+            "candidate_seconds": 0.091165155005001,
+            "speedup": 1.947207548629905,
+            "identical_output_sha256": "d028ac734536e6a29d22185efaa7e6a3de2c70c63848ebc94e9d18cae503c9d6",
+            "baseline_peak_traced_bytes": 1215168,
+            "candidate_peak_traced_bytes": 1215168
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.16781082899979083,
+            "candidate_seconds": 0.09047238399944035,
+            "speedup": 1.8548293035013743,
+            "identical_output_sha256": "d028ac734536e6a29d22185efaa7e6a3de2c70c63848ebc94e9d18cae503c9d6",
+            "baseline_peak_traced_bytes": 1215168,
+            "candidate_peak_traced_bytes": 1215168
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.16576091699971585,
+            "candidate_seconds": 0.08807471500040265,
+            "speedup": 1.882048860435802,
+            "identical_output_sha256": "d028ac734536e6a29d22185efaa7e6a3de2c70c63848ebc94e9d18cae503c9d6",
+            "baseline_peak_traced_bytes": 1215168,
+            "candidate_peak_traced_bytes": 1215168
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.16999928800214548,
+            "candidate_seconds": 0.08785667899792315,
+            "speedup": 1.934961461565877,
+            "identical_output_sha256": "d028ac734536e6a29d22185efaa7e6a3de2c70c63848ebc94e9d18cae503c9d6",
+            "baseline_peak_traced_bytes": 1215168,
+            "candidate_peak_traced_bytes": 1215168
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.18867294200026663,
+            "candidate_seconds": 0.09210953200090444,
+            "speedup": 2.048354148606618,
+            "identical_output_sha256": "d028ac734536e6a29d22185efaa7e6a3de2c70c63848ebc94e9d18cae503c9d6",
+            "baseline_peak_traced_bytes": 1215168,
+            "candidate_peak_traced_bytes": 1215168
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "environment-128-null",
+        "scope": "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "environment",
+          "num_envs": 128,
+          "steps": 400,
+          "active_fraction": 1.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 1.6811967793393363,
+        "paired_speedup_range": [
+          1.5394485216956684,
+          1.7280125197797032
+        ],
+        "baseline_median_seconds": 0.04714485599834006,
+        "candidate_median_seconds": 0.028637627001444343,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.0494861779952771,
+            "candidate_seconds": 0.028637627001444343,
+            "speedup": 1.7280125197797032,
+            "identical_output_sha256": "2a062dbd4f09e265766d7d061eb93f28c5c4c05c32d8223bd58bb3629073850c",
+            "baseline_peak_traced_bytes": 154591,
+            "candidate_peak_traced_bytes": 154591
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.04449861699686153,
+            "candidate_seconds": 0.02890555700287223,
+            "speedup": 1.5394485216956684,
+            "identical_output_sha256": "2a062dbd4f09e265766d7d061eb93f28c5c4c05c32d8223bd58bb3629073850c",
+            "baseline_peak_traced_bytes": 154591,
+            "candidate_peak_traced_bytes": 154591
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.04581755999970483,
+            "candidate_seconds": 0.02725294300034875,
+            "speedup": 1.6811967793393363,
+            "identical_output_sha256": "2a062dbd4f09e265766d7d061eb93f28c5c4c05c32d8223bd58bb3629073850c",
+            "baseline_peak_traced_bytes": 154591,
+            "candidate_peak_traced_bytes": 154591
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.04714485599834006,
+            "candidate_seconds": 0.029296947999682743,
+            "speedup": 1.6092070750458578,
+            "identical_output_sha256": "2a062dbd4f09e265766d7d061eb93f28c5c4c05c32d8223bd58bb3629073850c",
+            "baseline_peak_traced_bytes": 154591,
+            "candidate_peak_traced_bytes": 154591
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.04898176399728982,
+            "candidate_seconds": 0.028558919999341015,
+            "speedup": 1.7151126162480952,
+            "identical_output_sha256": "2a062dbd4f09e265766d7d061eb93f28c5c4c05c32d8223bd58bb3629073850c",
+            "baseline_peak_traced_bytes": 154591,
+            "candidate_peak_traced_bytes": 154591
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "environment-128-raster-64",
+        "scope": "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "environment",
+          "num_envs": 128,
+          "steps": 30,
+          "active_fraction": 1.0,
+          "render": "raster",
+          "image_size": 64
+        },
+        "median_paired_speedup": 2.4532813397013347,
+        "paired_speedup_range": [
+          2.205250531019908,
+          2.57149920248794
+        ],
+        "baseline_median_seconds": 0.08901635499933036,
+        "candidate_median_seconds": 0.03644322999753058,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.08901635499933036,
+            "candidate_seconds": 0.037423711000883486,
+            "speedup": 2.378608444182056,
+            "identical_output_sha256": "b5663946ba0dcfa05083e17b0ea7f44eebf6a88a3ea5837c014d7170010083cd",
+            "baseline_peak_traced_bytes": 10952680,
+            "candidate_peak_traced_bytes": 10430616
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.08618996800214518,
+            "candidate_seconds": 0.035132525001245085,
+            "speedup": 2.4532813397013347,
+            "identical_output_sha256": "b5663946ba0dcfa05083e17b0ea7f44eebf6a88a3ea5837c014d7170010083cd",
+            "baseline_peak_traced_bytes": 10952680,
+            "candidate_peak_traced_bytes": 10430616
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.09327600600227015,
+            "candidate_seconds": 0.03627300600055605,
+            "speedup": 2.57149920248794,
+            "identical_output_sha256": "b5663946ba0dcfa05083e17b0ea7f44eebf6a88a3ea5837c014d7170010083cd",
+            "baseline_peak_traced_bytes": 10952680,
+            "candidate_peak_traced_bytes": 10430616
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.08142061499529518,
+            "candidate_seconds": 0.03692125400266377,
+            "speedup": 2.205250531019908,
+            "identical_output_sha256": "b5663946ba0dcfa05083e17b0ea7f44eebf6a88a3ea5837c014d7170010083cd",
+            "baseline_peak_traced_bytes": 10952680,
+            "candidate_peak_traced_bytes": 10430616
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.09264085999893723,
+            "candidate_seconds": 0.03644322999753058,
+            "speedup": 2.542059526699874,
+            "identical_output_sha256": "b5663946ba0dcfa05083e17b0ea7f44eebf6a88a3ea5837c014d7170010083cd",
+            "baseline_peak_traced_bytes": 10952680,
+            "candidate_peak_traced_bytes": 10430616
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9523345884294986
+      },
+      {
+        "name": "environment-16-null",
+        "scope": "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "environment",
+          "num_envs": 16,
+          "steps": 400,
+          "active_fraction": 1.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 1.2705260519919712,
+        "paired_speedup_range": [
+          1.0238550638929536,
+          1.510227780081888
+        ],
+        "baseline_median_seconds": 0.02959445099986624,
+        "candidate_median_seconds": 0.021531471000344027,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.026125176998903044,
+            "candidate_seconds": 0.021531471000344027,
+            "speedup": 1.2133484515983892,
+            "identical_output_sha256": "8f9c9e22fcd4660cf96716272fe7871917adbe8ecd901e5c9c9599fbeb8a28ca",
+            "baseline_peak_traced_bytes": 27844,
+            "candidate_peak_traced_bytes": 27844
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.032240394000837114,
+            "candidate_seconds": 0.021348034002585337,
+            "speedup": 1.510227780081888,
+            "identical_output_sha256": "8f9c9e22fcd4660cf96716272fe7871917adbe8ecd901e5c9c9599fbeb8a28ca",
+            "baseline_peak_traced_bytes": 27844,
+            "candidate_peak_traced_bytes": 27844
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.03133396200428251,
+            "candidate_seconds": 0.020903501004795544,
+            "speedup": 1.4989815341025448,
+            "identical_output_sha256": "8f9c9e22fcd4660cf96716272fe7871917adbe8ecd901e5c9c9599fbeb8a28ca",
+            "baseline_peak_traced_bytes": 27844,
+            "candidate_peak_traced_bytes": 27844
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.02959445099986624,
+            "candidate_seconds": 0.02329306900355732,
+            "speedup": 1.2705260519919712,
+            "identical_output_sha256": "8f9c9e22fcd4660cf96716272fe7871917adbe8ecd901e5c9c9599fbeb8a28ca",
+            "baseline_peak_traced_bytes": 27844,
+            "candidate_peak_traced_bytes": 27844
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.027159962999576237,
+            "candidate_seconds": 0.026527155998337548,
+            "speedup": 1.0238550638929536,
+            "identical_output_sha256": "8f9c9e22fcd4660cf96716272fe7871917adbe8ecd901e5c9c9599fbeb8a28ca",
+            "baseline_peak_traced_bytes": 27844,
+            "candidate_peak_traced_bytes": 27844
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "environment-32-raster-256",
+        "scope": "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "environment",
+          "num_envs": 32,
+          "steps": 30,
+          "active_fraction": 1.0,
+          "render": "raster",
+          "image_size": 256
+        },
+        "median_paired_speedup": 1.8886196556245014,
+        "paired_speedup_range": [
+          1.8017747358826715,
+          2.019233638385722
+        ],
+        "baseline_median_seconds": 0.38903020399447996,
+        "candidate_median_seconds": 0.20317521299875807,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.4055245190029382,
+            "candidate_seconds": 0.20083090499974787,
+            "speedup": 2.019233638385722,
+            "identical_output_sha256": "aff6bacd112d1a1a28e8e85c3b01ed92894bf23279c2639ccca444954ad79b50",
+            "baseline_peak_traced_bytes": 44052920,
+            "candidate_peak_traced_bytes": 41955704
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.38903020399447996,
+            "candidate_seconds": 0.20317521299875807,
+            "speedup": 1.9147522881979602,
+            "identical_output_sha256": "aff6bacd112d1a1a28e8e85c3b01ed92894bf23279c2639ccca444954ad79b50",
+            "baseline_peak_traced_bytes": 44052920,
+            "candidate_peak_traced_bytes": 41955704
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.3908930469988263,
+            "candidate_seconds": 0.2169489000007161,
+            "speedup": 1.8017747358826715,
+            "identical_output_sha256": "aff6bacd112d1a1a28e8e85c3b01ed92894bf23279c2639ccca444954ad79b50",
+            "baseline_peak_traced_bytes": 44052920,
+            "candidate_peak_traced_bytes": 41955704
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.3723810789961135,
+            "candidate_seconds": 0.19717102799768327,
+            "speedup": 1.8886196556245014,
+            "identical_output_sha256": "aff6bacd112d1a1a28e8e85c3b01ed92894bf23279c2639ccca444954ad79b50",
+            "baseline_peak_traced_bytes": 44052920,
+            "candidate_peak_traced_bytes": 41955704
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.377705918996071,
+            "candidate_seconds": 0.20512039800087223,
+            "speedup": 1.8413864378054925,
+            "identical_output_sha256": "aff6bacd112d1a1a28e8e85c3b01ed92894bf23279c2639ccca444954ad79b50",
+            "baseline_peak_traced_bytes": 44052920,
+            "candidate_peak_traced_bytes": 41955704
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9523932579270569
+      },
+      {
+        "name": "environment-32-raster-64",
+        "scope": "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "environment",
+          "num_envs": 32,
+          "steps": 80,
+          "active_fraction": 1.0,
+          "render": "raster",
+          "image_size": 64
+        },
+        "median_paired_speedup": 2.342705903512183,
+        "paired_speedup_range": [
+          2.1561976115417085,
+          2.721235881522806
+        ],
+        "baseline_median_seconds": 0.06022931799816433,
+        "candidate_median_seconds": 0.02481044999876758,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.06873239899869077,
+            "candidate_seconds": 0.02525778800190892,
+            "speedup": 2.721235881522806,
+            "identical_output_sha256": "991bd17bcd716e14820fc74852e779422ffa0bec45a41c10c2136a63eb02aac9",
+            "baseline_peak_traced_bytes": 2764856,
+            "candidate_peak_traced_bytes": 2633708
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.0627162819946534,
+            "candidate_seconds": 0.023661318999074865,
+            "speedup": 2.6505826660426473,
+            "identical_output_sha256": "991bd17bcd716e14820fc74852e779422ffa0bec45a41c10c2136a63eb02aac9",
+            "baseline_peak_traced_bytes": 2764856,
+            "candidate_peak_traced_bytes": 2633708
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.055738445997121744,
+            "candidate_seconds": 0.02379233599640429,
+            "speedup": 2.342705903512183,
+            "identical_output_sha256": "991bd17bcd716e14820fc74852e779422ffa0bec45a41c10c2136a63eb02aac9",
+            "baseline_peak_traced_bytes": 2764856,
+            "candidate_peak_traced_bytes": 2633708
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.055094126000767574,
+            "candidate_seconds": 0.02481044999876758,
+            "speedup": 2.2206016417882095,
+            "identical_output_sha256": "991bd17bcd716e14820fc74852e779422ffa0bec45a41c10c2136a63eb02aac9",
+            "baseline_peak_traced_bytes": 2764856,
+            "candidate_peak_traced_bytes": 2633708
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.06022931799816433,
+            "candidate_seconds": 0.027933115998166613,
+            "speedup": 2.1561976115417085,
+            "identical_output_sha256": "991bd17bcd716e14820fc74852e779422ffa0bec45a41c10c2136a63eb02aac9",
+            "baseline_peak_traced_bytes": 2764856,
+            "candidate_peak_traced_bytes": 2633708
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9525660649234535
+      },
+      {
+        "name": "physics-1-0",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 1,
+          "steps": 2000,
+          "active_fraction": 0.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 15.475591833825199,
+        "paired_speedup_range": [
+          14.846430031852302,
+          16.877773968039403
+        ],
+        "baseline_median_seconds": 0.04348631199536612,
+        "candidate_median_seconds": 0.002800638998451177,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.04403195199847687,
+            "candidate_seconds": 0.002608872004202567,
+            "speedup": 16.877773968039403,
+            "identical_output_sha256": "2eb639019feabea7c74ce293a336f6494c560bcf9895f841802a8888b588e6b8",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 664
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.042199567003990524,
+            "candidate_seconds": 0.0028424050033208914,
+            "speedup": 14.846430031852302,
+            "identical_output_sha256": "2eb639019feabea7c74ce293a336f6494c560bcf9895f841802a8888b588e6b8",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 664
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.04369290800241288,
+            "candidate_seconds": 0.0028391809973982163,
+            "speedup": 15.38926473601099,
+            "identical_output_sha256": "2eb639019feabea7c74ce293a336f6494c560bcf9895f841802a8888b588e6b8",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 664
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.04348631199536612,
+            "candidate_seconds": 0.002800638998451177,
+            "speedup": 15.527282173609356,
+            "identical_output_sha256": "2eb639019feabea7c74ce293a336f6494c560bcf9895f841802a8888b588e6b8",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 664
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.04218859899992822,
+            "candidate_seconds": 0.0027261380018899217,
+            "speedup": 15.475591833825199,
+            "identical_output_sha256": "2eb639019feabea7c74ce293a336f6494c560bcf9895f841802a8888b588e6b8",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 664
+          }
+        ],
+        "effective_active_environments": 0,
+        "median_peak_traced_allocation_ratio": 0.18933561448531508
+      },
+      {
+        "name": "physics-1-0.5",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 1,
+          "steps": 2000,
+          "active_fraction": 0.5,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 2.33759296894392,
+        "paired_speedup_range": [
+          1.9331479952289703,
+          2.492281879933379
+        ],
+        "baseline_median_seconds": 0.04991638700448675,
+        "candidate_median_seconds": 0.02123786499578273,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.055089779998525046,
+            "candidate_seconds": 0.02210415300214663,
+            "speedup": 2.492281879933379,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.049583059997530654,
+            "candidate_seconds": 0.02123786499578273,
+            "speedup": 2.3346536955280826,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.050283445001696236,
+            "candidate_seconds": 0.026011171998106875,
+            "speedup": 1.9331479952289703,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.04991638700448675,
+            "candidate_seconds": 0.02109237499826122,
+            "speedup": 2.3665607599239857,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.04901225100184092,
+            "candidate_seconds": 0.020966973999748006,
+            "speedup": 2.33759296894392,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          }
+        ],
+        "effective_active_environments": 1,
+        "median_peak_traced_allocation_ratio": 0.345372460496614
+      },
+      {
+        "name": "physics-1-1",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 1,
+          "steps": 2000,
+          "active_fraction": 1.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 2.2764940253742516,
+        "paired_speedup_range": [
+          2.2194997317305503,
+          2.789058122884893
+        ],
+        "baseline_median_seconds": 0.0494753969978774,
+        "candidate_median_seconds": 0.02137799900083337,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.05925624800147489,
+            "candidate_seconds": 0.021245971001917496,
+            "speedup": 2.789058122884893,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.04866688699985389,
+            "candidate_seconds": 0.02137799900083337,
+            "speedup": 2.2764940253742516,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.052923960000043735,
+            "candidate_seconds": 0.023844994997489266,
+            "speedup": 2.2194997317305503,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.0486216279969085,
+            "candidate_seconds": 0.021434912996483035,
+            "speedup": 2.268338014942546,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.0494753969978774,
+            "candidate_seconds": 0.020996479004679713,
+            "speedup": 2.3563663691826746,
+            "identical_output_sha256": "86670f36b74d0db26b605acd30a7ef5c07ad04189890988dea3b8a5cefe00b7b",
+            "baseline_peak_traced_bytes": 3544,
+            "candidate_peak_traced_bytes": 1224
+          }
+        ],
+        "effective_active_environments": 1,
+        "median_peak_traced_allocation_ratio": 0.345372460496614
+      },
+      {
+        "name": "physics-1024-0",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 1024,
+          "steps": 2000,
+          "active_fraction": 0.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 9.430933795777188,
+        "paired_speedup_range": [
+          5.678503489844605,
+          9.962167908620929
+        ],
+        "baseline_median_seconds": 0.04875767900375649,
+        "candidate_median_seconds": 0.005105761003505904,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.04875767900375649,
+            "candidate_seconds": 0.004894284000329208,
+            "speedup": 9.962167908620929,
+            "identical_output_sha256": "86cbe458c03a1f2e086159584aa8b77ce0ebc24e77dbe1ffd19451ad5a5ada34",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.047007991997816134,
+            "candidate_seconds": 0.008278235996840522,
+            "speedup": 5.678503489844605,
+            "identical_output_sha256": "86cbe458c03a1f2e086159584aa8b77ce0ebc24e77dbe1ffd19451ad5a5ada34",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.049033912997401785,
+            "candidate_seconds": 0.005047487997217104,
+            "speedup": 9.7145179987424,
+            "identical_output_sha256": "86cbe458c03a1f2e086159584aa8b77ce0ebc24e77dbe1ffd19451ad5a5ada34",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.04966669499845011,
+            "candidate_seconds": 0.005306870996719226,
+            "speedup": 9.358941460825914,
+            "identical_output_sha256": "86cbe458c03a1f2e086159584aa8b77ce0ebc24e77dbe1ffd19451ad5a5ada34",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.04815209400112508,
+            "candidate_seconds": 0.005105761003505904,
+            "speedup": 9.430933795777188,
+            "identical_output_sha256": "86cbe458c03a1f2e086159584aa8b77ce0ebc24e77dbe1ffd19451ad5a5ada34",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          }
+        ],
+        "effective_active_environments": 0,
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "physics-1024-0.5",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 1024,
+          "steps": 2000,
+          "active_fraction": 0.5,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 1.1726131686287131,
+        "paired_speedup_range": [
+          1.1671233349350165,
+          1.3708811230641005
+        ],
+        "baseline_median_seconds": 0.2582259730043006,
+        "candidate_median_seconds": 0.2183893459950923,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.25487016700208187,
+            "candidate_seconds": 0.21777763599675382,
+            "speedup": 1.170322957339297,
+            "identical_output_sha256": "fe751acc0dd87a699b5ad6b9c3b925a7ca4ec6d626f610af3aeba947db319c6a",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.25944420299492776,
+            "candidate_seconds": 0.2222937330006971,
+            "speedup": 1.1671233349350165,
+            "identical_output_sha256": "fe751acc0dd87a699b5ad6b9c3b925a7ca4ec6d626f610af3aeba947db319c6a",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.2560862230020575,
+            "candidate_seconds": 0.2183893459950923,
+            "speedup": 1.1726131686287131,
+            "identical_output_sha256": "fe751acc0dd87a699b5ad6b9c3b925a7ca4ec6d626f610af3aeba947db319c6a",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.2582259730043006,
+            "candidate_seconds": 0.20568040999933146,
+            "speedup": 1.2554718896424795,
+            "identical_output_sha256": "fe751acc0dd87a699b5ad6b9c3b925a7ca4ec6d626f610af3aeba947db319c6a",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.31918000500445487,
+            "candidate_seconds": 0.23282836099679116,
+            "speedup": 1.3708811230641005,
+            "identical_output_sha256": "fe751acc0dd87a699b5ad6b9c3b925a7ca4ec6d626f610af3aeba947db319c6a",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          }
+        ],
+        "effective_active_environments": 519,
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "physics-1024-1",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 1024,
+          "steps": 2000,
+          "active_fraction": 1.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 11.103816617972985,
+        "paired_speedup_range": [
+          9.833048602452532,
+          12.26399588262756
+        ],
+        "baseline_median_seconds": 0.4199062830011826,
+        "candidate_median_seconds": 0.0368925520015182,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.4295253739983309,
+            "candidate_seconds": 0.035023281001485884,
+            "speedup": 12.26399588262756,
+            "identical_output_sha256": "edbe8e0155f4f8a7bde69d4c2f0e7584b40f19af5d16065b9f81b13055495f5d",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.4096481319938903,
+            "candidate_seconds": 0.0368925520015182,
+            "speedup": 11.103816617972985,
+            "identical_output_sha256": "edbe8e0155f4f8a7bde69d4c2f0e7584b40f19af5d16065b9f81b13055495f5d",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.40696795400435803,
+            "candidate_seconds": 0.041387770004803315,
+            "speedup": 9.833048602452532,
+            "identical_output_sha256": "edbe8e0155f4f8a7bde69d4c2f0e7584b40f19af5d16065b9f81b13055495f5d",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.4199062830011826,
+            "candidate_seconds": 0.03798464399733348,
+            "speedup": 11.0546325781192,
+            "identical_output_sha256": "edbe8e0155f4f8a7bde69d4c2f0e7584b40f19af5d16065b9f81b13055495f5d",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.4291871649984387,
+            "candidate_seconds": 0.03545148199918913,
+            "speedup": 12.1063250616224,
+            "identical_output_sha256": "edbe8e0155f4f8a7bde69d4c2f0e7584b40f19af5d16065b9f81b13055495f5d",
+            "baseline_peak_traced_bytes": 49768,
+            "candidate_peak_traced_bytes": 49768
+          }
+        ],
+        "effective_active_environments": 1024,
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "physics-128-0",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 128,
+          "steps": 2000,
+          "active_fraction": 0.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 13.864148799034618,
+        "paired_speedup_range": [
+          12.657656102595471,
+          14.501884789876096
+        ],
+        "baseline_median_seconds": 0.043747007999627385,
+        "candidate_median_seconds": 0.0032205340030486695,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.04272377900633728,
+            "candidate_seconds": 0.003375330998096615,
+            "speedup": 12.657656102595471,
+            "identical_output_sha256": "a6ff07c4409fca09f36a3fdc0702d8a505f7dce612a2b85321572f43c500f10e",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.04293847500230186,
+            "candidate_seconds": 0.0030970869993325323,
+            "speedup": 13.864148799034618,
+            "identical_output_sha256": "a6ff07c4409fca09f36a3fdc0702d8a505f7dce612a2b85321572f43c500f10e",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.04593586199916899,
+            "candidate_seconds": 0.0032218749984167516,
+            "speedup": 14.257493547000472,
+            "identical_output_sha256": "a6ff07c4409fca09f36a3fdc0702d8a505f7dce612a2b85321572f43c500f10e",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.044853619001514744,
+            "candidate_seconds": 0.003092950995778665,
+            "speedup": 14.501884789876096,
+            "identical_output_sha256": "a6ff07c4409fca09f36a3fdc0702d8a505f7dce612a2b85321572f43c500f10e",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.043747007999627385,
+            "candidate_seconds": 0.0032205340030486695,
+            "speedup": 13.583774603284718,
+            "identical_output_sha256": "a6ff07c4409fca09f36a3fdc0702d8a505f7dce612a2b85321572f43c500f10e",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          }
+        ],
+        "effective_active_environments": 0,
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "physics-128-0.5",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 128,
+          "steps": 2000,
+          "active_fraction": 0.5,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 1.0528782533974594,
+        "paired_speedup_range": [
+          0.9799492999746352,
+          1.2438538712482645
+        ],
+        "baseline_median_seconds": 0.07537634700565832,
+        "candidate_median_seconds": 0.07180700299795717,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.07254258000466507,
+            "candidate_seconds": 0.06431253899791045,
+            "speedup": 1.127969461865314,
+            "identical_output_sha256": "c1471c06466691587e24714b2885a21e5a79ed3d899fd752c0d57f72e578f9d4",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.07228190900059417,
+            "candidate_seconds": 0.07376086599833798,
+            "speedup": 0.9799492999746352,
+            "identical_output_sha256": "c1471c06466691587e24714b2885a21e5a79ed3d899fd752c0d57f72e578f9d4",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.08039127699885285,
+            "candidate_seconds": 0.06463080499815987,
+            "speedup": 1.2438538712482645,
+            "identical_output_sha256": "c1471c06466691587e24714b2885a21e5a79ed3d899fd752c0d57f72e578f9d4",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.07827572099631652,
+            "candidate_seconds": 0.07434451299923239,
+            "speedup": 1.0528782533974594,
+            "identical_output_sha256": "c1471c06466691587e24714b2885a21e5a79ed3d899fd752c0d57f72e578f9d4",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.07537634700565832,
+            "candidate_seconds": 0.07180700299795717,
+            "speedup": 1.0497074638778991,
+            "identical_output_sha256": "c1471c06466691587e24714b2885a21e5a79ed3d899fd752c0d57f72e578f9d4",
+            "baseline_peak_traced_bytes": 6760,
+            "candidate_peak_traced_bytes": 6760
+          }
+        ],
+        "effective_active_environments": 61,
+        "median_peak_traced_allocation_ratio": 1.0
+      },
+      {
+        "name": "physics-128-1",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 128,
+          "steps": 2000,
+          "active_fraction": 1.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 4.227526358285686,
+        "paired_speedup_range": [
+          4.001947204246396,
+          4.470203071304382
+        ],
+        "baseline_median_seconds": 0.09550088999822037,
+        "candidate_median_seconds": 0.02272752800490707,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.0958701870040386,
+            "candidate_seconds": 0.023955885000759736,
+            "speedup": 4.001947204246396,
+            "identical_output_sha256": "d357d2d16b09e8ac3607749a90d92409e818c4e7e4075cec32339d51e61fb5d6",
+            "baseline_peak_traced_bytes": 8624,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.09550088999822037,
+            "candidate_seconds": 0.022590253000089433,
+            "speedup": 4.227526358285686,
+            "identical_output_sha256": "d357d2d16b09e8ac3607749a90d92409e818c4e7e4075cec32339d51e61fb5d6",
+            "baseline_peak_traced_bytes": 8624,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.09523881300265202,
+            "candidate_seconds": 0.02242868600296788,
+            "speedup": 4.246294811477121,
+            "identical_output_sha256": "d357d2d16b09e8ac3607749a90d92409e818c4e7e4075cec32339d51e61fb5d6",
+            "baseline_peak_traced_bytes": 8624,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.09417645400390029,
+            "candidate_seconds": 0.02272752800490707,
+            "speedup": 4.14371743304273,
+            "identical_output_sha256": "d357d2d16b09e8ac3607749a90d92409e818c4e7e4075cec32339d51e61fb5d6",
+            "baseline_peak_traced_bytes": 8624,
+            "candidate_peak_traced_bytes": 6760
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.10535569499916164,
+            "candidate_seconds": 0.023568436001369264,
+            "speedup": 4.470203071304382,
+            "identical_output_sha256": "d357d2d16b09e8ac3607749a90d92409e818c4e7e4075cec32339d51e61fb5d6",
+            "baseline_peak_traced_bytes": 8624,
+            "candidate_peak_traced_bytes": 6760
+          }
+        ],
+        "effective_active_environments": 128,
+        "median_peak_traced_allocation_ratio": 0.7838589981447124
+      },
+      {
+        "name": "physics-16-0",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 16,
+          "steps": 2000,
+          "active_fraction": 0.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 15.65016701430217,
+        "paired_speedup_range": [
+          13.579061027522393,
+          16.144903177703494
+        ],
+        "baseline_median_seconds": 0.04320681300305296,
+        "candidate_median_seconds": 0.0026937340007862076,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.04320681300305296,
+            "candidate_seconds": 0.0026902769968728535,
+            "speedup": 16.06035848846645,
+            "identical_output_sha256": "64da184449a70c1c02a50e107e78bdf1dea5fb54e944e81248c5884b661b087f",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 1384
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.04215738700440852,
+            "candidate_seconds": 0.0026937340007862076,
+            "speedup": 15.65016701430217,
+            "identical_output_sha256": "64da184449a70c1c02a50e107e78bdf1dea5fb54e944e81248c5884b661b087f",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 1384
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.0433695070023532,
+            "candidate_seconds": 0.0028085119993193075,
+            "speedup": 15.442165464439736,
+            "identical_output_sha256": "64da184449a70c1c02a50e107e78bdf1dea5fb54e944e81248c5884b661b087f",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 1384
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.04335754799831193,
+            "candidate_seconds": 0.003192970994859934,
+            "speedup": 13.579061027522393,
+            "identical_output_sha256": "64da184449a70c1c02a50e107e78bdf1dea5fb54e944e81248c5884b661b087f",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 1384
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.042933689001074526,
+            "candidate_seconds": 0.0026592720023472793,
+            "speedup": 16.144903177703494,
+            "identical_output_sha256": "64da184449a70c1c02a50e107e78bdf1dea5fb54e944e81248c5884b661b087f",
+            "baseline_peak_traced_bytes": 3507,
+            "candidate_peak_traced_bytes": 1384
+          }
+        ],
+        "effective_active_environments": 0,
+        "median_peak_traced_allocation_ratio": 0.3946392928428857
+      },
+      {
+        "name": "physics-16-0.5",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 16,
+          "steps": 2000,
+          "active_fraction": 0.5,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 1.125408408287295,
+        "paired_speedup_range": [
+          0.9963474158881107,
+          1.2004620903839278
+        ],
+        "baseline_median_seconds": 0.05672608700115234,
+        "candidate_median_seconds": 0.04894305000198074,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.05762042500282405,
+            "candidate_seconds": 0.05163687100139214,
+            "speedup": 1.1158775480658112,
+            "identical_output_sha256": "50d0f92ccb85ba9a4b1e18af74c1b730a6d0fe5649cd14380ecd1f0d0e8129fd",
+            "baseline_peak_traced_bytes": 3864,
+            "candidate_peak_traced_bytes": 3960
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.05744867600151338,
+            "candidate_seconds": 0.048349307995522395,
+            "speedup": 1.1882005841083325,
+            "identical_output_sha256": "50d0f92ccb85ba9a4b1e18af74c1b730a6d0fe5649cd14380ecd1f0d0e8129fd",
+            "baseline_peak_traced_bytes": 3864,
+            "candidate_peak_traced_bytes": 3960
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.055080919999454636,
+            "candidate_seconds": 0.04894305000198074,
+            "speedup": 1.125408408287295,
+            "identical_output_sha256": "50d0f92ccb85ba9a4b1e18af74c1b730a6d0fe5649cd14380ecd1f0d0e8129fd",
+            "baseline_peak_traced_bytes": 3864,
+            "candidate_peak_traced_bytes": 3960
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.05269676700117998,
+            "candidate_seconds": 0.05288995199953206,
+            "speedup": 0.9963474158881107,
+            "identical_output_sha256": "50d0f92ccb85ba9a4b1e18af74c1b730a6d0fe5649cd14380ecd1f0d0e8129fd",
+            "baseline_peak_traced_bytes": 3864,
+            "candidate_peak_traced_bytes": 3960
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.05672608700115234,
+            "candidate_seconds": 0.04725354299444007,
+            "speedup": 1.2004620903839278,
+            "identical_output_sha256": "50d0f92ccb85ba9a4b1e18af74c1b730a6d0fe5649cd14380ecd1f0d0e8129fd",
+            "baseline_peak_traced_bytes": 3864,
+            "candidate_peak_traced_bytes": 3960
+          }
+        ],
+        "effective_active_environments": 9,
+        "median_peak_traced_allocation_ratio": 1.0248447204968945
+      },
+      {
+        "name": "physics-16-1",
+        "scope": "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask; excludes construction; timing excludes tracing/checksums; traced peak is not RSS",
+        "arguments": {
+          "scope": "physics",
+          "num_envs": 16,
+          "steps": 2000,
+          "active_fraction": 1.0,
+          "render": "null",
+          "image_size": 64
+        },
+        "median_paired_speedup": 2.6593798441682215,
+        "paired_speedup_range": [
+          2.3143488821948046,
+          3.023679931051918
+        ],
+        "baseline_median_seconds": 0.056385557996691205,
+        "candidate_median_seconds": 0.020652298000641167,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.06244593899464235,
+            "candidate_seconds": 0.020652298000641167,
+            "speedup": 3.023679931051918,
+            "identical_output_sha256": "5e5a589b41c5fbcc2f3485f0461cc6fb82c0b1c54b85b3c860161b4fe2f29db3",
+            "baseline_peak_traced_bytes": 4144,
+            "candidate_peak_traced_bytes": 1384
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.05546131699520629,
+            "candidate_seconds": 0.021114351002324838,
+            "speedup": 2.6267118979456017,
+            "identical_output_sha256": "5e5a589b41c5fbcc2f3485f0461cc6fb82c0b1c54b85b3c860161b4fe2f29db3",
+            "baseline_peak_traced_bytes": 4144,
+            "candidate_peak_traced_bytes": 1384
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.056385557996691205,
+            "candidate_seconds": 0.02436346500326181,
+            "speedup": 2.3143488821948046,
+            "identical_output_sha256": "5e5a589b41c5fbcc2f3485f0461cc6fb82c0b1c54b85b3c860161b4fe2f29db3",
+            "baseline_peak_traced_bytes": 4144,
+            "candidate_peak_traced_bytes": 1384
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.0564353099980508,
+            "candidate_seconds": 0.020002692996058613,
+            "speedup": 2.821385600887389,
+            "identical_output_sha256": "5e5a589b41c5fbcc2f3485f0461cc6fb82c0b1c54b85b3c860161b4fe2f29db3",
+            "baseline_peak_traced_bytes": 4144,
+            "candidate_peak_traced_bytes": 1384
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.054031457999371924,
+            "candidate_seconds": 0.020317315000283998,
+            "speedup": 2.6593798441682215,
+            "identical_output_sha256": "5e5a589b41c5fbcc2f3485f0461cc6fb82c0b1c54b85b3c860161b4fe2f29db3",
+            "baseline_peak_traced_bytes": 4144,
+            "candidate_peak_traced_bytes": 1384
+          }
+        ],
+        "effective_active_environments": 16,
+        "median_peak_traced_allocation_ratio": 0.333976833976834
+      },
+      {
+        "name": "pipeline-0",
+        "scope": "NumPy physics+raster+recording+final writer drain; excludes environment/writer construction and subsequent full-data audit; buffer count excludes stack/compression scratch; noise is synthetic, not a physical camera",
+        "arguments": {
+          "workers": 0,
+          "format": "compact",
+          "num_envs": 4,
+          "steps": 80,
+          "cycles": 2,
+          "image_size": 128,
+          "budget_mib": 256,
+          "noise": false
+        },
+        "median_paired_speedup": 1.1046710322682673,
+        "paired_speedup_range": [
+          0.7354200079836835,
+          1.142700522202753
+        ],
+        "baseline_median_seconds": 0.3089429189931252,
+        "candidate_median_seconds": 0.28042927799833706,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.3097821000046679,
+            "candidate_seconds": 0.28042927799833706,
+            "speedup": 1.1046710322682673,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.3256037870014552,
+            "candidate_seconds": 0.28494236300321063,
+            "speedup": 1.142700522202753,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.3034934039969812,
+            "candidate_seconds": 0.2765006629997515,
+            "speedup": 1.0976226989996547,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.3089429189931252,
+            "candidate_seconds": 0.27467045500088716,
+            "speedup": 1.1247766673416963,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.30328379600541666,
+            "candidate_seconds": 0.41239535600470845,
+            "speedup": 0.7354200079836835,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          }
+        ]
+      },
+      {
+        "name": "pipeline-2",
+        "scope": "NumPy physics+raster+recording+final writer drain; excludes environment/writer construction and subsequent full-data audit; buffer count excludes stack/compression scratch; noise is synthetic, not a physical camera",
+        "arguments": {
+          "workers": 2,
+          "format": "compact",
+          "num_envs": 4,
+          "steps": 80,
+          "cycles": 2,
+          "image_size": 128,
+          "budget_mib": 256,
+          "noise": false
+        },
+        "median_paired_speedup": 1.1533300760972887,
+        "paired_speedup_range": [
+          0.9120254827812543,
+          1.2423780786411072
+        ],
+        "baseline_median_seconds": 0.19986191700445488,
+        "candidate_median_seconds": 0.17194010900129797,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.19830369899864309,
+            "candidate_seconds": 0.17194010900129797,
+            "speedup": 1.1533300760972887,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.21049479100474855,
+            "candidate_seconds": 0.16942893200030085,
+            "speedup": 1.2423780786411072,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.19986191700445488,
+            "candidate_seconds": 0.1721864840001217,
+            "speedup": 1.160729415929729,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.19250606099376455,
+            "candidate_seconds": 0.16696286400110694,
+            "speedup": 1.1529872953813745,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.20684078099293401,
+            "candidate_seconds": 0.22679276500275591,
+            "speedup": 0.9120254827812543,
+            "identical_output_sha256": "3b69fc1b61d077d3efe5676014f519e314bbcf791dcee7d8055ba12a274acb36"
+          }
+        ]
+      },
+      {
+        "name": "raster-1-540",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 1,
+          "image_size": 540,
+          "frames": 60,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ]
+        },
+        "median_paired_speedup": 2.1407946791327763,
+        "paired_speedup_range": [
+          2.0231502177057976,
+          2.3846321162474733
+        ],
+        "baseline_median_seconds": 0.19577773499622708,
+        "candidate_median_seconds": 0.0914509630019893,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.2582531990046846,
+            "candidate_seconds": 0.11749294200126315,
+            "speedup": 2.198031597522753,
+            "identical_output_sha256": "f3da9b61f763ee4dad6c9540c6996dbbde2b52db26cbd0b51a235f37da087c2e",
+            "baseline_peak_traced_bytes": 6126024,
+            "candidate_peak_traced_bytes": 5834808
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.19577773499622708,
+            "candidate_seconds": 0.0914509630019893,
+            "speedup": 2.1407946791327763,
+            "identical_output_sha256": "f3da9b61f763ee4dad6c9540c6996dbbde2b52db26cbd0b51a235f37da087c2e",
+            "baseline_peak_traced_bytes": 6126024,
+            "candidate_peak_traced_bytes": 5834808
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.18613110900332686,
+            "candidate_seconds": 0.0872604659962235,
+            "speedup": 2.1330519712258047,
+            "identical_output_sha256": "f3da9b61f763ee4dad6c9540c6996dbbde2b52db26cbd0b51a235f37da087c2e",
+            "baseline_peak_traced_bytes": 6126024,
+            "candidate_peak_traced_bytes": 5834808
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.19326028500654502,
+            "candidate_seconds": 0.0810440670029493,
+            "speedup": 2.3846321162474733,
+            "identical_output_sha256": "f3da9b61f763ee4dad6c9540c6996dbbde2b52db26cbd0b51a235f37da087c2e",
+            "baseline_peak_traced_bytes": 6126024,
+            "candidate_peak_traced_bytes": 5834808
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.21414926699799253,
+            "candidate_seconds": 0.10584941499837441,
+            "speedup": 2.0231502177057976,
+            "identical_output_sha256": "f3da9b61f763ee4dad6c9540c6996dbbde2b52db26cbd0b51a235f37da087c2e",
+            "baseline_peak_traced_bytes": 6126024,
+            "candidate_peak_traced_bytes": 5834808
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9524624781097821
+      },
+      {
+        "name": "raster-1-64",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 1,
+          "image_size": 64,
+          "frames": 60,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ]
+        },
+        "median_paired_speedup": 1.6536490924537108,
+        "paired_speedup_range": [
+          0.8593960188738896,
+          1.6982086334874045
+        ],
+        "baseline_median_seconds": 0.003115583000180777,
+        "candidate_median_seconds": 0.0023934049968374893,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.003957852000894491,
+            "candidate_seconds": 0.0023934049968374893,
+            "speedup": 1.6536490924537108,
+            "identical_output_sha256": "55d4e913cf27680b89f375dcaaf7d7b608bc0558506f546fef6025db29d99feb",
+            "baseline_peak_traced_bytes": 138248,
+            "candidate_peak_traced_bytes": 134112
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.004207676996884402,
+            "candidate_seconds": 0.0024777149956207722,
+            "speedup": 1.6982086334874045,
+            "identical_output_sha256": "55d4e913cf27680b89f375dcaaf7d7b608bc0558506f546fef6025db29d99feb",
+            "baseline_peak_traced_bytes": 138248,
+            "candidate_peak_traced_bytes": 134112
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.003115583000180777,
+            "candidate_seconds": 0.0036253170037525706,
+            "speedup": 0.8593960188738896,
+            "identical_output_sha256": "55d4e913cf27680b89f375dcaaf7d7b608bc0558506f546fef6025db29d99feb",
+            "baseline_peak_traced_bytes": 138248,
+            "candidate_peak_traced_bytes": 134112
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.0026819440026883967,
+            "candidate_seconds": 0.001682122005149722,
+            "speedup": 1.5943813792803232,
+            "identical_output_sha256": "55d4e913cf27680b89f375dcaaf7d7b608bc0558506f546fef6025db29d99feb",
+            "baseline_peak_traced_bytes": 138248,
+            "candidate_peak_traced_bytes": 134112
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.003062984993448481,
+            "candidate_seconds": 0.0018109660013578832,
+            "speedup": 1.6913542226368796,
+            "identical_output_sha256": "55d4e913cf27680b89f375dcaaf7d7b608bc0558506f546fef6025db29d99feb",
+            "baseline_peak_traced_bytes": 138248,
+            "candidate_peak_traced_bytes": 134112
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9700827498408657
+      },
+      {
+        "name": "raster-128-256",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 128,
+          "image_size": 256,
+          "frames": 60,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ]
+        },
+        "median_paired_speedup": 2.5212827537998526,
+        "paired_speedup_range": [
+          2.4496448417990493,
+          2.9601701368154103
+        ],
+        "baseline_median_seconds": 6.16227381999488,
+        "candidate_median_seconds": 2.4570264449939714,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 6.216431664004631,
+            "candidate_seconds": 2.465582908000215,
+            "speedup": 2.5212827537998526,
+            "identical_output_sha256": "4882eca8591f33c6b9e835cf9b827192c5364e65d602325d6346364217c6228c",
+            "baseline_peak_traced_bytes": 176167640,
+            "candidate_peak_traced_bytes": 167777384
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 6.0928055250042235,
+            "candidate_seconds": 2.4570264449939714,
+            "speedup": 2.4797476386214363,
+            "identical_output_sha256": "4882eca8591f33c6b9e835cf9b827192c5364e65d602325d6346364217c6228c",
+            "baseline_peak_traced_bytes": 176167640,
+            "candidate_peak_traced_bytes": 167777384
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 7.415364556996792,
+            "candidate_seconds": 2.505046742000559,
+            "speedup": 2.9601701368154103,
+            "identical_output_sha256": "4882eca8591f33c6b9e835cf9b827192c5364e65d602325d6346364217c6228c",
+            "baseline_peak_traced_bytes": 176167640,
+            "candidate_peak_traced_bytes": 167777384
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 5.876846761995694,
+            "candidate_seconds": 2.3990607379964786,
+            "speedup": 2.4496448417990493,
+            "identical_output_sha256": "4882eca8591f33c6b9e835cf9b827192c5364e65d602325d6346364217c6228c",
+            "baseline_peak_traced_bytes": 176167640,
+            "candidate_peak_traced_bytes": 167777384
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 6.16227381999488,
+            "candidate_seconds": 2.3256639059982263,
+            "speedup": 2.649683732933842,
+            "identical_output_sha256": "4882eca8591f33c6b9e835cf9b827192c5364e65d602325d6346364217c6228c",
+            "baseline_peak_traced_bytes": 176167640,
+            "candidate_peak_traced_bytes": 167777384
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9523734551930195
+      },
+      {
+        "name": "raster-128-64",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 128,
+          "image_size": 64,
+          "frames": 60,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ]
+        },
+        "median_paired_speedup": 2.5947719870708856,
+        "paired_speedup_range": [
+          2.2026389814572918,
+          2.6574539504107726
+        ],
+        "baseline_median_seconds": 0.39037485100561753,
+        "candidate_median_seconds": 0.14792578199558193,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.4084121599953505,
+            "candidate_seconds": 0.16331706299388316,
+            "speedup": 2.500731720914226,
+            "identical_output_sha256": "64f210011e74057b457ffca7f1599183a8261d35a5c0afca77168bf5a1ca36fc",
+            "baseline_peak_traced_bytes": 11016920,
+            "candidate_peak_traced_bytes": 10490984
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.38384733899874846,
+            "candidate_seconds": 0.1444417649981915,
+            "speedup": 2.6574539504107726,
+            "identical_output_sha256": "64f210011e74057b457ffca7f1599183a8261d35a5c0afca77168bf5a1ca36fc",
+            "baseline_peak_traced_bytes": 11016920,
+            "candidate_peak_traced_bytes": 10490984
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.49778671599779045,
+            "candidate_seconds": 0.22599559900118038,
+            "speedup": 2.2026389814572918,
+            "identical_output_sha256": "64f210011e74057b457ffca7f1599183a8261d35a5c0afca77168bf5a1ca36fc",
+            "baseline_peak_traced_bytes": 11016920,
+            "candidate_peak_traced_bytes": 10490984
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.3574086160006118,
+            "candidate_seconds": 0.13774182000634028,
+            "speedup": 2.5947719870708856,
+            "identical_output_sha256": "64f210011e74057b457ffca7f1599183a8261d35a5c0afca77168bf5a1ca36fc",
+            "baseline_peak_traced_bytes": 11016920,
+            "candidate_peak_traced_bytes": 10490984
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.39037485100561753,
+            "candidate_seconds": 0.14792578199558193,
+            "speedup": 2.6389912950892955,
+            "identical_output_sha256": "64f210011e74057b457ffca7f1599183a8261d35a5c0afca77168bf5a1ca36fc",
+            "baseline_peak_traced_bytes": 11016920,
+            "candidate_peak_traced_bytes": 10490984
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.952261067521594
+      },
+      {
+        "name": "raster-32-256",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 32,
+          "image_size": 256,
+          "frames": 60,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ]
+        },
+        "median_paired_speedup": 2.380984014602291,
+        "paired_speedup_range": [
+          1.7634727586811827,
+          2.4688725280099857
+        ],
+        "baseline_median_seconds": 1.3080428620014573,
+        "candidate_median_seconds": 0.7191971319989534,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 1.8336506269988604,
+            "candidate_seconds": 0.7427076960011618,
+            "speedup": 2.4688725280099857,
+            "identical_output_sha256": "66c3964a7b9ad20331214a40f063897f2c61677f1a3a0c230e23e764cd7e96ed",
+            "baseline_peak_traced_bytes": 44043608,
+            "candidate_peak_traced_bytes": 41946344
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 1.2754484139950364,
+            "candidate_seconds": 0.5325388839992229,
+            "speedup": 2.3950334000341233,
+            "identical_output_sha256": "66c3964a7b9ad20331214a40f063897f2c61677f1a3a0c230e23e764cd7e96ed",
+            "baseline_peak_traced_bytes": 44043608,
+            "candidate_peak_traced_bytes": 41946344
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 1.3080428620014573,
+            "candidate_seconds": 0.7417425960011315,
+            "speedup": 1.7634727586811827,
+            "identical_output_sha256": "66c3964a7b9ad20331214a40f063897f2c61677f1a3a0c230e23e764cd7e96ed",
+            "baseline_peak_traced_bytes": 44043608,
+            "candidate_peak_traced_bytes": 41946344
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 1.2851951560005546,
+            "candidate_seconds": 0.5397747940005502,
+            "speedup": 2.380984014602291,
+            "identical_output_sha256": "66c3964a7b9ad20331214a40f063897f2c61677f1a3a0c230e23e764cd7e96ed",
+            "baseline_peak_traced_bytes": 44043608,
+            "candidate_peak_traced_bytes": 41946344
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 1.641646114003379,
+            "candidate_seconds": 0.7191971319989534,
+            "speedup": 2.2826093722600773,
+            "identical_output_sha256": "66c3964a7b9ad20331214a40f063897f2c61677f1a3a0c230e23e764cd7e96ed",
+            "baseline_peak_traced_bytes": 44043608,
+            "candidate_peak_traced_bytes": 41946344
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9523821027559777
+      },
+      {
+        "name": "raster-32-64",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 32,
+          "image_size": 64,
+          "frames": 60,
+          "channels": [
+            "rgb",
+            "depth",
+            "instance_id",
+            "semantic_id"
+          ]
+        },
+        "median_paired_speedup": 2.2004481068798545,
+        "paired_speedup_range": [
+          1.6623354006886017,
+          2.435567419732609
+        ],
+        "baseline_median_seconds": 0.08963950500037754,
+        "candidate_median_seconds": 0.04145797200180823,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.10333063800499076,
+            "candidate_seconds": 0.04695890699804295,
+            "speedup": 2.2004481068798545,
+            "identical_output_sha256": "17023d0dfd46ec7eeea038df00ce654d3ba7baf99b7684710b6d3ec661db827f",
+            "baseline_peak_traced_bytes": 2755928,
+            "candidate_peak_traced_bytes": 2624744
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.08064323600410717,
+            "candidate_seconds": 0.03727197099942714,
+            "speedup": 2.163642915620068,
+            "identical_output_sha256": "17023d0dfd46ec7eeea038df00ce654d3ba7baf99b7684710b6d3ec661db827f",
+            "baseline_peak_traced_bytes": 2755928,
+            "candidate_peak_traced_bytes": 2624744
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.08963950500037754,
+            "candidate_seconds": 0.0368043620037497,
+            "speedup": 2.435567419732609,
+            "identical_output_sha256": "17023d0dfd46ec7eeea038df00ce654d3ba7baf99b7684710b6d3ec661db827f",
+            "baseline_peak_traced_bytes": 2755928,
+            "candidate_peak_traced_bytes": 2624744
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.08518648400058737,
+            "candidate_seconds": 0.05124506400170503,
+            "speedup": 1.6623354006886017,
+            "identical_output_sha256": "17023d0dfd46ec7eeea038df00ce654d3ba7baf99b7684710b6d3ec661db827f",
+            "baseline_peak_traced_bytes": 2755928,
+            "candidate_peak_traced_bytes": 2624744
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.09352030800073408,
+            "candidate_seconds": 0.04145797200180823,
+            "speedup": 2.2557858835124667,
+            "identical_output_sha256": "17023d0dfd46ec7eeea038df00ce654d3ba7baf99b7684710b6d3ec661db827f",
+            "baseline_peak_traced_bytes": 2755928,
+            "candidate_peak_traced_bytes": 2624744
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9523993369928387
+      },
+      {
+        "name": "raster-rgb-1-540",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 1,
+          "image_size": 540,
+          "frames": 60,
+          "channels": [
+            "rgb"
+          ]
+        },
+        "median_paired_speedup": 4.787011196022113,
+        "paired_speedup_range": [
+          4.6752722607021635,
+          5.650112251556182
+        ],
+        "baseline_median_seconds": 0.13246082699333783,
+        "candidate_median_seconds": 0.027003903000149876,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.13766466900415253,
+            "candidate_seconds": 0.02928577700367896,
+            "speedup": 4.700734728221782,
+            "identical_output_sha256": "d6caa8e396d06b8535bc4e748a186c40abca5b53a9a15cda0d209e9f71784f2d",
+            "baseline_peak_traced_bytes": 4083168,
+            "candidate_peak_traced_bytes": 3500008
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.1292679859980126,
+            "candidate_seconds": 0.027003903000149876,
+            "speedup": 4.787011196022113,
+            "identical_output_sha256": "d6caa8e396d06b8535bc4e748a186c40abca5b53a9a15cda0d209e9f71784f2d",
+            "baseline_peak_traced_bytes": 4083168,
+            "candidate_peak_traced_bytes": 3500008
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.12540328500472242,
+            "candidate_seconds": 0.026822669999091886,
+            "speedup": 4.6752722607021635,
+            "identical_output_sha256": "d6caa8e396d06b8535bc4e748a186c40abca5b53a9a15cda0d209e9f71784f2d",
+            "baseline_peak_traced_bytes": 4083168,
+            "candidate_peak_traced_bytes": 3500008
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.13246082699333783,
+            "candidate_seconds": 0.025874093997117598,
+            "speedup": 5.119438269339754,
+            "identical_output_sha256": "d6caa8e396d06b8535bc4e748a186c40abca5b53a9a15cda0d209e9f71784f2d",
+            "baseline_peak_traced_bytes": 4083168,
+            "candidate_peak_traced_bytes": 3500008
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.15337368699692888,
+            "candidate_seconds": 0.027145246000145562,
+            "speedup": 5.650112251556182,
+            "identical_output_sha256": "d6caa8e396d06b8535bc4e748a186c40abca5b53a9a15cda0d209e9f71784f2d",
+            "baseline_peak_traced_bytes": 4083168,
+            "candidate_peak_traced_bytes": 3500008
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.8571795233504965
+      },
+      {
+        "name": "raster-rgb-1-64",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 1,
+          "image_size": 64,
+          "frames": 60,
+          "channels": [
+            "rgb"
+          ]
+        },
+        "median_paired_speedup": 2.489033761710719,
+        "paired_speedup_range": [
+          1.0920010982405053,
+          15.231771896995909
+        ],
+        "baseline_median_seconds": 0.0037049290040158667,
+        "candidate_median_seconds": 0.0013275509991217405,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.0023976629963726737,
+            "candidate_seconds": 0.0013418180024018511,
+            "speedup": 1.7868764557345798,
+            "identical_output_sha256": "b89254c87cb51dea77928e8cab5b5144e402392cb0fa1abc13eb19dfda7e3b53",
+            "baseline_peak_traced_bytes": 121608,
+            "candidate_peak_traced_bytes": 117512
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.020220954000251368,
+            "candidate_seconds": 0.0013275509991217405,
+            "speedup": 15.231771896995909,
+            "identical_output_sha256": "b89254c87cb51dea77928e8cab5b5144e402392cb0fa1abc13eb19dfda7e3b53",
+            "baseline_peak_traced_bytes": 121608,
+            "candidate_peak_traced_bytes": 117512
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.003754883997316938,
+            "candidate_seconds": 0.0034385350008960813,
+            "speedup": 1.0920010982405053,
+            "identical_output_sha256": "b89254c87cb51dea77928e8cab5b5144e402392cb0fa1abc13eb19dfda7e3b53",
+            "baseline_peak_traced_bytes": 121608,
+            "candidate_peak_traced_bytes": 117512
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.0037049290040158667,
+            "candidate_seconds": 0.0013272409996716306,
+            "speedup": 2.791451593894774,
+            "identical_output_sha256": "b89254c87cb51dea77928e8cab5b5144e402392cb0fa1abc13eb19dfda7e3b53",
+            "baseline_peak_traced_bytes": 121608,
+            "candidate_peak_traced_bytes": 117512
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.003301427001133561,
+            "candidate_seconds": 0.001326388999586925,
+            "speedup": 2.489033761710719,
+            "identical_output_sha256": "b89254c87cb51dea77928e8cab5b5144e402392cb0fa1abc13eb19dfda7e3b53",
+            "baseline_peak_traced_bytes": 121608,
+            "candidate_peak_traced_bytes": 117512
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.966318005394382
+      },
+      {
+        "name": "raster-rgb-128-256",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 128,
+          "image_size": 256,
+          "frames": 60,
+          "channels": [
+            "rgb"
+          ]
+        },
+        "median_paired_speedup": 4.229452908089329,
+        "paired_speedup_range": [
+          3.5698889503156574,
+          5.007431034221117
+        ],
+        "baseline_median_seconds": 4.680361790000461,
+        "candidate_median_seconds": 1.095667035006045,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 4.680361790000461,
+            "candidate_seconds": 1.095667035006045,
+            "speedup": 4.271700836536201,
+            "identical_output_sha256": "49840abce821678736ac0d77f486e6edade1ffb022863a53ab8162eb9ce02937",
+            "baseline_peak_traced_bytes": 117443312,
+            "candidate_peak_traced_bytes": 100664104
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 4.657361354999011,
+            "candidate_seconds": 1.113004783001088,
+            "speedup": 4.184493567440903,
+            "identical_output_sha256": "49840abce821678736ac0d77f486e6edade1ffb022863a53ab8162eb9ce02937",
+            "baseline_peak_traced_bytes": 117443312,
+            "candidate_peak_traced_bytes": 100664104
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 4.557942617997469,
+            "candidate_seconds": 1.0776671869971324,
+            "speedup": 4.229452908089329,
+            "identical_output_sha256": "49840abce821678736ac0d77f486e6edade1ffb022863a53ab8162eb9ce02937",
+            "baseline_peak_traced_bytes": 117443312,
+            "candidate_peak_traced_bytes": 100664104
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 5.34717182500026,
+            "candidate_seconds": 1.0678473230000236,
+            "speedup": 5.007431034221117,
+            "identical_output_sha256": "49840abce821678736ac0d77f486e6edade1ffb022863a53ab8162eb9ce02937",
+            "baseline_peak_traced_bytes": 117443312,
+            "candidate_peak_traced_bytes": 100664104
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 5.189916408002318,
+            "candidate_seconds": 1.4538033200005884,
+            "speedup": 3.5698889503156574,
+            "identical_output_sha256": "49840abce821678736ac0d77f486e6edade1ffb022863a53ab8162eb9ce02937",
+            "baseline_peak_traced_bytes": 117443312,
+            "candidate_peak_traced_bytes": 100664104
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.8571293016668331
+      },
+      {
+        "name": "raster-rgb-128-64",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 128,
+          "image_size": 64,
+          "frames": 60,
+          "channels": [
+            "rgb"
+          ]
+        },
+        "median_paired_speedup": 5.593426128582896,
+        "paired_speedup_range": [
+          5.106247571576156,
+          6.075959165915206
+        ],
+        "baseline_median_seconds": 0.28647078100038925,
+        "candidate_median_seconds": 0.05111052199936239,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.28576810200320324,
+            "candidate_seconds": 0.05596440399676794,
+            "speedup": 5.106247571576156,
+            "identical_output_sha256": "54db326892d6859c92d29cf525245e917f0e1ffb05e883fd284e2091633cb0e5",
+            "baseline_peak_traced_bytes": 7342832,
+            "candidate_peak_traced_bytes": 6292264
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.28809290999924997,
+            "candidate_seconds": 0.04947937199904118,
+            "speedup": 5.822485176344451,
+            "identical_output_sha256": "54db326892d6859c92d29cf525245e917f0e1ffb05e883fd284e2091633cb0e5",
+            "baseline_peak_traced_bytes": 7342832,
+            "candidate_peak_traced_bytes": 6292264
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.28647078100038925,
+            "candidate_seconds": 0.047148240002570674,
+            "speedup": 6.075959165915206,
+            "identical_output_sha256": "54db326892d6859c92d29cf525245e917f0e1ffb05e883fd284e2091633cb0e5",
+            "baseline_peak_traced_bytes": 7342832,
+            "candidate_peak_traced_bytes": 6292264
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.28499031699902844,
+            "candidate_seconds": 0.05111052199936239,
+            "speedup": 5.575961775592582,
+            "identical_output_sha256": "54db326892d6859c92d29cf525245e917f0e1ffb05e883fd284e2091633cb0e5",
+            "baseline_peak_traced_bytes": 7342832,
+            "candidate_peak_traced_bytes": 6292264
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.29975528600334655,
+            "candidate_seconds": 0.05359063999640057,
+            "speedup": 5.593426128582896,
+            "identical_output_sha256": "54db326892d6859c92d29cf525245e917f0e1ffb05e883fd284e2091633cb0e5",
+            "baseline_peak_traced_bytes": 7342832,
+            "candidate_peak_traced_bytes": 6292264
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.8569260470619511
+      },
+      {
+        "name": "raster-rgb-32-256",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 32,
+          "image_size": 256,
+          "frames": 60,
+          "channels": [
+            "rgb"
+          ]
+        },
+        "median_paired_speedup": 4.697920846440017,
+        "paired_speedup_range": [
+          4.09827854429627,
+          4.897943720988165
+        ],
+        "baseline_median_seconds": 0.9977203980015474,
+        "candidate_median_seconds": 0.21009152199985692,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.9977203980015474,
+            "candidate_seconds": 0.20370189100503922,
+            "speedup": 4.897943720988165,
+            "identical_output_sha256": "923694635f5ddb092416744f780a3c8d6d3d39fe493313ecfd4f6f500c7da25c",
+            "baseline_peak_traced_bytes": 29361392,
+            "candidate_peak_traced_bytes": 25166632
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 1.0113521959938225,
+            "candidate_seconds": 0.24677488000452286,
+            "speedup": 4.09827854429627,
+            "identical_output_sha256": "923694635f5ddb092416744f780a3c8d6d3d39fe493313ecfd4f6f500c7da25c",
+            "baseline_peak_traced_bytes": 29361392,
+            "candidate_peak_traced_bytes": 25166632
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.9817313620005734,
+            "candidate_seconds": 0.21009152199985692,
+            "speedup": 4.672874719814929,
+            "identical_output_sha256": "923694635f5ddb092416744f780a3c8d6d3d39fe493313ecfd4f6f500c7da25c",
+            "baseline_peak_traced_bytes": 29361392,
+            "candidate_peak_traced_bytes": 25166632
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.9407356419978896,
+            "candidate_seconds": 0.1931210260008811,
+            "speedup": 4.871223302187705,
+            "identical_output_sha256": "923694635f5ddb092416744f780a3c8d6d3d39fe493313ecfd4f6f500c7da25c",
+            "baseline_peak_traced_bytes": 29361392,
+            "candidate_peak_traced_bytes": 25166632
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.9979429869999876,
+            "candidate_seconds": 0.2124222650018055,
+            "speedup": 4.697920846440017,
+            "identical_output_sha256": "923694635f5ddb092416744f780a3c8d6d3d39fe493313ecfd4f6f500c7da25c",
+            "baseline_peak_traced_bytes": 29361392,
+            "candidate_peak_traced_bytes": 25166632
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.8571334765054736
+      },
+      {
+        "name": "raster-rgb-32-64",
+        "scope": "CPU reference raster only; requested channels; excludes physics, sensor copies, JPEG and web delivery; timing excludes tracemalloc/checksumming; traced peak is not RSS",
+        "arguments": {
+          "num_envs": 32,
+          "image_size": 64,
+          "frames": 60,
+          "channels": [
+            "rgb"
+          ]
+        },
+        "median_paired_speedup": 4.520968958573284,
+        "paired_speedup_range": [
+          3.66314443725759,
+          5.0630344070129345
+        ],
+        "baseline_median_seconds": 0.06466998199903173,
+        "candidate_median_seconds": 0.013674166999408044,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.058165183996607084,
+            "candidate_seconds": 0.0158784849991207,
+            "speedup": 3.66314443725759,
+            "identical_output_sha256": "a787d408068bc6fe0047a0e2f3d9906229adf808201da7c89e1088f5b492384e",
+            "baseline_peak_traced_bytes": 1870072,
+            "candidate_peak_traced_bytes": 1573672
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.06466998199903173,
+            "candidate_seconds": 0.013450970000121742,
+            "speedup": 4.807830364534782,
+            "identical_output_sha256": "a787d408068bc6fe0047a0e2f3d9906229adf808201da7c89e1088f5b492384e",
+            "baseline_peak_traced_bytes": 1870072,
+            "candidate_peak_traced_bytes": 1573672
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.06923277800524374,
+            "candidate_seconds": 0.013674166999408044,
+            "speedup": 5.0630344070129345,
+            "identical_output_sha256": "a787d408068bc6fe0047a0e2f3d9906229adf808201da7c89e1088f5b492384e",
+            "baseline_peak_traced_bytes": 1870072,
+            "candidate_peak_traced_bytes": 1573672
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.05605108899908373,
+            "candidate_seconds": 0.013497658001142554,
+            "speedup": 4.152652926480957,
+            "identical_output_sha256": "a787d408068bc6fe0047a0e2f3d9906229adf808201da7c89e1088f5b492384e",
+            "baseline_peak_traced_bytes": 1870072,
+            "candidate_peak_traced_bytes": 1573672
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.06485454300127458,
+            "candidate_seconds": 0.014345275005325675,
+            "speedup": 4.520968958573284,
+            "identical_output_sha256": "a787d408068bc6fe0047a0e2f3d9906229adf808201da7c89e1088f5b492384e",
+            "baseline_peak_traced_bytes": 1870072,
+            "candidate_peak_traced_bytes": 1573672
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.8415034287449895
+      },
+      {
+        "name": "reset-128-1-128",
+        "scope": "NumPy physics/task reset, reference raster, sensor cache and owned observations; four channels; excludes initial construction; timing excludes tracing/checksumming; traced peak is not process RSS",
+        "arguments": {
+          "num_envs": 128,
+          "selected": 1,
+          "image_size": 128,
+          "resets": 60
+        },
+        "median_paired_speedup": 1.5364581517171014,
+        "paired_speedup_range": [
+          1.2105515295735936,
+          1.7008733687296766
+        ],
+        "baseline_median_seconds": 0.013813194003887475,
+        "candidate_median_seconds": 0.008781491000263486,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 0.013623630002257414,
+            "candidate_seconds": 0.008866905998729635,
+            "speedup": 1.5364581517171014,
+            "identical_output_sha256": "8d72633f540eddb83c28be81ee1dd97fa31684e84df1f0733008e9972b1e3fb7",
+            "baseline_peak_traced_bytes": 420736,
+            "candidate_peak_traced_bytes": 404312
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 0.013813194003887475,
+            "candidate_seconds": 0.008656031001009978,
+            "speedup": 1.595788416455043,
+            "identical_output_sha256": "8d72633f540eddb83c28be81ee1dd97fa31684e84df1f0733008e9972b1e3fb7",
+            "baseline_peak_traced_bytes": 420736,
+            "candidate_peak_traced_bytes": 404312
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 0.012984993001737166,
+            "candidate_seconds": 0.008781491000263486,
+            "speedup": 1.4786774821436992,
+            "identical_output_sha256": "8d72633f540eddb83c28be81ee1dd97fa31684e84df1f0733008e9972b1e3fb7",
+            "baseline_peak_traced_bytes": 420736,
+            "candidate_peak_traced_bytes": 404312
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 0.01452882799640065,
+            "candidate_seconds": 0.008541980998415966,
+            "speedup": 1.7008733687296766,
+            "identical_output_sha256": "8d72633f540eddb83c28be81ee1dd97fa31684e84df1f0733008e9972b1e3fb7",
+            "baseline_peak_traced_bytes": 420736,
+            "candidate_peak_traced_bytes": 404312
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 0.014052500999241602,
+            "candidate_seconds": 0.01160834599431837,
+            "speedup": 1.2105515295735936,
+            "identical_output_sha256": "8d72633f540eddb83c28be81ee1dd97fa31684e84df1f0733008e9972b1e3fb7",
+            "baseline_peak_traced_bytes": 420736,
+            "candidate_peak_traced_bytes": 404312
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9609636446607849
+      },
+      {
+        "name": "reset-128-128-128",
+        "scope": "NumPy physics/task reset, reference raster, sensor cache and owned observations; four channels; excludes initial construction; timing excludes tracing/checksumming; traced peak is not process RSS",
+        "arguments": {
+          "num_envs": 128,
+          "selected": 128,
+          "image_size": 128,
+          "resets": 60
+        },
+        "median_paired_speedup": 2.049427785914369,
+        "paired_speedup_range": [
+          1.9851673209857554,
+          2.12671095841641
+        ],
+        "baseline_median_seconds": 1.5014402020024136,
+        "candidate_median_seconds": 0.7542155180053669,
+        "all_outputs_equal": true,
+        "pairs": [
+          {
+            "pair": 0,
+            "baseline_seconds": 1.534087455002009,
+            "candidate_seconds": 0.7542155180053669,
+            "speedup": 2.034017357610365,
+            "identical_output_sha256": "74daf1333801a80e7e5987e3c8534bda3ed06c485197d096a8f8b642b0794fc0",
+            "baseline_peak_traced_bytes": 44168696,
+            "candidate_peak_traced_bytes": 42069896
+          },
+          {
+            "pair": 1,
+            "baseline_seconds": 1.5014402020024136,
+            "candidate_seconds": 0.7059916610014625,
+            "speedup": 2.12671095841641,
+            "identical_output_sha256": "74daf1333801a80e7e5987e3c8534bda3ed06c485197d096a8f8b642b0794fc0",
+            "baseline_peak_traced_bytes": 44168696,
+            "candidate_peak_traced_bytes": 42069896
+          },
+          {
+            "pair": 2,
+            "baseline_seconds": 1.4870996750032646,
+            "candidate_seconds": 0.7223981630013441,
+            "speedup": 2.0585596021241512,
+            "identical_output_sha256": "74daf1333801a80e7e5987e3c8534bda3ed06c485197d096a8f8b642b0794fc0",
+            "baseline_peak_traced_bytes": 44168696,
+            "candidate_peak_traced_bytes": 42069896
+          },
+          {
+            "pair": 3,
+            "baseline_seconds": 1.5002413300026092,
+            "candidate_seconds": 0.755725381000957,
+            "speedup": 1.9851673209857554,
+            "identical_output_sha256": "74daf1333801a80e7e5987e3c8534bda3ed06c485197d096a8f8b642b0794fc0",
+            "baseline_peak_traced_bytes": 44168696,
+            "candidate_peak_traced_bytes": 42069896
+          },
+          {
+            "pair": 4,
+            "baseline_seconds": 1.5548656520040822,
+            "candidate_seconds": 0.7586828200001037,
+            "speedup": 2.049427785914369,
+            "identical_output_sha256": "74daf1333801a80e7e5987e3c8534bda3ed06c485197d096a8f8b642b0794fc0",
+            "baseline_peak_traced_bytes": 44168696,
+            "candidate_peak_traced_bytes": 42069896
+          }
+        ],
+        "median_peak_traced_allocation_ratio": 0.9524821833091925
+      }
+    ],
+    "raw_report": {
+      "path": "runs/platform-optimization-20261014-round3/accepted-pairs.json",
+      "sha256": "2c678d9e79f5536e46f0f779679e1f98d11f17979017745fe3743e10f82a068e"
+    },
+    "benchmarks": [
+      {
+        "path": "benchmarks/raster.py",
+        "sha256": "ad81d1a36a40b30082fe9536142d125ef72dc100ec9461ccb08b9d9056c5d763"
+      },
+      {
+        "path": "benchmarks/reference_step.py",
+        "sha256": "2d55bb9aaf3b0fef0f93c9121fda764471b7632a133ee34a56fb74a6e1ec4ab8"
+      },
+      {
+        "path": "benchmarks/visual_reset.py",
+        "sha256": "1c7389fa03abccbb19a13857652c9c68851353d9d59e5ae0e2c84922fc24a57c"
+      },
+      {
+        "path": "benchmarks/recording_pipeline.py",
+        "sha256": "b8e0231d197fa7674b45185c375ea07d71fc1d4b8045184923e52998adc7816f"
+      }
+    ]
+  },
+  "rgb_only_allocation": {
+    "scope": "RGB-only single raster frame, five repetitions; source trees fixed, outputs must match; measures traced allocation only, no timing/RSS claim. This checks channel-specific tradeoffs independently of four-channel benchmarks.",
+    "raw_report": {
+      "path": "runs/platform-optimization-20261014-round3/rgb-accepted-memory.json",
+      "sha256": "294fcc06420df04bee48796d1b0f0cca0adec9eb66f178ac274c5d1f1192ad95"
+    },
+    "samples": [
+      {
+        "pair": 0,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 123288,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 0,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 118768,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 1,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 121712,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 1,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 117616,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 2,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 121712,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 2,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 117616,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 3,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 121712,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 3,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 117616,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 4,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 121712,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 4,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 64,
+        "peak_traced_bytes": 117616,
+        "sha256": "d792265b481b79fa81d82a2aa6cf83e4b88eb2ae1ba5fd3a32cdd5b070edced5"
+      },
+      {
+        "pair": 0,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 4083272,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 0,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 3506086,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 1,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 4083272,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 1,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 3501120,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 2,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 4083272,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 2,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 3501120,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 3,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 4083272,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 3,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 3501120,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 4,
+        "label": "baseline",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 4083272,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 4,
+        "label": "candidate-accepted",
+        "n": 1,
+        "image_size": 540,
+        "peak_traced_bytes": 3501120,
+        "sha256": "f796e02eb33d3ba276d31b14e049a113d6816cf0ed421e94f354ab70547aa096"
+      },
+      {
+        "pair": 0,
+        "label": "baseline",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 117444432,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 0,
+        "label": "candidate-accepted",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 100666232,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 1,
+        "label": "baseline",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 117444432,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 1,
+        "label": "candidate-accepted",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 100666232,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 2,
+        "label": "baseline",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 117444432,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 2,
+        "label": "candidate-accepted",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 100665896,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 3,
+        "label": "baseline",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 117444432,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 3,
+        "label": "candidate-accepted",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 100665224,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 4,
+        "label": "baseline",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 117444432,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      },
+      {
+        "pair": 4,
+        "label": "candidate-accepted",
+        "n": 128,
+        "image_size": 256,
+        "peak_traced_bytes": 100665224,
+        "sha256": "e91b7c2526776c28c62e8e3ba6b6cf9ec75ebe19bfb50dfc30008d93d3fc3bba"
+      }
+    ],
+    "finding": "Final large RGB-only raster probes use approximately 14.3% less peak traced allocation than the start-of-round source; promoting labels and releasing the original before RGB allocation removes the earlier overlap regression. Neither describes total process RSS."
+  },
+  "large_artifact_hashing": {
+    "scope": "Hash phase only: original read_bytes/SHA256 expression vs bounded file_sha256; synthetic sparse binary files, fixed zeros; five alternating pairs. Traced Python allocation peak is not process RSS; concurrent correctness workloads make timings unsuitable for throughput claims. No Torch/ffprobe/SDK loading measured.",
+    "summary": [
+      {
+        "artifact_mib": 64,
+        "baseline_median_peak_traced_bytes": 67113834,
+        "candidate_median_peak_traced_bytes": 2103080,
+        "reduction_fraction": 0.9686639866230858,
+        "sha256": "3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351",
+        "pairs": 5
+      },
+      {
+        "artifact_mib": 256,
+        "baseline_median_peak_traced_bytes": 268440426,
+        "candidate_median_peak_traced_bytes": 2103080,
+        "reduction_fraction": 0.9921655615313321,
+        "sha256": "a6d72ac7690f53be6ae46ba88506bd97302a093f7108472bd9efc3cefda06484",
+        "pairs": 5
+      }
+    ],
+    "raw_report": {
+      "path": "runs/platform-optimization-20261014-round3/hash-memory.json",
+      "sha256": "d31ebbcc7a4319d531184c05cacbed4c0d2b5a35aaadc5ab3a829eba292774a0"
+    }
+  },
+  "training_equivalence": {
+    "scope": "Final frozen candidate-release versus start-of-round baseline; reuse each completed baseline 3000-update run, then train candidate-release independently. Two tasks x three policy seeds, five fixed 128-episode evaluation seeds per trained model. Full metric stream, final model/Adam/Torch-RNG hashes and evaluation results must match exactly. Concurrent correctness stress and documented pauses make elapsed times unsuitable for speed claims.",
+    "tested_training_snapshot_revision": "00f35d793db65770e3c2bb18cffb0bbf4cca3ac0",
+    "accepted_source_applicability": {
+      "status": "passed",
+      "trained_revision": "00f35d793db65770e3c2bb18cffb0bbf4cca3ac0",
+      "accepted_revision": "767696ed783aeda33531a76074d9959f04e8ae30",
+      "changed_python_sources_since_training": [
+        "backends/render.py"
+      ],
+      "all_other_python_sources_byte_identical": true,
+      "NullRenderer_AST_identical": true,
+      "training_and_evaluation_scope": "All six 3000-update trained reference runs and their fixed-seed evaluations use render=null and no sensor channels; RGB-only renderer allocation changes are not executed. All policy/optimizer/task/physics/env/checkpoint code is byte-identical.",
+      "configurations": [
+        {
+          "task": "reach",
+          "seed": 0,
+          "render": "null",
+          "channels": []
+        },
+        {
+          "task": "reach",
+          "seed": 1,
+          "render": "null",
+          "channels": []
+        },
+        {
+          "task": "reach",
+          "seed": 2,
+          "render": "null",
+          "channels": []
+        },
+        {
+          "task": "hold",
+          "seed": 0,
+          "render": "null",
+          "channels": []
+        },
+        {
+          "task": "hold",
+          "seed": 1,
+          "render": "null",
+          "channels": []
+        },
+        {
+          "task": "hold",
+          "seed": 2,
+          "render": "null",
+          "channels": []
+        }
+      ]
+    },
+    "accepted_source_proof": {
+      "path": "runs/platform-optimization-20261014-round3/training-source-proof.json",
+      "sha256": "33072fe4bc0c938be377abf22de97a4455a2b803c62515e6b5b41e398f8e85fe"
+    },
+    "config": {
+      "tasks": [
+        "reach",
+        "hold"
+      ],
+      "policy_seeds": [
+        0,
+        1,
+        2
+      ],
+      "environment_seed": 42,
+      "num_envs": 32,
+      "rollout_steps": 128,
+      "epochs": 4,
+      "minibatch_size": 256,
+      "updates_per_run": 3000,
+      "checkpoint_interval": 100
+    },
+    "model_pairs": 6,
+    "updates_per_source": 18000,
+    "training_transitions_per_source": 73728000,
+    "evaluation_seeds": [
+      2001,
+      2002,
+      2003,
+      2004,
+      2005
+    ],
+    "episodes_per_evaluation_seed": 128,
+    "evaluation_episodes_per_source": 3840,
+    "all_complete_metric_streams_equal": true,
+    "all_final_policy_adam_torch_rng_hashes_equal": true,
+    "all_evaluations_equal": true,
+    "samples": [
+      {
+        "task": "reach",
+        "seed": 0,
+        "baseline": {
+          "task": "reach",
+          "seed": 0,
+          "updates": 3000,
+          "seconds": 311.7552005010002,
+          "policy_adam_rng_sha256": "0ee8c1538f23dca0059930fde8ba39a8ad9dd898e1bd8ba6bb143028e958c821",
+          "metrics_sha256": "127f6dfe533b7b3bbe770975b92da627c71bd36447b1519a8b3ed797cf891d2e",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 101,
+              "num_envs": 128,
+              "mean_return": 8.767328925860895,
+              "mean_length": 77.5234375,
+              "initial_observation_sha256": "a7c3ee92af3df33122fddb2fabbff331ac15ad0fcd8a1d2a259c7b3c883aa2d4"
+            },
+            {
+              "seed": 2002,
+              "successes": 93,
+              "num_envs": 128,
+              "mean_return": 9.166488749651961,
+              "mean_length": 80.46875,
+              "initial_observation_sha256": "bc7114dbc8b63cbaa3d05bb5bf5cdc55eff60575e5763e99a4908df5ed9d60f9"
+            },
+            {
+              "seed": 2003,
+              "successes": 101,
+              "num_envs": 128,
+              "mean_return": 9.086812892677763,
+              "mean_length": 79.8203125,
+              "initial_observation_sha256": "c28daa93d7127e4429b576d919f501272a2b1c3f039bf23c073138fc9ab81118"
+            },
+            {
+              "seed": 2004,
+              "successes": 106,
+              "num_envs": 128,
+              "mean_return": 8.767179440376196,
+              "mean_length": 77.453125,
+              "initial_observation_sha256": "283b6b16cedb3930e50102417e9b2aba98130a3396c71da192f23f5c13358f1c"
+            },
+            {
+              "seed": 2005,
+              "successes": 107,
+              "num_envs": 128,
+              "mean_return": 8.433380829409373,
+              "mean_length": 75.2265625,
+              "initial_observation_sha256": "789eb64afc2dd872c9dc091863c2fed913d66661257ad0e7ae4200aa94845401"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "candidate": {
+          "task": "reach",
+          "seed": 0,
+          "updates": 3000,
+          "seconds": 293.62451024700204,
+          "policy_adam_rng_sha256": "0ee8c1538f23dca0059930fde8ba39a8ad9dd898e1bd8ba6bb143028e958c821",
+          "metrics_sha256": "127f6dfe533b7b3bbe770975b92da627c71bd36447b1519a8b3ed797cf891d2e",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 101,
+              "num_envs": 128,
+              "mean_return": 8.767328925860895,
+              "mean_length": 77.5234375,
+              "initial_observation_sha256": "a7c3ee92af3df33122fddb2fabbff331ac15ad0fcd8a1d2a259c7b3c883aa2d4"
+            },
+            {
+              "seed": 2002,
+              "successes": 93,
+              "num_envs": 128,
+              "mean_return": 9.166488749651961,
+              "mean_length": 80.46875,
+              "initial_observation_sha256": "bc7114dbc8b63cbaa3d05bb5bf5cdc55eff60575e5763e99a4908df5ed9d60f9"
+            },
+            {
+              "seed": 2003,
+              "successes": 101,
+              "num_envs": 128,
+              "mean_return": 9.086812892677763,
+              "mean_length": 79.8203125,
+              "initial_observation_sha256": "c28daa93d7127e4429b576d919f501272a2b1c3f039bf23c073138fc9ab81118"
+            },
+            {
+              "seed": 2004,
+              "successes": 106,
+              "num_envs": 128,
+              "mean_return": 8.767179440376196,
+              "mean_length": 77.453125,
+              "initial_observation_sha256": "283b6b16cedb3930e50102417e9b2aba98130a3396c71da192f23f5c13358f1c"
+            },
+            {
+              "seed": 2005,
+              "successes": 107,
+              "num_envs": 128,
+              "mean_return": 8.433380829409373,
+              "mean_length": 75.2265625,
+              "initial_observation_sha256": "789eb64afc2dd872c9dc091863c2fed913d66661257ad0e7ae4200aa94845401"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "all_equal": true
+      },
+      {
+        "task": "reach",
+        "seed": 1,
+        "baseline": {
+          "task": "reach",
+          "seed": 1,
+          "updates": 3000,
+          "seconds": 323.6249093940023,
+          "policy_adam_rng_sha256": "f3bccf1db39c9942199ba36ee188b96a560f4bf81c14228de3aa2336076460a0",
+          "metrics_sha256": "e6902d4ddec4708c48b01010dceb18ff8b423979bb802e04a64dc859ba8e4967",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 100,
+              "num_envs": 128,
+              "mean_return": 8.744656221778342,
+              "mean_length": 77.8203125,
+              "initial_observation_sha256": "a7c3ee92af3df33122fddb2fabbff331ac15ad0fcd8a1d2a259c7b3c883aa2d4"
+            },
+            {
+              "seed": 2002,
+              "successes": 92,
+              "num_envs": 128,
+              "mean_return": 9.115007321307829,
+              "mean_length": 80.625,
+              "initial_observation_sha256": "bc7114dbc8b63cbaa3d05bb5bf5cdc55eff60575e5763e99a4908df5ed9d60f9"
+            },
+            {
+              "seed": 2003,
+              "successes": 101,
+              "num_envs": 128,
+              "mean_return": 9.037812242437269,
+              "mean_length": 80.078125,
+              "initial_observation_sha256": "c28daa93d7127e4429b576d919f501272a2b1c3f039bf23c073138fc9ab81118"
+            },
+            {
+              "seed": 2004,
+              "successes": 105,
+              "num_envs": 128,
+              "mean_return": 8.729733857278958,
+              "mean_length": 77.84375,
+              "initial_observation_sha256": "283b6b16cedb3930e50102417e9b2aba98130a3396c71da192f23f5c13358f1c"
+            },
+            {
+              "seed": 2005,
+              "successes": 107,
+              "num_envs": 128,
+              "mean_return": 8.425042414598678,
+              "mean_length": 75.515625,
+              "initial_observation_sha256": "789eb64afc2dd872c9dc091863c2fed913d66661257ad0e7ae4200aa94845401"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "candidate": {
+          "task": "reach",
+          "seed": 1,
+          "updates": 3000,
+          "seconds": 297.4173173700001,
+          "policy_adam_rng_sha256": "f3bccf1db39c9942199ba36ee188b96a560f4bf81c14228de3aa2336076460a0",
+          "metrics_sha256": "e6902d4ddec4708c48b01010dceb18ff8b423979bb802e04a64dc859ba8e4967",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 100,
+              "num_envs": 128,
+              "mean_return": 8.744656221778342,
+              "mean_length": 77.8203125,
+              "initial_observation_sha256": "a7c3ee92af3df33122fddb2fabbff331ac15ad0fcd8a1d2a259c7b3c883aa2d4"
+            },
+            {
+              "seed": 2002,
+              "successes": 92,
+              "num_envs": 128,
+              "mean_return": 9.115007321307829,
+              "mean_length": 80.625,
+              "initial_observation_sha256": "bc7114dbc8b63cbaa3d05bb5bf5cdc55eff60575e5763e99a4908df5ed9d60f9"
+            },
+            {
+              "seed": 2003,
+              "successes": 101,
+              "num_envs": 128,
+              "mean_return": 9.037812242437269,
+              "mean_length": 80.078125,
+              "initial_observation_sha256": "c28daa93d7127e4429b576d919f501272a2b1c3f039bf23c073138fc9ab81118"
+            },
+            {
+              "seed": 2004,
+              "successes": 105,
+              "num_envs": 128,
+              "mean_return": 8.729733857278958,
+              "mean_length": 77.84375,
+              "initial_observation_sha256": "283b6b16cedb3930e50102417e9b2aba98130a3396c71da192f23f5c13358f1c"
+            },
+            {
+              "seed": 2005,
+              "successes": 107,
+              "num_envs": 128,
+              "mean_return": 8.425042414598678,
+              "mean_length": 75.515625,
+              "initial_observation_sha256": "789eb64afc2dd872c9dc091863c2fed913d66661257ad0e7ae4200aa94845401"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "all_equal": true
+      },
+      {
+        "task": "reach",
+        "seed": 2,
+        "baseline": {
+          "task": "reach",
+          "seed": 2,
+          "updates": 3000,
+          "seconds": 304.968193667999,
+          "policy_adam_rng_sha256": "1cf5e0ee012af4b2ebd6ef037bdf5157861da12a368014f4ee2bf4fd9df77af0",
+          "metrics_sha256": "a3dcd6e658aa858eaf71503fb7904b2868091050732808fc4ac769bba1543ffa",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 102,
+              "num_envs": 128,
+              "mean_return": 8.804638972030304,
+              "mean_length": 77.0,
+              "initial_observation_sha256": "a7c3ee92af3df33122fddb2fabbff331ac15ad0fcd8a1d2a259c7b3c883aa2d4"
+            },
+            {
+              "seed": 2002,
+              "successes": 93,
+              "num_envs": 128,
+              "mean_return": 9.191000985001217,
+              "mean_length": 79.953125,
+              "initial_observation_sha256": "bc7114dbc8b63cbaa3d05bb5bf5cdc55eff60575e5763e99a4908df5ed9d60f9"
+            },
+            {
+              "seed": 2003,
+              "successes": 101,
+              "num_envs": 128,
+              "mean_return": 9.105468632424362,
+              "mean_length": 79.265625,
+              "initial_observation_sha256": "c28daa93d7127e4429b576d919f501272a2b1c3f039bf23c073138fc9ab81118"
+            },
+            {
+              "seed": 2004,
+              "successes": 107,
+              "num_envs": 128,
+              "mean_return": 8.808634299135747,
+              "mean_length": 76.9453125,
+              "initial_observation_sha256": "283b6b16cedb3930e50102417e9b2aba98130a3396c71da192f23f5c13358f1c"
+            },
+            {
+              "seed": 2005,
+              "successes": 107,
+              "num_envs": 128,
+              "mean_return": 8.468533547719186,
+              "mean_length": 74.6796875,
+              "initial_observation_sha256": "789eb64afc2dd872c9dc091863c2fed913d66661257ad0e7ae4200aa94845401"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "candidate": {
+          "task": "reach",
+          "seed": 2,
+          "updates": 3000,
+          "seconds": 299.4573843090002,
+          "policy_adam_rng_sha256": "1cf5e0ee012af4b2ebd6ef037bdf5157861da12a368014f4ee2bf4fd9df77af0",
+          "metrics_sha256": "a3dcd6e658aa858eaf71503fb7904b2868091050732808fc4ac769bba1543ffa",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 102,
+              "num_envs": 128,
+              "mean_return": 8.804638972030304,
+              "mean_length": 77.0,
+              "initial_observation_sha256": "a7c3ee92af3df33122fddb2fabbff331ac15ad0fcd8a1d2a259c7b3c883aa2d4"
+            },
+            {
+              "seed": 2002,
+              "successes": 93,
+              "num_envs": 128,
+              "mean_return": 9.191000985001217,
+              "mean_length": 79.953125,
+              "initial_observation_sha256": "bc7114dbc8b63cbaa3d05bb5bf5cdc55eff60575e5763e99a4908df5ed9d60f9"
+            },
+            {
+              "seed": 2003,
+              "successes": 101,
+              "num_envs": 128,
+              "mean_return": 9.105468632424362,
+              "mean_length": 79.265625,
+              "initial_observation_sha256": "c28daa93d7127e4429b576d919f501272a2b1c3f039bf23c073138fc9ab81118"
+            },
+            {
+              "seed": 2004,
+              "successes": 107,
+              "num_envs": 128,
+              "mean_return": 8.808634299135747,
+              "mean_length": 76.9453125,
+              "initial_observation_sha256": "283b6b16cedb3930e50102417e9b2aba98130a3396c71da192f23f5c13358f1c"
+            },
+            {
+              "seed": 2005,
+              "successes": 107,
+              "num_envs": 128,
+              "mean_return": 8.468533547719186,
+              "mean_length": 74.6796875,
+              "initial_observation_sha256": "789eb64afc2dd872c9dc091863c2fed913d66661257ad0e7ae4200aa94845401"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "all_equal": true
+      },
+      {
+        "task": "hold",
+        "seed": 0,
+        "baseline": {
+          "task": "hold",
+          "seed": 0,
+          "updates": 3000,
+          "seconds": 301.4171042380003,
+          "policy_adam_rng_sha256": "3fb7ec9bc16e243ea8fc0931f1099c273c245ee1a00a03e3f57814537bd5a909",
+          "metrics_sha256": "56b64a5ec1e9466609a12ec1f7275fd8a62cb4ca88f22668bb019695afd8d158",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.4813095627725374,
+              "mean_length": 68.34375,
+              "initial_observation_sha256": "cfa5e82a75953c1d55f0d9b16349710a76d9a4ab07f226e3e653210164b24b1a"
+            },
+            {
+              "seed": 2002,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.5420638948468195,
+              "mean_length": 68.5859375,
+              "initial_observation_sha256": "8e7f6cf3b7b89b600986bdf08df78d5c693b6e665380142153bbce67fd43318a"
+            },
+            {
+              "seed": 2003,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.591981510534822,
+              "mean_length": 68.6953125,
+              "initial_observation_sha256": "93932fa89425ed5e01ac563334f549e68b5446584836f6381fc37a8df9d73955"
+            },
+            {
+              "seed": 2004,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.2523909782779015,
+              "mean_length": 66.796875,
+              "initial_observation_sha256": "44e7b48eb29505543fc9e52b81173283a5a587f2531e1ffea9b52de83300cdb2"
+            },
+            {
+              "seed": 2005,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.1609050896327275,
+              "mean_length": 65.5078125,
+              "initial_observation_sha256": "577b70b2118e78ccd71d4060003268ed1dd2a07a224a7d01dc443546e4ee4d65"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "candidate": {
+          "task": "hold",
+          "seed": 0,
+          "updates": 3000,
+          "seconds": 300.93986962800045,
+          "policy_adam_rng_sha256": "3fb7ec9bc16e243ea8fc0931f1099c273c245ee1a00a03e3f57814537bd5a909",
+          "metrics_sha256": "56b64a5ec1e9466609a12ec1f7275fd8a62cb4ca88f22668bb019695afd8d158",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.4813095627725374,
+              "mean_length": 68.34375,
+              "initial_observation_sha256": "cfa5e82a75953c1d55f0d9b16349710a76d9a4ab07f226e3e653210164b24b1a"
+            },
+            {
+              "seed": 2002,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.5420638948468195,
+              "mean_length": 68.5859375,
+              "initial_observation_sha256": "8e7f6cf3b7b89b600986bdf08df78d5c693b6e665380142153bbce67fd43318a"
+            },
+            {
+              "seed": 2003,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.591981510534822,
+              "mean_length": 68.6953125,
+              "initial_observation_sha256": "93932fa89425ed5e01ac563334f549e68b5446584836f6381fc37a8df9d73955"
+            },
+            {
+              "seed": 2004,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.2523909782779015,
+              "mean_length": 66.796875,
+              "initial_observation_sha256": "44e7b48eb29505543fc9e52b81173283a5a587f2531e1ffea9b52de83300cdb2"
+            },
+            {
+              "seed": 2005,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.1609050896327275,
+              "mean_length": 65.5078125,
+              "initial_observation_sha256": "577b70b2118e78ccd71d4060003268ed1dd2a07a224a7d01dc443546e4ee4d65"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "all_equal": true
+      },
+      {
+        "task": "hold",
+        "seed": 1,
+        "baseline": {
+          "task": "hold",
+          "seed": 1,
+          "updates": 3000,
+          "seconds": 304.19258418400204,
+          "policy_adam_rng_sha256": "56bcfa0587a6e6b79a24e5d9916fd3157d3646f49ad4a84f1bc5344c109558bc",
+          "metrics_sha256": "84524e627d9e5f4654330f3b0928aa9bea7bc1210bf6e9df9bc2918ae424c278",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.536681425097726,
+              "mean_length": 68.6796875,
+              "initial_observation_sha256": "cfa5e82a75953c1d55f0d9b16349710a76d9a4ab07f226e3e653210164b24b1a"
+            },
+            {
+              "seed": 2002,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.596301142206528,
+              "mean_length": 68.7265625,
+              "initial_observation_sha256": "8e7f6cf3b7b89b600986bdf08df78d5c693b6e665380142153bbce67fd43318a"
+            },
+            {
+              "seed": 2003,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.65744679122858,
+              "mean_length": 68.9765625,
+              "initial_observation_sha256": "93932fa89425ed5e01ac563334f549e68b5446584836f6381fc37a8df9d73955"
+            },
+            {
+              "seed": 2004,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.302881632796193,
+              "mean_length": 67.265625,
+              "initial_observation_sha256": "44e7b48eb29505543fc9e52b81173283a5a587f2531e1ffea9b52de83300cdb2"
+            },
+            {
+              "seed": 2005,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.218561716491308,
+              "mean_length": 65.8203125,
+              "initial_observation_sha256": "577b70b2118e78ccd71d4060003268ed1dd2a07a224a7d01dc443546e4ee4d65"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "candidate": {
+          "task": "hold",
+          "seed": 1,
+          "updates": 3000,
+          "seconds": 315.9890217819993,
+          "policy_adam_rng_sha256": "56bcfa0587a6e6b79a24e5d9916fd3157d3646f49ad4a84f1bc5344c109558bc",
+          "metrics_sha256": "84524e627d9e5f4654330f3b0928aa9bea7bc1210bf6e9df9bc2918ae424c278",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.536681425097726,
+              "mean_length": 68.6796875,
+              "initial_observation_sha256": "cfa5e82a75953c1d55f0d9b16349710a76d9a4ab07f226e3e653210164b24b1a"
+            },
+            {
+              "seed": 2002,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.596301142206528,
+              "mean_length": 68.7265625,
+              "initial_observation_sha256": "8e7f6cf3b7b89b600986bdf08df78d5c693b6e665380142153bbce67fd43318a"
+            },
+            {
+              "seed": 2003,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.65744679122858,
+              "mean_length": 68.9765625,
+              "initial_observation_sha256": "93932fa89425ed5e01ac563334f549e68b5446584836f6381fc37a8df9d73955"
+            },
+            {
+              "seed": 2004,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.302881632796193,
+              "mean_length": 67.265625,
+              "initial_observation_sha256": "44e7b48eb29505543fc9e52b81173283a5a587f2531e1ffea9b52de83300cdb2"
+            },
+            {
+              "seed": 2005,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.218561716491308,
+              "mean_length": 65.8203125,
+              "initial_observation_sha256": "577b70b2118e78ccd71d4060003268ed1dd2a07a224a7d01dc443546e4ee4d65"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "all_equal": true
+      },
+      {
+        "task": "hold",
+        "seed": 2,
+        "baseline": {
+          "task": "hold",
+          "seed": 2,
+          "updates": 3000,
+          "seconds": 306.3238757069994,
+          "policy_adam_rng_sha256": "aecbce40342a61a96a5810b989ac3fd5dd3ab141077eb74facba7b00917796b7",
+          "metrics_sha256": "6cea3acc51ccb83a3a2128ab3908e59cac3167b9c92d04ca5a4f09bd62bbe3df",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.535387234749649,
+              "mean_length": 68.0390625,
+              "initial_observation_sha256": "cfa5e82a75953c1d55f0d9b16349710a76d9a4ab07f226e3e653210164b24b1a"
+            },
+            {
+              "seed": 2002,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.596264380064284,
+              "mean_length": 68.4609375,
+              "initial_observation_sha256": "8e7f6cf3b7b89b600986bdf08df78d5c693b6e665380142153bbce67fd43318a"
+            },
+            {
+              "seed": 2003,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.661662727480561,
+              "mean_length": 68.578125,
+              "initial_observation_sha256": "93932fa89425ed5e01ac563334f549e68b5446584836f6381fc37a8df9d73955"
+            },
+            {
+              "seed": 2004,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.309947546148678,
+              "mean_length": 66.859375,
+              "initial_observation_sha256": "44e7b48eb29505543fc9e52b81173283a5a587f2531e1ffea9b52de83300cdb2"
+            },
+            {
+              "seed": 2005,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.199923797074296,
+              "mean_length": 65.2578125,
+              "initial_observation_sha256": "577b70b2118e78ccd71d4060003268ed1dd2a07a224a7d01dc443546e4ee4d65"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "candidate": {
+          "task": "hold",
+          "seed": 2,
+          "updates": 3000,
+          "seconds": 315.075506991001,
+          "policy_adam_rng_sha256": "aecbce40342a61a96a5810b989ac3fd5dd3ab141077eb74facba7b00917796b7",
+          "metrics_sha256": "6cea3acc51ccb83a3a2128ab3908e59cac3167b9c92d04ca5a4f09bd62bbe3df",
+          "evaluations": [
+            {
+              "seed": 2001,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.535387234749649,
+              "mean_length": 68.0390625,
+              "initial_observation_sha256": "cfa5e82a75953c1d55f0d9b16349710a76d9a4ab07f226e3e653210164b24b1a"
+            },
+            {
+              "seed": 2002,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.596264380064284,
+              "mean_length": 68.4609375,
+              "initial_observation_sha256": "8e7f6cf3b7b89b600986bdf08df78d5c693b6e665380142153bbce67fd43318a"
+            },
+            {
+              "seed": 2003,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.661662727480561,
+              "mean_length": 68.578125,
+              "initial_observation_sha256": "93932fa89425ed5e01ac563334f549e68b5446584836f6381fc37a8df9d73955"
+            },
+            {
+              "seed": 2004,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.309947546148678,
+              "mean_length": 66.859375,
+              "initial_observation_sha256": "44e7b48eb29505543fc9e52b81173283a5a587f2531e1ffea9b52de83300cdb2"
+            },
+            {
+              "seed": 2005,
+              "successes": 128,
+              "num_envs": 128,
+              "mean_return": 7.199923797074296,
+              "mean_length": 65.2578125,
+              "initial_observation_sha256": "577b70b2118e78ccd71d4060003268ed1dd2a07a224a7d01dc443546e4ee4d65"
+            }
+          ],
+          "torch_version": "2.13.0+cu130"
+        },
+        "all_equal": true
+      }
+    ],
+    "raw_report": {
+      "path": "runs/platform-optimization-20261014-round3/core-release-pairs.json",
+      "sha256": "f2e6f1253fbde5faad4b42b5aaf08a4edd65a5764650a9f826a36a6398f66ed2"
+    }
+  },
+  "endurance": {
+    "status": "passed",
+    "scope": "Frozen candidate-accepted source; repeated actual NumPy/raster acquisition with 32/64/128/257 RGB-only and RGB+depth, both episode formats and workers 0/1/2, decoded and owned ordered/shuffled batch checksums equal per group; shared 1.25x legacy episode payload budget; injected archive/marker, worker interruption, final manifest retry and backend cleanup cancellation faults; raster differential against start-of-round source across sizes 32..540, radii 1e-12..4 and N1..64; physics exact comparison across masks/resets/masses/N1..1024. Temporary datasets removed and GC sampled each group; no RSS hard bound or performance timing claim.",
+    "started_utc": "2026-10-14T13:25:12.124882+00:00",
+    "ended_utc": "2026-10-14T14:30:00.155473+00:00",
+    "seconds": 3888.030609727997,
+    "groups": 3046,
+    "sessions": 9138,
+    "complete_episodes": 109656,
+    "transitions": 763056,
+    "injected_failures": 235,
+    "render_comparison_pixels": 4718332376,
+    "physics_comparison_rows": 21186432,
+    "baseline_resources": {
+      "rss_bytes": 37601280,
+      "file_descriptors": 4,
+      "writer_threads": 0,
+      "traced_current_bytes": 4269
+    },
+    "final_resources": {
+      "rss_bytes": 139837440,
+      "file_descriptors": 4,
+      "writer_threads": 0,
+      "traced_current_bytes": 2047861
+    },
+    "max_observed_payload_bytes": 27481576,
+    "resource_samples": [
+      {
+        "seconds": 0.7722199739946518,
+        "groups": 1,
+        "rss_bytes": 42594304,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 508299
+      },
+      {
+        "seconds": 31.008770996995736,
+        "groups": 24,
+        "rss_bytes": 91299840,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1908709
+      },
+      {
+        "seconds": 63.87666872800037,
+        "groups": 48,
+        "rss_bytes": 95023104,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1929050
+      },
+      {
+        "seconds": 95.26673969499825,
+        "groups": 71,
+        "rss_bytes": 105066496,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1934908
+      },
+      {
+        "seconds": 132.074955803997,
+        "groups": 96,
+        "rss_bytes": 103972864,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1940949
+      },
+      {
+        "seconds": 162.1881927459981,
+        "groups": 119,
+        "rss_bytes": 109453312,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1943672
+      },
+      {
+        "seconds": 194.02238566600136,
+        "groups": 144,
+        "rss_bytes": 102621184,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1944870
+      },
+      {
+        "seconds": 224.55530569199618,
+        "groups": 170,
+        "rss_bytes": 117239808,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1950133
+      },
+      {
+        "seconds": 254.64269211299688,
+        "groups": 190,
+        "rss_bytes": 76345344,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1951880
+      },
+      {
+        "seconds": 285.4584505439998,
+        "groups": 215,
+        "rss_bytes": 107966464,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1953157
+      },
+      {
+        "seconds": 316.6120999989944,
+        "groups": 236,
+        "rss_bytes": 110047232,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1955497
+      },
+      {
+        "seconds": 346.65840164999827,
+        "groups": 262,
+        "rss_bytes": 78012416,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1958495
+      },
+      {
+        "seconds": 377.39272019599593,
+        "groups": 287,
+        "rss_bytes": 105193472,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1959296
+      },
+      {
+        "seconds": 407.9587984949976,
+        "groups": 310,
+        "rss_bytes": 79831040,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1959058
+      },
+      {
+        "seconds": 438.5117055399969,
+        "groups": 335,
+        "rss_bytes": 105455616,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1965558
+      },
+      {
+        "seconds": 468.710302569998,
+        "groups": 355,
+        "rss_bytes": 99696640,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1978485
+      },
+      {
+        "seconds": 499.61545338799624,
+        "groups": 376,
+        "rss_bytes": 111394816,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1978878
+      },
+      {
+        "seconds": 529.7339481379968,
+        "groups": 401,
+        "rss_bytes": 119386112,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1977480
+      },
+      {
+        "seconds": 561.0533154099976,
+        "groups": 424,
+        "rss_bytes": 109875200,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1978397
+      },
+      {
+        "seconds": 591.3717950559949,
+        "groups": 449,
+        "rss_bytes": 76914688,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1979846
+      },
+      {
+        "seconds": 621.4161099429984,
+        "groups": 471,
+        "rss_bytes": 111329280,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1980229
+      },
+      {
+        "seconds": 651.6850262129956,
+        "groups": 495,
+        "rss_bytes": 112619520,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1982329
+      },
+      {
+        "seconds": 682.0246503269955,
+        "groups": 518,
+        "rss_bytes": 112619520,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1982795
+      },
+      {
+        "seconds": 713.4585427019992,
+        "groups": 536,
+        "rss_bytes": 112029696,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1984626
+      },
+      {
+        "seconds": 743.6753834919946,
+        "groups": 561,
+        "rss_bytes": 114073600,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1985988
+      },
+      {
+        "seconds": 774.9788971300004,
+        "groups": 584,
+        "rss_bytes": 114008064,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1985460
+      },
+      {
+        "seconds": 805.5329966099962,
+        "groups": 608,
+        "rss_bytes": 113999872,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1985306
+      },
+      {
+        "seconds": 835.6979000739957,
+        "groups": 634,
+        "rss_bytes": 113934336,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1984705
+      },
+      {
+        "seconds": 868.5953655549965,
+        "groups": 656,
+        "rss_bytes": 119582720,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1987281
+      },
+      {
+        "seconds": 898.7083395890004,
+        "groups": 682,
+        "rss_bytes": 114024448,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1986029
+      },
+      {
+        "seconds": 929.5893504889973,
+        "groups": 704,
+        "rss_bytes": 114061312,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1987694
+      },
+      {
+        "seconds": 959.728181102997,
+        "groups": 724,
+        "rss_bytes": 93192192,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1988609
+      },
+      {
+        "seconds": 989.7520951279948,
+        "groups": 749,
+        "rss_bytes": 98000896,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1988741
+      },
+      {
+        "seconds": 1019.806956116001,
+        "groups": 772,
+        "rss_bytes": 108171264,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1989592
+      },
+      {
+        "seconds": 1051.2593837499953,
+        "groups": 792,
+        "rss_bytes": 97640448,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1989658
+      },
+      {
+        "seconds": 1084.3506515029949,
+        "groups": 816,
+        "rss_bytes": 126775296,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1988833
+      },
+      {
+        "seconds": 1114.8315666109993,
+        "groups": 840,
+        "rss_bytes": 114806784,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1990069
+      },
+      {
+        "seconds": 1145.1167965249988,
+        "groups": 866,
+        "rss_bytes": 107909120,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1991174
+      },
+      {
+        "seconds": 1175.138837927996,
+        "groups": 889,
+        "rss_bytes": 109228032,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1991596
+      },
+      {
+        "seconds": 1206.9718374430013,
+        "groups": 911,
+        "rss_bytes": 112267264,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1992318
+      },
+      {
+        "seconds": 1242.1492949769963,
+        "groups": 936,
+        "rss_bytes": 125480960,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1991673
+      },
+      {
+        "seconds": 1272.5811797499991,
+        "groups": 961,
+        "rss_bytes": 125222912,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1994015
+      },
+      {
+        "seconds": 1303.1791598499985,
+        "groups": 987,
+        "rss_bytes": 85970944,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1993360
+      },
+      {
+        "seconds": 1333.457868020996,
+        "groups": 1011,
+        "rss_bytes": 85889024,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 1992426
+      },
+      {
+        "seconds": 1363.5918178079955,
+        "groups": 1032,
+        "rss_bytes": 106983424,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2004769
+      },
+      {
+        "seconds": 1396.0268708119984,
+        "groups": 1056,
+        "rss_bytes": 96169984,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2005642
+      },
+      {
+        "seconds": 1426.4214863489979,
+        "groups": 1080,
+        "rss_bytes": 125558784,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2007242
+      },
+      {
+        "seconds": 1457.7437546729998,
+        "groups": 1104,
+        "rss_bytes": 83841024,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2006874
+      },
+      {
+        "seconds": 1489.9330825969955,
+        "groups": 1128,
+        "rss_bytes": 114860032,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2006408
+      },
+      {
+        "seconds": 1520.351597889996,
+        "groups": 1151,
+        "rss_bytes": 109039616,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2006377
+      },
+      {
+        "seconds": 1556.1132607969994,
+        "groups": 1176,
+        "rss_bytes": 108548096,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2007465
+      },
+      {
+        "seconds": 1586.1999826039973,
+        "groups": 1200,
+        "rss_bytes": 105664512,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2008832
+      },
+      {
+        "seconds": 1616.9109627840007,
+        "groups": 1226,
+        "rss_bytes": 97759232,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2009490
+      },
+      {
+        "seconds": 1647.8318487809956,
+        "groups": 1251,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2008318
+      },
+      {
+        "seconds": 1678.8171790429988,
+        "groups": 1271,
+        "rss_bytes": 111960064,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2009041
+      },
+      {
+        "seconds": 1714.1614241569987,
+        "groups": 1296,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2010597
+      },
+      {
+        "seconds": 1744.4652851349965,
+        "groups": 1320,
+        "rss_bytes": 126263296,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2011749
+      },
+      {
+        "seconds": 1774.6968713199967,
+        "groups": 1346,
+        "rss_bytes": 126263296,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2011632
+      },
+      {
+        "seconds": 1805.7921898109998,
+        "groups": 1371,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2011428
+      },
+      {
+        "seconds": 1836.2743173849958,
+        "groups": 1392,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2011907
+      },
+      {
+        "seconds": 1869.8989543849966,
+        "groups": 1416,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2012178
+      },
+      {
+        "seconds": 1902.596033099995,
+        "groups": 1440,
+        "rss_bytes": 109117440,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2013246
+      },
+      {
+        "seconds": 1932.7614300569985,
+        "groups": 1465,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2014440
+      },
+      {
+        "seconds": 1963.5120303689982,
+        "groups": 1491,
+        "rss_bytes": 126263296,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2014424
+      },
+      {
+        "seconds": 1993.9304148739975,
+        "groups": 1513,
+        "rss_bytes": 126263296,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2015400
+      },
+      {
+        "seconds": 2024.4143911200008,
+        "groups": 1536,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2014457
+      },
+      {
+        "seconds": 2054.584177149998,
+        "groups": 1560,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2016305
+      },
+      {
+        "seconds": 2085.219372390995,
+        "groups": 1587,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2015361
+      },
+      {
+        "seconds": 2116.792058011997,
+        "groups": 1608,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2017347
+      },
+      {
+        "seconds": 2149.868607545999,
+        "groups": 1632,
+        "rss_bytes": 107732992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2017771
+      },
+      {
+        "seconds": 2181.7240559229976,
+        "groups": 1656,
+        "rss_bytes": 127541248,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2017286
+      },
+      {
+        "seconds": 2211.9349714599957,
+        "groups": 1680,
+        "rss_bytes": 120774656,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2017782
+      },
+      {
+        "seconds": 2242.057268147997,
+        "groups": 1706,
+        "rss_bytes": 94322688,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2016692
+      },
+      {
+        "seconds": 2272.861709081997,
+        "groups": 1731,
+        "rss_bytes": 103784448,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2020722
+      },
+      {
+        "seconds": 2303.057253892999,
+        "groups": 1752,
+        "rss_bytes": 109531136,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2019698
+      },
+      {
+        "seconds": 2335.133114794,
+        "groups": 1776,
+        "rss_bytes": 110776320,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2019717
+      },
+      {
+        "seconds": 2365.321042563999,
+        "groups": 1797,
+        "rss_bytes": 83230720,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2018812
+      },
+      {
+        "seconds": 2396.3725113129985,
+        "groups": 1823,
+        "rss_bytes": 109805568,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2020885
+      },
+      {
+        "seconds": 2427.5812975879962,
+        "groups": 1847,
+        "rss_bytes": 111427584,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2021888
+      },
+      {
+        "seconds": 2458.5809385050015,
+        "groups": 1868,
+        "rss_bytes": 114294784,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2022286
+      },
+      {
+        "seconds": 2489.3907446599987,
+        "groups": 1893,
+        "rss_bytes": 80609280,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2022280
+      },
+      {
+        "seconds": 2523.288987038999,
+        "groups": 1916,
+        "rss_bytes": 113901568,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2022783
+      },
+      {
+        "seconds": 2553.696870927997,
+        "groups": 1938,
+        "rss_bytes": 80609280,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2022544
+      },
+      {
+        "seconds": 2584.7577997629996,
+        "groups": 1964,
+        "rss_bytes": 113635328,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2022818
+      },
+      {
+        "seconds": 2615.719093904998,
+        "groups": 1988,
+        "rss_bytes": 114946048,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2023520
+      },
+      {
+        "seconds": 2645.882860441001,
+        "groups": 2014,
+        "rss_bytes": 81920000,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2024574
+      },
+      {
+        "seconds": 2677.9819525939965,
+        "groups": 2036,
+        "rss_bytes": 114032640,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2024997
+      },
+      {
+        "seconds": 2708.6349531829983,
+        "groups": 2062,
+        "rss_bytes": 80609280,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2026217
+      },
+      {
+        "seconds": 2739.752616288999,
+        "groups": 2085,
+        "rss_bytes": 80609280,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2025681
+      },
+      {
+        "seconds": 2770.5782304899985,
+        "groups": 2108,
+        "rss_bytes": 115212288,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2026108
+      },
+      {
+        "seconds": 2800.8444967489995,
+        "groups": 2135,
+        "rss_bytes": 112566272,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2026750
+      },
+      {
+        "seconds": 2831.1061582429975,
+        "groups": 2157,
+        "rss_bytes": 124235776,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2026897
+      },
+      {
+        "seconds": 2863.306475792,
+        "groups": 2184,
+        "rss_bytes": 130043904,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2028301
+      },
+      {
+        "seconds": 2896.3944422019995,
+        "groups": 2208,
+        "rss_bytes": 130371584,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2028176
+      },
+      {
+        "seconds": 2927.3731479349954,
+        "groups": 2232,
+        "rss_bytes": 98619392,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2027779
+      },
+      {
+        "seconds": 2957.5389870889994,
+        "groups": 2256,
+        "rss_bytes": 83230720,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2029034
+      },
+      {
+        "seconds": 2988.339813806997,
+        "groups": 2284,
+        "rss_bytes": 100773888,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2029656
+      },
+      {
+        "seconds": 3019.0447318160004,
+        "groups": 2308,
+        "rss_bytes": 107282432,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2030052
+      },
+      {
+        "seconds": 3049.3454513359975,
+        "groups": 2335,
+        "rss_bytes": 114384896,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2030528
+      },
+      {
+        "seconds": 3079.8971650800013,
+        "groups": 2358,
+        "rss_bytes": 86163456,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2030859
+      },
+      {
+        "seconds": 3110.2648378749946,
+        "groups": 2382,
+        "rss_bytes": 103055360,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2031915
+      },
+      {
+        "seconds": 3140.8819799880002,
+        "groups": 2403,
+        "rss_bytes": 88358912,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2031161
+      },
+      {
+        "seconds": 3171.7842970700003,
+        "groups": 2430,
+        "rss_bytes": 103124992,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2031511
+      },
+      {
+        "seconds": 3208.6560560849975,
+        "groups": 2456,
+        "rss_bytes": 114671616,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2033081
+      },
+      {
+        "seconds": 3240.6061149539964,
+        "groups": 2484,
+        "rss_bytes": 116588544,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2033619
+      },
+      {
+        "seconds": 3271.673713183998,
+        "groups": 2508,
+        "rss_bytes": 116641792,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2034015
+      },
+      {
+        "seconds": 3302.2560527399983,
+        "groups": 2533,
+        "rss_bytes": 116576256,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2034845
+      },
+      {
+        "seconds": 3332.708614532996,
+        "groups": 2558,
+        "rss_bytes": 116641792,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2036095
+      },
+      {
+        "seconds": 3362.8633551839957,
+        "groups": 2581,
+        "rss_bytes": 113655808,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2035122
+      },
+      {
+        "seconds": 3393.061467574,
+        "groups": 2607,
+        "rss_bytes": 115220480,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2035993
+      },
+      {
+        "seconds": 3424.4402372879995,
+        "groups": 2631,
+        "rss_bytes": 115220480,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2035966
+      },
+      {
+        "seconds": 3455.2710679090014,
+        "groups": 2656,
+        "rss_bytes": 115220480,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2035867
+      },
+      {
+        "seconds": 3485.399854557996,
+        "groups": 2683,
+        "rss_bytes": 83656704,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2036271
+      },
+      {
+        "seconds": 3515.7119210890014,
+        "groups": 2707,
+        "rss_bytes": 83656704,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2038000
+      },
+      {
+        "seconds": 3546.504042331995,
+        "groups": 2733,
+        "rss_bytes": 81920000,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2038455
+      },
+      {
+        "seconds": 3578.2381202239994,
+        "groups": 2756,
+        "rss_bytes": 113901568,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2040389
+      },
+      {
+        "seconds": 3608.259954633999,
+        "groups": 2783,
+        "rss_bytes": 109903872,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2042452
+      },
+      {
+        "seconds": 3638.960661650999,
+        "groups": 2812,
+        "rss_bytes": 102883328,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2042695
+      },
+      {
+        "seconds": 3671.2041777709965,
+        "groups": 2840,
+        "rss_bytes": 116678656,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2043164
+      },
+      {
+        "seconds": 3701.803179857001,
+        "groups": 2868,
+        "rss_bytes": 117374976,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2043403
+      },
+      {
+        "seconds": 3732.109080231996,
+        "groups": 2896,
+        "rss_bytes": 116613120,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2045152
+      },
+      {
+        "seconds": 3762.3843779109957,
+        "groups": 2927,
+        "rss_bytes": 112791552,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2044638
+      },
+      {
+        "seconds": 3792.572544344999,
+        "groups": 2952,
+        "rss_bytes": 101797888,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2044840
+      },
+      {
+        "seconds": 3822.9252755479974,
+        "groups": 2982,
+        "rss_bytes": 110415872,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2045060
+      },
+      {
+        "seconds": 3853.4277278579975,
+        "groups": 3011,
+        "rss_bytes": 116621312,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2046400
+      },
+      {
+        "seconds": 3883.5386535770012,
+        "groups": 3040,
+        "rss_bytes": 125841408,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2047068
+      }
+    ],
+    "raw_report": {
+      "path": "runs/platform-optimization-20261014-round3/stress-accepted.json",
+      "sha256": "b5f3e1c682d933b1c94aaae360cd05d5bb894288ea865d09df773ee4da76c934"
+    },
+    "deliberate_pauses_during_final_cohort": []
+  },
+  "earlier_runtime_endurance": {
+    "snapshot_revision": "00f35d793db65770e3c2bb18cffb0bbf4cca3ac0",
+    "note": "Longer pre-RGB-only lifetime adjustment cohort; its executed physics, recorder, reader, and multi-channel raster paths are unchanged in the accepted source. Final RGB-only code is covered by the accepted cohort, full suites and channel benchmarks.",
+    "summary": {
+      "status": "passed",
+      "scope": "Frozen candidate-release source; repeated actual NumPy/raster acquisition with 32/64/128/257 RGB+depth, both episode formats and workers 0/1/2, decoded and owned ordered/shuffled batch checksums equal per group; shared 1.25x legacy episode payload budget; injected archive/marker, worker interruption, final manifest retry and backend cleanup cancellation faults; raster differential against start-of-round source across sizes 32..540, radii 1e-12..4 and N1..64; physics exact comparison across masks/resets/masses/N1..1024. Temporary datasets removed and GC sampled each group; no RSS hard bound or performance timing claim.",
+      "started_utc": "2026-10-14T11:19:19.565833+00:00",
+      "ended_utc": "2026-10-14T14:25:00.707981+00:00",
+      "seconds": 11141.142164122997,
+      "groups": 7112,
+      "sessions": 21336,
+      "complete_episodes": 256032,
+      "transitions": 1780632,
+      "injected_failures": 548,
+      "render_comparison_pixels": 11050866770,
+      "physics_comparison_rows": 49499520,
+      "baseline_resources": {
+        "rss_bytes": 37744640,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 4269
+      },
+      "final_resources": {
+        "rss_bytes": 115777536,
+        "file_descriptors": 4,
+        "writer_threads": 0,
+        "traced_current_bytes": 2220099
+      },
+      "max_observed_payload_bytes": 27481576
+    },
+    "raw_report": {
+      "path": "runs/platform-optimization-20261014-round3/stress-release.json",
+      "sha256": "085ae62f7ad1f0ca53a68c3cbc1c7f4d4d1db10289ff8f92d8d0d7b598f2cd60"
+    },
+    "pause_record": {
+      "path": "runs/platform-optimization-20261014-round3/accepted-benchmark-pause.json",
+      "sha256": "7ada453bd1ca8bc81bcdfdd653bc6c078c3bec9203922700b1d9a70c9e2326b4"
+    }
+  },
+  "completion_process_audit": {
+    "status": "passed",
+    "owned_long_running_processes": [],
+    "unrelated_processes_untouched": true,
+    "raw_report": {
+      "path": "runs/platform-optimization-20261014-round3/final-process-audit.json",
+      "sha256": "52f3c4bac0dbe4242789aad6b2f7aa9477173678848eed9efe219623a5d18dce"
+    }
+  },
+  "benchmark_isolation": {
+    "final_measurements_started_after_owned_correctness_workers_paused": true,
+    "pause_records": [
+      {
+        "path": "runs/platform-optimization-20261014-round3/guard-benchmark-pause.json",
+        "sha256": "ab17c81081dff23c554ee12e712598c2b0edf31634b6747a66e22498a2b10dd2"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/release-benchmark-pause.json",
+        "sha256": "dfb338a6f368efdb678fa78688a7d0fcad36832d02ad3dbc127274ef451ad569"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/accepted-benchmark-pause.json",
+        "sha256": "7ada453bd1ca8bc81bcdfdd653bc6c078c3bec9203922700b1d9a70c9e2326b4"
+      }
+    ],
+    "final_cohort_started_after_all_timing_jobs": true,
+    "unrelated_jobs_touched": false,
+    "unrelated_machine_activity_controlled": false
+  },
+  "artifacts": {
+    "root": "runs/platform-optimization-20261014-round3",
+    "tracked": false,
+    "source_snapshots_and_logs_retained": true,
+    "temporary_test_datasets_removed": true,
+    "scripts": [
+      {
+        "path": "runs/platform-optimization-20261014-round3/accepted_pairs.py",
+        "sha256": "0d8091f766fa4f8ce3c422dea71f4b7ea9e033c16aa00ac41fc2cbbfb7733c93"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/after_raster.py",
+        "sha256": "ae482b13b3e5c8a7171c7b4de4f809ed37ca945056378687bfeb5c97190e8701"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/build_report.py",
+        "sha256": "cf6f8044b9513cf64a0f092cc8d8cecd6a36fb3afd88d2d9f83d7fb059369fa7"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/compact_status.py",
+        "sha256": "2d7208a578c6bea9fd865d313bd638347bd7a03d1083db5da708bd3f4d3b0d64"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/core_final_pairs.py",
+        "sha256": "395e0cdaeae0a5a5ace342e89b6b2243a3d56c7cf5a90e49dfa13fd33c885fe1"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/core_pairs.py",
+        "sha256": "2b96bf0f3e44d654b6cb4c44d48113b2b20bfb11c4bd6a6d547139bcb260608d"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/core_probe.py",
+        "sha256": "c241ae0ecafbef56ecc6220994fa518350e3770cef61bfbb99a93605ed3b68d9"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/core_release_pairs.py",
+        "sha256": "10f60462343fc29cb07410ab7aa4b688125394c923a7f150a7afb5c695bb91ff"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/final_pairs.py",
+        "sha256": "451eea102250eb9dc4cf11d676915cfb77e7e0e02435e3f8b77d57fe9a96e3e5"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/guard_pairs.py",
+        "sha256": "2ca6d638dc69d75f4cc64e9d4c6f0842f2eab485c03f2c49bef04c58e96f3d8d"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/hash_probe.py",
+        "sha256": "baea6a5255b77c4cc5a49081d877b450bd0750dd7f50ed0a9cd47552817442f8"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/native_accepted_check.py",
+        "sha256": "8eaa9aa54eeb8123fbb3eb65ccce4c7b51832952fbdd653ec9af039e2faced2c"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/palette_experiment.py",
+        "sha256": "62b01aacb16c68ace17beedd708038033855d328a2b50c1d1a1545e352a4489f"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/partial_physics_experiment.py",
+        "sha256": "819061892deb3ed626df527db0e066098c6cf05a01a23e092697dcbaebe424fe"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/physics_experiment.py",
+        "sha256": "c162427c574f3d85f0422c805af01b6371788798c8f5d862269a85c5594f96f4"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/raster_experiment.py",
+        "sha256": "fc0975164ab43100b39fda4d29a77cad58506ef3e5955c50a98500268ccbd5de"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/raster_pairs.py",
+        "sha256": "e27b3efec460899efbac9b05088163ecb468a8bc05f93d9d91116f6587fece08"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/release_pairs.py",
+        "sha256": "27ead033dd48d066347d6b0e77b67eebc4c7383bb117b45d0c842780651ac568"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/rgb_accepted_memory_probe.py",
+        "sha256": "a23318733a58a8df1bb6a478e390c634f264a092c1d577d11b0504603104c808"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/rgb_cast_memory_probe.py",
+        "sha256": "bd68d0f1f5086ab85464b529e44460e8fd62c50b620a518393b6e6af0e4ee584"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/rgb_cast_render.py",
+        "sha256": "6693d45919ea799bf59d81017b050c9e61fa1f4f9a07bbfc4f32b4368a1de1ff"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/rgb_memory_probe.py",
+        "sha256": "3bbec5d295b2909e4b4cadb9ff2ef5124641438cdb7c2e2ad0103c31f5e4f6d5"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/run_accepted_benchmarks.py",
+        "sha256": "c9d10a69e83d5e8c05dae4485fb4dc23ebd218c58fb3339d3aca9c90d38b6bc5"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/run_guard_benchmarks.py",
+        "sha256": "52ffe2cfc6da563dc7795e360630739c371c917f08c09138c9d50bcb06f278dd"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/run_release_benchmarks.py",
+        "sha256": "d67dbb2be3725eb1a7071a27554b26845a4dfd8ff9dc536d4f3a897df12683f8"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/runtime_accepted_stress.py",
+        "sha256": "6fd30e15bb792b708d546791c5fa12bf6da9a05e85ff34fa7dff40c4d58dc334"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/runtime_final_stress.py",
+        "sha256": "18d0a0c90dfa01c520ec4b7bcf7b2419822d2d6998609c187379e1e749e5ffd0"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/runtime_release_stress.py",
+        "sha256": "a933047885750719c272f4f055ca33f9d66b20432e48719e90c7efff54a49416"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/runtime_stress.py",
+        "sha256": "6eae691d13c00f0e2a128797e2dedf3fac28918ce8cd98d6fce2842eb02f8def"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/status.py",
+        "sha256": "34f2cfc602259d53671c633e98e36a8cb0388ac4097c71827cf0b014ab48a942"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/validate.py",
+        "sha256": "3febb02f6aea19c37933a31b2463970eeff8ce01db7261d0f592f7396e3dd5f1"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/validate_accepted.py",
+        "sha256": "e4bd0290c540bea889fb902b8a5d815f7a33e071b9bdd830ab11485b6193c3f8"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/validate_release.py",
+        "sha256": "df7a71169b4c063e71af94c842bdd0925e809abc6f0bc01f58acee097a5643e5"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/wheel_accepted_check.py",
+        "sha256": "3e84489591aaecebc7ae941bfba7c2d07d29f4a7d6c7b97a81006ec05aa453fa"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/wheel_check.py",
+        "sha256": "00084005f359b84f173bdcf1d73d5f8361b495869c8132387ad42dab24888ef2"
+      },
+      {
+        "path": "runs/platform-optimization-20261014-round3/write_pr_description.py",
+        "sha256": "39191395a2bdc449f78c57decc1edb45f45a7b904567afd7a52e9b80aaf6963e"
+      }
+    ]
+  },
+  "limitations": [
+    "Reference planar CPU tasks, raster cameras and acquisition probes do not measure general articulated-robot rendering, GPU training or hardware execution.",
+    "Small gains and median paired ratios describe these inputs on this shared host; external machine activity remains uncontrolled.",
+    "Tracemalloc includes Python/NumPy allocations during each measured phase, not total process RSS. Hash memory gains do not establish whole-training memory savings.",
+    "The early np.take-only RGB probe increased peak traced allocation. The final accepted RGB-only lifetime adjustment removes that regression; channel-specific allocation results remain phase measurements, not total process RSS.",
+    "Large-radius/small-workload disks use the original dense geometry path. Returned image arrays and IDs/dtypes stay unchanged.",
+    "PPO training was measured on the pre-RGB-only adjustment snapshot; all training/task/physics/env/checkpoint source is byte-identical and the used NullRenderer AST is identical in the accepted source, with render=null/no channels proved for each run.",
+    "PPO equivalence is for two reference tasks and three policy seeds with fixed settings; environment and RNG resume semantics remain policy+Adam with new environment/RNG streams.",
+    "Microduck head randomization was corrected earlier. No new mature/multi-seed robot-quality improvement is claimed in this round.",
+    "Optional SDK skips are recorded, not treated as coverage. Remote CI was not run. Atomic publication is not an fsync/power-loss durability guarantee."
+  ],
+  "exploratory_work_excluded_from_final_claims": [
+    "Earlier raster rectangle-only and intermediate step/guard snapshots were used to choose the final implementation. Final performance claims use candidate-accepted only; long-training computational-path applicability is separately proved.",
+    "Initial focused test invocation omitted PYTHONPATH for a child interpreter; explicit source-root reruns and clean full suites passed.",
+    "Intermediate candidate-step/candidate-final training and stress cohorts remain local supplemental evidence. Their documented pauses/versions are not counted as final-source endurance or speed results.",
+    "Partial-row indexing and palette microprobes guided selection; their timings are not substituted for complete rendering/environment measurements."
+  ]
+}

@@ -17,6 +17,8 @@ EmbodiedForge 现在维护 Microduck **平地行走任务的本地移植**：任
 
 移植基线是 Microduck `53b8971b61baf5b7f3c16d135dd7cac37623de4b`。保留 Apache-2.0 许可证，`NOTICE` 与 `UPSTREAM.json` 记录改动、源文件及原始散列。当前只注册平地行走任务；共享 MDP 辅助代码及其 RewardManager/PPO 扩展暂时保留，其他上游任务、HF Jobs 和实机控制程序不在此次范围内。
 
+本地头部质心随机化只选择 `neck`、`neck_pitch`、`yaw_roll_motion` 和头部外壳。上游列表中的 `bearing_roll` 属于右髋，已从头部选择中移除。因此新训练或用当前实现续训时，重置分布和随机数消耗会变化；这不是保持历史轨迹逐值一致的改动，也不单独证明策略质量提高。历史运行的实现快照仍保留原列表。共享 MDP 中重复的 `pose_target_match` 定义已合并，保留此前实际生效的参数顺序和计算方式。
+
 主入口继续使用 `ef`。Python 3.12 工作环境独立安装 mjlab 1.3.0、Warp 1.12.0、PyTorch 2.9.1 和固定提交的 BAM；仓库中的 `requirements.txt` 从基线 `uv.lock` 导出，排除了原仓库的任务插件。`check` 输出实际任务、执行器、runner、资产路径和实现散列，以区分本地实现与历史上游运行。
 
 ## 安装与检查

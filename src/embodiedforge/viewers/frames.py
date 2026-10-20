@@ -288,8 +288,11 @@ class IsolatedFrames:
             child.close()
             self.camera_control = self._receive(180)
         except BaseException:
-            child.close()
-            self.close()
+            try:
+                child.close()
+            except BaseException:
+                LOGGER.exception("Failed to close renderer child connection")
+            self._close_preserving_error()
             raise
 
     def _receive(self, timeout):
@@ -310,31 +313,70 @@ class IsolatedFrames:
             self.connection.send(("render", (scene, observation, env_id, camera)))
             return self._receive(180)  # Includes first-frame shader compilation.
         except BaseException:
-            self.close()
+            self._close_preserving_error()
             raise
+
+    def _close_preserving_error(self):
+        try:
+            self.close()
+        except BaseException:
+            LOGGER.exception("Failed to clean up isolated renderer")
 
     def close(self):
         if self.closed:
             return
         self.closed = True
+        error = None
+        failed = object()
+
+        def attempt(operation, *, default=None):
+            nonlocal error
+            try:
+                return operation()
+            except BaseException as caught:
+                if error is None:
+                    error = caught
+                else:
+                    LOGGER.exception("Additional isolated renderer cleanup failure")
+                return default
+
+        def alive():
+            result = attempt(self.process.is_alive, default=failed)
+            return (
+                attempt(self.process.is_alive, default=True)
+                if result is failed
+                else result
+            )
+
         try:
             if self.process.pid is not None:
-                if self.process.is_alive():
-                    try:
-                        self.connection.send(("close", ()))
-                    except (BrokenPipeError, EOFError, OSError):
-                        pass
-                self.process.join(timeout=5)
-                if self.process.is_alive():
-                    self.process.terminate()
-                    self.process.join(timeout=2)
-                if self.process.is_alive():
-                    self.process.kill()
-                    self.process.join(timeout=2)
+                if alive():
+
+                    def request_close():
+                        try:
+                            self.connection.send(("close", ()))
+                        except (BrokenPipeError, EOFError, OSError):
+                            pass
+
+                    attempt(request_close)
+                attempt(lambda: self.process.join(timeout=5))
+                if alive():
+                    attempt(self.process.terminate)
+                    attempt(lambda: self.process.join(timeout=2))
+                if alive():
+                    if attempt(self.process.kill, default=failed) is failed:
+                        attempt(self.process.kill)
+                    attempt(lambda: self.process.join(timeout=2))
         finally:
-            self.connection.close()
-            if self.process.pid is not None and not self.process.is_alive():
-                self.process.close()
+            if attempt(self.connection.close, default=failed) is failed:
+                # These standard handles support repeated close; an interrupt
+                # may arrive before the descriptor release actually happens.
+                attempt(self.connection.close)
+            if self.process.pid is not None and not alive():
+                if attempt(self.process.close, default=failed) is failed:
+                    attempt(self.process.close)
+        if error is not None:
+            raise error
 
 
 def create_frame_renderer(

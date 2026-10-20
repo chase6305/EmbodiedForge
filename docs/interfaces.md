@@ -47,7 +47,7 @@
 | rollout | `DemonstrationPolicy` | 将单步示范动作适配为 `[B,1,A]` 策略输出 |
 | rollout | `RolloutSummary` | 本次运行的完成 episode 数、终态成功率与平均步奖励 |
 | [data.py](../src/embodiedforge/data.py) | `EpisodeReadOptions` | 不可变读取配置：观测字段选择与确定性 episode 分片 |
-| data | `EpisodeRecorder` | 有界同步记录，原子发布完整 episode，标记未完成数据 |
+| data | `EpisodeRecorder` | 有界记录，可选后台写入，原子发布完整 episode，标记未完成数据 |
 | [batching.py](../src/embodiedforge/batching.py) | `BatchOptions` | 不可变批次大小、打乱容量、seed/epoch 和尾批配置 |
 | batching | `WindowBatch` | 拥有数组的观测/动作批次与逐样本语言指令 |
 | [training.py](../src/embodiedforge/training.py) | `PPOConfig` | PPO 超参数及基本校验 |
@@ -118,6 +118,12 @@ sequenceDiagram
 
 无通道的训练跳过 scene_update、sync、render。一个正常 step 只获取上一步与本步两份物理快照，本步快照复用于任务、渲染和观测。返回结果仍然拥有独立数组，避免用减少复制换来别名错误。
 
+NumPy 参考物理后端在部分行活动且有多个子步时，对独立的普通 float64 状态数组只提取一次活动行，按原顺序执行每次半隐式 Euler 加法，再写回活动状态。控制在一次同步调用内保持不变，因此子步的速度增量只计算一次；没有用闭式公式替代积分。全部活动、全部冻结、单子步以及共享状态缓冲区、数组子类或严格浮点异常模式沿用原路径。这个优化针对二维 CPU 参考动力学，不代表 MuJoCo、GPU 或训练吞吐量；基准的临时分配峰值也不是进程 RSS 上限。`benchmarks/reference_step.py --substeps` 可指定积分子步数，默认仍为 4。
+
+Reach/Hold 任务在位置数组至少有 16384 个元素（二维位置对应 8192 行）、参与拼接的字段均为普通原生 float64 数组，且值有限、不会溢出 float32、下溢诊断关闭时，直接拼接为最终的 float32 特征，省去完整 float64 拼接结果及其后续转换副本。相对目标位置仍按输入类型先计算；小批量、混合类型、非原生字节序、数组子类及需要保留浮点转换诊断的输入继续使用原来的拼接和转换顺序。范围检查增加归约开销，分配节省不表示更快。任务特征与状态、目标数组保持独立，环境的公共观测复制规则不变。`benchmarks/task_observations.py` 分别测量任务观测和完整无相机环境步进；临时分配测量不代表进程 RSS 或训练吞吐量。
+
+执行动作元数据在普通原生 float64 动作至少有 2048 个元素时，先检查活动掩码：全部活动直接转换成独立 float32 输出，全部冻结直接生成独立零数组，混合批次沿用原来的掩码与转换顺序。正负零、浮点转换诊断以及调用者输出的所有权保持不变；小批量和数组子类继续沿用原路径。这只减少执行动作元数据的中间分配，完整环境步进的耗时与分配需单独测量。可用 `benchmarks/executed_actions.py --active-fraction` 分别选择全部活动、混合或全部冻结批次，并用 `--scope environment` 测量完整无相机步进。
+
 无效动作/ID 在物理写入前拒绝，可以修正后重试。插件调用或输出校验失败时，运行时记录 `failure`，立即关闭后端并拒绝后续 observe/reset/step；不会回滚已经推进的物理状态。清理始终尝试两个后端，清理异常保留在 `cleanup_errors`，不会覆盖原始操作异常或 with 块内异常。显式 close 没有其他异常时会报告清理错误。传感器缓存仅在整个批次验证通过后更新。
 
 `EpisodeRecorder.append` 先验证并复制整个批次，再修改缓存和发布文件。输入错误不会留下部分行，可修正后重试；写盘错误使记录器进入失败状态，禁止继续 append。文件发布按 episode 原子化，不承诺跨 episode 的磁盘事务。reader 同时检查 episode 身份、时间、终止边界和 obs/next 连续性。
@@ -151,7 +157,7 @@ with VectorEnv(Config(task="my_hold")) as env:
 - checkpoint 写入 schema v2，包含 model_spec/env_spec；加载器继续支持初版六维 reach 的 v1。
 - CLI evaluate 默认采用 checkpoint 的环境配置；显式覆盖 task、场景、控制周期或动作语义不兼容时拒绝评估。
 
-持久化 Episode 仍是 schema v1，此轮仅新增任务、seed 和 scene_spec 元数据，原有数组和字段含义不变。此前的 `expert_action`、`load_policy` 便捷入口继续保留。
+默认持久化 Episode 仍是 schema v1，包含任务、seed 和 scene_spec 元数据；可选紧凑格式使用 episode schema v2，读取后保留相同数组和字段含义。Run manifest 仍为 schema v1。此前的 `expert_action`、`load_policy` 便捷入口继续保留。
 
 ## 6. 在 ef 环境验证
 
@@ -178,6 +184,12 @@ embodiedforge evaluate --checkpoint runs/hold-train/checkpoint.pt --steps 110
 新增物理适配器必须明确声明 `Capabilities(control=ControlSpec(dimension=2, units="newtons_xy"))`，并将同一份能力对象用于类与注册表；未声明控制能力会拒绝启动。当前三个物理后端都接受按 XY 排列的牛顿力。渲染器的 `control` 保持 `None`，可用 `required_entities` 声明依赖的稳定实体 ID。已有外部调用需为 `resolve` 补传 `TaskSpec`；已有物理注册需补充控制声明。
 
 通道类型由 `sensors.CHANNEL_DTYPES` 定义；扩展模态必须同时实现管线的形状/语义检查，不能只在渲染注册表中声明。`depth_valid` 是深度的派生输出，不作为独立可请求通道。
+
+CPU 调试光栅器直接生成 float32 深度并复用有效性掩码，避免 float64 中间深度数组；深度与 `depth_valid` 均由调用者独立拥有，修改任意输出不影响其他通道或后续帧。可用 `benchmarks/raster.py --channels depth` 或 `--channels rgb depth` 分别测量；专项耗时和分配追踪不代表整体采集吞吐或进程 RSS。
+
+仅请求 `depth` 时，内部直接使用前景掩码并将其作为独立的 `depth_valid` 输出，减少整帧标签临时数组；仅请求 `rgb` 时，直接构建调色板所需的本机整数索引，避免额外的整帧类型转换。请求 ID 通道时，一个输出可以直接拥有内部标签图；同时请求两种 ID 时，另一个仍独立复制。混合通道保留 int32 实例与语义 ID，公开输出的类型、像素和所有权不变。分配峰值收益随请求通道而变化，完整环境步进还包含物理、传感器检查、缓存和观测复制；这些收益不能直接视为训练吞吐提升。
+
+传感器管线对普通连续 float32 深度数组使用最小值/最大值归约检查有限性与非负性，小数组和数组子类保留原来的检查路径。有效性比较复用自有的临时布尔数组，不写入渲染器输入；较大批次分块处理，中等切片批次避免迭代器复制缓冲区。NaN（包括 signaling NaN）、无穷值和负次正规数仍被拒绝，整个批次验证通过后才更新图像、时间戳与标定缓存。`benchmarks/sensor_validation.py --layout` 支持 `contiguous`、`fortran`、`reversed`、`mixed` 和 `strided`，单独测量校验耗时与临时分配，不含渲染或缓存复制。
 
 `diagnostics.installation_report(config)` 提供 JSON 可序列化的安装报告，CLI 入口如下：
 
@@ -207,15 +219,19 @@ with VectorEnv(Config(task="hold", num_envs=4)) as env:
 
 有状态策略显式传入 `on_reset=policy.reset`。回调接收全局环境 ID：开始时全部 ID，局部 reset 时只收到对应 ID；每次都在下一次推理之前调用。策略必须按观测中的 `env_id` 管理历史，不能把推理子批次的行号当作全局 ID。没有回调时，调用者应提供无状态策略。
 
+动作执行器复用固定的环境索引，内部检测得到的重置行直接清空缓存，调用者的 `reset` 仍校验唯一性和范围；返回的动作仍由调用者独立拥有。可用 `python benchmarks/action_executor.py --metadata --output /tmp/executor.json` 测量连续 episode/step 身份追踪、周期重规划和动作复制；去掉 `--metadata` 则只检查环境行顺序。该专项不含物理或神经网络推理，分配追踪也不代表进程 RSS。
+
+基准增加 `--metadata --repeat-every 16` 可每 16 步重复一次身份，下一次消费时会触发重规划；`--repeat-every 1` 表示每步重复，默认 0 不重复。结果中的 `timed_policy_calls` 仅统计计时循环内的策略调用。重复观测较多时的收益不能代表连续帧场景。
+
 每次 `run_rollout` 都先全量 reset，开启新 episode，不用于续接已有轨迹。传入的 writer 不应存在之前运行的未完成记录。env、policy、writer 的关闭由调用者负责；推理、回调或记录异常直接向上传播，运行器不重试副作用。
 
 终态 transition 先记录，再准备下一次输入；替换 reset 行时复制观测，保留原 `StepResult`。最后一个控制步结束后不再 reset，便于检查终态。指标只统计完成 episode 的终态成功标志，未完成 episode 不进入成功率分母。
 
 ## 9. 采集缓存预算
 
-`EpisodeRecorder(directory, env, max_buffer_bytes=256 * 1024 * 1024)` 为单个记录器设置固定预算，保存在 `run.json` 中。`max_buffer_bytes` 是只读配置，`buffered_bytes` 提供当前未完成 episode 的数组载荷字节数。完成 episode 发布成功后释放计数；正常关闭会清空未完成缓存。
+`EpisodeRecorder(directory, env, max_buffer_bytes=256 * 1024 * 1024)` 为单个记录器设置固定预算，保存在 `run.json` 中。`max_buffer_bytes` 是只读配置，`buffered_bytes` 提供未完成及排队写入 episode 的数组载荷字节数。完成 episode 发布成功、由调用线程收回结果后释放计数；正常关闭会清空未完成缓存。后台已完成但尚未收回的载荷仍保守计入预算。
 
-每批次先计算活动行的新增载荷，包含 obs/next、action、reward 和终止标志。在复制数组或修改缓存之前检查 `buffered_bytes + incoming_bytes`；超限抛出 `BufferError`，整个批次不写入，已有完整 episode 不受影响。即使本批次会结束 episode，也先预留整个批次的复制空间，避免依赖发布顺序绕过预算。预算检查不提供断点续写；减少图像大小、环境数量或 episode 长度，或显式提高预算后创建新运行。
+每批次先计算活动行的新增载荷，包含 obs/next、action、reward 和终止标志。在复制数组或修改缓存之前检查 `buffered_bytes + incoming_bytes`；同步模式超限抛出 `BufferError`。后台模式先等待已有排队写入释放预算，仍放不下时再抛出 `BufferError`，整个新批次不写入。即使本批次会结束 episode，也先预留整个批次的复制空间，避免依赖发布顺序绕过预算。预算检查不提供断点续写；减少图像大小、环境数量或 episode 长度，或显式提高预算后创建新运行。
 
 这是数组载荷预算，不是进程 RSS 上限：Python 容器、调用者持有的观测、压缩和 `np.stack` 临时空间需要额外内存。当前仍按完整 episode 压缩发布；超大视觉数据需要后续分块存储方案。
 
@@ -225,6 +241,43 @@ embodiedforge rollout --physics newton --render raster --num-envs 4 \
 ```
 
 记录器还将每批次的未完成 episode 查找改为按环境 ID 建表，避免每行重复扫描全部缓存。离线 `action_windows` 严格要求 history/horizon 为正整数，在访问文件前拒绝布尔值和浮点数。
+
+### 紧凑 episode
+
+`EpisodeRecorder(..., episode_format="compact")` 将 T 次转换的观测保存为 `state/*` 的 T+1 行序列，转换字段仍为 T 行。格式在构造后不可修改，确保缓存计数与磁盘布局一致。缓存中的相邻 obs/next 共享记录器持有的同一份观测，预算只计一次；调用者传入的数组仍被复制，连续性验证保留。默认 `episode_format="transitions"` 继续写原来的独立 obs/next 数组。
+
+`read_episodes` 支持两种格式，均返回独立的 `obs/*` 和 `next/*` 数组；`action_windows` 和数据导出方无需改变接口。投影读取时不解压未选择的 `state/rgb` 等载荷。紧凑状态先校验一次，再按需生成独立数组；窗口读取直接在内部状态上选取并复制窗口，避免复制整个 obs/next。窗口独立性与默认的完整载荷校验保持不变，解压下一段前释放上一段内部 episode。存储仍按完整 episode 堆叠、压缩和发布，预算不包含压缩/堆叠临时内存，也没有提供按帧磁盘映射。
+
+```bash
+embodiedforge rollout --render raster --num-envs 4 \
+  --record-format compact --output runs/compact-recording
+```
+
+### 后台写入与关闭
+
+`write_workers=0` 是默认的同步模式；`write_workers=1` 或 `2` 可将完成 episode 的堆叠、NPZ 压缩和文件发布交给后台线程。记录器先复制调用者的数组，线程只接收记录器拥有的完整 episode；缓存计数、失败状态与完成数量由调用线程更新。对单个记录器的 `append` / `close` 调用应串行执行。
+
+```bash
+embodiedforge rollout --render raster --num-envs 4 \
+  --record-format compact --record-workers 2 --record-buffer-mib 256 \
+  --output runs/background-recording
+```
+
+后台模式可以将写盘与下一轮仿真重叠，也会增加排队载荷。预算饱和时仍有背压，更多线程还需要各自的堆叠/压缩临时内存，因此不能仅凭 `append` 变快判断整体吞吐。应计入最终 `close` 的等待时间。CLI 仅在 `rollout/evaluate` 且提供 `--output` 时接受非零 `--record-workers`。
+
+必须关闭记录器，建议使用 `with EpisodeRecorder(..., write_workers=2) as writer`。`close` 等待已排队的完整 episode，再提交最终 `run.json`，未完成 episode 仍被丢弃。后台错误会在下一次 `append` 或 `close` 原样抛出并禁止后续追加；已成功发布的其他 episode 保留。原始采集异常不会被关闭异常覆盖，后者保存在 `close_error`。完成标记仍是 reader 接受文件的依据；原子替换不等于主机断电后的持久性保证。
+
+关闭时的线程池等待或 `future.result()` 等待若被单次异常中断，会重试一次，收回已完成写入后再抛出首次异常。关闭开始后禁止继续追加或重新进入上下文；若中断发生在清理步骤之间，也必须先显式重试 `close`。连续失败时保留未收回的任务与数据，允许重试；不会把未完成清理标为关闭成功。
+
+已完成后台写入的回收若在更新计数或移除句柄时被单次异常中断，会回滚本次记账，避免重试时重复减少缓冲字节或重复统计 episode；先前已收回的任务保持已完成，不重新提交写入。
+
+每个记录目录由一个记录器独占。已发布身份在 episode 首条转换时检查，发布文件前再次检查；正在缓存的 episode 不再每步访问文件系统。若缓冲期间意外出现同名文件，发布失败并保留原文件。
+
+录制追加与动作执行的[专项测量和验证记录](platform-optimization-20261016-twohour.json)及[性能图](platform-optimization-20261016-twohour-performance.svg)包含基线、原始样本、关闭回归和复现方式；专项收益不代表整体训练吞吐。
+
+第二轮[测量与验证记录](platform-optimization-20261016-round2-twohour.json)及[性能图](platform-optimization-20261016-round2-twohour-performance.svg)补充深度渲染、稀疏重置和回收中断的结果，并保留完整采集流程的正负样本。
+
+第三轮[测量与验证记录](platform-optimization-20261016-round3-twohour.json)及[性能图](platform-optimization-20261016-round3-twohour-performance.svg)记录深度校验的布局与 NumPy 版本差异，并对照完整环境步进和录制流程。
 
 ## 10. 离线读取与 worker 分片
 
@@ -252,7 +305,7 @@ for sample in action_windows("runs/demo", history=2, horizon=3, options=options)
 
 ## 11. 可复现的离线训练批次
 
-`batching.window_batches` 组合现有 `action_windows`、分片读取、缓存打乱与批次拼接。它独立于 PyTorch，返回 `WindowBatch`：观测为 `[B,history,...]`，动作为 `[B,horizon,A]`，指令为长度 B 的字符串元组。张量转换、设备传输、tokenization 和 padding 由训练适配器负责。
+`batching.window_batches` 使用与 `action_windows` 相同的窗口对齐和完整 episode 校验，组合分片读取、缓存打乱与批次拼接。它独立于 PyTorch，返回 `WindowBatch`：观测为 `[B,history,...]`，动作为 `[B,horizon,A]`，指令为长度 B 的字符串元组。张量转换、设备传输、tokenization 和 padding 由训练适配器负责。
 
 ```python
 from embodiedforge.batching import BatchOptions, window_batches
@@ -276,6 +329,10 @@ for epoch in range(3):
 固定文件集合、读取配置、batch 配置及 seed/epoch 时，顺序可复现；随机数生成器为本地实例，种子还包含分片编号和数量，不修改全局 NumPy RNG。更换 epoch 会使用不同随机流，但不保证所有小数据集都产生不同排列。
 
 `shuffle_buffer=0` 保持原顺序；正值启用有限缓存打乱，不是全数据的均匀随机排列，除非缓存能容纳全部输入。缓存最多保留指定数量的窗口，处理时另有一个新输入、待拼接样本、输出批次和一个解压 episode；这不是 RSS 或字节预算。使用大图像时应降低容量或选择所需观测字段。
+
+有序模式直接从 episode 内部的只读窗口视图复制完整批次，避免逐窗口复制后再拼接；跨 episode 的尾部只复制实际需要的行，不保留前一段完整图像，也不按大 batch_size 预分配不足的尾批。跨段拼接直接校验动作与观测的 shape/dtype，避免为每个片段构造临时字典和字段名前缀；校验在字节序归一化之前完成。打乱模式继续缓存拥有数组的独立窗口；两条路径均保留原来的样本顺序/打乱规则、批次边界、字节序归一化和输入 shape/dtype 检查。
+
+`python benchmarks/ordered_batches.py --output /tmp/ordered-batches.json` 单独测量解码后的有序拼批，耗时、分配追踪和输出校验和分别采集；包含 NPZ 解压和校验的整体读取请使用 `benchmarks/dataset_reads.py`。[2026-10-16 测量记录](ordered-batches-optimization-20261016.json) 同时记录了最终校验优化和未采用的中间拷贝消除试验。拼批专项结果不能直接代表整体读取、训练吞吐或进程 RSS。
 
 默认保留不足 batch_size 的尾批；`drop_last=True` 在每个分片独立丢弃尾批。空输入不产生批次。分片间 episode 长度不同时，不保证训练步数一致，分布式训练器需要另行协调。相同批次内字段集合、shape 或 dtype 不一致会明确报错，不进行隐式类型提升。拼接输出拥有独立数组，调用者可以修改。
 

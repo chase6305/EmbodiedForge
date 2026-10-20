@@ -15,6 +15,29 @@ from .core import (
 )
 
 
+def _float32_proprio(parts: tuple[Array, ...]) -> Array:
+    """Assemble large native float64 features without a float64 output buffer."""
+    if (
+        type(parts[0]) is np.ndarray
+        and parts[0].size >= 16384
+        and all(
+            type(value) is np.ndarray and value.dtype == np.float64 for value in parts
+        )
+        and np.geterr()["under"] == "ignore"
+    ):
+        # Per-field casts can repeat warnings or change the first strict FP error.
+        # Limit the fused cast to finite values that cannot overflow float32.
+        limit = np.finfo(np.float32).max
+        with np.errstate(invalid="ignore"):
+            safe = all(
+                -limit <= value.min() and value.max() <= limit for value in parts
+            )
+        if safe:
+            return np.concatenate(parts, axis=1, dtype=np.float32, casting="unsafe")
+    # Preserve promotion, dispatch and floating-point diagnostics otherwise.
+    return np.concatenate(parts, axis=1).astype(np.float32)
+
+
 class ReachTask:
     """Planar force-controlled reach task; each environment owns one target XY."""
 
@@ -44,9 +67,9 @@ class ReachTask:
     def observe(self, state: StateSnapshot) -> Observation:
         """Features: XY position, XY velocity, relative target XY (six floats)."""
         return {
-            "proprio": np.concatenate(
-                (state.position, state.velocity, self.target - state.position), axis=1
-            ).astype(np.float32)
+            "proprio": _float32_proprio(
+                (state.position, state.velocity, self.target - state.position)
+            )
         }
 
     def scene_update(self, state: StateSnapshot) -> SceneUpdate:
@@ -93,11 +116,7 @@ class HoldTask(ReachTask):
         return rng.uniform(-0.8, 0.8, 2), np.zeros(2)
 
     def observe(self, state: StateSnapshot) -> Observation:
-        return {
-            "proprio": np.concatenate((state.position, state.velocity), axis=1).astype(
-                np.float32
-            )
-        }
+        return {"proprio": _float32_proprio((state.position, state.velocity))}
 
     def expert_action(self, observation: Observation) -> Array:
         proprio = observation["proprio"]

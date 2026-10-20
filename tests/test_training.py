@@ -10,6 +10,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from embodiedforge import Config
+from embodiedforge._ppo_parameters import bounded_log_std
 from embodiedforge.training import (
     ActorCritic,
     PPOConfig,
@@ -82,6 +83,26 @@ def test_gae_bootstraps_timeout_but_does_not_cross_reset():
     )
     np.testing.assert_allclose(adv[0], [1.0, 10.0])
     np.testing.assert_allclose(returns, adv)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_exploration_bounds_preserve_values_and_endpoint_gradients(dtype):
+    values = torch.tensor(
+        [-float("inf"), -5.01, -5, -4, 0, 2, 2.01, float("inf"), float("nan")],
+        dtype=dtype,
+        requires_grad=True,
+    )
+    bounded = bounded_log_std(values)
+    torch.testing.assert_close(
+        bounded, values.detach().clamp(-5, 2), rtol=0, atol=0, equal_nan=True
+    )
+    bounded[:-1].sum().backward()
+    torch.testing.assert_close(
+        values.grad,
+        torch.tensor([0, 0, 1, 1, 1, 1, 0, 0, 0], dtype=dtype),
+        rtol=0,
+        atol=0,
+    )
 
 
 @pytest.mark.parametrize("backend", ["core", "h1"])

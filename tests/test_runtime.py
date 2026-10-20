@@ -110,6 +110,31 @@ def test_render_time_depth_and_mapping():
         np.testing.assert_allclose(result.observation["frame_age"], 0)
 
 
+@pytest.mark.parametrize("ids", [[3, 1], [], [0, 1, 2, 3]])
+def test_visual_reset_returns_owned_selected_rows_without_changing_other_caches(ids):
+    config = Config(
+        num_envs=4,
+        render="raster",
+        channels=("rgb", "depth", "instance_id"),
+        image_size=16,
+    )
+    with VectorEnv(config) as env:
+        env.step(np.full((4, 2), 0.3))
+        before = env.observe()
+        selected = env.reset(ids)
+        after = env.observe()
+        assert selected.keys() == after.keys()
+        assert selected["env_id"].tolist() == ids
+        for key, value in selected.items():
+            np.testing.assert_array_equal(value, after[key][ids])
+            assert not np.shares_memory(value, after[key])
+            value[:] = 99
+        unchanged = [index for index in range(4) if index not in ids]
+        for key in before:
+            np.testing.assert_array_equal(after[key][unchanged], before[key][unchanged])
+            np.testing.assert_array_equal(env.observe()[key], after[key])
+
+
 def test_validation_and_close():
     env = VectorEnv(Config(num_envs=2))
     for actions in (np.zeros((1, 2)), np.full((2, 2), np.nan), np.ones((2, 2)) * 2):
@@ -165,3 +190,67 @@ def test_failed_renderer_initialization_closes_both_backends(monkeypatch):
     with pytest.raises(RuntimeError, match="initialization failed"):
         VectorEnv(Config(physics="test", render="test"))
     assert closed == ["renderer", "physics"]
+
+
+@pytest.mark.parametrize("count", [1, 7, 128])
+@pytest.mark.parametrize("mass", [0.3, 1.0, 7.0])
+def test_numpy_physics_matches_masked_substeps_through_active_transitions(count, mass):
+    physics = NumpyPhysics()
+    physics.build(SceneSpec(mass=mass), Config(num_envs=count))
+    rng = np.random.default_rng(57)
+    physics.position[:] = rng.normal(size=(count, 2))
+    physics.velocity[:] = rng.normal(size=(count, 2))
+    position, velocity = physics.position.copy(), physics.velocity.copy()
+    time, version = physics.time.copy(), physics.version.copy()
+    for step in range(48):
+        active = (
+            np.ones(count, dtype=bool)
+            if step % 4 == 0
+            else np.zeros(count, dtype=bool)
+            if step % 4 == 1
+            else rng.random(count) < 0.5
+        )
+        substeps = 1 + step % 7
+        dt = 0.01 + step % 3 * 0.005
+        action = rng.uniform(-1, 1, (count, 2))
+        h = dt / substeps
+        for _ in range(substeps):
+            velocity[active] += action[active] * h / mass
+            position[active] += velocity[active] * h
+        time[active] += dt
+        version[active] += 1
+        before = physics.snapshot()
+        physics.apply_control(action)
+        physics.step(dt, substeps, active)
+        after = physics.snapshot()
+        for name, reference in (
+            ("position", position),
+            ("velocity", velocity),
+            ("time", time),
+            ("version", version),
+        ):
+            np.testing.assert_array_equal(getattr(after, name), reference)
+            np.testing.assert_array_equal(
+                getattr(after, name)[~active], getattr(before, name)[~active]
+            )
+
+
+@pytest.mark.parametrize(
+    "active",
+    [
+        np.array([True]),
+        np.array([False]),
+        np.ones((2, 1), dtype=bool),
+        np.zeros((2, 1), dtype=bool),
+    ],
+)
+def test_numpy_physics_fast_path_does_not_accept_malformed_masks(active):
+    physics = NumpyPhysics()
+    physics.build(SceneSpec(), Config(num_envs=2))
+    physics.apply_control(np.ones((2, 2)))
+    before = physics.snapshot()
+    with pytest.raises(IndexError):
+        physics.step(0.02, 4, active)
+    after = physics.snapshot()
+    for name, value in vars(before).items():
+        np.testing.assert_array_equal(getattr(after, name), value)

@@ -17,6 +17,75 @@ CHANNEL_DTYPES = {
 }
 
 
+def _valid_depth(depth: Array) -> bool:
+    """Keep validation scratch bounded for large, plain numeric image batches."""
+    if (
+        type(depth) is np.ndarray
+        and 8192 <= depth.size <= 4 * 1024 * 1024
+        and depth.dtype == np.float32
+        and (depth.flags.c_contiguous or depth.flags.f_contiguous)
+    ):
+        # Reductions avoid per-pixel finite/negative scratch for camera float32.
+        # NaNs fail the minimum comparison; positive infinity fails the maximum.
+        # A float32 zero also avoids signaling-NaN scalar promotion in NumPy 1.x.
+        return bool(
+            depth.min(initial=0) >= np.float32(0) and depth.max(initial=0) < np.inf
+        )
+    if type(depth) is not np.ndarray or depth.size <= 4 * 1024 * 1024:
+        return bool(np.isfinite(depth).all() and not (depth < 0).any())
+    with np.nditer(
+        depth,
+        flags=["external_loop", "buffered", "zerosize_ok"],
+        op_flags=["readonly"],
+        buffersize=256 * 1024,
+    ) as chunks:
+        if depth.dtype == np.float32:
+            return all(
+                chunk.min(initial=0) >= np.float32(0) and chunk.max(initial=0) < np.inf
+                for chunk in chunks
+            )
+        return all(
+            np.isfinite(chunk).all() and not (chunk < 0).any() for chunk in chunks
+        )
+
+
+def _matching_depth_validity(depth: Array, valid: Array) -> bool:
+    if (
+        type(depth) is not np.ndarray
+        or type(valid) is not np.ndarray
+        or valid.dtype != np.bool_
+        or depth.ndim == 0
+        or depth.shape != valid.shape
+    ):
+        return np.array_equal(depth > 0, valid)
+    # Matching contiguous layouts need only one block of comparison scratch.
+    # Moderate strided batches avoid the iterator's larger copy buffers.
+    if depth.size <= 256 * 1024 or (
+        depth.size <= 4 * 1024 * 1024
+        and not (
+            (depth.flags.c_contiguous and valid.flags.c_contiguous)
+            or (depth.flags.f_contiguous and valid.flags.f_contiguous)
+        )
+    ):
+        positive = depth > 0
+        np.not_equal(positive, valid, out=positive)
+        return not positive.any()
+    with np.nditer(
+        [depth, valid],
+        flags=["external_loop", "buffered", "zerosize_ok"],
+        op_flags=[["readonly"], ["readonly"]],
+        buffersize=256 * 1024,
+    ) as chunks:
+        for values, mask in chunks:
+            positive = values > 0
+            np.not_equal(positive, mask, out=positive)
+            if positive.any():
+                return False
+            # Release this chunk's scratch before allocating the next one.
+            del positive
+        return True
+
+
 class SensorPipeline:
     """Own camera caches, independent of task state and physics stepping.
 
@@ -63,13 +132,11 @@ class SensorPipeline:
                 or values.dtype != np.dtype(dtype)
             ):
                 raise ValueError(f"Invalid renderer layout/dtype for {name}")
-            if name == "depth" and (
-                not np.isfinite(values).all() or (values < 0).any()
-            ):
+            if name == "depth" and not _valid_depth(values):
                 raise ValueError("Depth must be finite and nonnegative")
         if "depth" in batch.images:
-            if not np.array_equal(
-                batch.images["depth"] > 0, batch.images["depth_valid"]
+            if not _matching_depth_validity(
+                batch.images["depth"], batch.images["depth_valid"]
             ):
                 raise ValueError("Depth validity must match positive depth pixels")
 
@@ -89,10 +156,19 @@ class SensorPipeline:
         self.frame_time[ids], self.frame_version[ids] = batch.time, batch.version
         self.calibration = deepcopy(batch.calibration)
 
-    def observe(self, time: Array) -> Observation:
-        """Return owned images and timestamps; low-rate frames report their age."""
+    def observe(self, time: Array, *, env_ids: Array | None = None) -> Observation:
+        """Return owned selected images/timestamps; IDs are validated by VectorEnv."""
         if not self.images:
             return {}
+        if env_ids is not None:
+            # Integer row indexing already owns its output. Select before
+            # copying instead of copying every cached image for a partial reset.
+            return {
+                **{name: value[env_ids] for name, value in self.images.items()},
+                "frame_time": self.frame_time[env_ids],
+                "frame_version": self.frame_version[env_ids],
+                "frame_age": time[env_ids] - self.frame_time[env_ids],
+            }
         return {
             **{name: value.copy() for name, value in self.images.items()},
             "frame_time": self.frame_time.copy(),

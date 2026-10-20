@@ -145,6 +145,52 @@ def test_h1_standing_pose_preserves_original_mjcf_kinematics(h1_path, randomized
         env.set_commands([[2, 0, 0]], [1])
 
 
+def test_h1_observation_noise_preserves_scales_and_rng_stream(h1_path):
+    from copy import deepcopy
+
+    from embodiedforge.locomotion.h1_native import H1, build_model
+
+    env = H1(build_model(h1_path), 3, seed=7, training=True, threads=1)
+    rng = np.random.default_rng()
+    rng.bit_generator.state = deepcopy(env.rng.bit_generator.state)
+    env.training = False
+    # Build the clean values in the original float64 precision before the
+    # public float32 conversion; otherwise tiny quantization differences arise.
+    clean = np.concatenate(
+        (
+            env.velocity,
+            env.gyro,
+            -env.rotation[:, 2, :],
+            env.commands,
+            env.robot.qpos[:, env.robot.qadr] - env.default,
+            env.robot.qvel[:, env.robot.vadr],
+            env.action,
+        ),
+        axis=1,
+    )
+    scale = np.array(
+        [0.1] * 3
+        + [0.2] * 3
+        + [0.05] * 3
+        + [0] * 3
+        + [0.01] * 19
+        + [1.5] * 19
+        + [0] * 19
+    )
+    expected = (clean + rng.uniform(-1, 1, clean.shape) * scale).astype(np.float32)
+    env.training = True
+    np.testing.assert_array_equal(env.obs(), expected)
+    assert env.rng.bit_generator.state == rng.bit_generator.state
+    actions = np.random.default_rng(32)
+    for _ in range(20):
+        previous = env.robot.qvel[:, env.robot.vadr].copy()
+        _, _, _, _, terms = env.step(actions.normal(0, 0.2, (3, 19)))
+        expected = -1.25e-7 * np.sum(
+            ((env.robot.qvel[:, env.robot.vadr] - previous) / 0.02) ** 2, 1
+        )
+        np.testing.assert_array_equal(terms["acceleration"], expected)
+
+
 @pytest.mark.parametrize("backend", ["h1", "core"])
 @pytest.mark.parametrize(
     "reset_step,reset_count", [(None, 0), (0, 1), (1, 2), (3, 2), (1, 3)]

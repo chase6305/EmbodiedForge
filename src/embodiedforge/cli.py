@@ -111,6 +111,10 @@ def main() -> None:
     parser.add_argument("--steps", type=int, default=300)
     parser.add_argument("--updates", type=int, default=30)
     parser.add_argument(
+        "--resume", type=Path, help="train only: core PPO run directory or checkpoint"
+    )
+    parser.add_argument("--checkpoint-interval", type=int, default=10)
+    parser.add_argument(
         "--chunk-horizon",
         type=int,
         default=1,
@@ -124,6 +128,18 @@ def main() -> None:
         help="Retained recording array budget in MiB; excludes compression scratch",
     )
     parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument(
+        "--record-format",
+        choices=("transitions", "compact"),
+        default="transitions",
+        help="compact stores T+1 observations once; readers return the same transitions",
+    )
+    parser.add_argument(
+        "--record-workers",
+        type=int,
+        default=0,
+        help="Background episode writers for recording; 0 writes synchronously",
+    )
     parser.add_argument("--dataset", type=Path)
     parser.add_argument(
         "--graphics",
@@ -137,6 +153,14 @@ def main() -> None:
     args = parser.parse_args()
     if args.graphics and args.command != "doctor":
         parser.error("--graphics is only supported by doctor")
+    if args.resume and args.command != "train":
+        parser.error("--resume is only supported by train")
+    if args.record_workers < 0:
+        parser.error("--record-workers must be nonnegative")
+    if args.record_workers and (
+        args.command not in ("rollout", "evaluate") or args.output is None
+    ):
+        parser.error("--record-workers requires rollout/evaluate with --output")
     auto_configure_debug_logging()
     if args.log_level is not None or args.log_json:
         setup_logging(args.log_level or "INFO", with_json_format=args.log_json)
@@ -147,17 +171,25 @@ def main() -> None:
         if args.record_buffer_mib <= 0:
             parser.error("--record-buffer-mib must be positive")
     checkpoint = None
+    resume = None
     if args.command == "evaluate":
         if args.checkpoint is None:
             parser.error("evaluate requires --checkpoint")
         from .training import load_checkpoint
 
         checkpoint = load_checkpoint(args.checkpoint)
-    config = (
-        Config.load(args.config)
-        if args.config
-        else (checkpoint.env_config if checkpoint else Config())
-    )
+    elif args.command == "train" and args.resume is not None:
+        from .training import load_training_checkpoint
+
+        resume = load_training_checkpoint(args.resume)
+    if args.config:
+        config = Config.load(args.config)
+    elif checkpoint:
+        config = checkpoint.env_config
+    elif resume:
+        config = resume.bundle.env_config
+    else:
+        config = Config()
     overrides = {
         key: getattr(args, key)
         for key in ("task", "physics", "render", "num_envs")
@@ -204,7 +236,18 @@ def main() -> None:
         from .training import PPOConfig, train_ppo
 
         torch.set_num_threads(1)
-        train_ppo(config, PPOConfig(updates=args.updates), args.output)
+        ppo_config = (
+            replace(resume.ppo_config, updates=args.updates)
+            if resume
+            else PPOConfig(updates=args.updates)
+        )
+        train_ppo(
+            config,
+            ppo_config,
+            args.output,
+            resume=resume,
+            checkpoint_interval=args.checkpoint_interval,
+        )
         return
     policy = checkpoint.policy if checkpoint else None
     with VectorEnv(config) as env:
@@ -221,6 +264,8 @@ def main() -> None:
                 args.output,
                 env,
                 max_buffer_bytes=args.record_buffer_mib * 1024 * 1024,
+                episode_format=args.record_format,
+                write_workers=args.record_workers,
             )
             if args.output
             else nullcontext()

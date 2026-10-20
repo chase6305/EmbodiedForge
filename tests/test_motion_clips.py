@@ -81,6 +81,102 @@ def test_import_sampling_and_windows_keep_clip_boundaries(motion, tmp_path):
     assert target.read_bytes() == before
 
 
+@pytest.mark.parametrize("seed", [0, 1, 97, 2**32 + 1])
+@pytest.mark.parametrize("kind", ["list", "iterator", "array"])
+def test_mixed_object_sampling_keeps_request_order_and_clip_limits(motion, seed, kind):
+    source, layout, arrays = motion
+    arrays["object_names"] = np.array(["box", "chair"])
+    np.savez(source, **arrays)
+    library = import_weave(source, layout)
+    requests = ["chair", "box", "chair", "chair", "box"] * 31
+    values = {
+        "list": lambda: requests,
+        "iterator": lambda: iter(requests),
+        "array": lambda: np.array(requests),
+    }
+    rng = np.random.default_rng(seed)
+    ids, steps = library.sample(values[kind](), rng)
+    assert ids.dtype == steps.dtype == np.dtype("int64")
+    assert ids.flags.owndata and steps.flags.owndata
+    assert [library.objects[i] for i in ids] == requests
+    assert ((steps >= 0) & (steps < library.lengths[ids])).all()
+    again_rng = np.random.default_rng(seed)
+    again = library.sample(values[kind](), again_rng)
+    assert all(np.array_equal(x, y) for x, y in zip((ids, steps), again, strict=True))
+    assert rng.bit_generator.state == again_rng.bit_generator.state
+
+
+def test_sampling_rebuilds_candidates_after_public_object_list_edits(motion):
+    source, layout, _ = motion
+    library = import_weave(source, layout)
+    requests = ["box", "chair", "chair", "box"]
+    library.objects[:] = ["box", "chair"]
+    ids, _ = library.sample(requests, np.random.default_rng(3))
+    assert ids.tolist() == [0, 1, 1, 0]
+    library.objects.reverse()
+    ids, steps = library.sample(iter(requests), np.random.default_rng(3))
+    assert ids.tolist() == [1, 0, 0, 1]
+    assert (steps < library.lengths[ids]).all()
+    library.objects[:] = ["box", "box"]
+    with pytest.raises(ValueError, match="Unknown object: chair"):
+        library.sample(requests, np.random.default_rng(3))
+
+
+@pytest.mark.parametrize("unknown_first", [False, True])
+def test_unknown_object_keeps_prior_choice_calls_and_skips_frame_sampling(
+    motion, unknown_first
+):
+    source, layout, _ = motion
+    library = import_weave(source, layout)
+    rng = np.random.default_rng(91)
+    expected = np.random.default_rng(91)
+    requests = (
+        ["unknown", "box"] if unknown_first else ["box", "unknown", "box", "chair"]
+    )
+    if not unknown_first:
+        expected.choice([0, 1], size=2)
+    with pytest.raises(ValueError, match="Unknown object: unknown"):
+        library.sample(iter(requests), rng)
+    assert rng.bit_generator.state == expected.bit_generator.state
+
+
+def test_request_iterator_failure_does_not_consume_randomness(motion):
+    source, layout, _ = motion
+    library = import_weave(source, layout)
+
+    def requests():
+        yield "box"
+        raise RuntimeError("request generation interrupted")
+
+    rng = np.random.default_rng(73)
+    before = rng.bit_generator.state
+    with pytest.raises(RuntimeError, match="request generation interrupted"):
+        library.sample(requests(), rng)
+    assert rng.bit_generator.state == before
+
+
+def test_sampling_keeps_captured_batch_rng_schedule(motion):
+    source, layout, arrays = motion
+    arrays["motion_lengths"] = np.array([1, 1, 3])
+    arrays["motion_names"] = np.array(["lift-a", "lift-b", "carry"])
+    arrays["object_names"] = np.array(["box", "box", "chair"])
+    np.savez(source, **arrays)
+    library = import_weave(source, layout)
+    rng = np.random.Generator(np.random.PCG64(91))
+    requests = ["chair", "box", "box", "chair", "box"] * 3
+    ids, steps = library.sample(iter(requests), rng)
+    # Captured from the pre-optimization batch interface. The following draws
+    # also protect the generator state after the returned samples.
+    assert ids.tolist() == [2, 1, 0, 2, 0, 2, 1, 0, 2, 1, 2, 1, 0, 2, 1]
+    assert steps.tolist() == [2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 2, 0]
+    assert rng.integers(0, 2**31, size=4).tolist() == [
+        1917782771,
+        925070846,
+        855506189,
+        216611226,
+    ]
+
+
 def test_invalid_motion_data_is_rejected(motion):
     source, layout, original = motion
     cases = {
