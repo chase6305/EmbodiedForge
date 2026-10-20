@@ -126,7 +126,10 @@ def test_mutating_an_ordered_batch_cannot_change_next_batch_or_dataset(dataset):
         np.testing.assert_array_equal(source[1], target[1])
 
 
-def test_cross_episode_tail_does_not_retain_whole_backing_arrays(dataset, monkeypatch):
+@pytest.mark.parametrize("size", [2, 64])
+def test_cross_episode_tail_does_not_retain_whole_backing_arrays(
+    dataset, monkeypatch, size
+):
     loaded = []
     load, getitem = np.load, np.lib.npyio.NpzFile.__getitem__
 
@@ -142,15 +145,108 @@ def test_cross_episode_tail_does_not_retain_whole_backing_arrays(dataset, monkey
 
     monkeypatch.setattr(np.lib.npyio.NpzFile, "__getitem__", read)
     monkeypatch.setattr(np, "load", open_archive)
-    # One observation, a whole-episode action horizon and an oversized tail batch
-    # would retain all episodes if buffered windows held borrowed views.
+    # One observation and a whole-episode action horizon expose retained views
+    # for both completed crossing batches and an oversized final tail.
     batches = list(
         window_batches(
-            dataset, history=1, horizon=7, batching=BatchOptions(batch_size=64)
+            dataset, history=1, horizon=7, batching=BatchOptions(batch_size=size)
         )
     )
-    assert len(batches) == 1 and len(batches[0].action) == 6
+    assert len(batches) == (6 + size - 1) // size
+    assert sum(len(batch.action) for batch in batches) == 6
     assert all(array() is None for array in loaded)
+
+
+@pytest.mark.parametrize("byte_order", ["<", ">"])
+@pytest.mark.parametrize("drop_last", [False, True])
+def test_cross_episode_batches_own_strided_readonly_inputs_and_align_instructions(
+    monkeypatch, byte_order, drop_last
+):
+    from embodiedforge import batching as module
+
+    episodes, expected, sources = [], [], []
+    for index, count in enumerate([1, 3, 1, 2, 1, 3]):
+        # Include overlapping windows, non-contiguous reversed strides and an
+        # observation named action. Source arrays must never be writable aliases
+        # of the output, even for the episode that completes a batch.
+        source = (np.arange((count + 1) * 3) + 100 * index).astype(byte_order + "f4")
+        source = source.reshape(-1, 3)[:, ::-1]
+        windows = np.moveaxis(
+            np.lib.stride_tricks.sliding_window_view(source, 2, axis=0), -1, 1
+        )
+        observation = {"action": windows, "proprio": windows[:, :, :2]}
+        action = windows[:, :1]
+        instruction = f"episode {index}"
+        episodes.append((observation, action, instruction))
+        sources.append(source.copy())
+        expected.extend(
+            (
+                {key: value[row] for key, value in observation.items()},
+                action[row],
+                instruction,
+            )
+            for row in range(count)
+        )
+    monkeypatch.setattr(module, "_episode_windows", lambda *a, **kw: iter(episodes))
+    batches = list(
+        window_batches(
+            "unused", batching=BatchOptions(batch_size=4, drop_last=drop_last)
+        )
+    )
+    if drop_last:
+        expected = expected[: len(expected) // 4 * 4]
+    assert sum(len(batch.action) for batch in batches) == len(expected)
+    offset = 0
+    for batch in batches:
+        samples = expected[offset : offset + len(batch.action)]
+        assert batch.instruction == tuple(sample[2] for sample in samples)
+        for key, value in {"control": batch.action, **batch.observation}.items():
+            reference = np.stack(
+                [
+                    sample[1] if key == "control" else sample[0][key]
+                    for sample in samples
+                ]
+            )
+            np.testing.assert_array_equal(value, reference)
+            assert value.flags.owndata and value.flags.c_contiguous
+            assert value.dtype.isnative
+            assert not any(np.shares_memory(value, episode[1]) for episode in episodes)
+            value[:] = -1
+        offset += len(batch.action)
+    for episode, source in zip(episodes, sources, strict=True):
+        np.testing.assert_array_equal(episode[1][:, 0], source[:-1])
+
+
+@pytest.mark.parametrize("lengths", [(1, 3), (1, 1, 2)])
+def test_cross_episode_batch_rejects_changed_byte_order_before_casting(
+    monkeypatch, lengths
+):
+    from embodiedforge import batching as module
+
+    episodes = [
+        ({"proprio": np.zeros((count, 1, 2))}, np.zeros((count, 1, 2), ">f4"), "a")
+        for count in lengths
+    ]
+    observation, action, instruction = episodes[-1]
+    episodes[-1] = observation, action.astype("<f4"), instruction
+    monkeypatch.setattr(module, "_episode_windows", lambda *a, **kw: iter(episodes))
+    with pytest.raises(ValueError, match="different shapes/dtypes for action"):
+        next(window_batches("unused", batching=BatchOptions(batch_size=4)))
+
+
+@pytest.mark.parametrize("lengths", [(1, 3), (1, 1, 2)])
+def test_cross_episode_batch_rejects_nonstring_instruction(monkeypatch, lengths):
+    from embodiedforge import batching as module
+
+    episodes = [
+        ({"proprio": np.zeros((count, 1, 2))}, np.zeros((count, 1, 2)), "a")
+        for count in lengths
+    ]
+    observation, action, _ = episodes[-1]
+    episodes[-1] = observation, action, 42
+    monkeypatch.setattr(module, "_episode_windows", lambda *a, **kw: iter(episodes))
+    with pytest.raises(ValueError, match="instructions must be strings"):
+        next(window_batches("unused", batching=BatchOptions(batch_size=4)))
 
 
 @pytest.mark.parametrize("shuffle_buffer", [0, 5])

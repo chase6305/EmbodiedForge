@@ -46,6 +46,7 @@ class NumpyPhysics:
         # rescanning the mask at every substep gather/scatter. Keep the same
         # arithmetic and freeze completed environments in both paths.
         rows = active
+        buffered = False
         if (
             isinstance(active, np.ndarray)
             and active.dtype == bool
@@ -58,9 +59,40 @@ class NumpyPhysics:
                 rows = slice(None)
             else:
                 rows = np.flatnonzero(active)
-        for _ in range(substeps):
-            self.velocity[rows] += self.control[rows] * h / self.scene.mass
-            self.position[rows] += self.velocity[rows] * h
+                buffers = (self.position, self.velocity, self.control)
+                buffered = (
+                    type(active) is np.ndarray
+                    and substeps > 1
+                    and all(
+                        type(value) is np.ndarray and value.dtype == np.float64
+                        for value in buffers
+                    )
+                    and self.position.flags.writeable
+                    and self.velocity.flags.writeable
+                    and not any(
+                        np.may_share_memory(left, right)
+                        for left, right in (
+                            (self.position, self.velocity),
+                            (self.position, self.control),
+                            (self.velocity, self.control),
+                        )
+                    )
+                    and all(mode in ("ignore", "warn") for mode in np.geterr().values())
+                )
+        if buffered:
+            # Controls are constant during this synchronous call. Gather the
+            # independent active states once; preserve each Euler operation
+            # rather than replacing repeated integration with a closed form.
+            velocity, position = self.velocity[rows], self.position[rows]
+            delta = self.control[rows] * h / self.scene.mass
+            for _ in range(substeps):
+                velocity += delta
+                position += velocity * h
+            self.velocity[rows], self.position[rows] = velocity, position
+        else:
+            for _ in range(substeps):
+                self.velocity[rows] += self.control[rows] * h / self.scene.mass
+                self.position[rows] += self.velocity[rows] * h
         self.time[rows] += dt
         self.version[rows] += 1
 

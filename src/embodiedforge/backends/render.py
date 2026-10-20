@@ -89,27 +89,41 @@ class RasterRenderer(NullRenderer):
 
     def render(self, ids: Array) -> RenderBatch:
         s = self.config.image_size
-        labels = np.zeros((len(ids), 1, s, s), dtype=np.int32)
+        depth_only = self.config.channels == ("depth",)
+        # Depth only needs foreground membership. RGB needs native indices for
+        # palette lookup; allocate those directly instead of converting a frame.
+        label_dtype = (
+            bool
+            if depth_only
+            else (np.intp if self.config.channels == ("rgb",) else np.int32)
+        )
+        labels = np.zeros((len(ids), 1, s, s), dtype=label_dtype)
         for entity, positions, radius in (
             (2, self.entities["target"], 0.10),
             (1, self.entities["agent"], self.scene.radius),
         ):
             self._draw_disk(labels[:, 0], positions[ids], radius, entity)
-        if self.config.channels == ("rgb",):
-            # Release the int32 labels before take allocates RGB. Otherwise
-            # its intp index conversion stays live alongside both arrays.
-            labels = labels.astype(np.intp, copy=False)
         # Labels are constructed here and always in [0, 2]. take copies the
         # three-byte palette entries faster than general advanced indexing.
+        # The private boolean label buffer can become the owned validity output.
+        depth_valid = (
+            (labels if depth_only else labels != 0)
+            if "depth" in self.config.channels
+            else None
+        )
         values = {
             "rgb": lambda: np.take(self.palette, labels, axis=0, mode="clip"),
-            "depth": lambda: np.where(labels != 0, 2.0, 0.0).astype(np.float32),
-            "instance_id": lambda: labels.copy(),
-            "semantic_id": lambda: labels.copy(),
+            "depth": lambda: np.multiply(depth_valid, 2, dtype=np.float32),
+            # The private labels can become one owned ID output. If both IDs
+            # are requested, the second buffer must remain independent.
+            "instance_id": lambda: labels,
+            "semantic_id": lambda: (
+                labels.copy() if "instance_id" in self.config.channels else labels
+            ),
         }
         images = {channel: values[channel]() for channel in self.config.channels}
         if "depth" in images:
-            images["depth_valid"] = labels != 0
+            images["depth_valid"] = depth_valid
         return RenderBatch(
             images,
             self.state.time[ids].copy(),

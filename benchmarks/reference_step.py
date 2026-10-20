@@ -19,6 +19,7 @@ def measure(args, *, trace=False, checksum=False):
     actions = rng.uniform(-1, 1, (args.steps, args.num_envs, 2))
     config = Config(
         num_envs=args.num_envs,
+        physics_hz=50 * args.substeps,
         render=args.render,
         image_size=args.image_size,
         channels=("rgb", "depth", "instance_id", "semantic_id")
@@ -41,7 +42,7 @@ def measure(args, *, trace=False, checksum=False):
 
         def step(action):
             backend.apply_control(action)
-            backend.step(0.02, 4, active)
+            backend.step(0.02, args.substeps, active)
             state = backend.snapshot()
             capture(vars(state))
 
@@ -86,12 +87,13 @@ def main():
     parser.add_argument("--scope", choices=("physics", "environment"), required=True)
     parser.add_argument("--num-envs", type=int, default=128)
     parser.add_argument("--steps", type=int, default=1000)
+    parser.add_argument("--substeps", type=int, default=4)
     parser.add_argument("--active-fraction", type=float, default=1.0)
     parser.add_argument("--render", choices=("null", "raster"), default="null")
     parser.add_argument("--image-size", type=int, default=64)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    if min(args.num_envs, args.steps, args.image_size) <= 0:
+    if min(args.num_envs, args.steps, args.image_size, args.substeps) <= 0:
         parser.error("Counts must be positive")
     if not 0 <= args.active_fraction <= 1:
         parser.error("active-fraction must be in [0, 1]")
@@ -104,7 +106,7 @@ def main():
     _, _, checksum = measure(args, checksum=True)
     report = {
         "scope": (
-            "NumPy planar control + four Euler substeps + owned snapshot; fixed active mask"
+            f"NumPy planar control + {args.substeps} Euler substeps + owned snapshot; fixed active mask"
             if args.scope == "physics"
             else "NumPy planar environment step, task, optional four-channel raster, sensor copies and immediate completed-row reset"
         )

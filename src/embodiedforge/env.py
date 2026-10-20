@@ -22,6 +22,24 @@ from .sensors import SensorPipeline
 from .tasks import make_task
 
 
+def _executed_action(actions: Array, active: Array) -> Array:
+    """Own executed float32 actions, avoiding masking scratch for uniform batches."""
+    if (
+        type(actions) is np.ndarray
+        and actions.ndim == 2
+        and actions.dtype == np.float64
+        and actions.size >= 2048
+        and type(active) is np.ndarray
+        and active.dtype == np.bool_
+        and active.shape == (len(actions),)
+    ):
+        if active.all():
+            return actions.astype(np.float32)
+        if not active.any():
+            return np.zeros_like(actions, dtype=np.float32)
+    return np.where(active[:, None], actions, 0).astype(np.float32)
+
+
 class VectorEnv:
     """Synchronous CPU environment; owns one task and both backend lifetimes.
 
@@ -274,9 +292,7 @@ class VectorEnv:
             {
                 "active": active,
                 "success": success & active,
-                "executed_action": np.where(active[:, None], actions, 0).astype(
-                    np.float32
-                ),
+                "executed_action": _executed_action(actions, active),
             },
         )
 

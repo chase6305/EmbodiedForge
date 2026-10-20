@@ -23,6 +23,8 @@ def measure(num_envs, image_size, calls, layout):
         depth = np.asfortranarray(depth)
     elif layout == "reversed":
         depth = depth[..., ::-1, ::-1]
+    elif layout == "strided":
+        depth = np.repeat(depth, 2, axis=-1)[..., ::2]
     valid = depth > 0
     if layout == "mixed":
         valid = np.asfortranarray(valid)
@@ -61,7 +63,7 @@ def main():
     parser.add_argument("--calls", type=int, default=100)
     parser.add_argument(
         "--layout",
-        choices=("contiguous", "fortran", "reversed", "mixed"),
+        choices=("contiguous", "fortran", "reversed", "mixed", "strided"),
         default="contiguous",
     )
     parser.add_argument("--output", type=Path, required=True)

@@ -19,6 +19,18 @@ CHANNEL_DTYPES = {
 
 def _valid_depth(depth: Array) -> bool:
     """Keep validation scratch bounded for large, plain numeric image batches."""
+    if (
+        type(depth) is np.ndarray
+        and 8192 <= depth.size <= 4 * 1024 * 1024
+        and depth.dtype == np.float32
+        and (depth.flags.c_contiguous or depth.flags.f_contiguous)
+    ):
+        # Reductions avoid per-pixel finite/negative scratch for camera float32.
+        # NaNs fail the minimum comparison; positive infinity fails the maximum.
+        # A float32 zero also avoids signaling-NaN scalar promotion in NumPy 1.x.
+        return bool(
+            depth.min(initial=0) >= np.float32(0) and depth.max(initial=0) < np.inf
+        )
     if type(depth) is not np.ndarray or depth.size <= 4 * 1024 * 1024:
         return bool(np.isfinite(depth).all() and not (depth < 0).any())
     with np.nditer(
@@ -27,6 +39,11 @@ def _valid_depth(depth: Array) -> bool:
         op_flags=["readonly"],
         buffersize=256 * 1024,
     ) as chunks:
+        if depth.dtype == np.float32:
+            return all(
+                chunk.min(initial=0) >= np.float32(0) and chunk.max(initial=0) < np.inf
+                for chunk in chunks
+            )
         return all(
             np.isfinite(chunk).all() and not (chunk < 0).any() for chunk in chunks
         )
@@ -36,16 +53,37 @@ def _matching_depth_validity(depth: Array, valid: Array) -> bool:
     if (
         type(depth) is not np.ndarray
         or type(valid) is not np.ndarray
-        or depth.size <= 4 * 1024 * 1024
+        or valid.dtype != np.bool_
+        or depth.ndim == 0
+        or depth.shape != valid.shape
     ):
         return np.array_equal(depth > 0, valid)
+    # Matching contiguous layouts need only one block of comparison scratch.
+    # Moderate strided batches avoid the iterator's larger copy buffers.
+    if depth.size <= 256 * 1024 or (
+        depth.size <= 4 * 1024 * 1024
+        and not (
+            (depth.flags.c_contiguous and valid.flags.c_contiguous)
+            or (depth.flags.f_contiguous and valid.flags.f_contiguous)
+        )
+    ):
+        positive = depth > 0
+        np.not_equal(positive, valid, out=positive)
+        return not positive.any()
     with np.nditer(
         [depth, valid],
         flags=["external_loop", "buffered", "zerosize_ok"],
         op_flags=[["readonly"], ["readonly"]],
         buffersize=256 * 1024,
     ) as chunks:
-        return all(np.array_equal(values > 0, mask) for values, mask in chunks)
+        for values, mask in chunks:
+            positive = values > 0
+            np.not_equal(positive, mask, out=positive)
+            if positive.any():
+                return False
+            # Release this chunk's scratch before allocating the next one.
+            del positive
+        return True
 
 
 class SensorPipeline:

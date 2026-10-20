@@ -123,15 +123,15 @@ def _join_chunks(chunks: list[WindowBatch]) -> WindowBatch:
     for chunk in chunks[1:]:
         if chunk.observation.keys() != first.observation.keys():
             raise ValueError("Cannot batch different observation schemas")
-        for name, value in {
-            "action": chunk.action,
-            **{f"obs/{key}": value for key, value in chunk.observation.items()},
-        }.items():
-            reference = (
-                first.action if name == "action" else first.observation[name[4:]]
-            )
+        if (
+            chunk.action.shape[1:] != first.action.shape[1:]
+            or chunk.action.dtype != first.action.dtype
+        ):
+            raise ValueError("Cannot batch different shapes/dtypes for action")
+        for key, value in chunk.observation.items():
+            reference = first.observation[key]
             if value.shape[1:] != reference.shape[1:] or value.dtype != reference.dtype:
-                raise ValueError(f"Cannot batch different shapes/dtypes for {name}")
+                raise ValueError(f"Cannot batch different shapes/dtypes for obs/{key}")
     if len(chunks) == 1:
 
         def native(value):

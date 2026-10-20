@@ -166,6 +166,7 @@ class EpisodeRecorder:
         self.root.mkdir(parents=True, exist_ok=False)
         self.pending = {}
         self.closed = False
+        self._closing = False
         self.max_steps = env.config.max_steps
         self.num_envs = env.config.num_envs
         self.failure: BaseException | None = None
@@ -315,9 +316,13 @@ class EpisodeRecorder:
                 )
             if len(rows) >= self.max_steps:
                 raise BufferError("Episode exceeds configured recorder capacity")
+            # A pending episode passed this check at its first transition.
+            # The run directory belongs to this writer; publication rechecks
+            # the path in case another file appeared while it was buffered.
             if (
                 key in self._writes
-                or (self.root / f"env{key[0]:05d}-episode{key[1]:08d}.npz").exists()
+                or not rows
+                and (self.root / f"env{key[0]:05d}-episode{key[1]:08d}.npz").exists()
             ):
                 raise ValueError("Duplicate episode ID; do not reseed a recording run")
             if (
@@ -368,6 +373,8 @@ class EpisodeRecorder:
             raise RuntimeError("Recorder failed; create a new run") from self.failure
         if self.closed:
             raise RuntimeError("Recorder is closed")
+        if self._closing:
+            raise RuntimeError("Recorder is closing; retry close")
         error = self._collect_writes()
         if error is not None:
             raise error
@@ -486,8 +493,20 @@ class EpisodeRecorder:
                 error = error or caught
                 self.pending[key] = rows
             else:
-                self.buffered_bytes -= size
-                self.manifest["completed_episodes"] += 1
+                buffered = self.buffered_bytes
+                completed = self.manifest["completed_episodes"]
+                try:
+                    self.buffered_bytes = buffered - size
+                    self.manifest["completed_episodes"] = completed + 1
+                    del self._writes[key]
+                except BaseException:
+                    # A caller interruption must not count the same completed
+                    # future again when append/close retries its collection.
+                    self.buffered_bytes = buffered
+                    self.manifest["completed_episodes"] = completed
+                    self._writes[key] = (future, rows, size)
+                    raise
+                continue
             del self._writes[key]
         return error
 
@@ -495,11 +514,33 @@ class EpisodeRecorder:
         """Wait for queued writes, finalize the manifest and discard incomplete rows."""
         if self.closed:
             return
+        self._closing = True
         error = None
+
+        def drain(operation):
+            nonlocal error
+            try:
+                return operation()
+            except BaseException as caught:
+                error = error or caught
+                try:
+                    return operation()
+                except BaseException as repeated:
+                    # Retain the undrained handles/rows for an explicit retry,
+                    # and prevent appends to an already shut-down executor.
+                    self.failure = self.failure or error
+                    self.close_error = repeated
+                    raise error from repeated
+
         if self._executor is not None:
-            self._executor.shutdown(wait=True)
+            drain(lambda: self._executor.shutdown(wait=True))
             self._executor = None
-            error = self._collect_writes()
+        # A prior interrupted close may have released the executor already.
+        # Explicitly wait for each future, even after an interrupted thread join.
+        for key in tuple(self._writes):
+            if key in self._writes:
+                worker_error = drain(lambda key=key: self._collect_writes(wait_for=key))
+                error = error or worker_error
         self.manifest.update(
             status="failed" if self.failure is not None else "closed",
             incomplete_episodes=[
@@ -524,6 +565,8 @@ class EpisodeRecorder:
     def __enter__(self) -> "EpisodeRecorder":
         if self.closed or self.failure is not None:
             raise RuntimeError("Recorder is not available")
+        if self._closing:
+            raise RuntimeError("Recorder is closing; retry close")
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:

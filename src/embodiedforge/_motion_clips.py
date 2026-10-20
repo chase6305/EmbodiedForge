@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+from array import array
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +18,44 @@ def _names(value, name):
     ):
         raise ValueError(f"{name} must contain unique nonempty names")
     return value
+
+
+def _frame_blocks(value):
+    """Keep validation scratch small without flattening strided motion fields."""
+    width = value.size // len(value)
+    block = max(1, 256 * 1024 // width)
+    for start in range(0, len(value), block):
+        yield value[start : start + block]
+
+
+def _finite_frames(value):
+    if type(value) is not np.ndarray or value.size <= 256 * 1024:
+        return np.isfinite(value).all()
+    return all(np.isfinite(part).all() for part in _frame_blocks(value))
+
+
+def _unit_quaternions(value):
+    # A one-frame tail can change float16's reduction layout and rounding.
+    # Keep its original whole-field norm and unit-tolerance decisions.
+    if (
+        type(value) is not np.ndarray
+        or value.size <= 256 * 1024
+        or value.dtype.type is np.float16
+    ):
+        return np.allclose(np.linalg.norm(value, axis=-1), 1, atol=1e-3, rtol=0)
+    return all(
+        np.allclose(np.linalg.norm(part, axis=-1), 1, atol=1e-3, rtol=0)
+        for part in _frame_blocks(value)
+    )
+
+
+def _contact_labels(value):
+    if type(value) is not np.ndarray:
+        return np.isin(value, [-1, 0, 1]).all()
+    # Equality also handles uint64 labels on NumPy 1.24, whose isin table path
+    # can promote unsigned indices to float when the allowed set includes -1.
+    blocks = (value,) if value.size <= 256 * 1024 else _frame_blocks(value)
+    return all(((part == -1) | (part == 0) | (part == 1)).all() for part in blocks)
 
 
 class MotionClips:
@@ -113,14 +152,12 @@ class MotionClips:
             if (
                 value.shape != shape
                 or value.dtype.kind not in "iuf"
-                or not np.isfinite(value).all()
+                or not _finite_frames(value)
             ):
                 raise ValueError(f"{name} must be finite numeric{shape}")
-            if "quat" in name and not np.allclose(
-                np.linalg.norm(value, axis=-1), 1, atol=1e-3, rtol=0
-            ):
+            if "quat" in name and not _unit_quaternions(value):
                 raise ValueError(f"{name} must contain unit quaternions")
-        if not np.isin(arrays["contact_label"], [-1, 0, 1]).all():
+        if not _contact_labels(arrays["contact_label"]):
             raise ValueError(
                 "contact_label must use -1 (no contact), 0 (unspecified), +1 (contact)"
             )
@@ -218,8 +255,21 @@ class MotionClips:
             requests.setdefault(name, []).append(index)
             count += 1
         ids = np.empty(count, dtype=np.int64)
+        candidates_by_object = None
+        if len(requests) > 1:
+            # Rebuild per call so edits to the public object list are visible.
+            # A single object keeps the cheaper scan and its smaller scratch.
+            candidates_by_object = {name: array("q") for name in requests}
+            for index, name in enumerate(self.objects):
+                candidates = candidates_by_object.get(name)
+                if candidates is not None:
+                    candidates.append(index)
         for name, rows in requests.items():
-            candidates = [i for i, obj in enumerate(self.objects) if obj == name]
+            candidates = (
+                candidates_by_object[name]
+                if candidates_by_object is not None
+                else [i for i, obj in enumerate(self.objects) if obj == name]
+            )
             if not candidates:
                 raise ValueError(f"Unknown object: {name}")
             ids[rows] = rng.choice(candidates, size=len(rows))

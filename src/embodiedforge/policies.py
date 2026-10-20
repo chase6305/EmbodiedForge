@@ -28,6 +28,7 @@ class ActionExecutor:
         ):
             raise ValueError("executor dimensions must be positive")
         self.chunks = np.zeros((num_envs, horizon, action_dim), dtype=np.float32)
+        self._env_ids = np.arange(num_envs)
         self.cursor = np.zeros(num_envs, dtype=np.int64)
         self.length = np.zeros(num_envs, dtype=np.int64)
         if not (
@@ -54,6 +55,10 @@ class ActionExecutor:
             or len(np.unique(ids)) != len(ids)
         ):
             raise ValueError("reset IDs must be unique integers in range")
+        self._reset_rows(ids)
+
+    def _reset_rows(self, ids: Array) -> None:
+        """Clear validated IDs or the unique in-range rows found internally."""
         self.chunks[ids] = 0
         self.cursor[ids] = self.length[ids] = 0
         self._episode[ids] = self._step[ids] = -1
@@ -62,7 +67,7 @@ class ActionExecutor:
         """Detect reset, repeated observation or skipped control steps before acting."""
         count = len(self.cursor)
         if "env_id" in observation and not np.array_equal(
-            observation["env_id"], np.arange(count)
+            observation["env_id"], self._env_ids
         ):
             raise ValueError("Executor requires canonical environment row order")
         tracked = {"episode_id", "step_id"} & observation.keys()
@@ -97,7 +102,8 @@ class ActionExecutor:
         ):
             raise ValueError("Observation batch must match executor environment count")
         changed = self._changed_rows(observation)
-        self.reset(changed)
+        if changed.size:
+            self._reset_rows(changed)
         ids = np.flatnonzero(self.cursor >= self.length)
         if len(ids):
             chunks = np.asarray(
@@ -120,7 +126,7 @@ class ActionExecutor:
             self.cursor[ids] = 0
             self.length[ids] = chunks.shape[1]
         # Integer indexing already allocates an independent action batch.
-        action = self.chunks[np.arange(len(self.cursor)), self.cursor]
+        action = self.chunks[self._env_ids, self.cursor]
         self.cursor += 1
         if "episode_id" in observation:
             self._episode[:] = observation["episode_id"]

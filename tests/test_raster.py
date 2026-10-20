@@ -124,3 +124,60 @@ def test_rgb_only_cast_keeps_owned_exact_pixels(size, count, radius):
     assert actual.dtype == np.uint8 and actual.flags.owndata
     actual[:] = 0
     np.testing.assert_array_equal(renderer.render(ids).images["rgb"], expected)
+
+
+@pytest.mark.parametrize("size", [1, 64, 257])
+@pytest.mark.parametrize(
+    "channels",
+    [
+        ("depth",),
+        ("rgb", "depth"),
+        ("depth", "rgb"),
+        ("rgb", "depth", "instance_id", "semantic_id"),
+    ],
+)
+@pytest.mark.parametrize("empty", [False, True])
+def test_depth_and_validity_own_independent_exact_frame_arrays(size, channels, empty):
+    from embodiedforge.backends.render import RasterRenderer
+    from embodiedforge.core import SceneSpec, SceneUpdate, StateSnapshot
+
+    positions = np.array([[0.0, 0.0], [5.0, 5.0], [-1.5, 1.5]])
+    targets = np.array([[0.0, 0.0], [-5.0, -5.0], [1.5, -1.5]])
+    state = StateSnapshot(
+        positions, np.zeros_like(positions), np.zeros(3), np.zeros(3, np.int64)
+    )
+    renderer = RasterRenderer()
+    renderer.build(
+        SceneSpec(radius=0.35),
+        Config(num_envs=3, image_size=size, channels=channels),
+    )
+    renderer.sync(SceneUpdate(state, {"agent": positions, "target": targets}))
+    ids = np.array([] if empty else [2, 0, 2, 1], dtype=np.int64)
+    coord = (np.arange(size) + 0.5) * 3 / size - 1.5
+    x, y = np.meshgrid(coord, -coord)
+    expected_valid = np.zeros((len(ids), 1, size, size), bool)
+    for row, index in enumerate(ids):
+        for center, radius in ((positions[index], 0.35), (targets[index], 0.1)):
+            expected_valid[row, 0] |= (x - center[0]) ** 2 + (
+                y - center[1]
+            ) ** 2 <= radius**2
+    expected_depth = np.where(expected_valid, 2.0, 0.0).astype(np.float32)
+    images = renderer.render(ids).images
+    assert images.keys() == set(channels) | {"depth_valid"}
+    depth, valid = images["depth"], images["depth_valid"]
+    assert depth.dtype == np.float32 and valid.dtype == bool
+    assert depth.flags.owndata and valid.flags.owndata
+    assert depth.flags.c_contiguous and valid.flags.c_contiguous
+    for name, value in images.items():
+        for other, array in images.items():
+            if name != other:
+                assert not np.shares_memory(value, array)
+    np.testing.assert_array_equal(depth, expected_depth)
+    np.testing.assert_array_equal(valid, expected_valid)
+    depth[:] = -1
+    np.testing.assert_array_equal(valid, expected_valid)
+    valid[:] = ~valid
+    again = renderer.render(ids).images
+    np.testing.assert_array_equal(again["depth"], expected_depth)
+    np.testing.assert_array_equal(again["depth_valid"], expected_valid)
+    renderer.close()
