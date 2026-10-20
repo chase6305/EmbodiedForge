@@ -1,0 +1,2970 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "kind": "platform-optimization-round",
+  "status": "complete",
+  "preview_only": false,
+  "duration": {
+    "started_epoch": 1792121974,
+    "deadline_epoch": 1792129174,
+    "observed_epoch": 1792129193.5074403,
+    "required_seconds": 7200,
+    "elapsed_seconds": 7219.507440328598,
+    "requirement_met": true,
+    "started_utc": "2026-10-16T03:39:34+00:00",
+    "observed_utc": "2026-10-16T05:39:53.507440+00:00",
+    "scope": "Original user-requested start to actual current UTC; parallel test durations are not added together."
+  },
+  "environment": {
+    "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+    "numpy": "2.5.4",
+    "architecture": "x86_64",
+    "system": "Linux",
+    "cpu_model": "AMD Ryzen 9 9950X 16-Core Processor",
+    "os_cpu_count": 32,
+    "current_affinity_cpus": 32,
+    "benchmark_threads": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    },
+    "scope": "Current CPU benchmark interpreter/environment; shared host, no CPU pinning or exclusive hardware. No GPU or neural inference in the performance comparisons."
+  },
+  "reproduction": {
+    "working_directory": "Repository root with source matching the final hashes; extract the evidence archive elsewhere first.",
+    "current_executor": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONPATH=src python benchmarks/action_executor.py --metadata --output /tmp/executor-current.json",
+    "paired_recording": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONPATH=src python <extracted>/evidence/scripts/recorder_compare.py",
+    "paired_executor": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONPATH=src python <extracted>/evidence/scripts/executor_final_compare.py",
+    "stress": "The two endurance scripts accept --until as a future Unix UTC epoch. Their absolute default records this study deadline. Quiet benchmark scripts additionally require the exact three self-owned stress workers and pause only those processes."
+  },
+  "baseline_revision": "7bb4da9774d782ab7c8e5520610aa2e4c14982aa",
+  "initial_worktree_status": " M docs/interfaces.md\n M src/embodiedforge/batching.py\n M tests/test_ordered_batches.py\n?? benchmarks/ordered_batches.py\n?? docs/ordered-batches-optimization-20261016.json\n",
+  "initial_worktree_preserved": [
+    "benchmarks/ordered_batches.py",
+    "docs/ordered-batches-optimization-20261016.json",
+    "src/embodiedforge/batching.py",
+    "tests/test_ordered_batches.py"
+  ],
+  "changes": [
+    {
+      "component": "Recording append",
+      "paths": [
+        "src/embodiedforge/data.py",
+        "tests/test_recorder_duplicates.py"
+      ],
+      "behavior": "Only first-transition identities query an existing NPZ path; queued identities remain checked and publication rechecks its output path. The run directory is owned by one recorder; unexpected external collisions during a pending episode fail at publication. Avoid repeated filesystem calls for continuing rows."
+    },
+    {
+      "component": "Recorder shutdown",
+      "paths": [
+        "src/embodiedforge/data.py",
+        "tests/test_recorder_close.py"
+      ],
+      "behavior": "Retry an interrupted shutdown or future-result collection once, then drain known futures even if the executor handle was released earlier. Preserve the first exception and secondary cause. Repeated failure retains retry state and disables append. Enter closing state before any cleanup; append and context reentry remain blocked after inter-operation interruption until explicit close retry completes."
+    },
+    {
+      "component": "Action execution",
+      "paths": [
+        "src/embodiedforge/policies.py",
+        "benchmarks/action_executor.py"
+      ],
+      "behavior": "Reuse one fixed intp[N] environment-index array for row-order validation and action selection. Keep independently owned action outputs, metadata identity tracking and replanning rules. Add --metadata to the benchmark for consecutive identity tracking; retained index storage is extra persistent memory, not a whole-process memory reduction."
+    }
+  ],
+  "validation": {
+    "full_suites": [
+      {
+        "label": "py310-full",
+        "command": [
+          "/tmp/ef-ci310-20261014/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests",
+          "--tb=short"
+        ],
+        "returncode": 0,
+        "started_epoch": 1792124736.007705,
+        "ended_epoch": 1792124803.2254775,
+        "log": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/final2-py310-full.log",
+        "log_sha256": "2bf661b268aa9839325ab71b48ed4afcb78fd457f761fa0b225120a5dec456ba",
+        "result": "1762 passed, 95 skipped, 11 warnings in 64.65s (0:01:04)"
+      },
+      {
+        "label": "py312-full",
+        "command": [
+          "/tmp/ef-ci312-20261014/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests",
+          "--tb=short"
+        ],
+        "returncode": 0,
+        "started_epoch": 1792124736.0078356,
+        "ended_epoch": 1792124816.208916,
+        "log": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/final2-py312-full.log",
+        "log_sha256": "5b5c7cd0e27bff7f0b0f95516ac9d04088e23ce097685e3ed87ac58aec869d6a",
+        "result": "1824 passed, 84 skipped, 11 warnings in 78.00s (0:01:18)"
+      },
+      {
+        "label": "numpy124-focused",
+        "command": [
+          "/tmp/ef-numpy124-20261014/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_recorder_close.py",
+          "tests/test_recorder_duplicates.py",
+          "tests/test_async_recorder.py",
+          "tests/test_recorder_budget.py",
+          "tests/test_compact_episodes.py",
+          "tests/test_data_validation.py",
+          "tests/test_episode_identity.py",
+          "tests/test_data_policy.py",
+          "tests/test_ordered_batches.py",
+          "tests/test_dataset_reads.py",
+          "--tb=short"
+        ],
+        "returncode": 0,
+        "started_epoch": 1792124736.0079722,
+        "ended_epoch": 1792124751.933404,
+        "log": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/final2-numpy124-focused.log",
+        "log_sha256": "3fea4150ed65daf12f80cd43124b729bad20933d94b4a7b917bd230208c00755",
+        "result": "329 passed in 15.24s"
+      }
+    ],
+    "source_hashes": {
+      "src/embodiedforge/_act_bundle.py": "ac4db52202c51ebe8e65a7ede6558807900a537ced74492ba3a186b6dae33f96",
+      "src/embodiedforge/_act_dataset.py": "b56ed1bd023f5b910fbf0508cc49d105883fce8c99f255fb6bba487f5d9b6f17",
+      "src/embodiedforge/_h1_motion.py": "f647ac363aeb00d2a3ccfdf131dcec396d699a3d58a76afce085a07ef638ec52",
+      "src/embodiedforge/h1.py": "603503cc81f72d980f55430a75e22adb1d23b298f28c40dead1ca2a231fc335a",
+      "src/embodiedforge/_go1_recovery.py": "c4b83a2c8cb700216c50e2ef33c951fdc4edb6697cd8762d447c66d6a7fb86ba",
+      "src/embodiedforge/_rlinf_export.py": "2d6e702a66c09ad3bd47d313f3c75264a0b7ca26da0cc3395b098fd6c8ea161a",
+      "src/embodiedforge/_core_run.py": "1066b1f8a5767ba2ae0e542366a48e2be576c9530e772d3417a48ca37d493f11",
+      "src/embodiedforge/_act_compare.py": "653414ed69604f9802f54b0b9d5b7bcc4feaa3121db1f08254a878785caf944a",
+      "src/embodiedforge/_microduck_native_worker.py": "4b70966a42da1be74ed6078d0e8bec2d339a30b442bb7f5a69f0c50c024484d4",
+      "src/embodiedforge/_rlinf_onnx.py": "78e11cd2aecd119812ad4d35ede2832ecab74db062e332e5c84155b153dbf0ee",
+      "src/embodiedforge/_act_checkpoints.py": "2c1104ca5f501885b7359ac87c23540d13bcb5aaf8e6d11bbc54fd536f6fee80",
+      "src/embodiedforge/native_h1.py": "da6e874122fab590820d05f7f75c9599475aad275e36eb11645db9b396f83284",
+      "src/embodiedforge/sonic.py": "926423c99437256fc00147363eebf05d37eb167471ab84cd565391f3a3282e87",
+      "src/embodiedforge/_rlinf_worker.py": "8be3cb0e896d46d9a5073c81496d3ec881b562bfe7aeef666741953daba8bf76",
+      "src/embodiedforge/diagnostics.py": "982d60b6d88a0c857b996bcefe2d032d6f3efd0d5a22ee085b3ad8fd316d7877",
+      "src/embodiedforge/batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+      "src/embodiedforge/tasks.py": "2550fcf7d1cc3061943178f293e67602082f3bf176e64d3fa8ab3440cc819950",
+      "src/embodiedforge/_h1_worker.py": "5674e9b60d3a2b71ef371907b2d052223dda427fef190aba509103d44eecef89",
+      "src/embodiedforge/_microduck_run.py": "85e7c0a34e8268cc83b60db76a9dd67e97699cd27a3723d8d36064f5ea92ea76",
+      "src/embodiedforge/_go1_resume.py": "b4085ecc1e60ea77a4708c5ba51f9211fe2bc1adfab41dcd849c000c511d3c62",
+      "src/embodiedforge/robot_replay.py": "dd13bd3fcf8045ea093bcf09daf5a50b09a7595517be05c7065b941cb7853440",
+      "src/embodiedforge/env.py": "b627b80a9d6ca28af5a39dfd0935e9fbd5b18d22d8d5b9e4e83d702b8b076cbd",
+      "src/embodiedforge/_go1_assets.py": "5fff5b621c6069549190dc8a50f396ccffa43e396c37428e1f5e4c3a513f4d70",
+      "src/embodiedforge/core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+      "src/embodiedforge/_adam_checkpoint.py": "e6635c3aba8ddbe90652d31be6ae9b7a8a18c73b7144935ac39037a15ad2f9e4",
+      "src/embodiedforge/_weave_evaluation.py": "7bfcd64c31750c952b8a4ad94ed2b4441709742f6042506ef396487aed4ca924",
+      "src/embodiedforge/policies.py": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+      "src/embodiedforge/_motion_clips.py": "515eb4d661253f6c3c4af2c3763637b4f95aeb9da9955d93d42ef67ebe61c7df",
+      "src/embodiedforge/_wuji_recipe.py": "10812e9342639462b3473e8fdaf57b693fd21831cebf93c73af89bbb64ed34f1",
+      "src/embodiedforge/motion.py": "91a7805a8c55c41d082b3a081f4fd60d7bb94184f8e75ff4dc731d9240df9136",
+      "src/embodiedforge/training.py": "af15a3173281c1e92e847e8232d30bfa32b726f89bd184ee17ababe38bc8bf3b",
+      "src/embodiedforge/microduck.py": "08f8190bc323bc873527604367f4d605245be0fc4de24f03cb057bae7fdb5077",
+      "src/embodiedforge/graphics.py": "4e0fe21c13a433cc2552fa4024fb4f03effc6619d0ccaf45e5f91cdef6624107",
+      "src/embodiedforge/__init__.py": "b398f568b4528c2eb0deab750f0c18f2d5ed33a1737d5a39d8d1201911a1ba78",
+      "src/embodiedforge/_go1_metrics.py": "1df410bbe1063aae082114fe1a496343adeecd8b4a3bf474ff8bc3763dac96f7",
+      "src/embodiedforge/_sonic_worker.py": "c91e57ce7fa987ec16dc044b922648e2bef702ff12c74cb3644475c86f62b5a0",
+      "src/embodiedforge/gmr.py": "488a5437edfe57c2d69d1dad11f64ea3cfed35d72887c0fae6ada5893433586e",
+      "src/embodiedforge/_go1_live_worker.py": "729a2a00244493bd14a3cee394365e8da7b72dc76ded43cbc8c78e7e176ad128",
+      "src/embodiedforge/weave.py": "56ade07e341e27612e0bd54842dbe63b403e51bc52f4fa2250edada3367494a4",
+      "src/embodiedforge/_go1_implementation.py": "a3d772a9bab2891ea427c82eec9e98a8dd4d41d2a9e1ede098332665c0955b9b",
+      "src/embodiedforge/sensors.py": "c3ddac620919c71147cb22570c55fed49bc656d09834fcdc757b20c448667a3d",
+      "src/embodiedforge/rlinf.py": "97020783fcdc861c1b22e15312cda7d7573506ade4db2b826ebfcb889a5fe5b4",
+      "src/embodiedforge/_microduck_export.py": "1bc4809b31eb910f610766ad49510f1720023f9c802455a7d37c8f2ae173e7e4",
+      "src/embodiedforge/_go1_checkpoint.py": "f5d4efb5571cb16b845153b81e60153bc0fc889dcc22efe5099d52b0c55c553c",
+      "src/embodiedforge/_go1_training_viewer.py": "d92a43fb4783a1b872bd2375c84cdb44bb1ef77ae741f1545858c6fd0d145e9c",
+      "src/embodiedforge/_weave_worker.py": "11e35b81d9510628f55f8a52eb2444e736811d3a9d9ba86611e28e56d9f55c97",
+      "src/embodiedforge/_microduck_process.py": "938c9422178db124bba1891d176d268a76cfd27a9b09dce9b313f9ac24cc0028",
+      "src/embodiedforge/_mjbatch_recipe.py": "144f114bda3f6cf613b6e160955eafafbbfcf4da44a37fe28de05af49ac7e90f",
+      "src/embodiedforge/_ppo_parameters.py": "a1417de3bda65982d1dc6cc639560dbbf80cee3fcbf42b8e96079674408e64d2",
+      "src/embodiedforge/__main__.py": "a2b6d2c663999e08203c72c9206a9bdd32acf47b8303ea123a4e7ee5727a2d41",
+      "src/embodiedforge/visualization.py": "67e1c40009f25ee033461883fb308c3937a719f50c313b3abfaa8c0185454e18",
+      "src/embodiedforge/_microduck_inputs.py": "1bfe9afe0ad282d638d720bf93254baf92bb8dbea458adcda16e7d9879d56f6e",
+      "src/embodiedforge/go1_live.py": "e25dccb4ed725cba69f090b448219506277b245d04f5d99cc08d787f56781bf5",
+      "src/embodiedforge/_wuji_diagnostics.py": "7d98007b51fac351f46a8e136e26de85349c2919e91533cb97008e00a461454f",
+      "src/embodiedforge/rollout.py": "2684c24b257f363aaafa0867c87bbf0bc7cb016198e157c1e7a2c636bc732a95",
+      "src/embodiedforge/logging.py": "afe275a1536239248212b8bce7ff5ad4bc5cf0c9104fad9222cb3b0bd2194f8e",
+      "src/embodiedforge/_microduck_native.py": "dfd23efe7662c20a2d1fa6d507ec4ccb6c82a0fb152e4a76d0912e50b7fdf1a3",
+      "src/embodiedforge/_wuji_training_viewer.py": "495c9941c0f96935217485d93c97b91385de78668ad607a5932e9dabc906af9d",
+      "src/embodiedforge/_live_channel.py": "508f6b50564f3a9381e641c788da605b10bcea345c0b89af6c6a762db0ecb37b",
+      "src/embodiedforge/_h1_metrics.py": "0c0c5dcf61ad931fa658a5c1520667b0f9f68a2723a75e5b0220f2ff10e4a145",
+      "src/embodiedforge/_recipe_worker.py": "34bad20b4e12bbc40f05abe3277ee8c5323a6ad9c3a20967f1ac250b12e6b489",
+      "src/embodiedforge/recipes.py": "9f22cada5609284152beb122e7cda0e41f5fd68f913d1a0c4a2ee05dfd237654",
+      "src/embodiedforge/cli.py": "db18ca0cb03349e09bd60d8c03629e2470b2f28d47dfeb988272cabc9132d321",
+      "src/embodiedforge/_h1_evaluate.py": "5835bc60e56d8eb6b18f3233cf7d7507af01bf75d3f7ee3441ee336546474242",
+      "src/embodiedforge/_training_runtime.py": "0876004867856090c3843eeba63bd4887404905069127811534f54d9e250721a",
+      "src/embodiedforge/data.py": "bdb8ce929b37d4e0e55f672b2702d28ed67d57eb845857fb88a30b2870c0ce28",
+      "src/embodiedforge/_microduck_worker.py": "4c434241331db365f3321cd08f292ea782e1ef2021a08c0d9e6880942eaac819",
+      "src/embodiedforge/_motion_sdk.py": "82e683a42fb2204b60dde6e680d1a3da48f82e8ce799fff9d575b469dbaaafb3",
+      "src/embodiedforge/_hashing.py": "03f5bc4b6e902e2ce116d2d8a3791afe141bd11467a33ab9f3480ded0d9211d0",
+      "src/embodiedforge/_gmr_worker.py": "898437ea7c0bac20f0a804e5e3fb236cadc8bb8e50022f580bdaa2c13fe63efd",
+      "src/embodiedforge/_microduck_reports.py": "5d6753a553dc959b29e1967800ce85bc1c0be81433181fcbf1852f33708db3ee",
+      "src/embodiedforge/act.py": "4abb892fdf95bbfb174cc752f6f8fd0f5784ccf68b4de61acfe8a132920684c0",
+      "src/embodiedforge/backends/physics.py": "aacb47526e8cd285d12ec471f5df944d5f3a04cf1dd8fa65495338c937ea40bd",
+      "src/embodiedforge/backends/newton.py": "9cd3860f3ed2db508006d6d2242a7f6c5dd2d8e016b5d8dd668bae11b93561f0",
+      "src/embodiedforge/backends/__init__.py": "7c3caf1568fe29afb073e8d8eff670ea3d15259f7db7895758212aa4238450dd",
+      "src/embodiedforge/backends/render.py": "8c5d456ac44c2bc4103bd134beefb75b9bd32bd186045215891385a09088926f",
+      "src/embodiedforge/backends/mjbatch.py": "5127cb1828f7441c1735755919c46e131b1e69a4074b5e59483604c1b6f0269f",
+      "src/embodiedforge/viewers/frames.py": "129f0ab941e1585bdf8ae7a7807c5be54b2addbb6c641560dd5417bc522ce932",
+      "src/embodiedforge/viewers/newton.py": "d55e2514f06be3702e9e5f1ce55c724308afcf30b4756026c65735843ccfb259",
+      "src/embodiedforge/viewers/__init__.py": "cc4b18f9305f0b90d24da8896f3db37f77353c53a7844abaa6b3adb14419cc52",
+      "src/embodiedforge/viewers/rtx.py": "4d0108d9f997429a46620995c4de810f335c749dcad04d61bd1129e03252e49c",
+      "src/embodiedforge/viewers/web.py": "c087cd064425ab6cb72e11fcc0d306995cfacb979b1c534b4d0c0bb439a7511f",
+      "src/embodiedforge/viewers/viser.py": "6e253b29bf3ca21dbd14eebf6ec0226cfc6499d859e7f9f95a39c75b16348f13",
+      "src/embodiedforge/viewers/robot.py": "c3b83ca63c5da31718b7976c8897ec9501c7dd3a30fd634098fd539182d9c4a9",
+      "src/embodiedforge/viewers/style.py": "a42c5a4114214a6934857818bb2bf745755da40f80fc7e36d8f6732435f4ba60",
+      "src/embodiedforge/viewers/timing.py": "53765d3b3dd7f3352415793dd63a60fcb1dd44bdb65b62de0a946af659a63416",
+      "src/embodiedforge/locomotion/h1_native.py": "0420ddc068ce08d6d20ab88fff9791ac5c56539d952957ed08e310379ae80135",
+      "src/embodiedforge/locomotion/go1_config.py": "869f1c6311d4392d4bad07e113c2fe102a207c5b061949cbecda8040c52f45e0",
+      "src/embodiedforge/locomotion/articulation.py": "58a0abde71ebee6db3dfd11edd994f0673ce355c1ea98357ba0ad59c03be1f6c",
+      "src/embodiedforge/locomotion/go1_ppo.py": "0deb3fe1f817878d37aaf9937393d3885cf950dca9fa09abd459c94b2a4f17d3",
+      "src/embodiedforge/locomotion/h1_ppo.py": "10858edf12c0c4a5886080aeb4fc9808c4c53b5de28252bdd718a7c350bdd15d",
+      "src/embodiedforge/locomotion/__init__.py": "67e07baec885bd1353838c537f8c2df43fb405ebf341b6e9e60cc8f56ee37428",
+      "src/embodiedforge/locomotion/go1_light_loco.py": "99cac844466dd804bad88cbcfc82e14176e3b93ccf125736c2309ffc64aa4b54",
+      "src/embodiedforge/locomotion/go1.py": "ea8c7b4a8220e9faf72648c9182a039eabdcee550345c52675b1389de001d2b9",
+      "src/embodiedforge/locomotion/microduck/__init__.py": "7c93bc82c7bd846e18b67c918e136a2721d41e17737ffca2012dccb5c38c399c",
+      "src/embodiedforge/locomotion/microduck/checkpoint.py": "82fdc32abdab1f5beb7dabbe7061d89f0efe1d121b664661dc12ec894e721105",
+      "src/embodiedforge/locomotion/microduck/export.py": "3bac4b1626abd2b02e060decaabbd313e74ca507fe4e876a10ae536d7a90e7fe",
+      "src/embodiedforge/locomotion/microduck/actuator/friction_dr_bam.py": "03d0461caf973419bbd3f746f2cba73fe9464d00ae59ff3e8f8cd158d8f2e832",
+      "src/embodiedforge/locomotion/microduck/actuator/__init__.py": "b8a82f30822166f14e0bcd7730d67153908097c2353c4d0cdbf3c51d9ad475cc",
+      "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+      "src/embodiedforge/locomotion/microduck/tasks/symmetry.py": "f84f19cc1f93afa7cb1d6e98152a70dcf7f38d6df0720d8675ed8ea93c663941",
+      "src/embodiedforge/locomotion/microduck/tasks/microduck_velocity_env_cfg.py": "02ef1c12bef07fd591b8a9cdd85e46bd0de8fd674b82569528bb1c29de42945c",
+      "src/embodiedforge/locomotion/microduck/tasks/__init__.py": "0e8069547a5ad8b20307adc16a77825660cf3acc3cecf118b7293d5c88a1234d",
+      "src/embodiedforge/locomotion/microduck/robot/__init__.py": "26782f5a79ab0206de698956d9c4ca3879d99b3bbd8080654e773a2530f08181",
+      "src/embodiedforge/locomotion/microduck/robot/microduck_constants.py": "cbd2a8ed29a42b3eb7184ddab51df77f2bb0c8239e2450e1373465ff92f050e0"
+    },
+    "new_regression_cases": 46,
+    "negative_controls": {
+      "initial_shutdown_regressions": {
+        "result": "19 failed before the shutdown-drain fix",
+        "log": "close-before.log"
+      },
+      "inter_operation_close_regressions": {
+        "result": "12 failed before the closing-state guard",
+        "log": "boundary-before.log"
+      }
+    },
+    "real_signals": [
+      {
+        "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+        "passed_cases": 40,
+        "baseline_expected_failures": 2,
+        "scope": "Real SIGINT and SIGTERM delivered to these isolated child-controller PIDs 20ms after entry into actual ThreadPoolExecutor.shutdown thread joining while an actual writer is blocked. SIGTERM uses a test handler raising SystemExit143, not production default SIGTERM behavior. Candidate drains and closes before propagating the signal; baseline negative controls fail and are finalized by the harness. Owned native thread IDs and FD recovery checked; no signals to other jobs."
+      },
+      {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "passed_cases": 40,
+        "baseline_expected_failures": 2,
+        "scope": "Real SIGINT and SIGTERM delivered to these isolated child-controller PIDs 20ms after entry into actual ThreadPoolExecutor.shutdown thread joining while an actual writer is blocked. SIGTERM uses a test handler raising SystemExit143, not production default SIGTERM behavior. Candidate drains and closes before propagating the signal; baseline negative controls fail and are finalized by the harness. Owned native thread IDs and FD recovery checked; no signals to other jobs."
+      }
+    ],
+    "benchmark_smoke": [
+      {
+        "python": "3.12.0",
+        "numpy": "2.5.4",
+        "action_sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+      },
+      {
+        "python": "3.10.0",
+        "numpy": "2.2.6",
+        "action_sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+      },
+      {
+        "python": "3.10.0",
+        "numpy": "1.24.4",
+        "action_sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+      }
+    ],
+    "style": "ruff check and format --check passed for src/tests/benchmarks/examples; git diff --check passed"
+  },
+  "recorder_append": {
+    "scope": "Alternating exact baseline/final recorder append validation, owned copies and synchronous NPZ compression; N128T100 state, N16T50 RGBD32, N8T40 RGBD64, both episode formats. One warmup plus nine measured pairs. Excludes construction, physics/render, subsequent close and reader audit from timing. Three exact self-owned stress workers briefly paused, unrelated shared-host jobs unaffected; decoded payload hashes match. No async writers or synthetic noise in this benchmark.",
+    "source_sha256": {
+      "baseline": "5926e30027c83ae5d65f0cbe3f7254eaaefc1e6b14aa40c1d5d27f19e86ba1fa",
+      "candidate": "bdb8ce929b37d4e0e55f672b2702d28ed67d57eb845857fb88a30b2870c0ce28"
+    },
+    "cases": [
+      {
+        "label": "state-128",
+        "format": "transitions",
+        "arguments": {
+          "num_envs": 128,
+          "steps": 100,
+          "image_size": 8,
+          "images": false
+        },
+        "median_append_seconds": {
+          "baseline": 0.37210076380870305,
+          "candidate": 0.33106791009777226
+        },
+        "seconds": {
+          "baseline": [
+            0.4038268450531177,
+            0.37226612283848226,
+            0.37569052004255354,
+            0.37091578711988404,
+            0.38405117782531306,
+            0.367760139022721,
+            0.37127411292749457,
+            0.37210076380870305,
+            0.3718099791149143
+          ],
+          "candidate": [
+            0.333636769966688,
+            0.33537739800522104,
+            0.3333369131141808,
+            0.32777154989889823,
+            0.33106791009777226,
+            0.3250536728883162,
+            0.3320630401431117,
+            0.32458049376145937,
+            0.3228858739603311
+          ]
+        },
+        "seconds_reduction_pct": 11.027350035762296,
+        "sha256": "6d567dbc017799b2a98ad4b2e608ab1d4a59273f6387fdfc293660de98dd4617"
+      },
+      {
+        "label": "state-128",
+        "format": "compact",
+        "arguments": {
+          "num_envs": 128,
+          "steps": 100,
+          "image_size": 8,
+          "images": false
+        },
+        "median_append_seconds": {
+          "baseline": 0.31645538099110126,
+          "candidate": 0.26771877601277083
+        },
+        "seconds": {
+          "baseline": [
+            0.330774888076121,
+            0.30505045494646765,
+            0.3083376730501186,
+            0.3086136909259949,
+            0.3111369268153794,
+            0.3220968552341219,
+            0.352116252965061,
+            0.33005789897288196,
+            0.31645538099110126
+          ],
+          "candidate": [
+            0.2588785779371392,
+            0.26771877601277083,
+            0.26469056800124235,
+            0.28741899284068495,
+            0.26648375898366794,
+            0.27573551516979933,
+            0.27943988909828477,
+            0.26312863107887097,
+            0.27266834312467836
+          ]
+        },
+        "seconds_reduction_pct": 15.400782513380907,
+        "sha256": "6d567dbc017799b2a98ad4b2e608ab1d4a59273f6387fdfc293660de98dd4617"
+      },
+      {
+        "label": "rgb-depth-32",
+        "format": "transitions",
+        "arguments": {
+          "num_envs": 16,
+          "steps": 50,
+          "image_size": 32,
+          "images": true
+        },
+        "median_append_seconds": {
+          "baseline": 0.0727264599991031,
+          "candidate": 0.06955964202643372
+        },
+        "seconds": {
+          "baseline": [
+            0.07143610785715282,
+            0.07681616590707563,
+            0.0724423211067915,
+            0.0727264599991031,
+            0.07293831295100972,
+            0.07476596598280594,
+            0.07216292794328183,
+            0.07963042211486027,
+            0.07229859093786217
+          ],
+          "candidate": [
+            0.06955964202643372,
+            0.06875675293849781,
+            0.07010861398885027,
+            0.06924304191488773,
+            0.0719610929954797,
+            0.07339661088190041,
+            0.06766883993986994,
+            0.06951370101887733,
+            0.07365035894326866
+          ]
+        },
+        "seconds_reduction_pct": 4.354423373155292,
+        "sha256": "769103d4c1c862321077ed8a27446cfc4d9f76591dcbd73c1517d8cca5955d0b"
+      },
+      {
+        "label": "rgb-depth-32",
+        "format": "compact",
+        "arguments": {
+          "num_envs": 16,
+          "steps": 50,
+          "image_size": 32,
+          "images": true
+        },
+        "median_append_seconds": {
+          "baseline": 0.051122758886776865,
+          "candidate": 0.04679773290990852
+        },
+        "seconds": {
+          "baseline": [
+            0.051890204078517854,
+            0.05190732405753806,
+            0.05052456501289271,
+            0.051122758886776865,
+            0.05027648704708554,
+            0.05065201997058466,
+            0.05376291082939133,
+            0.04970762104494497,
+            0.05196092600817792
+          ],
+          "candidate": [
+            0.04640095995273441,
+            0.04990333499154076,
+            0.04623244606773369,
+            0.04531770010362379,
+            0.04613568101194687,
+            0.04679773290990852,
+            0.04682286092429422,
+            0.04992480989312753,
+            0.04862864097231068
+          ]
+        },
+        "seconds_reduction_pct": 8.460079367874318,
+        "sha256": "769103d4c1c862321077ed8a27446cfc4d9f76591dcbd73c1517d8cca5955d0b"
+      },
+      {
+        "label": "rgb-depth-64",
+        "format": "transitions",
+        "arguments": {
+          "num_envs": 8,
+          "steps": 40,
+          "image_size": 64,
+          "images": true
+        },
+        "median_append_seconds": {
+          "baseline": 0.06506212800741196,
+          "candidate": 0.06370341801084578
+        },
+        "seconds": {
+          "baseline": [
+            0.06416065280791372,
+            0.06332288318662904,
+            0.06574049807386473,
+            0.06828090402996168,
+            0.06506212800741196,
+            0.06551701691932976,
+            0.0649218808976002,
+            0.0644764510798268,
+            0.06595168690546416
+          ],
+          "candidate": [
+            0.0641053170838859,
+            0.06439155593398027,
+            0.06370341801084578,
+            0.06022508619935252,
+            0.06388528199749999,
+            0.06262375783990137,
+            0.062197035091230646,
+            0.06185246992390603,
+            0.06631428992841393
+          ]
+        },
+        "seconds_reduction_pct": 2.0883270163118417,
+        "sha256": "07deacc48431dbb8e15edef81ba9f5c26bb5ab12ad1fcb6afab8314b794306cf"
+      },
+      {
+        "label": "rgb-depth-64",
+        "format": "compact",
+        "arguments": {
+          "num_envs": 8,
+          "steps": 40,
+          "image_size": 64,
+          "images": true
+        },
+        "median_append_seconds": {
+          "baseline": 0.037324959121178836,
+          "candidate": 0.03704697600915097
+        },
+        "seconds": {
+          "baseline": [
+            0.037264447048073635,
+            0.03849477687617764,
+            0.039627745922189206,
+            0.037324959121178836,
+            0.036989156069466844,
+            0.03797233698423952,
+            0.03699775392306037,
+            0.036993644054746255,
+            0.04025704809464514
+          ],
+          "candidate": [
+            0.035724908870179206,
+            0.041599575110012665,
+            0.03775720699923113,
+            0.035254900954896584,
+            0.03516705901711248,
+            0.03704697600915097,
+            0.035432014032267034,
+            0.03741491193068214,
+            0.03816086787264794
+          ]
+        },
+        "seconds_reduction_pct": 0.744764679112897,
+        "sha256": "07deacc48431dbb8e15edef81ba9f5c26bb5ab12ad1fcb6afab8314b794306cf"
+      }
+    ],
+    "filesystem_calls": {
+      "scope": "cProfile inside actual 100 synchronous legacy append calls, N128 timeout-only episodes; excludes construction, close and audit.",
+      "stat_calls": {
+        "baseline": 12928,
+        "final": 256
+      },
+      "reduction_pct": 98.01980198019803,
+      "final_source_sha256": "bdb8ce929b37d4e0e55f672b2702d28ed67d57eb845857fb88a30b2870c0ce28"
+    }
+  },
+  "recorder_append_with_concurrent_stress": {
+    "scope": "Alternating baseline/candidate synchronous recorder append validation, owned copies and NPZ compression; excludes physics/render/construction/close/audit from timing. Seeded NumPy point task with timeout-only termination to ensure fixed full episode lengths. Actual read_episodes payload hashes match, both schemas, repeated cached local filesystem/shared host. One warmup pair per case excluded.",
+    "source_sha256": {
+      "baseline": "5926e30027c83ae5d65f0cbe3f7254eaaefc1e6b14aa40c1d5d27f19e86ba1fa",
+      "candidate": "bdb8ce929b37d4e0e55f672b2702d28ed67d57eb845857fb88a30b2870c0ce28"
+    },
+    "cases": [
+      {
+        "label": "state-128",
+        "format": "transitions",
+        "median_append_seconds": {
+          "baseline": 0.5147823590377811,
+          "candidate": 0.4413343319611158
+        },
+        "seconds": {
+          "baseline": [
+            0.5760862480383366,
+            0.5066612309892662,
+            0.5165870231285226,
+            0.4462162228592206,
+            0.5154079721542075,
+            0.5147823590377811,
+            0.42758563003735617
+          ],
+          "candidate": [
+            0.4330986443674192,
+            0.4484709860116709,
+            0.4413343319611158,
+            0.4741217040864285,
+            0.4808350089006126,
+            0.43025569076417014,
+            0.43826443192665465
+          ]
+        },
+        "seconds_reduction_pct": 14.267782449645827
+      },
+      {
+        "label": "state-128",
+        "format": "compact",
+        "median_append_seconds": {
+          "baseline": 0.403524131863378,
+          "candidate": 0.3660566099570133
+        },
+        "seconds": {
+          "baseline": [
+            0.39407112286426127,
+            0.403524131863378,
+            0.4203704079554882,
+            0.3924653180001769,
+            0.4936845349438954,
+            0.37586737584206276,
+            0.45324106083717197
+          ],
+          "candidate": [
+            0.33170974877430126,
+            0.46420290984679013,
+            0.3534724028140772,
+            0.3660566099570133,
+            0.3657955491216853,
+            0.42009349388536066,
+            0.4163695980096236
+          ]
+        },
+        "seconds_reduction_pct": 9.285075897034623
+      },
+      {
+        "label": "rgb-depth-32",
+        "format": "transitions",
+        "median_append_seconds": {
+          "baseline": 0.11530273605603725,
+          "candidate": 0.10941971294232644
+        },
+        "seconds": {
+          "baseline": [
+            0.12732452497584745,
+            0.11530273605603725,
+            0.10319973193691112,
+            0.11707778193522245,
+            0.10585078090662137
+          ],
+          "candidate": [
+            0.1219509310903959,
+            0.10902863001683727,
+            0.09793891088338569,
+            0.113257092947606,
+            0.10941971294232644
+          ]
+        },
+        "seconds_reduction_pct": 5.102240688244941
+      },
+      {
+        "label": "rgb-depth-32",
+        "format": "compact",
+        "median_append_seconds": {
+          "baseline": 0.08058622691896744,
+          "candidate": 0.06842486199457198
+        },
+        "seconds": {
+          "baseline": [
+            0.08355044794734567,
+            0.08627071997034363,
+            0.07275241817114875,
+            0.07156533797387965,
+            0.08058622691896744
+          ],
+          "candidate": [
+            0.06243419102975167,
+            0.06842486199457198,
+            0.06190854904707521,
+            0.07009984093019739,
+            0.06902629006071948
+          ]
+        },
+        "seconds_reduction_pct": 15.09112088921123
+      },
+      {
+        "label": "rgb-depth-64",
+        "format": "transitions",
+        "median_append_seconds": {
+          "baseline": 0.09419811889529228,
+          "candidate": 0.0884564969164785
+        },
+        "seconds": {
+          "baseline": [
+            0.07790040897089057,
+            0.08113863103790209,
+            0.10402842806070112,
+            0.09419811889529228,
+            0.09535922700888477
+          ],
+          "candidate": [
+            0.11028955708025023,
+            0.08150455603026785,
+            0.0884564969164785,
+            0.08649921708274633,
+            0.09793512197211385
+          ]
+        },
+        "seconds_reduction_pct": 6.095261822792864
+      },
+      {
+        "label": "rgb-depth-64",
+        "format": "compact",
+        "median_append_seconds": {
+          "baseline": 0.05283063306706026,
+          "candidate": 0.057267866999609396
+        },
+        "seconds": {
+          "baseline": [
+            0.05283063306706026,
+            0.04675081296591088,
+            0.08517648195265792,
+            0.09241448910324834,
+            0.04849267908139154
+          ],
+          "candidate": [
+            0.04879782604984939,
+            0.04104370714048855,
+            0.059614153869915754,
+            0.09179637706256472,
+            0.057267866999609396
+          ]
+        },
+        "seconds_reduction_pct": -8.398979294676924
+      }
+    ]
+  },
+  "action_execution": {
+    "scope": "Alternating exact baseline/candidate ActionExecutor classes; precomputed policy chunks, optional consecutive metadata, separate allocation pass and owned-output checksums. One warmup plus nine measured pairs for executor cases. Full run_rollout cases include actual NumPy physics, task, sensor/reset work and optional raster, one warmup plus seven measured pairs; full transition hashes and summary equality verified. Excludes neural inference/training. Two recording stress workers concurrently active on shared host; traced bytes exclude construction, are not RSS, and cached IDs retain one intp[N] array per executor.",
+    "source_sha256": {
+      "baseline": "bb2328dc93dc35667f1726432802dff558159fb8da13ecc8ccb7b387eed94c89",
+      "candidate": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+      "benchmark": "48e1a9d18c3abce660bd3803cb897f8b28d7362e8bf807d78755b1f16566f856"
+    },
+    "cases": [
+      {
+        "metadata": false,
+        "num_envs": 1,
+        "action_dim": 2,
+        "horizon": 16,
+        "steps": 50000,
+        "median_seconds": {
+          "baseline": 0.21753524799714796,
+          "candidate": 0.2000082689919509
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 3994,
+          "candidate": 3890
+        },
+        "seconds_reduction_pct": 8.057075424129357,
+        "seconds": {
+          "baseline": [
+            0.21360572800040245,
+            0.21275119500933215,
+            0.21753524799714796,
+            0.21344018098898232,
+            0.22258519800379872,
+            0.21726912099984474,
+            0.22118471798603423,
+            0.22634362301323563,
+            0.222927836002782
+          ],
+          "candidate": [
+            0.1930463410099037,
+            0.19597540399990976,
+            0.20169323301524855,
+            0.19368278799811378,
+            0.20234426797833294,
+            0.2000082689919509,
+            0.2019127270032186,
+            0.2063374879944604,
+            0.19725847500376403
+          ]
+        },
+        "sha256": "967d36b03b8f7ef53dab00ffadbd9eb5c7d6d5e8cca8de3f8301316d330996a1"
+      },
+      {
+        "metadata": false,
+        "num_envs": 128,
+        "action_dim": 2,
+        "horizon": 16,
+        "steps": 20000,
+        "median_seconds": {
+          "baseline": 0.10910930400132202,
+          "candidate": 0.09796958899823949
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 6026,
+          "candidate": 4906
+        },
+        "seconds_reduction_pct": 10.209683862475705,
+        "seconds": {
+          "baseline": [
+            0.11135055098566227,
+            0.10961720999330282,
+            0.10895416099810973,
+            0.11019456599024124,
+            0.1081821630068589,
+            0.10910930400132202,
+            0.10829740201006643,
+            0.1097824220196344,
+            0.10729809498297982
+          ],
+          "candidate": [
+            0.10044893799931742,
+            0.1013656189898029,
+            0.09779286300181411,
+            0.09703805999015458,
+            0.09796958899823949,
+            0.09802980298991315,
+            0.09491253198939376,
+            0.10237676798715256,
+            0.09678082098253071
+          ]
+        },
+        "sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+      },
+      {
+        "metadata": false,
+        "num_envs": 8192,
+        "action_dim": 2,
+        "horizon": 16,
+        "steps": 1000,
+        "median_seconds": {
+          "baseline": 0.0880748050112743,
+          "candidate": 0.0839323990221601
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 135050,
+          "candidate": 69418
+        },
+        "seconds_reduction_pct": 4.703281475995247,
+        "seconds": {
+          "baseline": [
+            0.09547032101545483,
+            0.09103555901674554,
+            0.08580667799105868,
+            0.08504433100461029,
+            0.08563179499469697,
+            0.0896431640139781,
+            0.0880748050112743,
+            0.08760800899472088,
+            0.08893274501315318
+          ],
+          "candidate": [
+            0.0839323990221601,
+            0.0810204189911019,
+            0.08021910701063462,
+            0.08211027798824944,
+            0.0817411869938951,
+            0.08481064601801336,
+            0.08530961401993409,
+            0.08609040698502213,
+            0.0867849160276819
+          ]
+        },
+        "sha256": "f0aea1d99e84a0631ec5c67b9dd2ae1c6c7e0ed2dbc18bbf0a823fad917d55be"
+      },
+      {
+        "metadata": false,
+        "num_envs": 128,
+        "action_dim": 32,
+        "horizon": 16,
+        "steps": 10000,
+        "median_seconds": {
+          "baseline": 0.06466488700243644,
+          "candidate": 0.05854327999986708
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 21386,
+          "candidate": 20266
+        },
+        "seconds_reduction_pct": 9.466663109360596,
+        "seconds": {
+          "baseline": [
+            0.0654955530189909,
+            0.06531678501050919,
+            0.0636064849968534,
+            0.06420661599258892,
+            0.0641972980229184,
+            0.06466488700243644,
+            0.06452388799516484,
+            0.06577855101204477,
+            0.06548576502245851
+          ],
+          "candidate": [
+            0.062103511998429894,
+            0.05854327999986708,
+            0.05805366099230014,
+            0.057979208999313414,
+            0.05782625899882987,
+            0.058534484007395804,
+            0.06067564099794254,
+            0.059206047997577116,
+            0.05933251901296899
+          ]
+        },
+        "sha256": "20b8126b82aede01716ddc7b099bde93013a3536bbac8bad6e14ec0b68ba343b"
+      },
+      {
+        "metadata": false,
+        "num_envs": 128,
+        "action_dim": 2,
+        "horizon": 1,
+        "steps": 10000,
+        "median_seconds": {
+          "baseline": 0.11710468400269747,
+          "candidate": 0.10897459500120021
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 8169,
+          "candidate": 7049
+        },
+        "seconds_reduction_pct": 6.942582246590567,
+        "seconds": {
+          "baseline": [
+            0.11480613998719491,
+            0.11583994200918823,
+            0.11976108798990026,
+            0.1182721609948203,
+            0.11737037799321115,
+            0.11710468400269747,
+            0.11338990801596083,
+            0.11828517497633584,
+            0.11408799400669523
+          ],
+          "candidate": [
+            0.1086126769951079,
+            0.10897459500120021,
+            0.10858224800904281,
+            0.10761171599733643,
+            0.10976755901356228,
+            0.1106008019996807,
+            0.11051229300210252,
+            0.10913885498302989,
+            0.10829299897886813
+          ]
+        },
+        "sha256": "9462798bdc03d91cb4eee0825dc40def55abd04383efb75de784adf7e09c2b41"
+      },
+      {
+        "metadata": true,
+        "num_envs": 1,
+        "action_dim": 2,
+        "horizon": 16,
+        "steps": 50000,
+        "median_seconds": {
+          "baseline": 0.4371482950227801,
+          "candidate": 0.42333681898890063
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 4090,
+          "candidate": 3986
+        },
+        "seconds_reduction_pct": 3.159448679345689,
+        "seconds": {
+          "baseline": [
+            0.4957145389926154,
+            0.4723374030145351,
+            0.4320509000099264,
+            0.444541028002277,
+            0.4371482950227801,
+            0.43390942199039273,
+            0.44114212298882194,
+            0.4175277969916351,
+            0.42744145801407285
+          ],
+          "candidate": [
+            0.4370355360151734,
+            0.45876742899417877,
+            0.4169915740203578,
+            0.42333681898890063,
+            0.42407075100345537,
+            0.4042446269886568,
+            0.42866232397500426,
+            0.3952602890203707,
+            0.40276301599806175
+          ]
+        },
+        "sha256": "967d36b03b8f7ef53dab00ffadbd9eb5c7d6d5e8cca8de3f8301316d330996a1"
+      },
+      {
+        "metadata": true,
+        "num_envs": 128,
+        "action_dim": 2,
+        "horizon": 16,
+        "steps": 20000,
+        "median_seconds": {
+          "baseline": 0.19516892498359084,
+          "candidate": 0.1821427870017942
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 6122,
+          "candidate": 5002
+        },
+        "seconds_reduction_pct": 6.674288943740314,
+        "seconds": {
+          "baseline": [
+            0.1962088719883468,
+            0.1951410440087784,
+            0.20051610100199468,
+            0.19486873599817045,
+            0.2009555340046063,
+            0.19516892498359084,
+            0.19541266601299867,
+            0.19229454500600696,
+            0.19368782901437953
+          ],
+          "candidate": [
+            0.1783399589767214,
+            0.18282205000286922,
+            0.1815871759899892,
+            0.17812842500279658,
+            0.17958819700288586,
+            0.18552997001097538,
+            0.18486526698688976,
+            0.1821427870017942,
+            0.18458356100018136
+          ]
+        },
+        "sha256": "b10b91eb7742dc50dcab8280c60f1562878dcd81df0d32386a5d81a208e322a5"
+      },
+      {
+        "metadata": true,
+        "num_envs": 8192,
+        "action_dim": 2,
+        "horizon": 16,
+        "steps": 1000,
+        "median_seconds": {
+          "baseline": 0.09946995999780484,
+          "candidate": 0.09780311500071548
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 135146,
+          "candidate": 82492
+        },
+        "seconds_reduction_pct": 1.675727020626272,
+        "seconds": {
+          "baseline": [
+            0.09752488799858838,
+            0.09775504498975351,
+            0.09816549302195199,
+            0.10139923499082215,
+            0.10092461301246658,
+            0.09829491999698803,
+            0.09946995999780484,
+            0.10726267797872424,
+            0.10021044599125162
+          ],
+          "candidate": [
+            0.09726123799919151,
+            0.10602969798492268,
+            0.09617610601708293,
+            0.09785196799202822,
+            0.09650587200303562,
+            0.09780311500071548,
+            0.09739684298983775,
+            0.0991358459868934,
+            0.09904634501435794
+          ]
+        },
+        "sha256": "f0aea1d99e84a0631ec5c67b9dd2ae1c6c7e0ed2dbc18bbf0a823fad917d55be"
+      },
+      {
+        "metadata": true,
+        "num_envs": 128,
+        "action_dim": 32,
+        "horizon": 16,
+        "steps": 10000,
+        "median_seconds": {
+          "baseline": 0.10666692501399666,
+          "candidate": 0.10183566200430505
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 21482,
+          "candidate": 20362
+        },
+        "seconds_reduction_pct": 4.529298101597712,
+        "seconds": {
+          "baseline": [
+            0.10736598397488706,
+            0.10562276298878714,
+            0.10777944800793193,
+            0.10772052698303014,
+            0.10639389700372703,
+            0.10666692501399666,
+            0.10599991801427677,
+            0.1056465869769454,
+            0.1123240269953385
+          ],
+          "candidate": [
+            0.10888467798940837,
+            0.10167092899791896,
+            0.10183566200430505,
+            0.10164844599785283,
+            0.10212871799012646,
+            0.10171870901831426,
+            0.10177737000049092,
+            0.10290146397892386,
+            0.11042519201873802
+          ]
+        },
+        "sha256": "20b8126b82aede01716ddc7b099bde93013a3536bbac8bad6e14ec0b68ba343b"
+      },
+      {
+        "metadata": true,
+        "num_envs": 128,
+        "action_dim": 2,
+        "horizon": 1,
+        "steps": 10000,
+        "median_seconds": {
+          "baseline": 0.16336287299054675,
+          "candidate": 0.15910195300239138
+        },
+        "median_act_peak_traced_bytes": {
+          "baseline": 9153,
+          "candidate": 9153
+        },
+        "seconds_reduction_pct": 2.6082548073220635,
+        "seconds": {
+          "baseline": [
+            0.16471023397753015,
+            0.16867744800401852,
+            0.1653365429956466,
+            0.1643157840007916,
+            0.15719842800172046,
+            0.16336287299054675,
+            0.15909932801150717,
+            0.15981098901829682,
+            0.15381010199780576
+          ],
+          "candidate": [
+            0.15522472199518234,
+            0.16069645300740376,
+            0.16167134398710914,
+            0.1818651490029879,
+            0.17676385198137723,
+            0.15910195300239138,
+            0.15844259998993948,
+            0.15536120897741057,
+            0.1520584860118106
+          ]
+        },
+        "sha256": "9462798bdc03d91cb4eee0825dc40def55abd04383efb75de784adf7e09c2b41"
+      }
+    ],
+    "rollouts": [
+      {
+        "label": "null-128",
+        "config": {
+          "task": "reach",
+          "physics": "numpy",
+          "render": "null",
+          "num_envs": 128,
+          "seed": 42,
+          "control_hz": 50,
+          "physics_hz": 200,
+          "camera_hz": 25,
+          "image_size": 64,
+          "max_steps": 100,
+          "channels": []
+        },
+        "steps": 1000,
+        "median_seconds": {
+          "baseline": 0.0656008489895612,
+          "candidate": 0.06365653697866946
+        },
+        "seconds_reduction_pct": 2.963851902589132,
+        "seconds": {
+          "baseline": [
+            0.07381263299612328,
+            0.0658393430057913,
+            0.0656008489895612,
+            0.06427773600444198,
+            0.06452962500043213,
+            0.0656417049758602,
+            0.06476162298349664
+          ],
+          "candidate": [
+            0.06192096200538799,
+            0.06365653697866946,
+            0.06581067701335996,
+            0.06338124399189837,
+            0.0622835389804095,
+            0.06412083801114932,
+            0.06912142300279811
+          ]
+        },
+        "sha256": "4b018bbc64a15555e3e6fb22ef32afd8d8bf65e25cb9ff975296226cee1094aa",
+        "summary": {
+          "completed_episodes": 1280,
+          "success_rate": 0.0,
+          "mean_step_reward": 1.0
+        }
+      },
+      {
+        "label": "rgb-depth-16",
+        "config": {
+          "task": "reach",
+          "physics": "numpy",
+          "render": "raster",
+          "num_envs": 16,
+          "seed": 42,
+          "control_hz": 50,
+          "physics_hz": 200,
+          "camera_hz": 25,
+          "image_size": 32,
+          "max_steps": 20,
+          "channels": [
+            "rgb",
+            "depth"
+          ]
+        },
+        "steps": 200,
+        "median_seconds": {
+          "baseline": 0.02663377398857847,
+          "candidate": 0.02428710801177658
+        },
+        "seconds_reduction_pct": 8.81086539897884,
+        "seconds": {
+          "baseline": [
+            0.02402167400578037,
+            0.025583359005395323,
+            0.02710569999180734,
+            0.02693509601522237,
+            0.02663377398857847,
+            0.024283670994918793,
+            0.026931910018902272
+          ],
+          "candidate": [
+            0.023684133018832654,
+            0.023863684007665142,
+            0.02371704499819316,
+            0.02502471802290529,
+            0.02428710801177658,
+            0.02472475901595317,
+            0.02528312901267782
+          ]
+        },
+        "sha256": "da16582ab3901aeb11d5c716913a1faf8e80cb1c0779f027f3d8da5ae8915863",
+        "summary": {
+          "completed_episodes": 160,
+          "success_rate": 0.0,
+          "mean_step_reward": 1.0
+        }
+      }
+    ]
+  },
+  "full_pipeline": {
+    "scope": "Alternating exact baseline/candidate recorder classes using full NumPy physics, raster RGB/depth64px, validation/copies, NPZ writing and final close, N4 T40 three cycles, 12MiB payload budget; synchronous and 1/2 writer threads, legacy/compact. Timeout-only task ensures fixed episode counts; synthetic-noise payload cases separately labelled. One warmup plus five measured pairs per case; public decoded hashes match. Shared host with three concurrent stress workers; results do not imply general training throughput or RSS limits.",
+    "source_sha256": {
+      "baseline": "5926e30027c83ae5d65f0cbe3f7254eaaefc1e6b14aa40c1d5d27f19e86ba1fa",
+      "candidate": "a0ee2452d1241106b51bdb3918406bb77e708da997c3ac133e680032e0757139"
+    },
+    "version": "Earlier candidate before closing-state guard; diagnostic samples, not final-source end-to-end claims",
+    "cases": [
+      {
+        "noise": false,
+        "layout": "transitions",
+        "workers": 0,
+        "median_seconds_including_close": {
+          "baseline": 0.12785215702024288,
+          "candidate": 0.14353260898496956
+        },
+        "seconds": {
+          "baseline": [
+            0.1248222709982656,
+            0.12384194202604704,
+            0.13788423500955105,
+            0.12785215702024288,
+            0.12807732401415706
+          ],
+          "candidate": [
+            0.14784366698586382,
+            0.1492028739885427,
+            0.14353260898496956,
+            0.1051473330007866,
+            0.12240129799465649
+          ]
+        },
+        "seconds_reduction_pct": -12.264518902284905,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "transitions",
+        "workers": 1,
+        "median_seconds_including_close": {
+          "baseline": 0.14093774600769393,
+          "candidate": 0.1377383669896517
+        },
+        "seconds": {
+          "baseline": [
+            0.14093774600769393,
+            0.1611428289907053,
+            0.14389460399979725,
+            0.1066477480053436,
+            0.13803923700470477
+          ],
+          "candidate": [
+            0.10199856999679469,
+            0.14833331300178543,
+            0.12886713101761416,
+            0.1377383669896517,
+            0.1515498129883781
+          ]
+        },
+        "seconds_reduction_pct": 2.270065407366162,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "transitions",
+        "workers": 2,
+        "median_seconds_including_close": {
+          "baseline": 0.11559349301387556,
+          "candidate": 0.10226818098453805
+        },
+        "seconds": {
+          "baseline": [
+            0.14433730201562867,
+            0.10241176301497035,
+            0.10359545800019987,
+            0.11559349301387556,
+            0.1270995470113121
+          ],
+          "candidate": [
+            0.10124257500865497,
+            0.11222802099655382,
+            0.10226818098453805,
+            0.08164416297222488,
+            0.11058197898091748
+          ]
+        },
+        "seconds_reduction_pct": 11.527735413046102,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "compact",
+        "workers": 0,
+        "median_seconds_including_close": {
+          "baseline": 0.09076160500990227,
+          "candidate": 0.09093706801650114
+        },
+        "seconds": {
+          "baseline": [
+            0.12831839799764566,
+            0.2248966759943869,
+            0.08328996298951097,
+            0.09076160500990227,
+            0.07853084697853774
+          ],
+          "candidate": [
+            0.09093706801650114,
+            0.2163472110114526,
+            0.08552731698728167,
+            0.11239790200488642,
+            0.0890340979967732
+          ]
+        },
+        "seconds_reduction_pct": -0.19332294374887482,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "compact",
+        "workers": 1,
+        "median_seconds_including_close": {
+          "baseline": 0.08886766200885177,
+          "candidate": 0.07833414399647154
+        },
+        "seconds": {
+          "baseline": [
+            0.08886766200885177,
+            0.0841862530214712,
+            0.0916991519916337,
+            0.08344743199995719,
+            0.1003629750048276
+          ],
+          "candidate": [
+            0.07533383401460014,
+            0.07833414399647154,
+            0.08049228700110689,
+            0.06484002000070177,
+            0.08012362700537778
+          ]
+        },
+        "seconds_reduction_pct": 11.853038297925544,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "compact",
+        "workers": 2,
+        "median_seconds_including_close": {
+          "baseline": 0.08210948400665075,
+          "candidate": 0.0742761270084884
+        },
+        "seconds": {
+          "baseline": [
+            0.07142788500641473,
+            0.09012200098368339,
+            0.05689184399670921,
+            0.08210948400665075,
+            0.08587646798696369
+          ],
+          "candidate": [
+            0.0742761270084884,
+            0.08625707100145519,
+            0.06215874498593621,
+            0.08184590400196612,
+            0.07210118099465035
+          ]
+        },
+        "seconds_reduction_pct": 9.540136675962852,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": true,
+        "layout": "transitions",
+        "workers": 0,
+        "median_seconds_including_close": {
+          "baseline": 0.7824887940078042,
+          "candidate": 0.6688488409854472
+        },
+        "seconds": {
+          "baseline": [
+            0.663824189978186,
+            0.6668253600073513,
+            0.9007746700081043,
+            0.8911170999926981,
+            0.7824887940078042
+          ],
+          "candidate": [
+            0.6688488409854472,
+            0.6533540380187333,
+            0.6661057109886315,
+            0.8304256069823168,
+            0.8097413539944682
+          ]
+        },
+        "seconds_reduction_pct": 14.522885681251518,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      },
+      {
+        "noise": true,
+        "layout": "transitions",
+        "workers": 1,
+        "median_seconds_including_close": {
+          "baseline": 0.8741642689856235,
+          "candidate": 0.8584811289911158
+        },
+        "seconds": {
+          "baseline": [
+            0.9975107029895298,
+            0.8741642689856235,
+            0.8626679159933701,
+            0.8451356409932487,
+            0.9772220629965886
+          ],
+          "candidate": [
+            0.9656201240140945,
+            0.8734789959853515,
+            0.7651228360191453,
+            0.8584811289911158,
+            0.8345095320255496
+          ]
+        },
+        "seconds_reduction_pct": 1.7940724130381502,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      },
+      {
+        "noise": true,
+        "layout": "transitions",
+        "workers": 2,
+        "median_seconds_including_close": {
+          "baseline": 0.46357723299297504,
+          "candidate": 0.4582621070148889
+        },
+        "seconds": {
+          "baseline": [
+            0.46357723299297504,
+            0.4810408029879909,
+            0.5921957719838247,
+            0.38465910602826625,
+            0.3906860339920968
+          ],
+          "candidate": [
+            0.567039527988527,
+            0.40010348000214435,
+            0.40700773301068693,
+            0.4582621070148889,
+            0.473740973015083
+          ]
+        },
+        "seconds_reduction_pct": 1.146545947429367,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      },
+      {
+        "noise": true,
+        "layout": "compact",
+        "workers": 0,
+        "median_seconds_including_close": {
+          "baseline": 0.3765293619944714,
+          "candidate": 0.366226230020402
+        },
+        "seconds": {
+          "baseline": [
+            0.3942205540079158,
+            0.3765293619944714,
+            0.37424596899654716,
+            0.3623984289879445,
+            0.3871490680030547
+          ],
+          "candidate": [
+            0.40114413600531407,
+            0.3581923040037509,
+            0.366226230020402,
+            0.3525793070148211,
+            0.383033163001528
+          ]
+        },
+        "seconds_reduction_pct": 2.736342238887779,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      },
+      {
+        "noise": true,
+        "layout": "compact",
+        "workers": 1,
+        "median_seconds_including_close": {
+          "baseline": 0.3513597800047137,
+          "candidate": 0.35181571400607936
+        },
+        "seconds": {
+          "baseline": [
+            0.3513597800047137,
+            0.3360436430084519,
+            0.34947555500548333,
+            0.3549838110047858,
+            0.40058583501377143
+          ],
+          "candidate": [
+            0.34407766099320725,
+            0.35181571400607936,
+            0.35852449701633304,
+            0.33023790997685865,
+            0.39747631701175123
+          ]
+        },
+        "seconds_reduction_pct": -0.12976271824838292,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      },
+      {
+        "noise": true,
+        "layout": "compact",
+        "workers": 2,
+        "median_seconds_including_close": {
+          "baseline": 0.19026645898702554,
+          "candidate": 0.1912612880114466
+        },
+        "seconds": {
+          "baseline": [
+            0.21110178501112387,
+            0.17802890200982802,
+            0.1846721200272441,
+            0.19735429200227372,
+            0.19026645898702554
+          ],
+          "candidate": [
+            0.1912612880114466,
+            0.1968082470120862,
+            0.1883389750146307,
+            0.17377316099009477,
+            0.28144902698113583
+          ]
+        },
+        "seconds_reduction_pct": -0.5228609549562835,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      }
+    ]
+  },
+  "quiet_pipeline": {
+    "scope": "Same N4 T40 three-cycle64px 12MiB full acquisition+writer-close workload as pipeline-comparison.json; one warmup plus nine timed pairs. Own recording/executor stress workers briefly paused; unrelated shared-host workloads unaffected. Hashes match, both schemas and 0/1/2 writers, synthetic noise separately labelled. Measures actual whole pipeline, excludes construction/read audit; no general training speedup claim.",
+    "source_sha256": {
+      "baseline": "5926e30027c83ae5d65f0cbe3f7254eaaefc1e6b14aa40c1d5d27f19e86ba1fa",
+      "candidate": "a0ee2452d1241106b51bdb3918406bb77e708da997c3ac133e680032e0757139"
+    },
+    "version": "Earlier candidate before closing-state guard; diagnostic samples, not final-source end-to-end claims",
+    "cases": [
+      {
+        "noise": false,
+        "layout": "transitions",
+        "workers": 0,
+        "median_seconds_including_close": {
+          "baseline": 0.12501521699596196,
+          "candidate": 0.12837643100647256
+        },
+        "seconds": {
+          "baseline": [
+            0.15241719901678152,
+            0.1313601279980503,
+            0.12501521699596196,
+            0.1211856970039662,
+            0.12433975702151656,
+            0.11424277399783023,
+            0.1280168480006978,
+            0.1222135660063941,
+            0.2191841620078776
+          ],
+          "candidate": [
+            0.1646772540116217,
+            0.1328323080088012,
+            0.12837643100647256,
+            0.12705388199537992,
+            0.12722209197818302,
+            0.1251692599907983,
+            0.1247342049900908,
+            0.24897867999970913,
+            0.2195551750191953
+          ]
+        },
+        "seconds_reduction_pct": -2.6886439037410614,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "compact",
+        "workers": 0,
+        "median_seconds_including_close": {
+          "baseline": 0.08382794901262969,
+          "candidate": 0.07999922000453807
+        },
+        "seconds": {
+          "baseline": [
+            0.0807770150131546,
+            0.08350147999590263,
+            0.0831477100146003,
+            0.1179360149835702,
+            0.12559618699015118,
+            0.08588748399051838,
+            0.08796871002414264,
+            0.06951366001158021,
+            0.08382794901262969
+          ],
+          "candidate": [
+            0.07946089000324719,
+            0.07899622898548841,
+            0.07885731500573456,
+            0.14111812601913698,
+            0.14338835998205468,
+            0.07999922000453807,
+            0.07764026799122803,
+            0.08416062901960686,
+            0.0816735639818944
+          ]
+        },
+        "seconds_reduction_pct": 4.567365721323768,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "transitions",
+        "workers": 1,
+        "median_seconds_including_close": {
+          "baseline": 0.12941464598407038,
+          "candidate": 0.15135339999687858
+        },
+        "seconds": {
+          "baseline": [
+            0.1301981520082336,
+            0.11084193500573747,
+            0.1351051449892111,
+            0.2248192929837387,
+            0.12941464598407038,
+            0.1227357129973825,
+            0.12406783798360266,
+            0.1290001200104598,
+            0.14452239699312486
+          ],
+          "candidate": [
+            0.15135339999687858,
+            0.14072583097731695,
+            0.2017936379997991,
+            0.15169304300798103,
+            0.23237101000268012,
+            0.12888591398950666,
+            0.1490191339980811,
+            0.10401445900788531,
+            0.15139014800661243
+          ]
+        },
+        "seconds_reduction_pct": -16.952296122270916,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "compact",
+        "workers": 1,
+        "median_seconds_including_close": {
+          "baseline": 0.07316617399919778,
+          "candidate": 0.07341135898604989
+        },
+        "seconds": {
+          "baseline": [
+            0.08417268100311048,
+            0.08114096301142126,
+            0.059855277999304235,
+            0.07053867299691774,
+            0.0788577249913942,
+            0.07503167999675497,
+            0.062409440986812115,
+            0.07316617399919778,
+            0.06827666400931776
+          ],
+          "candidate": [
+            0.07289280599798076,
+            0.07306444199639373,
+            0.07442486000945792,
+            0.06751718500163406,
+            0.0822557570063509,
+            0.07341135898604989,
+            0.05716255301376805,
+            0.07905164200928994,
+            0.08056462102103978
+          ]
+        },
+        "seconds_reduction_pct": -0.33510702207115717,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "transitions",
+        "workers": 2,
+        "median_seconds_including_close": {
+          "baseline": 0.09954000500147231,
+          "candidate": 0.10177631501574069
+        },
+        "seconds": {
+          "baseline": [
+            0.10392791399499401,
+            0.11632825402193703,
+            0.09954000500147231,
+            0.09550616799970157,
+            0.08769219301757403,
+            0.08977304797735997,
+            0.08943285298300907,
+            0.1103365040034987,
+            0.10077460500178859
+          ],
+          "candidate": [
+            0.09871517200372182,
+            0.10401641199132428,
+            0.10165142800542526,
+            0.0692399310064502,
+            0.10622324599535204,
+            0.11631981801474467,
+            0.08853178497520275,
+            0.11666363899712451,
+            0.10177631501574069
+          ]
+        },
+        "seconds_reduction_pct": -2.246644466448755,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": false,
+        "layout": "compact",
+        "workers": 2,
+        "median_seconds_including_close": {
+          "baseline": 0.07013249100418761,
+          "candidate": 0.06613355001900345
+        },
+        "seconds": {
+          "baseline": [
+            0.06464946598862298,
+            0.05768184698536061,
+            0.09684210899285972,
+            0.08746030300972052,
+            0.08559987600892782,
+            0.06145967901102267,
+            0.09087473500403576,
+            0.0566438690002542,
+            0.07013249100418761
+          ],
+          "candidate": [
+            0.06537829898297787,
+            0.0570003250031732,
+            0.07528153399471194,
+            0.08097918500425294,
+            0.06039631299790926,
+            0.12057150699547492,
+            0.07445416500559077,
+            0.062297477008542046,
+            0.06613355001900345
+          ]
+        },
+        "seconds_reduction_pct": 5.701980534165518,
+        "sha256": "ff47a678804d1c4209d8f560770ceab0a6dcb147b3e4898e60d8f3cae62f97bf"
+      },
+      {
+        "noise": true,
+        "layout": "transitions",
+        "workers": 0,
+        "median_seconds_including_close": {
+          "baseline": 0.6816032740171067,
+          "candidate": 0.6669863350107335
+        },
+        "seconds": {
+          "baseline": [
+            0.6589540090062656,
+            0.8539516150194686,
+            0.7802454339980613,
+            0.6690478190139402,
+            0.7316555799916387,
+            0.6713672009937,
+            0.6816032740171067,
+            0.7853196810174268,
+            0.6739321360073518
+          ],
+          "candidate": [
+            0.6497399320069235,
+            0.6669863350107335,
+            0.6711121060070582,
+            0.666095640975982,
+            0.6732133649929892,
+            0.6652836469875183,
+            0.700382126000477,
+            0.6671519239898771,
+            0.6453911489807069
+          ]
+        },
+        "seconds_reduction_pct": 2.1444936612799226,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      },
+      {
+        "noise": true,
+        "layout": "compact",
+        "workers": 0,
+        "median_seconds_including_close": {
+          "baseline": 0.3785469040158205,
+          "candidate": 0.36756628297735006
+        },
+        "seconds": {
+          "baseline": [
+            0.38713076899875887,
+            0.37580241297837347,
+            0.39732789900153875,
+            0.3785469040158205,
+            0.3450334370136261,
+            0.37126545899081975,
+            0.38861088000703603,
+            0.3586734240234364,
+            0.38564428500831127
+          ],
+          "candidate": [
+            0.3496734579966869,
+            0.37547694498789497,
+            0.443192901002476,
+            0.33955196698661894,
+            0.359018161019776,
+            0.3718643530155532,
+            0.3688218049937859,
+            0.36756628297735006,
+            0.3553761429793667
+          ]
+        },
+        "seconds_reduction_pct": 2.9007293209856733,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      },
+      {
+        "noise": true,
+        "layout": "compact",
+        "workers": 2,
+        "median_seconds_including_close": {
+          "baseline": 0.18709029501769692,
+          "candidate": 0.20302852999884635
+        },
+        "seconds": {
+          "baseline": [
+            0.18183124501956627,
+            0.2158458300109487,
+            0.1796635050268378,
+            0.18709029501769692,
+            0.1822632440016605,
+            0.23506939300568774,
+            0.18657309401896782,
+            0.2087661969999317,
+            0.1914437260129489
+          ],
+          "candidate": [
+            0.19990802500979044,
+            0.2087490860139951,
+            0.20951978699304163,
+            0.22264785401057452,
+            0.21165947301778942,
+            0.20302852999884635,
+            0.19685841200407594,
+            0.1940395479905419,
+            0.19936716798110865
+          ]
+        },
+        "seconds_reduction_pct": -8.519006814138507,
+        "sha256": "e69c5010b97f30f7760a13eaffb930185b50d61603e0d4c53e0e6f87ef3552be"
+      }
+    ]
+  },
+  "stress": {
+    "recording": {
+      "status": "passed",
+      "started_epoch": 1792124734.7792013,
+      "ended_epoch": 1792128994.0926778,
+      "elapsed_seconds": 4259.3134765625,
+      "cases": 50349,
+      "episodes": 748238,
+      "transitions": 5837944,
+      "unique_configurations": 6912,
+      "scope": "Persistent isolated baseline/candidate NumPy VectorEnv recording and full decoded independent reference, byte-identical public data/window/batch hashes, legacy/compact, 0/1/2 background writers, state/RGB/depth, 8..128px, N1/3/16 capped3 for128px, variable episodes/history/horizon/shuffle, high unsigned/non-native identities, late-row invalid-step atomic retry and caller mutation. FD/thread equality checked after each case; sampled RSS is not a leak proof.",
+      "sample_count": 282,
+      "resources": {
+        "baseline": {
+          "fd_values": [
+            4
+          ],
+          "thread_values": [
+            1
+          ],
+          "min_sampled_rss_bytes": 44797952,
+          "max_sampled_rss_bytes": 257478656,
+          "last_sample": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 147521536
+          }
+        },
+        "candidate": {
+          "fd_values": [
+            4
+          ],
+          "thread_values": [
+            1
+          ],
+          "min_sampled_rss_bytes": 44744704,
+          "max_sampled_rss_bytes": 257286144,
+          "last_sample": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 165433344
+          }
+        }
+      },
+      "workers": {
+        "baseline": {
+          "ready": true,
+          "source": {
+            "data.py": "5926e30027c83ae5d65f0cbe3f7254eaaefc1e6b14aa40c1d5d27f19e86ba1fa",
+            "batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+            "env.py": "b627b80a9d6ca28af5a39dfd0935e9fbd5b18d22d8d5b9e4e83d702b8b076cbd",
+            "sensors.py": "c3ddac620919c71147cb22570c55fed49bc656d09834fcdc757b20c448667a3d",
+            "rollout.py": "2684c24b257f363aaafa0867c87bbf0bc7cb016198e157c1e7a2c636bc732a95",
+            "backends/physics.py": "aacb47526e8cd285d12ec471f5df944d5f3a04cf1dd8fa65495338c937ea40bd"
+          },
+          "python": "3.12.0",
+          "numpy": "2.5.4",
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 40243200
+          }
+        },
+        "candidate": {
+          "ready": true,
+          "source": {
+            "data.py": "bdb8ce929b37d4e0e55f672b2702d28ed67d57eb845857fb88a30b2870c0ce28",
+            "batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+            "env.py": "b627b80a9d6ca28af5a39dfd0935e9fbd5b18d22d8d5b9e4e83d702b8b076cbd",
+            "sensors.py": "c3ddac620919c71147cb22570c55fed49bc656d09834fcdc757b20c448667a3d",
+            "rollout.py": "2684c24b257f363aaafa0867c87bbf0bc7cb016198e157c1e7a2c636bc732a95",
+            "backends/physics.py": "aacb47526e8cd285d12ec471f5df944d5f3a04cf1dd8fa65495338c937ea40bd"
+          },
+          "python": "3.12.0",
+          "numpy": "2.5.4",
+          "resources": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 40271872
+          }
+        }
+      }
+    },
+    "executor": {
+      "status": "passed",
+      "started_epoch": 1792123390.8123708,
+      "ended_epoch": 1792128994.0312698,
+      "elapsed_seconds": 5603.2188992500305,
+      "source_sha256": {
+        "baseline": "bb2328dc93dc35667f1726432802dff558159fb8da13ecc8ccb7b387eed94c89",
+        "candidate": "de2c65c5d3a746633396fc95839bf18b4acd51af16f9fc38178314801c8544c0",
+        "integer_oracle": "5076c9a6eb58fcb5b34912c51033115cdaa7712e074f466d30fa442d2777f982"
+      },
+      "numpy": "1.24.4",
+      "cases": 142052,
+      "controls": 17046240,
+      "environment_actions": 630667200,
+      "initial": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 41832448
+      },
+      "final": {
+        "fd": 4,
+        "threads": 1,
+        "rss_bytes": 36896768
+      },
+      "scope": "Baseline and cached-ID executor output and policy-call equivalence against independent Python-integer queue reference. Six signed/unsigned/native/non-native integer types, N1/3/16/128, H1/4/8, 0/2^53/2^63/full-range boundaries, repeated/skipped/wrapped steps, episode changes, local reset, noncontiguous canonical IDs, atomic noncanonical rejection and owned-output mutation. Fresh RNG per case; FD/threads checked each completed case, sampled RSS is not a leak proof.",
+      "sample_count": 373,
+      "resources": {
+        "fd_values": [
+          4
+        ],
+        "thread_values": [
+          1
+        ],
+        "min_sampled_rss_bytes": 36577280,
+        "max_sampled_rss_bytes": 44093440,
+        "last_sample": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 36880384
+        }
+      },
+      "coverage_count": 72
+    },
+    "earlier_recording_stage": {
+      "status": "intentionally-stopped-for-source-update",
+      "reason": "Added a closing-state guard after 12 reproducible inter-operation interruption failures; no recording parity failure",
+      "source_sha256": "a0ee2452d1241106b51bdb3918406bb77e708da997c3ac133e680032e0757139",
+      "completed_cases": 19359,
+      "last_sample": {
+        "status": "running",
+        "started_epoch": 1792122885.419179,
+        "elapsed_seconds": 1779.890582561493,
+        "until": 1792128994.0,
+        "epoch": 1792124665.3097441,
+        "cases": 19250,
+        "episodes": 286048,
+        "transitions": 2233096,
+        "unique_configurations": 6912,
+        "resources": {
+          "baseline": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 138330112
+          },
+          "candidate": {
+            "fd": 4,
+            "threads": 1,
+            "rss_bytes": 171343872
+          }
+        }
+      },
+      "observed_epoch": 1792124734.6810286
+    },
+    "known_pauses": {
+      "scope": "Only exact-script self-owned stress worker PIDs, PID/start-time checked before every signal; no unrelated jobs. Goal wall time includes this real benchmark work. Data parent timeout45s, each pause limited30s with resume watchdog.",
+      "pauses": [
+        {
+          "started_epoch": 1792123820.572645,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123825.0976582,
+          "seconds": 4.525013208389282
+        },
+        {
+          "started_epoch": 1792123825.5978885,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123828.5402014,
+          "seconds": 2.9423129558563232
+        },
+        {
+          "started_epoch": 1792123829.0405853,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123833.6142724,
+          "seconds": 4.5736870765686035
+        },
+        {
+          "started_epoch": 1792123834.1145813,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123836.744931,
+          "seconds": 2.630349636077881
+        },
+        {
+          "started_epoch": 1792123837.2452228,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123840.8984804,
+          "seconds": 3.6532576084136963
+        },
+        {
+          "started_epoch": 1792123841.3987613,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123844.0648143,
+          "seconds": 2.666053056716919
+        },
+        {
+          "started_epoch": 1792123844.5650878,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123860.5515122,
+          "seconds": 15.986424446105957
+        },
+        {
+          "started_epoch": 1792123861.0518641,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123870.0118444,
+          "seconds": 8.959980249404907
+        },
+        {
+          "started_epoch": 1792123870.5122313,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792123876.0761898,
+          "seconds": 5.563958406448364
+        },
+        {
+          "started_epoch": 1792124001.383389,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792124008.2644064,
+          "seconds": 6.881017446517944
+        },
+        {
+          "started_epoch": 1792124008.7648191,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792124015.7927237,
+          "seconds": 7.027904510498047
+        },
+        {
+          "started_epoch": 1792124016.2932818,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792124022.3233204,
+          "seconds": 6.030038595199585
+        },
+        {
+          "started_epoch": 1792124022.8237112,
+          "targets": [
+            {
+              "pid": 1259139,
+              "start_time": "17242247",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1259140,
+              "start_time": "17242248",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            }
+          ],
+          "ended_epoch": 1792124032.2238822,
+          "seconds": 9.400171041488647
+        },
+        {
+          "started_epoch": 1792125054.745031,
+          "targets": [
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            },
+            {
+              "pid": 1393197,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1393198,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            }
+          ],
+          "ended_epoch": 1792125063.4778538,
+          "seconds": 8.73282265663147
+        },
+        {
+          "started_epoch": 1792125063.9783382,
+          "targets": [
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            },
+            {
+              "pid": 1393197,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1393198,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            }
+          ],
+          "ended_epoch": 1792125071.0856571,
+          "seconds": 7.107318878173828
+        },
+        {
+          "started_epoch": 1792125071.586072,
+          "targets": [
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            },
+            {
+              "pid": 1393197,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1393198,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            }
+          ],
+          "ended_epoch": 1792125073.9927154,
+          "seconds": 2.4066433906555176
+        },
+        {
+          "started_epoch": 1792125074.4931567,
+          "targets": [
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            },
+            {
+              "pid": 1393197,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1393198,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            }
+          ],
+          "ended_epoch": 1792125076.1948566,
+          "seconds": 1.70169997215271
+        },
+        {
+          "started_epoch": 1792125076.6953044,
+          "targets": [
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            },
+            {
+              "pid": 1393197,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1393198,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            }
+          ],
+          "ended_epoch": 1792125079.0723271,
+          "seconds": 2.3770227432250977
+        },
+        {
+          "started_epoch": 1792125079.5727558,
+          "targets": [
+            {
+              "pid": 1275837,
+              "start_time": "17292775",
+              "command": [
+                "/tmp/ef-numpy124-20261014/bin/python",
+                "runs/platform-optimization-20261016-twohour/scripts/executor_endurance.py",
+                "--until",
+                "1792128994"
+              ]
+            },
+            {
+              "pid": 1393197,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            },
+            {
+              "pid": 1393198,
+              "start_time": "17427184",
+              "command": [
+                "/tmp/ef-ci312-20261014/bin/python",
+                "/home/ubuntu/workspace/chase/EmbodiedForge/runs/platform-optimization-20261016-twohour/scripts/endurance.py",
+                "--worker"
+              ]
+            }
+          ],
+          "ended_epoch": 1792125081.1266582,
+          "seconds": 1.5539023876190186
+        }
+      ]
+    }
+  },
+  "fault_cycles": {
+    "status": "passed",
+    "started_epoch": 1792125951.2284842,
+    "ended_epoch": 1792125960.7935104,
+    "cases": 500,
+    "recorders_created": 500,
+    "recorders_released_after_gc": 500,
+    "configurations": 30,
+    "initial": {
+      "fd": 4,
+      "threads": 1,
+      "rss_bytes": 48119808
+    },
+    "final": {
+      "fd": 4,
+      "threads": 1,
+      "rss_bytes": 51843072
+    },
+    "samples": [
+      {
+        "case": 1,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 50184192
+        }
+      },
+      {
+        "case": 26,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51798016
+        }
+      },
+      {
+        "case": 51,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51798016
+        }
+      },
+      {
+        "case": 76,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51798016
+        }
+      },
+      {
+        "case": 101,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51802112
+        }
+      },
+      {
+        "case": 126,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51802112
+        }
+      },
+      {
+        "case": 151,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51802112
+        }
+      },
+      {
+        "case": 176,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51802112
+        }
+      },
+      {
+        "case": 201,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51814400
+        }
+      },
+      {
+        "case": 226,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51822592
+        }
+      },
+      {
+        "case": 251,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51822592
+        }
+      },
+      {
+        "case": 276,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51822592
+        }
+      },
+      {
+        "case": 301,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51822592
+        }
+      },
+      {
+        "case": 326,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51826688
+        }
+      },
+      {
+        "case": 351,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51826688
+        }
+      },
+      {
+        "case": 376,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51826688
+        }
+      },
+      {
+        "case": 401,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51830784
+        }
+      },
+      {
+        "case": 426,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51843072
+        }
+      },
+      {
+        "case": 451,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51843072
+        }
+      },
+      {
+        "case": 476,
+        "resources": {
+          "fd": 4,
+          "threads": 1,
+          "rss_bytes": 51843072
+        }
+      }
+    ],
+    "source_sha256": "bdb8ce929b37d4e0e55f672b2702d28ed67d57eb845857fb88a30b2870c0ce28",
+    "test_source_sha256": "b5776e2734f6acbac9a635af912ab1963af363a7ca62f8c64b88762d9cfe0808",
+    "scope": "500 fault-cycle invocations of eight tested cleanup scenarios, varying finite interruptions, writer counts, storage layouts and repeated-close boundaries. Actual thread-pool writers and NPZ publication; GC/weakrefs verify all recorder objects released after each case, and FD/Python threads return to baseline. Small point-state payloads only; RSS samples are not a general memory bound."
+  },
+  "rejected_experiment": {
+    "scope": "Diagnostic conditional async-path prototype, not adopted. Repeat trials did not establish a stable advantage or a GIL scheduling cause.",
+    "source_sha256": "0e65ab71a1d5202902240c3d8a59af6c5bb4eabe000155965d3b259d39b498d1",
+    "cases": [
+      {
+        "noise": false,
+        "layout": "transitions",
+        "workers": 0,
+        "median_seconds": {
+          "baseline": 0.10873425599129405,
+          "candidate": 0.10708038999291603,
+          "guarded": 0.10440193300019018
+        }
+      },
+      {
+        "noise": false,
+        "layout": "transitions",
+        "workers": 1,
+        "median_seconds": {
+          "baseline": 0.10865275449759793,
+          "candidate": 0.10418748999654781,
+          "guarded": 0.10686886750045232
+        }
+      },
+      {
+        "noise": false,
+        "layout": "compact",
+        "workers": 2,
+        "median_seconds": {
+          "baseline": 0.06442459749814589,
+          "candidate": 0.0611163119901903,
+          "guarded": 0.06303260401182342
+        }
+      },
+      {
+        "noise": true,
+        "layout": "compact",
+        "workers": 2,
+        "median_seconds": {
+          "baseline": 0.1736991125071654,
+          "candidate": 0.1688303689879831,
+          "guarded": 0.1723311600071611
+        }
+      }
+    ]
+  },
+  "figure": "platform-optimization-20261016-twohour-performance.svg",
+  "limits": [
+    "Append/executor improvements describe only the listed CPU workloads and scopes; no neural inference, GPU training or real-robot deployment speedup is claimed.",
+    "Full recording-pipeline timings vary across modes and repetitions, including negative cases. A uniform whole-pipeline speedup has not been established; all paired samples are retained.",
+    "FD and Python-thread equality are checked after each completed stress case; sampled RSS is not a leak proof or a hard memory budget.",
+    "Cleanup fault tests cover blocking shutdown/future-result waits and selected operation boundaries; they do not establish transactional cancellation at every bookkeeping bytecode.",
+    "SIGTERM test controllers install a handler raising SystemExit143; this does not claim cleanup under default process-killing SIGTERM behavior.",
+    "Optional dependency/asset test skips remain; full-suite counts apply to the recorded environments."
+  ],
+  "final_process_audit": {
+    "status": "passed",
+    "observed_epoch": 1792129193.518137,
+    "matching_processes": [],
+    "scope": "Read-only exact-run Python command-path audit; excludes this reporter and unrelated jobs. Long recording controller waits/reaps both worker children before exiting; signal harness waits every isolated controller."
+  },
+  "evidence_archive": {
+    "path": "docs/assets/platform-optimization-20261016-twohour-evidence.tar.gz",
+    "sha256": "b35f99c453f3e7cc8b4723a4f86977dfbe85d8d2d27e924544ff64e32dfb8c8b",
+    "bytes": 696828,
+    "scope": "Exact baseline source, final source excerpts, harnesses, raw measurements and logs; temporary synthetic datasets are regenerated by the scripts. Optional external SDK assets are not bundled."
+  }
+}
