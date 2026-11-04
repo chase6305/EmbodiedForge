@@ -51,9 +51,34 @@ jobs:
           ruff format --check src tests benchmarks examples
       - name: Run tests
         run: python -m pytest -q
-      - name: Build and verify installed wheel
+      - name: Build distributions and verify source archive
         run: |
-          python -m build --wheel
+          python -m build
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tarfile
+          import tempfile
+          from pathlib import Path
+
+          archive = next(Path("dist").glob("*.tar.gz"))
+          with tempfile.TemporaryDirectory(prefix="embodiedforge-sdist-") as temporary:
+              with tarfile.open(archive) as source:
+                  assert not any(
+                      "/docs/experiments/" in member.name
+                      and member.name.endswith(".tar.gz")
+                      for member in source.getmembers()
+                  ), "Source release includes historical evidence archives"
+                  source.extractall(temporary)
+              root = next(Path(temporary).iterdir())
+              subprocess.run(
+                  [sys.executable, "-m", "pytest", "-q",
+                   "tests/test_documentation.py", "tests/test_architecture.py"],
+                  cwd=root, check=True,
+              )
+          PY
+      - name: Verify installed wheel
+        run: |
           python -m pip install --force-reinstall --no-deps dist/*.whl
           python -I -m embodiedforge plan --task hold --num-envs 2
           python -I -c "from importlib.resources import files; root = files('embodiedforge'); assert (root / 'viewers/web.html').is_file(); assert (root / 'viewers/web.js').is_file(); assert (root / 'locomotion/microduck/robot/microduck/robot_walk.xml').is_file(); assert (root / 'locomotion/microduck/robot/microduck/assets/bearing_roll.stl').is_file()"

@@ -12,9 +12,10 @@ from pathlib import Path
 
 import numpy as np
 
-from ._microduck_process import run_process
 from ._motion_sdk import load_request
-from .h1 import sha256, write_json
+from .runtime.artifacts import write_json
+from .runtime.hashing import file_sha256 as sha256
+from .runtime.process import run_process
 
 
 def assets(repo):

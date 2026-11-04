@@ -508,7 +508,7 @@ def test_incomplete_and_all_failed_reports_do_not_claim_success():
     "worker_error", [None, subprocess.CalledProcessError, KeyboardInterrupt]
 )
 def test_launcher_isolates_sdk_and_preserves_run_status(
-    tmp_path, monkeypatch, worker_error, capsys
+    tmp_path, monkeypatch, worker_error, caplog
 ):
     python = tmp_path / "sdk/bin/python"
     python.parent.mkdir(parents=True)
@@ -652,21 +652,22 @@ def test_launcher_isolates_sdk_and_preserves_run_status(
         assert status["latest_checkpoint"] is None
         assert signal.getsignal(signal.SIGTERM) is previous_handler
 
-        original_copy = weave.shutil.copyfile
+        original_copy = weave.copy_file_snapshot
         for mutation in ("source", "snapshot"):
             args.output = tmp_path / f"changed-{mutation}"
 
             def changing_copy(src, dst, mutation=mutation):
-                original_copy(src, dst)
+                digest = original_copy(src, dst)
                 (src if mutation == "source" else dst).write_bytes(
                     f"changed during {mutation} copy".encode()
                 )
+                return digest
 
             def unexpected_worker(*args, **kwargs):
                 pytest.fail("Changed input must be rejected before starting the SDK")
 
             with monkeypatch.context() as patch:
-                patch.setattr(weave.shutil, "copyfile", changing_copy)
+                patch.setattr(weave, "copy_file_snapshot", changing_copy)
                 patch.setattr(weave, "run_process", unexpected_worker)
                 with pytest.raises(ValueError, match="changed during snapshot"):
                     weave.launch(args)
@@ -691,9 +692,8 @@ def test_launcher_isolates_sdk_and_preserves_run_status(
     assert json.loads((output / "run.json").read_text())["status"] == "running"
     assert (output / "model_100.pt").read_bytes() == b"latest publication"
     if worker_error:
-        assert (
-            "Failed to finalize Weave run: status disk full" in capsys.readouterr().err
-        )
+        assert "preserving its original error" in caplog.text
+        assert "status disk full" in caplog.text
 
     # Reject a distributed launch before touching output or preparing data.
     args.output = tmp_path / "distributed"

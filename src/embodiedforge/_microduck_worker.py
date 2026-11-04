@@ -1,6 +1,5 @@
 """Diagnostics executed only by the isolated upstream Python interpreter."""
 
-import hashlib
 import importlib.metadata
 import json
 import math
@@ -13,6 +12,12 @@ import threading
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from time import perf_counter
+
+if not __package__:
+    # Isolated file execution omits PYTHONPATH and the script directory.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from embodiedforge.runtime.hashing import file_sha256, stream_sha256
 
 
 def _process_state(pid):
@@ -596,9 +601,7 @@ def checkpoint_metadata(path: Path) -> dict:
     with path.open("rb") as stream:
         checkpoint = torch.load(stream, map_location="cpu", weights_only=True)
         stream.seek(0)
-        digest = hashlib.sha256()
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
+        digest = stream_sha256(stream)
     if not isinstance(checkpoint, dict):
         raise ValueError("Expected a full PPO training checkpoint dictionary")
     components = ("actor_state_dict", "critic_state_dict", "optimizer_state_dict")
@@ -647,7 +650,7 @@ def checkpoint_metadata(path: Path) -> dict:
         "iteration": iteration,
         "common_step_counter": counter,
         "learning_rate": rates[0],
-        "sha256": digest.hexdigest(),
+        "sha256": digest,
     }
 
 
@@ -978,11 +981,7 @@ def evaluation_video(env, path: Path | None):
                 if process.poll() is None:
                     process.kill()
                     process.wait()
-        digest = hashlib.sha256()
-        with path.open("rb") as stream:
-            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                digest.update(chunk)
-        info["sha256"] = digest.hexdigest()
+        info["sha256"] = file_sha256(path)
     finally:
         renderer.close()
 
@@ -1014,7 +1013,7 @@ def evaluate(
     if session is not None:
         parity = {
             "onnx": onnx,
-            "sha256": hashlib.sha256(Path(onnx).read_bytes()).hexdigest(),
+            "sha256": file_sha256(onnx),
             "provider": "CPUExecutionProvider",
             "sampling": "one environment per step, index = step % num_envs",
             "atol": 1e-4,

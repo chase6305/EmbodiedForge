@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -14,315 +13,38 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ._go1_metrics import SWITCHING_SUITES
-from ._microduck_process import run_process as _run_process
 from .locomotion.go1_config import COMMAND_PROFILES as GO1_COMMAND_PROFILES
 from .locomotion.go1_config import REWARD_PROFILES as GO1_REWARD_PROFILES
 from .logging import get_logger, setup_logging
+from .runtime.artifacts import write_json as write_json
+from .runtime.hashing import file_sha256 as sha256
+from .runtime.process import run_process as _run_process
+from .runtime.provenance import snapshot_implementation as snapshot_implementation
+from .runtime.provenance import validate_snapshot as validate_snapshot
+from .runtime.records import run_identity, run_lifecycle
+from .workflows.go1_settings import (
+    resolve_go1_command_profile as resolve_go1_command_profile,
+)
+from .workflows.go1_settings import (
+    resolve_go1_learning_rate as resolve_go1_learning_rate,
+)
+from .workflows.go1_settings import (
+    resolve_go1_reward_profile as resolve_go1_reward_profile,
+)
+from .workflows.go1_settings import resolve_go1_semantics as resolve_go1_semantics
+from .workflows.recipe_artifacts import checkpoint_input as checkpoint_input
+from .workflows.recipe_catalog import GO1_STANDALONE_SOURCE as GO1_STANDALONE_SOURCE
+from .workflows.recipe_catalog import RECIPES as RECIPES
+from .workflows.recipe_catalog import SOURCES as SOURCES
+from .workflows.recipe_catalog import SWITCHING_SUITES as SWITCHING_SUITES
+from .workflows.recipe_progress import go1_training_progress as go1_training_progress
+from .workflows.recipe_validation import EvaluationRejected as EvaluationRejected
+from .workflows.recipe_validation import assess as assess
+from .workflows.recipe_validation import criteria_for as criteria_for
+from .workflows.recipe_validation import validate_result as validate_result
 
-SOURCES = {
-    "wuji_unilab": "91ccfa0ec8c129b300865bd36c59dc9eed56a744",
-    "mjbatch": "b84c0c20aedbdf048122cbc47f554e9b93cc4754",
-}
-RECIPES = {
-    "wuji-reorient": {
-        "source": "wuji_unilab",
-        "task": "WujiHand_Reorient",
-        "methods": ["train", "evaluate"],
-        "physics": "mjwarp",
-        "algorithm": "PPO",
-    },
-    "wuji-reorient-light": {
-        "source": "wuji_unilab",
-        "task": "WujiHand_Reorient_Light",
-        "methods": ["train", "evaluate"],
-        "physics": "mjwarp",
-        "algorithm": "PPO",
-    },
-    "go1-joystick": {
-        "source": "mjbatch",
-        "task": "go1_joystick",
-        "methods": ["train", "evaluate"],
-        "physics": "mjbatch",
-        "algorithm": "PPO",
-    },
-    "cartpole-mpc": {
-        "source": "mjbatch",
-        "task": "cartpole_mpc",
-        "methods": ["solve"],
-        "physics": "mjbatch",
-        "algorithm": "predictive_sampling",
-    },
-    "arm-throw-codesign": {
-        "source": "mjbatch",
-        "task": "arm_throw",
-        "methods": ["solve"],
-        "physics": "mjbatch",
-        "algorithm": "CEM",
-    },
-}
 WORKER = Path(__file__).with_name("_recipe_worker.py")
 LOGGER = get_logger("recipes")
-GO1_STANDALONE_SOURCE = {
-    "kind": "installed_packages",
-    "implementation": "embodiedforge.locomotion.go1+go1_ppo",
-    "contract_version": 1,
-}
-
-
-class EvaluationRejected(RuntimeError):
-    """The simulation completed but did not meet the requested criteria."""
-
-
-def resolve_go1_semantics(requested, previous_result=None):
-    """New runs use corrected transitions; existing runs retain their contract."""
-    inherited = (
-        previous_result.get("task_semantics", "upstream-v1")
-        if previous_result is not None
-        else "transition-v2"
-    )
-    choices = ("transition-v2", "upstream-v1")
-    if inherited not in choices or (requested is not None and requested not in choices):
-        raise ValueError("Unknown Go1 task semantics")
-    return inherited if requested is None else requested
-
-
-def resolve_go1_reward_profile(requested, previous_result=None):
-    inherited = (previous_result or {}).get("reward_profile", "original")
-    choices = GO1_REWARD_PROFILES
-    if inherited not in choices or (requested is not None and requested not in choices):
-        raise ValueError("Unknown Go1 reward profile")
-    return inherited if requested is None else requested
-
-
-def resolve_go1_command_profile(requested, previous_result=None):
-    inherited = (previous_result or {}).get("command_profile", "original")
-    if inherited not in GO1_COMMAND_PROFILES or (
-        requested is not None and requested not in GO1_COMMAND_PROFILES
-    ):
-        raise ValueError("Unknown Go1 command profile")
-    return inherited if requested is None else requested
-
-
-def resolve_go1_learning_rate(requested, previous_result=None):
-    inherited = (previous_result or {}).get("learning_rate_override")
-    for value in (requested, inherited):
-        if value is not None and (
-            type(value) not in (int, float) or not math.isfinite(value) or value <= 0
-        ):
-            raise ValueError("Go1 learning rate must be positive and finite")
-    return inherited if requested is None else requested
-
-
-def criteria_for(args):
-    names = (
-        ("min_success_rate", "max_drop_rate")
-        if args.task.startswith("wuji-")
-        else ("min_survival_fraction", "max_planar_rmse", "max_yaw_rmse")
-    )
-    if args.task == "go1-joystick" and getattr(args, "suite", None) in SWITCHING_SUITES:
-        names += ("min_settled_fraction", "min_tracking_fraction")
-    criteria = {}
-    for name in (
-        "min_success_rate",
-        "max_drop_rate",
-        "min_survival_fraction",
-        "max_planar_rmse",
-        "max_yaw_rmse",
-        "min_settled_fraction",
-        "min_tracking_fraction",
-    ):
-        value = getattr(args, name, None)
-        if value is None:
-            continue
-        if name not in names:
-            raise ValueError(f"{name} does not apply to {args.task}")
-        if (
-            not math.isfinite(value)
-            or value < 0
-            or (("rate" in name or "fraction" in name) and value > 1)
-        ):
-            raise ValueError(f"Invalid acceptance threshold: {name}")
-        criteria[name] = value
-    return criteria
-
-
-def assess(result, criteria):
-    if "cases" in result:
-        checks = []
-        for case in result["cases"]:
-            checks.extend(
-                {**item, "seed": case["seed"], "case": case["case"]}
-                for item in assess(case, criteria)["checks"]
-            )
-        return {
-            "criteria": criteria,
-            "checks": checks,
-            "passed": all(item["passed"] for item in checks) if checks else None,
-        }
-    if "segments" in result:
-        checks = assess({k: v for k, v in result.items() if k != "segments"}, criteria)[
-            "checks"
-        ]
-        for segment in result["segments"]:
-            checks.extend(
-                {**item, "segment": segment["segment"]}
-                for item in assess(segment, criteria)["checks"]
-            )
-        return {
-            "criteria": criteria,
-            "checks": checks,
-            "passed": all(item["passed"] for item in checks) if checks else None,
-        }
-    checks = []
-    for name, threshold in criteria.items():
-        metric = name.split("_", 1)[1]
-        actual = result[metric]
-        unobserved = actual is None and result.get("observed_frames") == 0
-        if not unobserved and not math.isfinite(actual):
-            raise ValueError(f"Non-finite evaluation metric: {metric}")
-        passed = (
-            False
-            if unobserved
-            else actual >= threshold
-            if name.startswith("min_")
-            else actual <= threshold
-        )
-        checks.append(
-            {
-                "criterion": name,
-                "actual": actual,
-                "threshold": threshold,
-                "passed": passed,
-            }
-        )
-    return {
-        "criteria": criteria,
-        "checks": checks,
-        "passed": all(item["passed"] for item in checks) if checks else None,
-    }
-
-
-def validate_result(request, result, output):
-    if request.get("task") == "go1-joystick":
-        for item in result.get("cases", [result]):
-            if item.get("learning_rate_override") != request.get("go1_learning_rate"):
-                raise ValueError("Go1 result learning rate differs from request")
-    if request.get("go1_command_profile"):
-        for item in result.get("cases", [result]):
-            if item.get("command_profile") != request["go1_command_profile"]:
-                raise ValueError("Go1 result command profile differs from request")
-    if request.get("go1_reward_profile"):
-        for item in result.get("cases", [result]):
-            if item.get("reward_profile") != request["go1_reward_profile"]:
-                raise ValueError("Go1 result reward profile differs from request")
-    if request.get("go1_semantics"):
-        for item in result.get("cases", [result]):
-            if item.get("task_semantics") != request["go1_semantics"]:
-                raise ValueError("Go1 result task semantics differs from request")
-    if request["command"] == "train":
-        path = (output / result["checkpoint"]).resolve()
-        if not path.is_relative_to(output) or not path.is_file():
-            raise ValueError("Worker checkpoint is missing or outside its run")
-        if sha256(path) != result["checkpoint_sha256"]:
-            raise ValueError("Worker checkpoint SHA256 mismatch")
-        if (
-            result["completed_updates"] != request["updates"]
-            or result["checkpoint_iteration"]
-            != request.get("start_iteration", 0) + request["updates"] - 1
-            or result["finite_tensor_count"] <= 0
-        ):
-            raise ValueError("Incomplete training result")
-    elif request["command"] == "evaluate":
-        if request["task"].startswith("wuji-"):
-            from ._wuji_diagnostics import validate_evaluation
-
-            validate_evaluation(request, result)
-            if request.get("record_video"):
-                from ._wuji_diagnostics import verify_video
-
-                write_json(
-                    output / "video-validation.json", verify_video(result, output)
-                )
-        else:
-            from ._go1_metrics import evaluation_commands
-            from ._h1_metrics import validate_first_episode
-
-            commands = evaluation_commands(
-                request.get("suite"), request.get("velocity")
-            )
-            expected = {
-                (seed, case)
-                for seed in (request.get("seeds") or [request["seed"]])
-                for case in commands
-            }
-            cases = result.get("cases", [result])
-            found = [(case["seed"], case["case"]) for case in cases]
-            if set(found) != expected or len(found) != len(expected):
-                raise ValueError("Missing, duplicate or unexpected Go1 evaluation case")
-            for case in cases:
-                validate_first_episode(case)
-                if (
-                    case["num_envs"] != request["num_envs"]
-                    or case["steps_limit"] != request["steps"]
-                    or case["command"] != commands[case["case"]]
-                ):
-                    raise ValueError(
-                        "Evaluation dimensions or command differ from request"
-                    )
-                if request.get("suite") in SWITCHING_SUITES:
-                    from ._go1_metrics import validate_switching
-
-                    validate_switching(case, request["steps"], request["suite"])
-                if request.get("record_motion"):
-                    from ._h1_motion import load_motion
-
-                    motion = case["motion"]
-                    path = (output / motion["path"]).resolve()
-                    if (
-                        not path.is_relative_to(output)
-                        or sha256(path) != motion["sha256"]
-                    ):
-                        raise ValueError("Motion SHA256 mismatch")
-                    trace = load_motion(path)
-                    if len(trace["time"]) != case["per_env"]["observed_steps"][0]:
-                        raise ValueError("Motion frame count differs from evaluation")
-                    metadata = trace["metadata"]
-                    if (
-                        request.get("suite") in SWITCHING_SUITES
-                        and metadata.get("command_schedule") != case["command_schedule"]
-                    ):
-                        raise ValueError(
-                            "Motion command schedule differs from evaluation"
-                        )
-                    if (
-                        metadata["case"] != case["case"]
-                        or metadata["seed"] != case["seed"]
-                        or metadata["env_id"] != 0
-                        or metadata["quaternion_order"] != "xyzw"
-                        or metadata["velocity_command"] != case["command"]
-                        or not math.isclose(metadata["dt"], case["dt"], abs_tol=1e-12)
-                        or trace["terminated"] != case["per_env"]["terminated"][0]
-                        or trace["truncated"] != case["per_env"]["truncated"][0]
-                    ):
-                        raise ValueError(
-                            "Motion metadata or final flags differ from evaluation"
-                        )
-    json.dumps(result, allow_nan=False)
-
-
-def write_json(path: Path, value) -> None:
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
-    temporary.replace(path)
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def source_identity(repo: Path, name: str) -> dict:
@@ -344,45 +66,6 @@ def source_identity(repo: Path, name: str) -> dict:
             raise ValueError(f"Unsupported source entry: {relative}")
         hashes[relative] = sha256(path)
     return {"name": name, "revision": revision, "repo": str(repo), "files": hashes}
-
-
-def validate_snapshot(project: Path, source: dict, *, label="Cached source") -> None:
-    for relative, expected in source["files"].items():
-        path = project / relative
-        if not path.is_file() or path.is_symlink() or sha256(path) != expected:
-            raise ValueError(f"{label} differs: {path}")
-
-
-def snapshot_implementation(package: Path, destination: Path) -> dict:
-    """Freeze the native Python package and its packaged robot assets for one run."""
-    package, destination = package.resolve(), destination.resolve()
-    if destination.is_relative_to(package):
-        raise ValueError(
-            "Run implementation snapshot must be outside the source package"
-        )
-    files = []
-    for path in sorted(package.rglob("*")):
-        if "__pycache__" in path.relative_to(package).parts:
-            continue
-        if path.is_symlink():
-            raise ValueError(f"Implementation source must not contain symlinks: {path}")
-        if path.is_file() and (
-            path.suffix in (".py", ".xml") or path.name.startswith("LICENSE")
-        ):
-            files.append(path)
-    destination.mkdir(parents=True, exist_ok=False)
-    hashes = {}
-    for path in files:
-        relative = path.relative_to(package)
-        expected = sha256(path)
-        target = destination / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(path, target)
-        if sha256(target) != expected:
-            raise ValueError(f"Implementation source changed during copy: {path}")
-        hashes[str(relative)] = expected
-    validate_snapshot(package, {"files": hashes}, label="Implementation source")
-    return {"files": hashes}
 
 
 def child_environment(project: Path | None) -> dict:
@@ -458,49 +141,6 @@ def setup(args):
         {"revision": source["revision"], "lock_sha256": sha256(project / "uv.lock")},
     )
     LOGGER.info("Prepared %s at %s", name, project)
-
-
-def checkpoint_input(
-    run: Path, recipe: str, *, allow_recovery=False
-) -> tuple[Path, dict]:
-    data = json.loads((run / "run.json").read_text())
-    if (
-        data.get("schema") != 1
-        or data.get("workflow") != "recipe_train"
-        or (
-            data.get("status") != "complete"
-            and not (
-                allow_recovery
-                and recipe == "go1-joystick"
-                and data.get("status") in {"interrupted", "timed_out", "failed"}
-            )
-        )
-        or data.get("recipe") != recipe
-        or not (
-            data.get("source", {}).get("revision") == SOURCES[RECIPES[recipe]["source"]]
-            or (
-                recipe == "go1-joystick" and data.get("source") == GO1_STANDALONE_SOURCE
-            )
-        )
-    ):
-        raise ValueError(
-            "Input must be a completed training run for this recipe/version"
-        )
-    if data["status"] != "complete":
-        from ._go1_recovery import recovery_result
-
-        data = {
-            **data,
-            "result": recovery_result(run, data),
-            "checkpoint_origin": "recovery.json",
-        }
-    artifact = data["result"]
-    path = (run / artifact["checkpoint"]).resolve()
-    if not path.is_relative_to(run) or not path.is_file():
-        raise ValueError("Checkpoint is missing or outside the run")
-    if sha256(path) != artifact["checkpoint_sha256"]:
-        raise ValueError("Checkpoint SHA256 mismatch")
-    return path, data
 
 
 def execute(args):
@@ -691,6 +331,7 @@ def execute(args):
     manifest = {
         "schema": 1,
         "workflow": "recipe_" + args.command,
+        "run_contract": run_identity("recipes", args.command, args.task),
         "recipe": args.task,
         "source": source,
         "status": "running",
@@ -703,7 +344,7 @@ def execute(args):
                 "_wuji_recipe.py",
                 "_wuji_diagnostics.py",
                 "_mjbatch_recipe.py",
-                "_training_runtime.py",
+                "runtime/implementation.py",
                 "_h1_metrics.py",
                 "_go1_metrics.py",
                 "_go1_assets.py",
@@ -720,8 +361,11 @@ def execute(args):
         },
         "request": request,
     }
-    write_json(output / "run.json", manifest)
-    try:
+    with run_lifecycle(
+        manifest,
+        lambda record: write_json(output / "run.json", record),
+        label=output / "run.json",
+    ):
         implementation = output / "implementation" / "embodiedforge"
         frozen = snapshot_implementation(Path(__file__).parent, implementation)
         expected_files = {
@@ -838,89 +482,6 @@ def execute(args):
                     "Policy did not meet the requested evaluation criteria"
                 )
         LOGGER.info("%s completed: %s", args.task, output)
-    except EvaluationRejected as exc:
-        manifest.update(status="rejected", error=str(exc))
-        raise
-    except KeyboardInterrupt:
-        manifest["status"] = "interrupted"
-        raise
-    except subprocess.TimeoutExpired as exc:
-        manifest.update(status="timed_out", error=str(exc))
-        raise
-    except Exception as exc:
-        manifest.update(status="failed", error=str(exc))
-        raise
-    finally:
-        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-        write_json(output / "run.json", manifest)
-
-
-def go1_training_progress(run, manifest):
-    """Read the latest complete metrics row without loading the SDK or checkpoint.
-
-    The live log may be ahead of the periodically saved checkpoint. Only a
-    bounded tail is read, and an unfinished final line is left for the next poll.
-    """
-    request = manifest.get("request") or {}
-    if request.get("task") != "go1-joystick" or request.get("command") != "train":
-        return None
-    try:
-        with (Path(run) / "metrics.jsonl").open("rb") as stream:
-            size = stream.seek(0, os.SEEK_END)
-            offset = max(0, size - 65536)
-            stream.seek(offset)
-            tail = stream.read(65536)
-    except FileNotFoundError:
-        return None
-    if offset:
-        tail = tail.partition(b"\n")[2]
-    lines = [line for line in tail.split(b"\n")[:-1] if line.strip()]
-    if not lines:
-        return None
-
-    def reject_constant(value):
-        raise ValueError(f"Non-finite Go1 progress value: {value}")
-
-    def finite_float(value):
-        parsed = float(value)
-        if not math.isfinite(parsed):
-            reject_constant(value)
-        return parsed
-
-    try:
-        latest = json.loads(
-            lines[-1], parse_constant=reject_constant, parse_float=finite_float
-        )
-    except (ValueError, UnicodeError) as exc:
-        raise ValueError("Invalid complete Go1 metrics row") from exc
-    if not isinstance(latest, dict):
-        raise ValueError("Invalid Go1 progress record")
-    start = request.get("start_iteration", 0)
-    counts = [request.get(key) for key in ("updates", "num_envs", "horizon")]
-    iteration, transitions = latest.get("iteration"), latest.get("transitions")
-    elapsed = latest.get("elapsed_seconds")
-    if (
-        type(start) is not int
-        or start < 0
-        or any(type(value) is not int or value <= 0 for value in counts)
-        or type(iteration) is not int
-        or type(transitions) is not int
-        or type(elapsed) not in (int, float)
-        or not math.isfinite(elapsed)
-        or elapsed < 0
-    ):
-        raise ValueError("Invalid Go1 progress counts or elapsed time")
-    updates, num_envs, horizon = counts
-    observed = iteration - start + 1
-    if not 1 <= observed <= updates or transitions != observed * num_envs * horizon:
-        raise ValueError("Go1 progress differs from the requested training budget")
-    return {
-        "observed_updates": observed,
-        "requested_updates": updates,
-        "cumulative_updates": iteration + 1,
-        "fraction": observed / updates,
-        "latest_metrics": latest,
-    }
 
 
 def main(argv=None):

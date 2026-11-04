@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 
 from embodiedforge import Config, VectorEnv
+from embodiedforge.envs.evaluation import evaluate_policy
 from embodiedforge.rollout import run_rollout
 from embodiedforge.tasks import ReachTask
 
@@ -44,22 +45,35 @@ class DigestWriter:
             self.digest.update(value.data)
 
 
-def measure(config, steps):
+def measure(config, steps, *, runner="chunked"):
+    def run(env, *, writer=None):
+        if runner == "single":
+            return evaluate_policy(
+                env,
+                lambda observation: np.zeros((config.num_envs, 2), dtype=np.float32),
+                steps=steps,
+                writer=writer,
+            )
+        return run_rollout(env, ZeroPolicy(), steps=steps, writer=writer)
+
     with VectorEnv(config, task=TimeoutTask()) as env:
         run_rollout(env, ZeroPolicy(), steps=2)
+        cpu_start = time.process_time()
         start = time.perf_counter()
-        summary = run_rollout(env, ZeroPolicy(), steps=steps)
+        summary = run(env)
         seconds = time.perf_counter() - start
+        cpu_seconds = time.process_time() - cpu_start
     with VectorEnv(config, task=TimeoutTask()) as env:
         tracemalloc.start()
-        run_rollout(env, ZeroPolicy(), steps=steps)
+        run(env)
         _, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
     writer = DigestWriter()
     with VectorEnv(config, task=TimeoutTask()) as env:
-        run_rollout(env, ZeroPolicy(), steps=steps, writer=writer)
+        run(env, writer=writer)
     return {
         "seconds": seconds,
+        "cpu_seconds": cpu_seconds,
         "peak_traced_bytes": peak,
         "sha256": writer.digest.hexdigest(),
         "summary": asdict(summary),
@@ -72,6 +86,7 @@ def main():
     parser.add_argument("--image-size", type=int, default=128)
     parser.add_argument("--max-steps", type=int, default=1)
     parser.add_argument("--steps", type=int, default=100)
+    parser.add_argument("--runner", choices=("chunked", "single"), default="chunked")
     parser.add_argument("--channels", nargs="*", default=["rgb", "depth"])
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -88,7 +103,8 @@ def main():
         "scope": "NumPy point task, zero policy, complete step/reset loop; synchronized timeouts; excludes construction, writer and hashing from timing; traced peak is not RSS",
         "config": config.to_dict(),
         "steps": args.steps,
-        **measure(config, args.steps),
+        "runner": args.runner,
+        **measure(config, args.steps, runner=args.runner),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("x") as stream:

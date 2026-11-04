@@ -14,8 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
-from embodiedforge._training_runtime import record_training_runtime
-from embodiedforge.recipes import write_json
+from embodiedforge.runtime.artifacts import write_json
+from embodiedforge.runtime.implementation import record_training_runtime
 
 
 def load_example(request, name):
@@ -49,7 +49,7 @@ def go1_train(request, owner):
         restore_go1_optimizer,
     )
     from embodiedforge._go1_recovery import publish_training_checkpoint
-    from embodiedforge._wuji_recipe import finite_tensors
+    from embodiedforge.learning.checkpoints import finite_tensors
     from embodiedforge.locomotion import go1_ppo as learner
 
     backend = request.get("go1_learner", "native")
@@ -257,8 +257,8 @@ def go1_evaluate_case(request, owner, learner, checkpoint):
     import torch
 
     from embodiedforge._go1_implementation import policy_action_mean
-    from embodiedforge._go1_metrics import SWITCHING_SUITES
     from embodiedforge._h1_metrics import FirstEpisodeMetrics
+    from embodiedforge.workflows.recipe_catalog import SWITCHING_SUITES
 
     torch.set_num_threads(request["threads"])
 
@@ -386,7 +386,7 @@ def go1_evaluate_case(request, owner, learner, checkpoint):
     result["case"] = request.get("case", "custom")
     if motion is not None:
         from embodiedforge._h1_motion import render_motion
-        from embodiedforge.recipes import sha256
+        from embodiedforge.runtime.hashing import file_sha256 as sha256
 
         path = Path(f"motion-seed-{request['seed']}-{result['case']}.npz")
         motion.save(path)

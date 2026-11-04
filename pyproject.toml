@@ -40,6 +40,7 @@ embodiedforge = "embodiedforge.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
+"embodiedforge.workflows" = ["LICENSE.*"]
 "embodiedforge.locomotion.microduck" = ["LICENSE", "NOTICE", "UPSTREAM.json", "requirements.txt", "robot/microduck/*.xml", "robot/microduck/assets/*.stl"]
 "embodiedforge.locomotion" = ["*.xml", "LICENSE.*"]
 "embodiedforge.viewers" = ["*.html", "*.js"]

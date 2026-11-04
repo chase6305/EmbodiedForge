@@ -1,0 +1,680 @@
+{
+  "status": "complete",
+  "method": "SuperMimic world-model learning and differentiable imagined-rollout BPTT",
+  "backend": "mjlab / MuJoCo-Warp",
+  "official_weights_used": false,
+  "updated_at": "2026-10-27T12:25:30.929832+00:00",
+  "data_provenance": {
+    "status": "complete",
+    "method": "SuperMimic",
+    "backend": "mjlab",
+    "reference_project": "https://github.com/liudi159/supermimic-backflip-5090",
+    "reference_revision": "5b313d75e804cdd2ff1ce9bdcfa899a98eca856b",
+    "source_url": "https://raw.githubusercontent.com/kevinzakka/mjbatch/77966f85bcd8f7ef4351cb4a1a6f42e133d19725/examples/assets/flip.npz",
+    "source_revision": "77966f85bcd8f7ef4351cb4a1a6f42e133d19725",
+    "source_sha256": "f9ad1275f978bf891ee141e272d8279eb56685e4209f42d5cd7dc23529bcb4d6",
+    "source_license": "Apache-2.0 (mjbatch)",
+    "source_usage": "Motion targets only; no mjbatch iLQR controller or external trained policy is run.",
+    "csv_sha256": "0d7dcb9ac79834bec3f3db16b5a0d8e582b71b3854435d09ad3b886631adb007",
+    "csv_quaternion": "xyzw",
+    "npz_quaternion": "wxyz",
+    "control_hz": 50,
+    "source_frames_inclusive": [
+      30,
+      240
+    ],
+    "initial_hold_frames": 10,
+    "final_hold_frames": 100,
+    "training_frames": 321,
+    "extra_evaluation_hold_frames": 250,
+    "evaluation_frames": 571,
+    "joint_names": [
+      "left_hip_pitch_joint",
+      "left_hip_roll_joint",
+      "left_hip_yaw_joint",
+      "left_knee_joint",
+      "left_ankle_pitch_joint",
+      "left_ankle_roll_joint",
+      "right_hip_pitch_joint",
+      "right_hip_roll_joint",
+      "right_hip_yaw_joint",
+      "right_knee_joint",
+      "right_ankle_pitch_joint",
+      "right_ankle_roll_joint",
+      "waist_yaw_joint",
+      "waist_roll_joint",
+      "waist_pitch_joint",
+      "left_shoulder_pitch_joint",
+      "left_shoulder_roll_joint",
+      "left_shoulder_yaw_joint",
+      "left_elbow_joint",
+      "left_wrist_roll_joint",
+      "left_wrist_pitch_joint",
+      "left_wrist_yaw_joint",
+      "right_shoulder_pitch_joint",
+      "right_shoulder_roll_joint",
+      "right_shoulder_yaw_joint",
+      "right_elbow_joint",
+      "right_wrist_roll_joint",
+      "right_wrist_pitch_joint",
+      "right_wrist_yaw_joint"
+    ],
+    "train_files": {
+      "backflip.npz": "7dc64becc4423e49ebb61706b4e34fd1ec731ea12e3dd24b8ded3176e15defec"
+    },
+    "eval_files": {
+      "backflip.npz": "cebc52bc4e0a2c493cea75871ab5c77968f7cc85aa5fe051a5981378ae418291"
+    },
+    "external_policy_weights_used": false,
+    "scope": "Same root/joint CSV as reference; FK recomputed for the current pinned mjlab G1. Different backend, networks, observations, collisions and reduced batches; not a strict V14 reproduction."
+  },
+  "pilot_training": {
+    "actual_original_tool_exit": 0,
+    "final_iteration": 2500,
+    "updates": 800,
+    "diagnostics": {
+      "recording_hz": 50,
+      "evaluation_seed": 0,
+      "completed_extended_reference": false,
+      "actual_lateral_rotation_deg": 53.01452559966065,
+      "reference_lateral_rotation_deg": -360.0182312193473,
+      "nonfoot_floor_penetration_frames": 0,
+      "max_nonfoot_floor_penetration_m": 0.0,
+      "last2s_hold": null,
+      "basic_checks_passed": false,
+      "skill_success": false,
+      "strict_acceptance": "not_assessed",
+      "scope": "One actual policy rollout, no pose substitution or post-failure reset samples. Geometric contacts reconstructed on saved poses; no200Hzforce audit, airborne/symmetry gate or strictV14 equivalence. A basic pass cannot establish robust success."
+    }
+  },
+  "intermediate_10000": {
+    "actual_original_tool_exit": 0,
+    "diagnostics": {
+      "recording_hz": 50,
+      "evaluation_seed": 0,
+      "completed_extended_reference": false,
+      "actual_lateral_rotation_deg": -282.5666816155105,
+      "reference_lateral_rotation_deg": -360.0182312193473,
+      "nonfoot_floor_penetration_frames": 0,
+      "max_nonfoot_floor_penetration_m": 0.0,
+      "last2s_hold": null,
+      "basic_checks_passed": false,
+      "skill_success": false,
+      "strict_acceptance": "not_assessed",
+      "scope": "One actual policy rollout, no pose substitution or post-failure reset samples. Geometric contacts reconstructed on saved poses; no200Hzforce audit, airborne/symmetry gate or strictV14 equivalence. A basic pass cannot establish robust success."
+    },
+    "selection": "Predetermined step; not final acceptance or a best-checkpoint substitution"
+  },
+  "main_budget": {
+    "hours": 1.5,
+    "initial_iteration": 2500,
+    "initial_updates": 800,
+    "num_envs": 512,
+    "world_model_batch": 512,
+    "policy_batch": 256,
+    "seed": 137,
+    "goal_dim": 680,
+    "horizon": 32
+  },
+  "skill_success": false,
+  "strict_acceptance": "not_assessed",
+  "latest_health": {
+    "at": "2026-10-27T12:21:45.465417+00:00",
+    "status": "complete",
+    "progress": "it 36900 | 1.50 h | 6.3 it/s | updates 14552 | train_ret 0.845 (n=344) | wm nse1 0.0048 nse8 0.0084 | imag_ret 2.835 surv 0.999 | t sim/wm/pi 0.6/1.6/5.8s",
+    "source_files_verified": 5,
+    "private_motion_verified": true,
+    "original_resume_checkpoint_verified": true,
+    "gpu_used_free_MiB_util_percent": "5365, 18578, 14"
+  },
+  "limitations": [
+    "This is a SuperMimic/mjlab single-motion port; it is not an official pretrained policy or an exact IsaacLab3/vibedV14 reproduction.",
+    "Final model selection uses the actual last checkpoint. Deterministic seed0 repeats check fresh-process repeatability, not independent-seed robustness.",
+    "500initialsteps collect replay before joint updates; this is not the reference500world-model-only pretraining updates. Main90minute continuation starts from the separately recorded2500step pilot.",
+    "50Hzsaved-state geometry cannot establish200Hzsolver-force quality. Dynamic airborne-window rotation/pose and full strict acceptance remain unimplemented.",
+    "The added fixed reference-time leg diagnostic uses reference-informed25degree RMSE and+0.15mfoot-separation limits; its window protocol differs from the reference longest-airborne-window gate. No shift to improve scores is permitted.",
+    "No hardware execution was performed. Motion arrays, policy checkpoints and videos remain local and are excluded from the evidence archive."
+  ],
+  "known_failures": {
+    "initial_smoke": {
+      "actual_exit": 1,
+      "reason": "Legacy hardcodedwalkingclipfilter, fixed by input-aware smoke clip selection"
+    },
+    "missing_checkpoint_eval": {
+      "actual_exit": 2,
+      "scope": "After failed initial smoke, no policy was loaded"
+    },
+    "planned_pose_test_environment": {
+      "actual_exit": 1,
+      "reason": "Preinstalled launch_testing pytest plugin has an incompatible hook signature; no tests collected. Retry with plugin autoload disabled passed5tests; original log and exit retained."
+    },
+    "first_publication_attempt": {
+      "actual_exit": 1,
+      "scope": "First evidence publication attempt, before final report/archive publication",
+      "reason": "Independent offline hip/knee RMSE used float32 arithmetic, differing from runtime float64 by up to2.6e-6degrees; cross-check tolerance1e-6caught it. Offline arithmetic promoted to float64 without changing source states, models, thresholds or comparison tolerance."
+    }
+  },
+  "final_selection": {
+    "at": "2026-10-27T12:22:10.087342+00:00",
+    "rule": "Actual last checkpoint from successful90minute main continuation; no scoring-based selection",
+    "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/supermimic-backflip-20261027/main/training/training/ckpt_latest.pt",
+    "sha256": "c8dadda9ec965aefea738e683acba0b43253460fc68a9ebc792ac211e1e1ba29",
+    "iteration": 36900,
+    "updates": 14552
+  },
+  "intermediate_20000": {
+    "actual_original_tool_exit": 0,
+    "diagnostics": {
+      "recording_hz": 50,
+      "evaluation_seed": 0,
+      "completed_extended_reference": true,
+      "actual_lateral_rotation_deg": -359.913801229503,
+      "reference_lateral_rotation_deg": -360.0182312193473,
+      "nonfoot_floor_penetration_frames": 0,
+      "max_nonfoot_floor_penetration_m": 0.0,
+      "last2s_hold": {
+        "horizontal_drift_m": 0.0002478054375387728,
+        "linear_rms_m_s": 0.00012599957699421793,
+        "linear_max_m_s": 0.00012850087659899145,
+        "angular_rms_rad_s": 0.004496274050325155,
+        "min_upright_projection": 0.9996812343597412
+      },
+      "basic_checks_passed": true,
+      "skill_success": null,
+      "strict_acceptance": "not_assessed",
+      "scope": "One actual policy rollout, no pose substitution or post-failure reset samples. Geometric contacts reconstructed on saved poses; no200Hzforce audit, airborne/symmetry gate or strictV14 equivalence. A basic pass cannot establish robust success."
+    },
+    "additional_pose_diagnostics": {
+      "actual_samples": 571,
+      "actual_last_time_s": 11.4,
+      "rotation_recomputed_deg": -359.913801229503,
+      "initial_velocity_max_abs": 2.1650966151375318e-17,
+      "initial_pose_max_abs_error": 1.1641532182693481e-08,
+      "auto_reset_samples_included": false,
+      "fixed_flight_window_frames": [
+        90,
+        118
+      ],
+      "hip_knee_rmse_deg": 51.79578231691315,
+      "reference_adjusted_leg_asymmetry_rmse_deg": 51.148232178012016,
+      "max_ankle_separation_m": 1.3715492153561015,
+      "reference_max_ankle_separation_m": 0.3948038073726456
+    },
+    "selection": "Predetermined diagnostic step. Kept unchanged; never substituted for the actual last model."
+  },
+  "physical_robot_execution": false,
+  "gpu_hardware": {
+    "query": [
+      "nvidia-smi",
+      "--query-gpu=name,memory.total",
+      "--format=csv,noheader,nounits"
+    ],
+    "actual_wait_returncode": 0,
+    "observed": "NVIDIA GeForce RTX 5090 D v2, 24455"
+  },
+  "main_training": {
+    "status": "complete",
+    "initial_iteration": 2500,
+    "final_iteration": 36900,
+    "initial_updates": 800,
+    "final_updates": 14552,
+    "new_environment_steps": 34400,
+    "new_updates": 13752,
+    "checkpoint_sha256": "c8dadda9ec965aefea738e683acba0b43253460fc68a9ebc792ac211e1e1ba29",
+    "finite_model_tensors": true,
+    "checkpoint_reload_action_parity": true
+  },
+  "actual_main_original_tool_exit": {
+    "name": "main",
+    "session_id": 4445,
+    "actual_tool_exit": 0,
+    "observed_at": "2026-10-27T12:21:37.795725+00:00"
+  },
+  "main_supervisor": {
+    "command": [
+      "./supermimic",
+      "train",
+      "--task",
+      "backflip",
+      "--num-envs",
+      "512",
+      "--iterations",
+      "100000",
+      "--hours",
+      "1.5",
+      "--output",
+      "runs/supermimic-backflip-20261027/main"
+    ],
+    "launched_command": [
+      "./supermimic",
+      "train",
+      "--task",
+      "backflip",
+      "--num-envs",
+      "512",
+      "--iterations",
+      "100000",
+      "--hours",
+      "1.5",
+      "--output",
+      "runs/supermimic-backflip-20261027/main"
+    ],
+    "supervisor_pid": 3705974,
+    "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+    "started_at": "2026-10-27T10:50:47.210216+00:00",
+    "timeout": 6500.0,
+    "grace": 45.0,
+    "trace": false,
+    "process_returncode": 0,
+    "termination_signal": null,
+    "timed_out": false,
+    "supervisor_signal": null,
+    "forced_stop": false,
+    "exit_observed": true,
+    "completed_successfully": true,
+    "pid": 3705975,
+    "seconds": 5411.464974057046,
+    "finished_at": "2026-10-27T12:20:58.675168+00:00"
+  },
+  "final_evaluations": [
+    {
+      "label": "main-eval-r1",
+      "actual_driver_wait_returncode": 0,
+      "iteration": 36900,
+      "checkpoint_sha256": "c8dadda9ec965aefea738e683acba0b43253460fc68a9ebc792ac211e1e1ba29",
+      "summary": {
+        "clips": 1,
+        "failed": 0,
+        "mean_norm_return": 0.9085571326253423,
+        "step_weighted_norm_return": 0.9085571326253423,
+        "terms": {
+          "motion_global_root_pos": 0.0082209473524745,
+          "motion_global_root_ori": 0.009546954661033617,
+          "motion_body_pos": 0.01938709486178049,
+          "motion_body_ori": 0.018183467684610505,
+          "motion_body_lin_vel": 0.018458119207004742,
+          "motion_body_ang_vel": 0.018226035630849114,
+          "action_rate_l2": -0.0010169816518205686,
+          "joint_limit": -0.00014969902259873426
+        },
+        "full_clip_zero_padded_return": 0.9085571326253423
+      },
+      "diagnostics": {
+        "recording_hz": 50,
+        "evaluation_seed": 0,
+        "completed_extended_reference": true,
+        "actual_lateral_rotation_deg": -358.4794576073631,
+        "reference_lateral_rotation_deg": -360.0182312193473,
+        "nonfoot_floor_penetration_frames": 0,
+        "max_nonfoot_floor_penetration_m": 0.0,
+        "last2s_hold": {
+          "horizontal_drift_m": 0.0007403480703942478,
+          "linear_rms_m_s": 0.000376363517716527,
+          "linear_max_m_s": 0.00040348494076170027,
+          "angular_rms_rad_s": 0.0008709329413250089,
+          "min_upright_projection": 0.9983265995979309
+        },
+        "basic_checks_passed": true,
+        "fixed_window_pose": {
+          "window_frames_start_inclusive_end_exclusive": [
+            90,
+            118
+          ],
+          "window_hz": 50,
+          "hip_knee_rmse_deg": 46.212698031800464,
+          "reference_adjusted_leg_asymmetry_rmse_deg": 41.93431520877586,
+          "max_ankle_separation_m": 1.2690421572221358,
+          "reference_max_ankle_separation_m": 0.3948038073726456,
+          "hip_knee_rmse_limit_deg": 25.0,
+          "ankle_separation_allowance_m": 0.15,
+          "pose_quality_passed": false,
+          "scope": "Fixed reference-time window, no motion retiming. Thresholds are informed by the reference project; its actual longest-airborne-window test and200Hzforce audit remain unimplemented."
+        },
+        "quality_checks_passed": false,
+        "skill_success": false,
+        "strict_acceptance": "not_assessed",
+        "scope": "One actual policy rollout, no pose substitution or post-failure reset samples. Geometric contacts reconstructed on saved poses; no200Hzforce audit, airborne/symmetry gate or strictV14 equivalence. Fixed-window leg pose is additionally checked; even a quality pass cannot establish robust success."
+      }
+    },
+    {
+      "label": "main-eval-r2",
+      "actual_driver_wait_returncode": 0,
+      "iteration": 36900,
+      "checkpoint_sha256": "c8dadda9ec965aefea738e683acba0b43253460fc68a9ebc792ac211e1e1ba29",
+      "summary": {
+        "clips": 1,
+        "failed": 0,
+        "mean_norm_return": 0.9085572649269722,
+        "step_weighted_norm_return": 0.9085572649269722,
+        "terms": {
+          "motion_global_root_pos": 0.008220943177017773,
+          "motion_global_root_ori": 0.00954696134176438,
+          "motion_body_pos": 0.01938709653196318,
+          "motion_body_ori": 0.018183469354793196,
+          "motion_body_lin_vel": 0.018458120877187432,
+          "motion_body_ang_vel": 0.018226037301031804,
+          "action_rate_l2": -0.0010169812342748958,
+          "joint_limit": -0.00014969810921757525
+        },
+        "full_clip_zero_padded_return": 0.9085572649269722
+      },
+      "diagnostics": {
+        "recording_hz": 50,
+        "evaluation_seed": 0,
+        "completed_extended_reference": true,
+        "actual_lateral_rotation_deg": -358.479443291731,
+        "reference_lateral_rotation_deg": -360.0182312193473,
+        "nonfoot_floor_penetration_frames": 0,
+        "max_nonfoot_floor_penetration_m": 0.0,
+        "last2s_hold": {
+          "horizontal_drift_m": 0.0007395873544737697,
+          "linear_rms_m_s": 0.0003760493127629161,
+          "linear_max_m_s": 0.0004026553360745311,
+          "angular_rms_rad_s": 0.0008704952779226005,
+          "min_upright_projection": 0.9983265995979309
+        },
+        "basic_checks_passed": true,
+        "fixed_window_pose": {
+          "window_frames_start_inclusive_end_exclusive": [
+            90,
+            118
+          ],
+          "window_hz": 50,
+          "hip_knee_rmse_deg": 46.21265862132558,
+          "reference_adjusted_leg_asymmetry_rmse_deg": 41.93428246526703,
+          "max_ankle_separation_m": 1.269042042126208,
+          "reference_max_ankle_separation_m": 0.3948038073726456,
+          "hip_knee_rmse_limit_deg": 25.0,
+          "ankle_separation_allowance_m": 0.15,
+          "pose_quality_passed": false,
+          "scope": "Fixed reference-time window, no motion retiming. Thresholds are informed by the reference project; its actual longest-airborne-window test and200Hzforce audit remain unimplemented."
+        },
+        "quality_checks_passed": false,
+        "skill_success": false,
+        "strict_acceptance": "not_assessed",
+        "scope": "One actual policy rollout, no pose substitution or post-failure reset samples. Geometric contacts reconstructed on saved poses; no200Hzforce audit, airborne/symmetry gate or strictV14 equivalence. Fixed-window leg pose is additionally checked; even a quality pass cannot establish robust success."
+      }
+    },
+    {
+      "label": "main-eval-r3",
+      "actual_driver_wait_returncode": 0,
+      "iteration": 36900,
+      "checkpoint_sha256": "c8dadda9ec965aefea738e683acba0b43253460fc68a9ebc792ac211e1e1ba29",
+      "summary": {
+        "clips": 1,
+        "failed": 0,
+        "mean_norm_return": 0.9085570320637077,
+        "step_weighted_norm_return": 0.9085570320637077,
+        "terms": {
+          "motion_global_root_pos": 0.008220939001561046,
+          "motion_global_root_ori": 0.00954695048557689,
+          "motion_body_pos": 0.01938709653196318,
+          "motion_body_ori": 0.018183469354793196,
+          "motion_body_lin_vel": 0.018458120877187432,
+          "motion_body_ang_vel": 0.018226035630849114,
+          "action_rate_l2": -0.0010169812342748958,
+          "joint_limit": -0.0001496989573572229
+        },
+        "full_clip_zero_padded_return": 0.9085570320637077
+      },
+      "diagnostics": {
+        "recording_hz": 50,
+        "evaluation_seed": 0,
+        "completed_extended_reference": true,
+        "actual_lateral_rotation_deg": -358.4793619318898,
+        "reference_lateral_rotation_deg": -360.0182312193473,
+        "nonfoot_floor_penetration_frames": 0,
+        "max_nonfoot_floor_penetration_m": 0.0,
+        "last2s_hold": {
+          "horizontal_drift_m": 0.0007398967281915247,
+          "linear_rms_m_s": 0.0003762646811082959,
+          "linear_max_m_s": 0.00040282338159158826,
+          "angular_rms_rad_s": 0.0008706832304596901,
+          "min_upright_projection": 0.9983266592025757
+        },
+        "basic_checks_passed": true,
+        "fixed_window_pose": {
+          "window_frames_start_inclusive_end_exclusive": [
+            90,
+            118
+          ],
+          "window_hz": 50,
+          "hip_knee_rmse_deg": 46.21267959121651,
+          "reference_adjusted_leg_asymmetry_rmse_deg": 41.93429689925252,
+          "max_ankle_separation_m": 1.269042135984148,
+          "reference_max_ankle_separation_m": 0.3948038073726456,
+          "hip_knee_rmse_limit_deg": 25.0,
+          "ankle_separation_allowance_m": 0.15,
+          "pose_quality_passed": false,
+          "scope": "Fixed reference-time window, no motion retiming. Thresholds are informed by the reference project; its actual longest-airborne-window test and200Hzforce audit remain unimplemented."
+        },
+        "quality_checks_passed": false,
+        "skill_success": false,
+        "strict_acceptance": "not_assessed",
+        "scope": "One actual policy rollout, no pose substitution or post-failure reset samples. Geometric contacts reconstructed on saved poses; no200Hzforce audit, airborne/symmetry gate or strictV14 equivalence. Fixed-window leg pose is additionally checked; even a quality pass cannot establish robust success."
+      }
+    }
+  ],
+  "independent_rollout_integrity": {
+    "status": "complete",
+    "records": {
+      "pilot-eval": {
+        "actual_samples": 35,
+        "actual_last_time_s": 0.68,
+        "rotation_recomputed_deg": 53.01452559966065,
+        "initial_velocity_max_abs": 2.1650966151375318e-17,
+        "initial_pose_max_abs_error": 1.1641532182693481e-08,
+        "auto_reset_samples_included": false,
+        "fixed_flight_window_frames": [
+          90,
+          118
+        ],
+        "hip_knee_rmse_deg": null,
+        "reference_adjusted_leg_asymmetry_rmse_deg": null,
+        "max_ankle_separation_m": null,
+        "reference_max_ankle_separation_m": 0.3948038073726456
+      },
+      "intermediate-10000": {
+        "actual_samples": 113,
+        "actual_last_time_s": 2.24,
+        "rotation_recomputed_deg": -282.5666816155105,
+        "initial_velocity_max_abs": 2.1650966151375318e-17,
+        "initial_pose_max_abs_error": 1.1641532182693481e-08,
+        "auto_reset_samples_included": false,
+        "fixed_flight_window_frames": [
+          90,
+          118
+        ],
+        "hip_knee_rmse_deg": null,
+        "reference_adjusted_leg_asymmetry_rmse_deg": null,
+        "max_ankle_separation_m": null,
+        "reference_max_ankle_separation_m": 0.3948038073726456
+      },
+      "intermediate-20000": {
+        "actual_samples": 571,
+        "actual_last_time_s": 11.4,
+        "rotation_recomputed_deg": -359.913801229503,
+        "initial_velocity_max_abs": 2.1650966151375318e-17,
+        "initial_pose_max_abs_error": 1.1641532182693481e-08,
+        "auto_reset_samples_included": false,
+        "fixed_flight_window_frames": [
+          90,
+          118
+        ],
+        "hip_knee_rmse_deg": 51.79578231691315,
+        "reference_adjusted_leg_asymmetry_rmse_deg": 51.148232178012016,
+        "max_ankle_separation_m": 1.3715492153561015,
+        "reference_max_ankle_separation_m": 0.3948038073726456
+      },
+      "main-eval-r1": {
+        "actual_samples": 571,
+        "actual_last_time_s": 11.4,
+        "rotation_recomputed_deg": -358.4794576073631,
+        "initial_velocity_max_abs": 2.1650966151375318e-17,
+        "initial_pose_max_abs_error": 1.1641532182693481e-08,
+        "auto_reset_samples_included": false,
+        "fixed_flight_window_frames": [
+          90,
+          118
+        ],
+        "hip_knee_rmse_deg": 46.212698031800464,
+        "reference_adjusted_leg_asymmetry_rmse_deg": 41.93431520877586,
+        "max_ankle_separation_m": 1.2690421572221358,
+        "reference_max_ankle_separation_m": 0.3948038073726456
+      },
+      "main-eval-r2": {
+        "actual_samples": 571,
+        "actual_last_time_s": 11.4,
+        "rotation_recomputed_deg": -358.479443291731,
+        "initial_velocity_max_abs": 2.1650966151375318e-17,
+        "initial_pose_max_abs_error": 1.1641532182693481e-08,
+        "auto_reset_samples_included": false,
+        "fixed_flight_window_frames": [
+          90,
+          118
+        ],
+        "hip_knee_rmse_deg": 46.21265862132558,
+        "reference_adjusted_leg_asymmetry_rmse_deg": 41.93428246526703,
+        "max_ankle_separation_m": 1.269042042126208,
+        "reference_max_ankle_separation_m": 0.3948038073726456
+      },
+      "main-eval-r3": {
+        "actual_samples": 571,
+        "actual_last_time_s": 11.4,
+        "rotation_recomputed_deg": -358.4793619318898,
+        "initial_velocity_max_abs": 2.1650966151375318e-17,
+        "initial_pose_max_abs_error": 1.1641532182693481e-08,
+        "auto_reset_samples_included": false,
+        "fixed_flight_window_frames": [
+          90,
+          118
+        ],
+        "hip_knee_rmse_deg": 46.21267959121651,
+        "reference_adjusted_leg_asymmetry_rmse_deg": 41.93429689925252,
+        "max_ankle_separation_m": 1.269042135984148,
+        "reference_max_ankle_separation_m": 0.3948038073726456
+      }
+    },
+    "scope": "Offline arithmetic/FK of saved real states, fixed reference window90:118. Missing windows are null; no retiming. Geometry/pose statistics are not200Hzsolver forces, an airborne proof or a strictV14replication."
+  },
+  "input_reconstruction": {
+    "status": "complete",
+    "inputs": {
+      "train": {
+        "sha256": "7dc64becc4423e49ebb61706b4e34fd1ec731ea12e3dd24b8ded3176e15defec",
+        "frames": 321,
+        "exact_bytes_reconstructed": true
+      },
+      "eval": {
+        "sha256": "cebc52bc4e0a2c493cea75871ab5c77968f7cc85aa5fe051a5981378ae418291",
+        "frames": 571,
+        "exact_bytes_reconstructed": true
+      }
+    },
+    "original_source_hash_reverified": true,
+    "active_inputs_modified": false
+  },
+  "final_checks": {
+    "actual_exits": {
+      "related_tests": 0,
+      "final_evaluations_driver": 0,
+      "ruff": 0,
+      "rollout_integrity": 0,
+      "plot": 0,
+      "doctor": 0,
+      "format": 0,
+      "render": 0,
+      "documentation": 0
+    },
+    "related_tests": {
+      "tests": 179,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "documentation_tests": {
+      "tests": 63,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "final_process_audit": {
+    "at": "2026-10-27T12:25:30.929472+00:00",
+    "scoped_prefix": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/supermimic-backflip-20261027",
+    "matching_live_processes": [],
+    "owned_main_identities": {
+      "supervisor": {
+        "pid": 3705974,
+        "start_ticks": 54738638
+      },
+      "launcher": {
+        "pid": 3705975,
+        "start_ticks": 54738639
+      },
+      "sdk_worker": {
+        "pid": 3705989,
+        "start_ticks": 54738664
+      }
+    },
+    "signals_sent_by_audit": 0
+  },
+  "source_phases": {
+    "training": {
+      "supermimic": "9705c834d4c58ab43593dac3efcbd28710625d57f0c3a7b1d5d7c2056cb94a27",
+      "src/embodiedforge/supermimic_run.py": "da893f71c6a4c3039793d1bc3da656ba92a51e3532ec4c3dfaefbcb35e028fb7",
+      "src/embodiedforge/workflows/supermimic_backflip.py": "d4795e9edd771764d3bec5051d4473a766f7247ce2cdb0a89a0ae849c41a745c",
+      "src/embodiedforge/workflows/supermimic_inputs.py": "e248f7b77ff1cdb7f6bc749b1cf36d5e827ac4fb561b9749a605bede8db04cac",
+      "benchmarks/supermimic_reproduce.py": "6bc977abf76763923ba7a9abd1792a1d0a575beeb48901f5d94b58c000513929"
+    },
+    "final_evaluation": {
+      "supermimic": "9705c834d4c58ab43593dac3efcbd28710625d57f0c3a7b1d5d7c2056cb94a27",
+      "src/embodiedforge/supermimic_run.py": "da893f71c6a4c3039793d1bc3da656ba92a51e3532ec4c3dfaefbcb35e028fb7",
+      "src/embodiedforge/workflows/supermimic_backflip.py": "7efddfa9a5f4ba4484b2bd7247855d7337d8d0f15183398a1f57ee8a0cf72d25",
+      "src/embodiedforge/workflows/supermimic_inputs.py": "e248f7b77ff1cdb7f6bc749b1cf36d5e827ac4fb561b9749a605bede8db04cac",
+      "benchmarks/supermimic_reproduce.py": "6bc977abf76763923ba7a9abd1792a1d0a575beeb48901f5d94b58c000513929"
+    },
+    "change_scope": "After actual main exit0 only evaluation diagnostics were extended with the predeclared fixed90:118 pose check. Training architecture, policy weights and reference arrays were unchanged."
+  },
+  "history_preservation": {
+    "verified_files": 8,
+    "all_match": true
+  },
+  "progress_plot": "assets/supermimic-backflip-20261027-progress.svg",
+  "local_final_video": "runs/supermimic-backflip-20261027/main-eval-r1-video/policy.mp4",
+  "evidence": {
+    "path": "assets/supermimic-backflip-20261027-evidence.tar.gz",
+    "sha256": "90f12cde17311663550edbaed750038142be8404b55ef75cd19fbf56f44b7161",
+    "members": 236,
+    "every_member_verified": true,
+    "excludes": [
+      "model weights",
+      "motion arrays/CSVs",
+      "SDK",
+      "robot meshes",
+      "videos/frames",
+      "private agent notes"
+    ]
+  },
+  "training_reference_evaluation": {
+    "reference_frames": 321,
+    "summary": {
+      "clips": 1,
+      "failed": 0,
+      "mean_norm_return": 0.8576869667504806,
+      "step_weighted_norm_return": 0.8576869667504807,
+      "terms": {
+        "motion_global_root_pos": 0.00833723775322935,
+        "motion_global_root_ori": 0.009353654035526644,
+        "motion_body_pos": 0.018984072676328855,
+        "motion_body_ori": 0.01706766710845852,
+        "motion_body_lin_vel": 0.017257106638400355,
+        "motion_body_ang_vel": 0.016844280040895457,
+        "action_rate_l2": -0.0018090230653590503,
+        "joint_limit": -0.00026628639653464346
+      },
+      "full_clip_zero_padded_return": 0.8576869667504807
+    },
+    "scope": "Original training-driver tracking benchmark; not physical backflip quality acceptance. Final extended571frame evaluations below include an additional5second static hold, so their average returns are not directly comparable to321frame averages."
+  }
+}

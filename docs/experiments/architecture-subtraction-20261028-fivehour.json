@@ -1,0 +1,1071 @@
+{
+  "status": "complete",
+  "objective": "保留现有训练与评测能力，精简重复代码和内部层级",
+  "started_at": "2026-10-28T06:00:48.572804+00:00",
+  "requested_deadline": "2026-10-28T11:00:48.572804+00:00",
+  "published_at": "2026-10-28T11:00:57.222862+00:00",
+  "elapsed_seconds": 18008.650058,
+  "changes": [
+    {
+      "area": "模型交接",
+      "result": "Microduck检查点解析、输入快照和报告校验集中到现有_microduck_run，删除_microduck_inputs；原checkpoint_digest名称保留为共享哈希实现的别名。"
+    },
+    {
+      "area": "学习层依赖",
+      "result": "张量有限性检查迁入现有learning.checkpoints，Go1检查点和mjbatch配方直接依赖共享定义，Wuji旧名称保留兼容导出；不修改H1更严格的Python浮点元数据规则。"
+    },
+    {
+      "area": "导出生命周期",
+      "result": "Microduck导出接入已有run_lifecycle，删除专属finish_run、对应回调字段和published布尔状态；通过既有执行阶段清理属于本次事务的链接。"
+    },
+    {
+      "area": "真实缺陷修复",
+      "result": "修复导出链接已发布、旧published标记尚未更新时的取消残留。新回归用例在原始实现失败、当前实现通过；其他写者的文件继续保留。"
+    },
+    {
+      "area": "原生资产快照",
+      "result": "复用有界哈希与复制，避免整文件read_bytes缓冲；保留原生包允许链接源文件的行为，并独立核对目标内容。"
+    }
+  ],
+  "metrics": {
+    "source_modules": {
+      "before": 140,
+      "after": 139
+    },
+    "source_lines": {
+      "before": 37288,
+      "after": 37253
+    },
+    "frozen_source_modules": 139,
+    "frozen_release_files": 337,
+    "historical_artifacts_unchanged": 178
+  },
+  "validation": {
+    "tests": {
+      "main": {
+        "tests": 3580,
+        "skipped": 80,
+        "failures": 0,
+        "errors": 0,
+        "non_skipped_xml_cases": 3500
+      },
+      "native": {
+        "tests": 3674,
+        "skipped": 59,
+        "failures": 0,
+        "errors": 0,
+        "non_skipped_xml_cases": 3615
+      },
+      "source_release": {
+        "tests": 3580,
+        "skipped": 80,
+        "failures": 0,
+        "errors": 0,
+        "non_skipped_xml_cases": 3500
+      }
+    },
+    "pytest_terminal_passed": {
+      "main": 3500,
+      "native": 3590,
+      "native_subtests_passed": 25,
+      "source_release": 3500
+    },
+    "native_xml_note": "Native XML includes25successful subtests in addition to3590terminal passed tests.",
+    "actual_exit_observations": {
+      "initial_focused": {
+        "session": 81436,
+        "actual_original_exit": 0,
+        "passed": 111,
+        "skipped": 3
+      },
+      "export_lifecycle": {
+        "session": 23362,
+        "actual_original_exit": 0,
+        "passed": 71
+      },
+      "canonical_boundaries": {
+        "session": 67626,
+        "actual_original_exit": 0,
+        "passed": 94,
+        "skipped": 3
+      },
+      "export_cancellation": {
+        "session": 52863,
+        "actual_original_exit": 0,
+        "passed": 72
+      },
+      "main": {
+        "session": 95139,
+        "actual_original_exit": 0,
+        "passed": 3500,
+        "skipped": 80
+      },
+      "native": {
+        "session": 69959,
+        "actual_original_exit": 0,
+        "passed": 3590,
+        "skipped": 59,
+        "subtests_passed": 25
+      },
+      "training_parity": {
+        "session": 36969,
+        "actual_original_exit": 0,
+        "comparisons": 9
+      },
+      "handoff_probe": {
+        "session": 16355,
+        "actual_original_exit": 0,
+        "verified_scenarios": 72
+      },
+      "backflip_acceptance": {
+        "session": 19696,
+        "actual_original_exit": 0
+      },
+      "release_first_pass": {
+        "session": 52492,
+        "actual_original_exit": 0,
+        "passed": 3500,
+        "skipped": 80,
+        "scope_limit": "Extracted tests/source with original-repository launch cwd. Repeat from extracted cwd to verify relative subprocess paths."
+      },
+      "installed_wheel": {
+        "session": 26794,
+        "actual_original_exit": 0
+      },
+      "distribution_builds": {
+        "session": 57258,
+        "actual_original_exit": 0
+      },
+      "release_isolated": {
+        "session": 89147,
+        "actual_original_exit": 0,
+        "passed": 3500,
+        "skipped": 80,
+        "cwd": "/tmp/embodiedforge-subtraction-20261028-fivehour/source-release/embodiedforge-0.1.0"
+      },
+      "static_report_draft": {
+        "session": 3502,
+        "actual_original_exit": 0
+      },
+      "evidence_dry_run": {
+        "session": 4212,
+        "actual_original_exit": 0
+      },
+      "g1_repeatability": {
+        "session": 98518,
+        "actual_original_exit": 0,
+        "actual_nested_supervisor_exits": [
+          0,
+          0
+        ],
+        "actual_nested_worker_exits": [
+          0,
+          0
+        ]
+      },
+      "report_review_0705": {
+        "session": 51552,
+        "actual_original_exit": 0
+      },
+      "static_audit_0745": {
+        "session": 59593,
+        "actual_original_exit": 0
+      },
+      "static_audit_0845": {
+        "session": 23768,
+        "actual_original_exit": 0
+      },
+      "handoff_soak": {
+        "session": 72877,
+        "actual_original_exit": 0,
+        "observed_at": "2026-10-28T10:16:34.247919+00:00"
+      },
+      "completion_preflight": {
+        "session": 50228,
+        "actual_original_exit": 0,
+        "all_completion_gates_passed": true,
+        "deadline_guard_confirmed": true
+      }
+    },
+    "original_bug_reproduced": {
+      "baseline_actual_child_wait_returncode": 1,
+      "expected_failure": true,
+      "baseline_source": "/tmp/embodiedforge-subtraction-20261028-fivehour/baseline/src",
+      "test": "interruption_after_link_publication_rolls_back_own_outputs"
+    },
+    "training_parity": {
+      "scope": "deterministic CPU policy, optimizer and rollout equality",
+      "comparisons": [
+        {
+          "component": "core",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "58708958868e8d013b0cb4cfd374488c59e2500d7544eaa168dc83cee9a79cf3",
+            "optimizer": "cf345e579236731fd92fb91fe41073a24af00f402596fdc5ad8fb1e194c7f5b2"
+          },
+          "candidate": {
+            "policy": "58708958868e8d013b0cb4cfd374488c59e2500d7544eaa168dc83cee9a79cf3",
+            "optimizer": "cf345e579236731fd92fb91fe41073a24af00f402596fdc5ad8fb1e194c7f5b2"
+          }
+        },
+        {
+          "component": "core",
+          "seed": 1,
+          "match": true,
+          "reference": {
+            "policy": "8dfb10d27acf98b826b660774cea62f863928bb5745313655d659d0d12305765",
+            "optimizer": "11bda338b73d40beca2b7bf84cfc610afc132ba3327acaa1d64ce3ce368a56eb"
+          },
+          "candidate": {
+            "policy": "8dfb10d27acf98b826b660774cea62f863928bb5745313655d659d0d12305765",
+            "optimizer": "11bda338b73d40beca2b7bf84cfc610afc132ba3327acaa1d64ce3ce368a56eb"
+          }
+        },
+        {
+          "component": "core",
+          "seed": 2,
+          "match": true,
+          "reference": {
+            "policy": "f0ef07a5e027e4e78ce6a516e596224a0021bde8ad0dfd63cc5d3ab3f8cd4523",
+            "optimizer": "24a3117190686a090415f2feafaa06c682b81b7db47ac5b11b48a26ec90ce1c1"
+          },
+          "candidate": {
+            "policy": "f0ef07a5e027e4e78ce6a516e596224a0021bde8ad0dfd63cc5d3ab3f8cd4523",
+            "optimizer": "24a3117190686a090415f2feafaa06c682b81b7db47ac5b11b48a26ec90ce1c1"
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "741d5eeb5cbf15102ce209731ebb7b1a16ce7308e5ce7bd1f354cc0c608f55cd",
+            "optimizer": "68e09e1caa1c8a8de983458cb7eb2f14b4105c7fea74e70f35a49902c12cb607",
+            "rollouts": [
+              "b141a7f20544fcb00b7cba27c81b81adcc2ac7ee5ff2d563ce29b9a7b0f2315d",
+              "b2a5f419ff4e2520b9cd48e115f197ce0a7f388cf7a1855bf1c0d2100609567b",
+              "ecbb6a428888146bd7514922077adfbe99254f74d00986c3d1f248ae107c4c5b"
+            ]
+          },
+          "candidate": {
+            "policy": "741d5eeb5cbf15102ce209731ebb7b1a16ce7308e5ce7bd1f354cc0c608f55cd",
+            "optimizer": "68e09e1caa1c8a8de983458cb7eb2f14b4105c7fea74e70f35a49902c12cb607",
+            "rollouts": [
+              "b141a7f20544fcb00b7cba27c81b81adcc2ac7ee5ff2d563ce29b9a7b0f2315d",
+              "b2a5f419ff4e2520b9cd48e115f197ce0a7f388cf7a1855bf1c0d2100609567b",
+              "ecbb6a428888146bd7514922077adfbe99254f74d00986c3d1f248ae107c4c5b"
+            ]
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 1,
+          "match": true,
+          "reference": {
+            "policy": "bc536196da4e8dd96b63875e5e764c28749e4fa41737d1b1cd70a7ba214f0b8e",
+            "optimizer": "ab4368b038e3aaf01f7a63d54ae4cab0e372990079aa2a95b9da1fa2464ccd44",
+            "rollouts": [
+              "e2f84ab0cb01ed39ac0c1e89319bebc763d9c39248c2fbfab655f99f60bf2293",
+              "24cee2a5aec291f5db7fac88b3ade5ef908f8cd5715e04f2e8c8f6048d3a4c83",
+              "8ff1957bc3ae06bb620c380982c07760f708c0770148ac3fee9c7e2ff1dcde6b"
+            ]
+          },
+          "candidate": {
+            "policy": "bc536196da4e8dd96b63875e5e764c28749e4fa41737d1b1cd70a7ba214f0b8e",
+            "optimizer": "ab4368b038e3aaf01f7a63d54ae4cab0e372990079aa2a95b9da1fa2464ccd44",
+            "rollouts": [
+              "e2f84ab0cb01ed39ac0c1e89319bebc763d9c39248c2fbfab655f99f60bf2293",
+              "24cee2a5aec291f5db7fac88b3ade5ef908f8cd5715e04f2e8c8f6048d3a4c83",
+              "8ff1957bc3ae06bb620c380982c07760f708c0770148ac3fee9c7e2ff1dcde6b"
+            ]
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 2,
+          "match": true,
+          "reference": {
+            "policy": "459286e1fc38d4d9b5f4da55852e0dab577879567b0c4abb6e9d2af239830b6a",
+            "optimizer": "ea9ad2ccdfa79949c9ec19a295cab5907abbfc91984d7385cfc039a981c6953f",
+            "rollouts": [
+              "3446edacda7813550f73f647a9e3079dc3eb05feb142a52b8b7fc4e03b1657cc",
+              "f44ea90ec03666ec5e9c43e17ebbefba9d5bd8157a3d238298bd9bac4d1261ce",
+              "ec1775547fcc7a79886872e85f5082d36d77e6950748610276a0d72215c0ec30"
+            ]
+          },
+          "candidate": {
+            "policy": "459286e1fc38d4d9b5f4da55852e0dab577879567b0c4abb6e9d2af239830b6a",
+            "optimizer": "ea9ad2ccdfa79949c9ec19a295cab5907abbfc91984d7385cfc039a981c6953f",
+            "rollouts": [
+              "3446edacda7813550f73f647a9e3079dc3eb05feb142a52b8b7fc4e03b1657cc",
+              "f44ea90ec03666ec5e9c43e17ebbefba9d5bd8157a3d238298bd9bac4d1261ce",
+              "ec1775547fcc7a79886872e85f5082d36d77e6950748610276a0d72215c0ec30"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "94352ce0835adade77bb12b89d6463b18d5d35a72f11d8dd7d53d65ee5d00713",
+            "optimizer": "8c24431bc3b90c143198060642defa46b71d248de390a8838b4e50737e61eefb",
+            "rollouts": [
+              "076e57a321e0f9867f917d6a80c7735c3cd83980601fd65e169fd225354e8667",
+              "549a1d788a29c16488fd418735b0a35a0336b9d876d313209fffeef148f86c0e",
+              "50ef5fd36e542774c9f9c7ec2b49e96f7b5cbfd0bf3cb1deaaac088d7693a22e"
+            ]
+          },
+          "candidate": {
+            "policy": "94352ce0835adade77bb12b89d6463b18d5d35a72f11d8dd7d53d65ee5d00713",
+            "optimizer": "8c24431bc3b90c143198060642defa46b71d248de390a8838b4e50737e61eefb",
+            "rollouts": [
+              "076e57a321e0f9867f917d6a80c7735c3cd83980601fd65e169fd225354e8667",
+              "549a1d788a29c16488fd418735b0a35a0336b9d876d313209fffeef148f86c0e",
+              "50ef5fd36e542774c9f9c7ec2b49e96f7b5cbfd0bf3cb1deaaac088d7693a22e"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 1,
+          "match": true,
+          "reference": {
+            "policy": "1e85a89db8af37ba7f3674472a2b0a3438416fddad63bcc80c96408c832371eb",
+            "optimizer": "cf67a9be155e0cf38645cb099d3950864276f07749f0fbffc4f8fa545680f0a0",
+            "rollouts": [
+              "2a92f10c27d4511e395e92e436378f82fb9c9a78b311e5a9d1ceb464ec4c9f0f",
+              "04bffff754c7047aa36f641d3fe08d1d33ba867a04b60681305c163d2413f702",
+              "d69cd9c60caf1848aecf8b4bfbf71bda4471cd4656b13d5998fe86ed5621a9d2"
+            ]
+          },
+          "candidate": {
+            "policy": "1e85a89db8af37ba7f3674472a2b0a3438416fddad63bcc80c96408c832371eb",
+            "optimizer": "cf67a9be155e0cf38645cb099d3950864276f07749f0fbffc4f8fa545680f0a0",
+            "rollouts": [
+              "2a92f10c27d4511e395e92e436378f82fb9c9a78b311e5a9d1ceb464ec4c9f0f",
+              "04bffff754c7047aa36f641d3fe08d1d33ba867a04b60681305c163d2413f702",
+              "d69cd9c60caf1848aecf8b4bfbf71bda4471cd4656b13d5998fe86ed5621a9d2"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 2,
+          "match": true,
+          "reference": {
+            "policy": "db23672db2da6269feed0c966d94d30bab27984e3744758c2b1406c83be82d53",
+            "optimizer": "19661278a44c0174e748901ac921828a5a5e984dd8fa13b34dbb3935de126f0d",
+            "rollouts": [
+              "90fd314e00c344af17ce35348e08cdd31a6b6df815852b38c1b862a72146def2",
+              "2fd8f907e8340711eb55da320d6bb049e353df38b1c1044cc892199149b8336b",
+              "230856514684672a6f6782d88a98e41ccda1e7d1bf227775e676ea96de6cb31f"
+            ]
+          },
+          "candidate": {
+            "policy": "db23672db2da6269feed0c966d94d30bab27984e3744758c2b1406c83be82d53",
+            "optimizer": "19661278a44c0174e748901ac921828a5a5e984dd8fa13b34dbb3935de126f0d",
+            "rollouts": [
+              "90fd314e00c344af17ce35348e08cdd31a6b6df815852b38c1b862a72146def2",
+              "2fd8f907e8340711eb55da320d6bb049e353df38b1c1044cc892199149b8336b",
+              "230856514684672a6f6782d88a98e41ccda1e7d1bf227775e676ea96de6cb31f"
+            ]
+          }
+        }
+      ]
+    },
+    "installed_wheel": {
+      "stdlib_only": true,
+      "loaded_handoff_module": "/tmp/embodiedforge-subtraction-20261028-fivehour/installed-wheel/embodiedforge/_microduck_run.py",
+      "all_fixture_scenarios_passed": true,
+      "verified_scenarios": 72,
+      "observed_child_exits": 104,
+      "scope": "Actual installed-wheel entry, real file and subprocess fixtures; no ONNX inference or robot SDK."
+    },
+    "archive_matches_selected_files": {
+      "all_selected_release_files_exact": 337,
+      "source_archive_sha256": "625ac4a5eef3a93b62b3c27c44cbc49e7d9eeb76e41577cec32a56d68df942eb",
+      "unexpected_changes": [],
+      "excluded_generated_metadata": [
+        "src/embodiedforge.egg-info/SOURCES.txt",
+        "src/embodiedforge.egg-info/dependency_links.txt",
+        "src/embodiedforge.egg-info/entry_points.txt",
+        "src/embodiedforge.egg-info/requires.txt",
+        "src/embodiedforge.egg-info/top_level.txt"
+      ],
+      "initial_guard_actual_exit": 1,
+      "initial_guard_reason": "Compared generated source-release SOURCES.txt with stale original-workspace egg-info inventory. Corrected scope excludes only generated egg-info files; source and user configuration remain exact."
+    },
+    "style": {
+      "actual_child_waits": {
+        "ruff": 0,
+        "format": 0
+      },
+      "python_paths": [
+        "src/embodiedforge/_go1_checkpoint.py",
+        "src/embodiedforge/_microduck_export.py",
+        "src/embodiedforge/_microduck_native.py",
+        "src/embodiedforge/_microduck_reports.py",
+        "src/embodiedforge/_microduck_run.py",
+        "src/embodiedforge/_mjbatch_recipe.py",
+        "src/embodiedforge/_wuji_recipe.py",
+        "src/embodiedforge/learning/checkpoints.py",
+        "src/embodiedforge/microduck.py",
+        "tests/test_go1_checkpoint.py",
+        "tests/test_learning_boundaries.py",
+        "tests/test_microduck_export.py",
+        "tests/test_microduck_inputs.py",
+        "tests/test_microduck_native.py"
+      ]
+    },
+    "g1_backflip": {
+      "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+      "iteration": 21847,
+      "summary": {
+        "mean_norm_return": 0.9676364632159994,
+        "full_clip_zero_padded_return": 0.9676364632159994,
+        "native320step_zero_padded_return": 0.9463709542760625,
+        "failed": 0,
+        "executed_control_steps": 570,
+        "actual_state_samples": 571
+      },
+      "physical_quality": {
+        "checks": {
+          "complete_reference_and_extra_hold": true,
+          "zero_initial_velocity": true,
+          "correct_initial_pose": true,
+          "shared_rotation_geometry_hold": true,
+          "shared_fixed_window_leg_pose": true,
+          "dynamic_geometry": true,
+          "inverted_while_airborne": true,
+          "at_least60msairborne": true,
+          "relative_pitch_below_minus5rad": true,
+          "native320step_tracking_return": true,
+          "solved_force_balance": true,
+          "no_contact_capacity_overflow": true,
+          "no_nonfoot_force": true,
+          "no200Hznegative_nonfoot_contact_distance": true,
+          "actual_physics_model_geometry_identity": true,
+          "complete200Hzforce_coverage": true
+        },
+        "failed_checks": [],
+        "unassessed_checks": [],
+        "ported_quality_passed": true,
+        "strict_v14_equivalence": false,
+        "physical_robot_tested": false,
+        "scope": "Reference-informed thresholds on current mjlab G1, with conservative fixed-window/200Hzgeometry/model-identity checks. One evaluation does not establish independent-training robustness or exact IsaacLab3V14 reproduction."
+      }
+    },
+    "snapshot_memory": {
+      "scope": "Synthetic asset snapshot RSS, not simulator/training throughput.",
+      "asset_bytes": 67108864,
+      "all_copied_bytes_identical": true,
+      "results": [
+        {
+          "label": "baseline",
+          "trial": 0,
+          "actual_child_wait_returncode": 0,
+          "source": "/tmp/embodiedforge-subtraction-20261028-fivehour/baseline/src",
+          "native_module": "/tmp/embodiedforge-subtraction-20261028-fivehour/baseline/src/embodiedforge/_microduck_native.py",
+          "peak_rss_before_bytes": 14155776,
+          "peak_rss_after_snapshot_bytes": 79167488,
+          "peak_rss_increment_bytes": 65011712,
+          "copied_files": {
+            "locomotion/microduck/robot/fixture.stl": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+            "_microduck_native_worker.py": "9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"
+          },
+          "stdlib_only": true,
+          "frozen_worker": "/tmp/embodiedforge-subtraction-20261028-fivehour/memory-results/baseline-0/implementation/embodiedforge/_microduck_native_worker.py"
+        },
+        {
+          "label": "candidate",
+          "trial": 0,
+          "actual_child_wait_returncode": 0,
+          "source": "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "native_module": "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/_microduck_native.py",
+          "peak_rss_before_bytes": 14417920,
+          "peak_rss_after_snapshot_bytes": 14417920,
+          "peak_rss_increment_bytes": 0,
+          "copied_files": {
+            "locomotion/microduck/robot/fixture.stl": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+            "_microduck_native_worker.py": "9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"
+          },
+          "stdlib_only": true,
+          "frozen_worker": "/tmp/embodiedforge-subtraction-20261028-fivehour/memory-results/candidate-0/implementation/embodiedforge/_microduck_native_worker.py"
+        },
+        {
+          "label": "baseline",
+          "trial": 1,
+          "actual_child_wait_returncode": 0,
+          "source": "/tmp/embodiedforge-subtraction-20261028-fivehour/baseline/src",
+          "native_module": "/tmp/embodiedforge-subtraction-20261028-fivehour/baseline/src/embodiedforge/_microduck_native.py",
+          "peak_rss_before_bytes": 14417920,
+          "peak_rss_after_snapshot_bytes": 78643200,
+          "peak_rss_increment_bytes": 64225280,
+          "copied_files": {
+            "locomotion/microduck/robot/fixture.stl": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+            "_microduck_native_worker.py": "9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"
+          },
+          "stdlib_only": true,
+          "frozen_worker": "/tmp/embodiedforge-subtraction-20261028-fivehour/memory-results/baseline-1/implementation/embodiedforge/_microduck_native_worker.py"
+        },
+        {
+          "label": "candidate",
+          "trial": 1,
+          "actual_child_wait_returncode": 0,
+          "source": "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "native_module": "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/_microduck_native.py",
+          "peak_rss_before_bytes": 14417920,
+          "peak_rss_after_snapshot_bytes": 14417920,
+          "peak_rss_increment_bytes": 0,
+          "copied_files": {
+            "locomotion/microduck/robot/fixture.stl": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+            "_microduck_native_worker.py": "9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"
+          },
+          "stdlib_only": true,
+          "frozen_worker": "/tmp/embodiedforge-subtraction-20261028-fivehour/memory-results/candidate-1/implementation/embodiedforge/_microduck_native_worker.py"
+        },
+        {
+          "label": "baseline",
+          "trial": 2,
+          "actual_child_wait_returncode": 0,
+          "source": "/tmp/embodiedforge-subtraction-20261028-fivehour/baseline/src",
+          "native_module": "/tmp/embodiedforge-subtraction-20261028-fivehour/baseline/src/embodiedforge/_microduck_native.py",
+          "peak_rss_before_bytes": 14417920,
+          "peak_rss_after_snapshot_bytes": 79167488,
+          "peak_rss_increment_bytes": 64749568,
+          "copied_files": {
+            "locomotion/microduck/robot/fixture.stl": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+            "_microduck_native_worker.py": "9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"
+          },
+          "stdlib_only": true,
+          "frozen_worker": "/tmp/embodiedforge-subtraction-20261028-fivehour/memory-results/baseline-2/implementation/embodiedforge/_microduck_native_worker.py"
+        },
+        {
+          "label": "candidate",
+          "trial": 2,
+          "actual_child_wait_returncode": 0,
+          "source": "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "native_module": "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/_microduck_native.py",
+          "peak_rss_before_bytes": 14417920,
+          "peak_rss_after_snapshot_bytes": 14417920,
+          "peak_rss_increment_bytes": 0,
+          "copied_files": {
+            "locomotion/microduck/robot/fixture.stl": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+            "_microduck_native_worker.py": "9f56e761d79bfdb34304a012586cb04d16b435ef6130091a97702e559260a2f2"
+          },
+          "stdlib_only": true,
+          "frozen_worker": "/tmp/embodiedforge-subtraction-20261028-fivehour/memory-results/candidate-2/implementation/embodiedforge/_microduck_native_worker.py"
+        }
+      ]
+    },
+    "handoff_soak": {
+      "scope": "Real subprocess/file publication fixtures; no robot SDK or ONNX inference.",
+      "seconds": 14400.090265947045,
+      "cycles": 21068,
+      "verified_scenarios": 189612,
+      "observed_child_exits": 273884,
+      "all_scenarios_passed": true,
+      "initial_resources": {
+        "rss_bytes": 16326656,
+        "threads": 1,
+        "fds": 4
+      },
+      "final_resources": {
+        "rss_bytes": 18464768,
+        "threads": 1,
+        "fds": 4
+      },
+      "modes": [
+        "success-legacy",
+        "success-native",
+        "worker-failure",
+        "worker-signal",
+        "after-publication-cancel",
+        "final-record-failure",
+        "report-collision",
+        "model-collision",
+        "checkpoint-mismatch"
+      ]
+    },
+    "handoff_soak_resource_analysis": {
+      "samples": 21068,
+      "threads_during_cycles": [
+        1
+      ],
+      "fds_while_sample_log_open": [
+        5
+      ],
+      "rss_bytes_min": 16535552,
+      "rss_bytes_max": 22118400,
+      "initial_resources": {
+        "rss_bytes": 16326656,
+        "threads": 1,
+        "fds": 4
+      },
+      "final_resources": {
+        "rss_bytes": 18464768,
+        "threads": 1,
+        "fds": 4
+      },
+      "note": "Per-cycle samples include the open sample log, so fds5during cycles and4after closure. RSS is an observed four-hour range, not an indefinite leak-freedom guarantee."
+    },
+    "g1_current_repeated_evaluations": {
+      "current_evaluations": [
+        {
+          "run": "runs/architecture-subtraction-20261028-fivehour/backflip-acceptance",
+          "summary": {
+            "mean_norm_return": 0.9676364632159994,
+            "full_clip_zero_padded_return": 0.9676364632159994,
+            "native320step_zero_padded_return": 0.9463709542760625,
+            "failed": 0,
+            "executed_control_steps": 570,
+            "actual_state_samples": 571
+          },
+          "all16checks_passed": true,
+          "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+          "model_mjb_sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64"
+        },
+        {
+          "run": "runs/architecture-subtraction-20261028-fivehour/g1-repeat-1",
+          "summary": {
+            "mean_norm_return": 0.9680010661352099,
+            "full_clip_zero_padded_return": 0.9680010661352099,
+            "native320step_zero_padded_return": 0.9467358317924663,
+            "failed": 0,
+            "executed_control_steps": 570,
+            "actual_state_samples": 571
+          },
+          "all16checks_passed": true,
+          "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+          "model_mjb_sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64"
+        },
+        {
+          "run": "runs/architecture-subtraction-20261028-fivehour/g1-repeat-2",
+          "summary": {
+            "mean_norm_return": 0.9684969670417016,
+            "full_clip_zero_padded_return": 0.9684969670417016,
+            "native320step_zero_padded_return": 0.9471408291719854,
+            "failed": 0,
+            "executed_control_steps": 570,
+            "actual_state_samples": 571
+          },
+          "all16checks_passed": true,
+          "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+          "model_mjb_sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64"
+        }
+      ],
+      "full_clip_return_range": [
+        0.9676364632159994,
+        0.9684969670417016
+      ],
+      "all_current_evaluations_passed16checks": true,
+      "scope": "Same source, weights and physical assets in3separateCUDA/mjlab evaluations. Trajectories vary between invocations; score differences are not attributed to this refactor and do not establish independent-training robustness."
+    },
+    "g1_prior_run_comparison": {
+      "old_summary": {
+        "mean_norm_return": 0.9654727536335326,
+        "full_clip_zero_padded_return": 0.9654727536335326,
+        "native320step_zero_padded_return": 0.9446475654840469,
+        "failed": 0,
+        "executed_control_steps": 570,
+        "actual_state_samples": 571
+      },
+      "new_summary": {
+        "mean_norm_return": 0.9676364632159994,
+        "full_clip_zero_padded_return": 0.9676364632159994,
+        "native320step_zero_padded_return": 0.9463709542760625,
+        "failed": 0,
+        "executed_control_steps": 570,
+        "actual_state_samples": 571
+      },
+      "same_model_mjb_sha": true,
+      "same_all16check_results": true,
+      "numeric_arrays": [
+        {
+          "file": "backflip-rollout.npz",
+          "field": "state",
+          "shape": [
+            571,
+            71
+          ],
+          "dtype": "float32",
+          "exact": false,
+          "max_abs_delta": 16.601479828357697
+        },
+        {
+          "file": "backflip-rollout.npz",
+          "field": "time_s",
+          "shape": [
+            571
+          ],
+          "dtype": "float64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "backflip-rollout.npz",
+          "field": "rewards",
+          "shape": [
+            570
+          ],
+          "dtype": "float64",
+          "exact": false,
+          "max_abs_delta": 0.004152949899435043
+        },
+        {
+          "file": "backflip-rollout.npz",
+          "field": "actions",
+          "shape": [
+            570,
+            29
+          ],
+          "dtype": "float32",
+          "exact": false,
+          "max_abs_delta": 0.546875
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "dt",
+          "shape": [],
+          "dtype": "float64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "mass",
+          "shape": [],
+          "dtype": "float64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "time_s",
+          "shape": [
+            2280
+          ],
+          "dtype": "float64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "actual_data_time_s",
+          "shape": [
+            2280
+          ],
+          "dtype": "float64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "foot_forces_N",
+          "shape": [
+            2280,
+            2,
+            3
+          ],
+          "dtype": "float64",
+          "exact": false,
+          "max_abs_delta": 584.4110579490662
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "foot_contact_counts",
+          "shape": [
+            2280,
+            2
+          ],
+          "dtype": "int64",
+          "exact": false,
+          "max_abs_delta": 12.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "total_ground_force_N",
+          "shape": [
+            2280,
+            3
+          ],
+          "dtype": "float64",
+          "exact": false,
+          "max_abs_delta": 577.3955117315054
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "nonfoot_force_N",
+          "shape": [
+            2280,
+            3
+          ],
+          "dtype": "float64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "nonfoot_force_contacts",
+          "shape": [
+            2280
+          ],
+          "dtype": "int64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "nonfoot_negative_distance_contacts",
+          "shape": [
+            2280
+          ],
+          "dtype": "int64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "max_nonfoot_depth_m",
+          "shape": [
+            2280
+          ],
+          "dtype": "float64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "qpos",
+          "shape": [
+            2280,
+            36
+          ],
+          "dtype": "float64",
+          "exact": false,
+          "max_abs_delta": 0.21053045988082886
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "qvel",
+          "shape": [
+            2280,
+            35
+          ],
+          "dtype": "float64",
+          "exact": false,
+          "max_abs_delta": 25.14900714159012
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "root_constraint_N",
+          "shape": [
+            2280,
+            3
+          ],
+          "dtype": "float64",
+          "exact": false,
+          "max_abs_delta": 577.3954467773438
+        },
+        {
+          "file": "contact-forces-200hz.npz",
+          "field": "overflow",
+          "shape": [
+            2280
+          ],
+          "dtype": "int64",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "inputs/diagnostic-reference.npz",
+          "field": "fps",
+          "shape": [
+            1
+          ],
+          "dtype": "float32",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "inputs/diagnostic-reference.npz",
+          "field": "joint_pos",
+          "shape": [
+            571,
+            29
+          ],
+          "dtype": "float32",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "inputs/diagnostic-reference.npz",
+          "field": "joint_vel",
+          "shape": [
+            571,
+            29
+          ],
+          "dtype": "float32",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "inputs/diagnostic-reference.npz",
+          "field": "body_pos_w",
+          "shape": [
+            571,
+            30,
+            3
+          ],
+          "dtype": "float32",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "inputs/diagnostic-reference.npz",
+          "field": "body_quat_w",
+          "shape": [
+            571,
+            30,
+            4
+          ],
+          "dtype": "float32",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "inputs/diagnostic-reference.npz",
+          "field": "body_lin_vel_w",
+          "shape": [
+            571,
+            30,
+            3
+          ],
+          "dtype": "float32",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "inputs/diagnostic-reference.npz",
+          "field": "body_ang_vel_w",
+          "shape": [
+            571,
+            30,
+            3
+          ],
+          "dtype": "float32",
+          "exact": true,
+          "max_abs_delta": 0.0
+        },
+        {
+          "file": "inputs/diagnostic-reference.npz",
+          "field": "input_fps",
+          "shape": [
+            1
+          ],
+          "dtype": "float32",
+          "exact": true,
+          "max_abs_delta": 0.0
+        }
+      ],
+      "scope": "Comparison of two separately executed evaluations, not a paired source-tree determinism guarantee.",
+      "g1_launcher_source_guards_equal": true
+    },
+    "owned_processes_absent_after_completion": true
+  },
+  "distribution": {
+    "before": {
+      "actual_build_wait_returncode": 0,
+      "path": "/tmp/embodiedforge-subtraction-20261028-fivehour/distribution-before/embodiedforge-0.1.0.tar.gz",
+      "bytes": 19681526,
+      "sha256": "47774a4435711deaa3016b4b8c610792dbe49c966245f7c591ff9465b8a37c0c",
+      "members": 572,
+      "nested_historical_archives": 0
+    },
+    "after": {
+      "actual_build_wait_returncode": 0,
+      "path": "/tmp/embodiedforge-subtraction-20261028-fivehour/distribution-after/embodiedforge-0.1.0.tar.gz",
+      "bytes": 19681738,
+      "sha256": "625ac4a5eef3a93b62b3c27c44cbc49e7d9eeb76e41577cec32a56d68df942eb",
+      "members": 571,
+      "nested_historical_archives": 0
+    },
+    "wheel": {
+      "actual_build_wait_returncode": 0,
+      "path": "/tmp/embodiedforge-subtraction-20261028-fivehour/wheel/embodiedforge-0.1.0-py3-none-any.whl",
+      "bytes": 8293312,
+      "sha256": "697396163560d219f5e645d5393bd603a8dd765a8b3c47940b676189a04fff25",
+      "current_modules_exact": 139,
+      "retired_aliases_absent": [
+        "_microduck_inputs",
+        "_hashing",
+        "_adam_checkpoint",
+        "_ppo_parameters",
+        "_training_runtime",
+        "_microduck_process"
+      ],
+      "installed_root": "/tmp/embodiedforge-subtraction-20261028-fivehour/installed-wheel"
+    },
+    "source_release_root": "/tmp/embodiedforge-subtraction-20261028-fivehour/source-release/embodiedforge-0.1.0",
+    "removed_members": [
+      "src/embodiedforge/_microduck_inputs.py"
+    ],
+    "added_members": []
+  },
+  "preserved_model": {
+    "registry": {
+      "task": "backflip",
+      "recipe": "reference",
+      "training_status": "complete",
+      "checkpoint": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+      "iteration": 21847,
+      "skill_success": null,
+      "selection": "Actual last checkpoint of a completed full-width reference-recipe run; not selected by return"
+    },
+    "registry_sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c",
+    "checkpoint_bytes": 218547233,
+    "verified_at": "2026-10-28T04:02:40.322690+00:00"
+  },
+  "changed_from_session_baseline": [
+    "docs/architecture.md",
+    "docs/run-records.md",
+    "src/embodiedforge/_go1_checkpoint.py",
+    "src/embodiedforge/_microduck_export.py",
+    "src/embodiedforge/_microduck_inputs.py",
+    "src/embodiedforge/_microduck_native.py",
+    "src/embodiedforge/_microduck_reports.py",
+    "src/embodiedforge/_microduck_run.py",
+    "src/embodiedforge/_mjbatch_recipe.py",
+    "src/embodiedforge/_wuji_recipe.py",
+    "src/embodiedforge/learning/checkpoints.py",
+    "src/embodiedforge/microduck.py",
+    "tests/test_go1_checkpoint.py",
+    "tests/test_learning_boundaries.py",
+    "tests/test_microduck_export.py",
+    "tests/test_microduck_inputs.py",
+    "tests/test_microduck_native.py"
+  ],
+  "preserved": {
+    "training_algorithms": true,
+    "checkpoint_formats": true,
+    "public_commands_and_environment_requirements": true,
+    "frozen_go1_learner_self_containment": true,
+    "historical_evidence": true
+  },
+  "scope_limits": [
+    "快照RSS对照使用64MiB合成资产，不代表训练显存或吞吐提升。",
+    "长测使用真实子进程、文件及信号的测试夹具，不执行ONNX推理或机器人SDK。",
+    "G1复测为现有mjlab资产下的模拟验收，不构成真机验证或IsaacLab3V14严格等价证明。",
+    "同版CUDA/mjlab评测的轨迹不逐点一致；3次本轮评测均通过16项检查，小幅回报差异不作为本轮学习或性能提升。",
+    "源发布包保持约19.7MB：本轮新增回归覆盖抵消少量源码压缩，归档增加212字节；未重复宣称上轮97.3%的减包结果。"
+  ],
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261028-fivehour-evidence.tar.gz",
+    "sha256": "161234ae99da05f9bef3815423b574e0d0dfefa2457023865f424fa04b07e3ba",
+    "bytes": 2685737,
+    "verified_members": 806
+  }
+}

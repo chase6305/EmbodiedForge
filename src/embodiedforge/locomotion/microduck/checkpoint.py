@@ -1,8 +1,9 @@
 """Publish complete local checkpoints while retaining the previous saved model."""
 
-import logging
 from pathlib import Path
 from uuid import uuid4
+
+from ...runtime.artifacts import discard_partial
 
 
 def atomic_save(save, path, infos=None):
@@ -12,10 +13,5 @@ def atomic_save(save, path, infos=None):
         save(str(temporary), infos)
         temporary.replace(target)
     except BaseException:
-        try:
-            temporary.unlink(missing_ok=True)
-        except OSError as exc:
-            logging.getLogger(__name__).warning(
-                "Could not remove partial checkpoint %s: %s", temporary, exc
-            )
+        discard_partial(temporary, label="checkpoint")
         raise

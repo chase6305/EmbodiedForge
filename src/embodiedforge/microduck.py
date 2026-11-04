@@ -7,31 +7,47 @@ No training or simulation SDK is imported into the EmbodiedForge process.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
 import shutil
 import signal
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ._microduck_export import export_run
-from ._microduck_inputs import (
+from ._microduck_export import ExportOperations
+from ._microduck_export import export_run as _export_run
+from ._microduck_native import native_command, snapshot_command, snapshot_runtime
+from ._microduck_run import (
     snapshot_inputs,
     verify_input_snapshot,
 )
-from ._microduck_native import native_command, snapshot_command, snapshot_runtime
 from ._microduck_worker import launcher_identity
 from ._microduck_worker import training_checkpoints as checkpoints
 from .logging import get_logger, setup_logging
+from .runtime.artifacts import write_json as write_json
+from .runtime.hashing import file_sha256
+from .runtime.records import RunRejected, run_identity, run_lifecycle
 
 REVISION = "53b8971b61baf5b7f3c16d135dd7cac37623de4b"
 TASK = "Mjlab-Velocity-Flat-MicroDuck"
 WORKER = Path(__file__).with_name("_microduck_worker.py")
 LOGGER = get_logger("microduck")
+
+
+def export_run(args, python, identity, env):
+    """Compose export operations while preserving the public launcher entry point."""
+    operations = ExportOperations(
+        task=TASK,
+        launcher_identity=launcher_identity,
+        training_environment=training_environment,
+        export_command=export_command,
+        worker_for=worker_for,
+        run=run,
+        write_json=write_json,
+    )
+    return _export_run(args, python, identity, env, operations=operations)
 
 
 def worker_for(env):
@@ -42,7 +58,7 @@ def worker_for(env):
     return WORKER
 
 
-class EvaluationRejected(RuntimeError):
+class EvaluationRejected(RunRejected):
     """Evaluation ran successfully, but the policy missed explicit criteria."""
 
 
@@ -92,7 +108,7 @@ def source_identity(repo: Path) -> dict:
     return {
         "repo": str(repo),
         "revision": revision,
-        "uv_lock_sha256": hashlib.sha256((repo / "uv.lock").read_bytes()).hexdigest(),
+        "uv_lock_sha256": file_sha256(repo / "uv.lock"),
     }
 
 
@@ -108,32 +124,23 @@ def assess_run(args) -> None:
     manifest = {
         "schema": 1,
         "workflow": "assess",
+        "run_contract": run_identity("microduck", "assess", TASK),
         "input": provenance,
         "acceptance_criteria": criteria,
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
-    write_json(output / "run.json", manifest)
-    try:
+    with run_lifecycle(
+        manifest,
+        lambda record: write_json(output / "run.json", record),
+        label=output / "run.json",
+    ):
         for relative, raw in inputs.items():
             snapshot = output / "inputs" / relative
             snapshot.parent.mkdir(parents=True, exist_ok=True)
             snapshot.write_bytes(raw)
         save_acceptance(output, reports, criteria)
         manifest["status"] = "complete"
-    except EvaluationRejected as exc:
-        manifest.update(status="rejected", error=str(exc))
-        raise
-    except KeyboardInterrupt as exc:
-        manifest.update(
-            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
-        )
-        raise
-    except Exception as exc:
-        manifest.update(status="failed", error=str(exc))
-        raise
-    finally:
-        finish_run(output, manifest)
 
 
 def compare_runs(args) -> None:
@@ -155,14 +162,18 @@ def compare_runs(args) -> None:
     manifest = {
         "schema": 1,
         "workflow": "compare",
+        "run_contract": run_identity("microduck", "compare", TASK),
         "source_verification": source_verification,
         "before": before_info,
         "after": after_info,
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
-    write_json(output / "run.json", manifest)
-    try:
+    with run_lifecycle(
+        manifest,
+        lambda record: write_json(output / "run.json", record),
+        label=output / "run.json",
+    ):
         for name, inputs in (("before", before_inputs), ("after", after_inputs)):
             for relative, raw in inputs.items():
                 snapshot = output / "inputs" / name / relative
@@ -170,16 +181,6 @@ def compare_runs(args) -> None:
                 snapshot.write_bytes(raw)
         write_json(output / "comparison.json", comparison)
         manifest["status"] = "complete"
-    except KeyboardInterrupt as exc:
-        manifest.update(
-            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
-        )
-        raise
-    except Exception as exc:
-        manifest.update(status="failed", error=str(exc))
-        raise
-    finally:
-        finish_run(output, manifest)
 
 
 def child_environment() -> dict[str, str]:
@@ -202,12 +203,6 @@ def child_environment() -> dict[str, str]:
     return env
 
 
-def write_json(path: Path, value: dict) -> None:
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2) + "\n")
-    temporary.replace(path)
-
-
 def training_environment(env: dict[str, str]) -> dict[str, str]:
     """Select offscreen GL before SDK imports, without inheriting a desktop."""
     result = env.copy()
@@ -220,7 +215,7 @@ def training_environment(env: dict[str, str]) -> dict[str, str]:
 def run(
     command: list[str], *, cwd: Path, env: dict[str, str], log_path=None, echo=True
 ) -> None:
-    from ._microduck_process import run_process
+    from .runtime.process import run_process
 
     LOGGER.info("Running %s", command)
     if log_path is not None:
@@ -290,20 +285,6 @@ def record_worker_failure(output, manifest):
         manifest[f"{name}_failure"] = failure
 
 
-def finish_run(output, manifest, *, include_checkpoints=False):
-    """Save final state without replacing an active failure or interrupt."""
-    original_error = sys.exc_info()[1]
-    manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-    try:
-        if include_checkpoints:
-            manifest["checkpoints"] = [str(path) for path in checkpoints(output)]
-        write_json(output / "run.json", manifest)
-    except OSError as exc:
-        if original_error is None or manifest.get("status") == "complete":
-            raise
-        LOGGER.warning("Could not finalize run record %s: %s", output / "run.json", exc)
-
-
 def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
     env = training_environment(env)
     output = args.output.expanduser().resolve()
@@ -325,6 +306,7 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
         "schema": 1,
         "launcher": launcher_identity(),
         "workflow": args.command,
+        "run_contract": run_identity("microduck", args.command, TASK),
         "seed": seed,
         "num_envs": args.num_envs,
         "iterations": args.iterations,
@@ -361,129 +343,133 @@ def train_run(args, python: Path, identity: dict, env: dict[str, str]) -> None:
             echo=not getattr(args, "quiet", False),
         )
 
-    try:
-        manifest["phase"] = "snapshot"
-        write_json(output / "run.json", manifest)
-        env, source_snapshot = snapshot_runtime(output, identity, env)
-        if source_snapshot is not None:
-            manifest["implementation_snapshot"] = str(source_snapshot)
-        execute(
-            [
-                str(python),
-                "-I",
-                str(worker_for(env)),
-                "check",
-                str(output / "runtime.json"),
-            ],
-            "check",
-        )
-        start_iteration = 0
-        if resume is not None:
-            snapshot = output / "logs/rsl_rl/microduck/resume_source/checkpoint.pt"
-            snapshot.parent.mkdir(parents=True)
-            shutil.copyfile(resume, snapshot)
+    manifest["phase"] = "snapshot"
+
+    def finalize(record):
+        record["checkpoints"] = [str(path) for path in checkpoints(output)]
+
+    with run_lifecycle(
+        manifest,
+        lambda record: write_json(output / "run.json", record),
+        finalize=finalize,
+        label=output / "run.json",
+    ):
+        try:
+            env, source_snapshot = snapshot_runtime(output, identity, env)
+            if source_snapshot is not None:
+                manifest["implementation_snapshot"] = str(source_snapshot)
             execute(
                 [
                     str(python),
                     "-I",
                     str(worker_for(env)),
-                    "checkpoint",
-                    str(snapshot),
-                    str(output / "resume.json"),
+                    "check",
+                    str(output / "runtime.json"),
                 ],
-                "checkpoint",
+                "check",
             )
-            metadata = json.loads((output / "resume.json").read_text())
+            start_iteration = 0
+            if resume is not None:
+                snapshot = output / "logs/rsl_rl/microduck/resume_source/checkpoint.pt"
+                snapshot.parent.mkdir(parents=True)
+                shutil.copyfile(resume, snapshot)
+                execute(
+                    [
+                        str(python),
+                        "-I",
+                        str(worker_for(env)),
+                        "checkpoint",
+                        str(snapshot),
+                        str(output / "resume.json"),
+                    ],
+                    "checkpoint",
+                )
+                metadata = json.loads((output / "resume.json").read_text())
+                if (
+                    getattr(args, "source_run", None) is not None
+                    and metadata["sha256"] != args.source_run["checkpoint_sha256"]
+                ):
+                    raise RuntimeError(
+                        "Selected training run checkpoint changed before resume"
+                    )
+                start_iteration = metadata["iteration"] + (
+                    1 if env.get("EF_MICRODUCK_NATIVE") == "1" else 0
+                )
+                manifest["start_iteration"] = start_iteration
+                # The worker adds startup/reset events to the upstream TrainConfig.
+                # Its startup restores curricula before the wrapper resets the env.
+                command = [
+                    str(python),
+                    "-I",
+                    str(worker_for(env)),
+                    "resume-train",
+                    str(snapshot),
+                    "--env.scene.num-envs",
+                    str(args.num_envs),
+                    "--agent.max-iterations",
+                    str(args.iterations),
+                    "--seed",
+                    str(seed),
+                ]
+                manifest["resume"] = {
+                    "original": str(resume),
+                    "snapshot": str(snapshot),
+                    **metadata,
+                }
+            execute(command, "train")
+            if resume is not None:
+                audit = json.loads((output / "resume.initialization.json").read_text())
+                if (
+                    audit["counter_at_first_reset"] != metadata["common_step_counter"]
+                    or audit["checkpoint_sha256"] != metadata["sha256"]
+                    or audit["num_envs"] != args.num_envs
+                ):
+                    raise RuntimeError(
+                        "Resume initialization disagrees with checkpoint"
+                    )
+                manifest["resume_initialization"] = audit
+            models = checkpoints(output)
+            if not models:
+                raise RuntimeError("Training exited without producing a checkpoint")
+            if len({path.parent for path in models}) > 1:
+                raise ValueError("Ambiguous checkpoint directories")
+            manifest["checkpoint"] = str(models[-1])
+            from ._microduck_run import checkpoint_digest
+
+            manifest["checkpoint_relative"] = models[-1].relative_to(output).as_posix()
+            manifest["checkpoint_sha256"] = checkpoint_digest(models[-1])
+            execute(
+                [
+                    str(python),
+                    "-I",
+                    str(worker_for(env)),
+                    "metrics",
+                    str(models[-1]),
+                    str(args.iterations),
+                    str(output / "metrics.validation.json"),
+                    str(start_iteration),
+                ],
+                "metrics",
+            )
+            validation = json.loads((output / "metrics.validation.json").read_text())
+            final_metadata = validation.get("checkpoint_metadata")
             if (
-                getattr(args, "source_run", None) is not None
-                and metadata["sha256"] != args.source_run["checkpoint_sha256"]
+                not isinstance(final_metadata, dict)
+                or final_metadata.get("sha256") != manifest["checkpoint_sha256"]
+                or final_metadata.get("iteration")
+                != start_iteration + args.iterations - 1
             ):
                 raise RuntimeError(
-                    "Selected training run checkpoint changed before resume"
+                    "Final checkpoint validation disagrees with the training run"
                 )
-            start_iteration = metadata["iteration"] + (
-                1 if env.get("EF_MICRODUCK_NATIVE") == "1" else 0
-            )
-            manifest["start_iteration"] = start_iteration
-            # The worker adds startup/reset events to the upstream TrainConfig.
-            # Its startup restores curricula before the wrapper resets the env.
-            command = [
-                str(python),
-                "-I",
-                str(worker_for(env)),
-                "resume-train",
-                str(snapshot),
-                "--env.scene.num-envs",
-                str(args.num_envs),
-                "--agent.max-iterations",
-                str(args.iterations),
-                "--seed",
-                str(seed),
-            ]
-            manifest["resume"] = {
-                "original": str(resume),
-                "snapshot": str(snapshot),
-                **metadata,
-            }
-        execute(command, "train")
-        if resume is not None:
-            audit = json.loads((output / "resume.initialization.json").read_text())
-            if (
-                audit["counter_at_first_reset"] != metadata["common_step_counter"]
-                or audit["checkpoint_sha256"] != metadata["sha256"]
-                or audit["num_envs"] != args.num_envs
-            ):
-                raise RuntimeError("Resume initialization disagrees with checkpoint")
-            manifest["resume_initialization"] = audit
-        models = checkpoints(output)
-        if not models:
-            raise RuntimeError("Training exited without producing a checkpoint")
-        if len({path.parent for path in models}) > 1:
-            raise ValueError("Ambiguous checkpoint directories")
-        manifest["checkpoint"] = str(models[-1])
-        from ._microduck_run import checkpoint_digest
-
-        manifest["checkpoint_relative"] = models[-1].relative_to(output).as_posix()
-        manifest["checkpoint_sha256"] = checkpoint_digest(models[-1])
-        execute(
-            [
-                str(python),
-                "-I",
-                str(worker_for(env)),
-                "metrics",
-                str(models[-1]),
-                str(args.iterations),
-                str(output / "metrics.validation.json"),
-                str(start_iteration),
-            ],
-            "metrics",
-        )
-        validation = json.loads((output / "metrics.validation.json").read_text())
-        final_metadata = validation.get("checkpoint_metadata")
-        if (
-            not isinstance(final_metadata, dict)
-            or final_metadata.get("sha256") != manifest["checkpoint_sha256"]
-            or final_metadata.get("iteration") != start_iteration + args.iterations - 1
-        ):
-            raise RuntimeError(
-                "Final checkpoint validation disagrees with the training run"
-            )
-        manifest["checkpoint_metadata"] = final_metadata
-        manifest["status"] = "complete"
-        manifest["phase"] = "complete"
-    except KeyboardInterrupt as exc:
-        manifest.update(
-            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
-        )
-        raise
-    except Exception as exc:
-        record_worker_failure(output, manifest)
-        manifest.update(
-            status="failed", failed_phase=manifest.get("phase"), error=str(exc)
-        )
-        raise
-    finally:
-        finish_run(output, manifest, include_checkpoints=True)
+            manifest["checkpoint_metadata"] = final_metadata
+            manifest["status"] = "complete"
+            manifest["phase"] = "complete"
+        except BaseException as error:
+            if not isinstance(error, (KeyboardInterrupt, RunRejected)):
+                record_worker_failure(output, manifest)
+                manifest["failed_phase"] = manifest.get("phase")
+            raise
     LOGGER.info("Microduck %s completed: %s", args.command, output)
 
 
@@ -538,6 +524,7 @@ def evaluate_once(
         "schema": 1,
         "launcher": launcher_identity(),
         "workflow": "evaluate",
+        "run_contract": run_identity("microduck", "evaluate", TASK),
         "python": str(python),
         "execution": {
             "headless": True,
@@ -564,72 +551,65 @@ def evaluate_once(
     }
     if getattr(args, "source_run", None) is not None:
         manifest["source_run"] = args.source_run
-    write_json(output / "run.json", manifest)
-    try:
-        manifest["phase"] = "inputs"
-        write_json(output / "run.json", manifest)
-        if input_snapshot is None:
-            input_snapshot = snapshot_inputs(
-                output, checkpoint, options, getattr(args, "source_run", None)
-            )
-        verify_input_snapshot(input_snapshot)
-        manifest["input_snapshot"] = input_snapshot
-        manifest["checkpoint_sha256"] = input_snapshot["checkpoint"]["sha256"]
-        command[4] = input_snapshot["checkpoint"]["path"]
-        options["onnx"] = input_snapshot.get("onnx", {}).get("path")
-        command[9] = json.dumps(options, allow_nan=False)
-        manifest["phase"] = "snapshot"
-        write_json(output / "run.json", manifest)
-        env, source_snapshot = snapshot_runtime(output, identity, env)
-        if source_snapshot is not None:
-            manifest["implementation_snapshot"] = str(source_snapshot)
-        manifest["commands"] = [
-            snapshot_command(step, env) for step in manifest["commands"]
-        ]
-        write_json(output / "run.json", manifest)
-        for index, step in enumerate(manifest["commands"]):
-            phase = "check" if index == 0 else "evaluate"
-            log_path = output / f"{index:02d}-{phase}.log"
-            manifest.update(phase=phase, active_log=log_path.name)
-            manifest.setdefault("logs", []).append(log_path.name)
+    with run_lifecycle(
+        manifest,
+        lambda record: write_json(output / "run.json", record),
+        label=output / "run.json",
+    ):
+        try:
+            manifest["phase"] = "inputs"
             write_json(output / "run.json", manifest)
-            run(
-                step,
-                cwd=output,
-                env=env,
-                log_path=log_path,
-                echo=not getattr(args, "quiet", False),
+            if input_snapshot is None:
+                input_snapshot = snapshot_inputs(
+                    output, checkpoint, options, getattr(args, "source_run", None)
+                )
+            verify_input_snapshot(input_snapshot)
+            manifest["input_snapshot"] = input_snapshot
+            manifest["checkpoint_sha256"] = input_snapshot["checkpoint"]["sha256"]
+            command[4] = input_snapshot["checkpoint"]["path"]
+            options["onnx"] = input_snapshot.get("onnx", {}).get("path")
+            command[9] = json.dumps(options, allow_nan=False)
+            manifest["phase"] = "snapshot"
+            write_json(output / "run.json", manifest)
+            env, source_snapshot = snapshot_runtime(output, identity, env)
+            if source_snapshot is not None:
+                manifest["implementation_snapshot"] = str(source_snapshot)
+            manifest["commands"] = [
+                snapshot_command(step, env) for step in manifest["commands"]
+            ]
+            write_json(output / "run.json", manifest)
+            for index, step in enumerate(manifest["commands"]):
+                phase = "check" if index == 0 else "evaluate"
+                log_path = output / f"{index:02d}-{phase}.log"
+                manifest.update(phase=phase, active_log=log_path.name)
+                manifest.setdefault("logs", []).append(log_path.name)
+                write_json(output / "run.json", manifest)
+                run(
+                    step,
+                    cwd=output,
+                    env=env,
+                    log_path=log_path,
+                    echo=not getattr(args, "quiet", False),
+                )
+            if not (output / "evaluation.json").is_file():
+                raise RuntimeError("Evaluation exited without a report")
+            manifest["phase"] = "validate"
+            write_json(output / "run.json", manifest)
+            from ._microduck_reports import (
+                decode_evaluation_json,
+                validate_evaluation_report,
             )
-        if not (output / "evaluation.json").is_file():
-            raise RuntimeError("Evaluation exited without a report")
-        manifest["phase"] = "validate"
-        write_json(output / "run.json", manifest)
-        from ._microduck_reports import (
-            decode_evaluation_json,
-            validate_evaluation_report,
-        )
 
-        report = decode_evaluation_json((output / "evaluation.json").read_bytes())
-        validate_evaluation_report(report, manifest)
-        if criteria:
-            save_acceptance(output, [report], criteria)
-        manifest.update(status="complete", phase="complete")
-    except EvaluationRejected as exc:
-        manifest.update(status="rejected", error=str(exc))
-        raise
-    except KeyboardInterrupt as exc:
-        manifest.update(
-            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
-        )
-        raise
-    except Exception as exc:
-        record_worker_failure(output, manifest)
-        manifest.update(
-            status="failed", failed_phase=manifest.get("phase"), error=str(exc)
-        )
-        raise
-    finally:
-        finish_run(output, manifest)
+            report = decode_evaluation_json((output / "evaluation.json").read_bytes())
+            validate_evaluation_report(report, manifest)
+            if criteria:
+                save_acceptance(output, [report], criteria)
+            manifest.update(status="complete", phase="complete")
+        except BaseException as error:
+            if not isinstance(error, (KeyboardInterrupt, RunRejected)):
+                record_worker_failure(output, manifest)
+                manifest["failed_phase"] = manifest.get("phase")
+            raise
     return report
 
 
@@ -653,6 +633,7 @@ def evaluate_run(args, python: Path, identity: dict, env: dict[str, str]) -> Non
         "schema": 1,
         "launcher": launcher_identity(),
         "workflow": "evaluate_seeds",
+        "run_contract": run_identity("microduck", "evaluate_seeds", TASK),
         "python": str(python),
         "execution": {
             "headless": True,
@@ -671,66 +652,63 @@ def evaluate_run(args, python: Path, identity: dict, env: dict[str, str]) -> Non
     }
     if getattr(args, "source_run", None) is not None:
         manifest["source_run"] = args.source_run
-    write_json(output / "run.json", manifest)
     reports = []
-    try:
-        manifest["phase"] = "inputs"
-        write_json(output / "run.json", manifest)
-        input_snapshot = snapshot_inputs(
-            output, checkpoint, options, getattr(args, "source_run", None)
-        )
-        manifest["input_snapshot"] = input_snapshot
-        manifest["checkpoint_sha256"] = input_snapshot["checkpoint"]["sha256"]
-        options["onnx"] = input_snapshot.get("onnx", {}).get("path")
-        manifest["phase"] = "snapshot"
-        write_json(output / "run.json", manifest)
-        env, source_snapshot = snapshot_runtime(output, identity, env)
-        if source_snapshot is not None:
-            manifest["implementation_snapshot"] = str(source_snapshot)
-        write_json(output / "run.json", manifest)
-        for seed in seeds:
-            child = argparse.Namespace(**vars(args))
-            child.seed, child.seeds, child.output = seed, None, output / f"seed-{seed}"
-            child.checkpoint = Path(input_snapshot["checkpoint"]["path"])
-            child.onnx = Path(options["onnx"]) if options["onnx"] else None
-            # Complete all requested seed runs before assessing the batch.
-            for name in criteria:
-                setattr(child, name, None)
-            LOGGER.info(
-                "Evaluating seed %s (%s/%s)", seed, len(reports) + 1, len(seeds)
-            )
-            manifest.update(phase="evaluate", active_seed=seed)
+    with run_lifecycle(
+        manifest,
+        lambda record: write_json(output / "run.json", record),
+        label=output / "run.json",
+    ):
+        try:
+            manifest["phase"] = "inputs"
             write_json(output / "run.json", manifest)
-            report = evaluate_once(
-                child, python, identity, env, input_snapshot=input_snapshot
+            input_snapshot = snapshot_inputs(
+                output, checkpoint, options, getattr(args, "source_run", None)
             )
-            if reports:
-                # Previous reports already passed; compare only the new seed.
-                aggregate_evaluations([reports[0], report])
-            reports.append(report)
-            manifest["completed_seeds"].append(seed)
+            manifest["input_snapshot"] = input_snapshot
+            manifest["checkpoint_sha256"] = input_snapshot["checkpoint"]["sha256"]
+            options["onnx"] = input_snapshot.get("onnx", {}).get("path")
+            manifest["phase"] = "snapshot"
             write_json(output / "run.json", manifest)
-        summary = aggregate_evaluations(reports)
-        summary["reports"] = [f"seed-{seed}/evaluation.json" for seed in seeds]
-        write_json(output / "summary.json", summary)
-        save_acceptance(output, reports, criteria)
-        manifest.update(status="complete", phase="complete")
-        manifest.pop("active_seed", None)
-    except EvaluationRejected as exc:
-        manifest.update(status="rejected", error=str(exc))
-        raise
-    except KeyboardInterrupt as exc:
-        manifest.update(
-            status="interrupted", interrupt_signal=getattr(exc, "signum", signal.SIGINT)
-        )
-        raise
-    except Exception as exc:
-        manifest.update(
-            status="failed", failed_phase=manifest.get("phase"), error=str(exc)
-        )
-        raise
-    finally:
-        finish_run(output, manifest)
+            env, source_snapshot = snapshot_runtime(output, identity, env)
+            if source_snapshot is not None:
+                manifest["implementation_snapshot"] = str(source_snapshot)
+            write_json(output / "run.json", manifest)
+            for seed in seeds:
+                child = argparse.Namespace(**vars(args))
+                child.seed, child.seeds, child.output = (
+                    seed,
+                    None,
+                    output / f"seed-{seed}",
+                )
+                child.checkpoint = Path(input_snapshot["checkpoint"]["path"])
+                child.onnx = Path(options["onnx"]) if options["onnx"] else None
+                # Complete all requested seed runs before assessing the batch.
+                for name in criteria:
+                    setattr(child, name, None)
+                LOGGER.info(
+                    "Evaluating seed %s (%s/%s)", seed, len(reports) + 1, len(seeds)
+                )
+                manifest.update(phase="evaluate", active_seed=seed)
+                write_json(output / "run.json", manifest)
+                report = evaluate_once(
+                    child, python, identity, env, input_snapshot=input_snapshot
+                )
+                if reports:
+                    # Previous reports already passed; compare only the new seed.
+                    aggregate_evaluations([reports[0], report])
+                reports.append(report)
+                manifest["completed_seeds"].append(seed)
+                write_json(output / "run.json", manifest)
+            summary = aggregate_evaluations(reports)
+            summary["reports"] = [f"seed-{seed}/evaluation.json" for seed in seeds]
+            write_json(output / "summary.json", summary)
+            save_acceptance(output, reports, criteria)
+            manifest.update(status="complete", phase="complete")
+            manifest.pop("active_seed", None)
+        except BaseException as error:
+            if not isinstance(error, (KeyboardInterrupt, RunRejected)):
+                manifest["failed_phase"] = manifest.get("phase")
+            raise
 
 
 def _main(argv: list[str] | None = None) -> None:
@@ -1066,7 +1044,7 @@ def _main(argv: list[str] | None = None) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    from ._microduck_process import ProcessInterrupted, termination_signals
+    from .runtime.process import ProcessInterrupted, termination_signals
 
     try:
         with termination_signals():

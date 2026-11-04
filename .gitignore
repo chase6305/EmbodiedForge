@@ -219,3 +219,12 @@ __marimo__/
 
 # Local training runs and generated episode datasets
 /runs/
+
+# Large local raw-trace evidence; see docs/experiments/local-evidence.json
+/docs/experiments/assets/architecture-runtime-20261022-threehour-evidence.tar.gz
+/docs/experiments/assets/architecture-runtime-20261022-twohour-evidence.tar.gz
+/docs/experiments/assets/architecture-runtime-20261023-fivehour-evidence.tar.gz
+/docs/experiments/assets/architecture-runtime-20261024-fivehour-evidence.tar.gz
+/docs/experiments/assets/architecture-runtime-20261024-tenhour-evidence.tar.gz
+/docs/experiments/assets/architecture-runtime-20261025-eighthour-evidence.tar.gz
+/MUJOCO_LOG.TXT

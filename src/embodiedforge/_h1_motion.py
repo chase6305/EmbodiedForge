@@ -25,7 +25,7 @@ class MotionRecorder:
         if self.ended:
             return
         arrays = [
-            np.asarray(value, dtype=np.float32).copy()
+            np.array(value, dtype=np.float32, copy=True, order="C")
             for value in (positions, quaternions, joints)
         ]
         bodies = len(self.metadata["body_names"])
@@ -65,44 +65,57 @@ class MotionRecorder:
         temporary.replace(path)
 
 
-def load_motion(path: Path) -> dict:
-    with np.load(path, allow_pickle=False) as data:
-        metadata = json.loads(str(data["metadata"]))
-        times, positions = data["time"], data["positions"]
-        count, bodies = len(times), len(metadata["body_names"])
+def _read_motion_arrays(path: Path) -> tuple[dict, dict[str, np.ndarray]]:
+    """Share archive validation without constructing the JSON replay payload.
+
+    Each required member is read once. Returned arrays remain valid after the
+    archive closes; the caller chooses its own representation and copy policy.
+    """
+    with np.load(path, allow_pickle=False) as archive:
+        metadata = json.loads(str(archive["metadata"]))
+        timestamps, positions = archive["time"], archive["positions"]
+        frame_count, body_count = len(timestamps), len(metadata["body_names"])
         if (
-            not count
-            or times.shape != (count,)
-            or positions.shape != (count, bodies, 3)
+            not frame_count
+            or timestamps.shape != (frame_count,)
+            or positions.shape != (frame_count, body_count, 3)
         ):
             raise ValueError("Invalid motion dimensions")
         if (
-            not np.isfinite(times).all()
+            not np.isfinite(timestamps).all()
             or not np.isfinite(positions).all()
-            or times[0] <= 0
-            or (np.diff(times) <= 0).any()
+            or timestamps[0] <= 0
+            or (np.diff(timestamps) <= 0).any()
         ):
             raise ValueError("Invalid motion values or timestamps")
-        for key, shape in (
-            ("quaternions", (count, bodies, 4)),
-            ("joints", (count, len(metadata["joint_names"]))),
+        arrays = {"time": timestamps, "positions": positions}
+        for field_name, expected_shape in (
+            ("quaternions", (frame_count, body_count, 4)),
+            ("joints", (frame_count, len(metadata["joint_names"]))),
         ):
-            if data[key].shape != shape or not np.isfinite(data[key]).all():
-                raise ValueError(f"Invalid motion {key}")
-        for key in ("terminated", "truncated"):
+            field_values = archive[field_name]
             if (
-                data[key].shape != (count,)
-                or data[key].dtype != np.bool_
-                or data[key][:-1].any()
+                field_values.shape != expected_shape
+                or not np.isfinite(field_values).all()
+            ):
+                raise ValueError(f"Invalid motion {field_name}")
+            arrays[field_name] = field_values
+        for field_name in ("terminated", "truncated"):
+            field_values = archive[field_name]
+            if (
+                field_values.shape != (frame_count,)
+                or field_values.dtype != np.bool_
+                or field_values[:-1].any()
             ):
                 raise ValueError("Motion contains frames after a terminal state")
+            arrays[field_name] = field_values
         for edge in metadata["edges"]:
             if len(edge) != 2 or any(
-                type(i) is not int or not 0 <= i < bodies for i in edge
+                type(index) is not int or not 0 <= index < body_count for index in edge
             ):
                 raise ValueError("Invalid motion body connection")
         if "command_schedule" in metadata:
-            end = 0
+            previous_end = 0
             schedule = metadata["command_schedule"]
             if not schedule:
                 raise ValueError("Empty motion command schedule")
@@ -111,23 +124,31 @@ def load_motion(path: Path) -> dict:
                 if (
                     type(segment["start_step"]) is not int
                     or type(segment["end_step"]) is not int
-                    or segment["start_step"] != end
-                    or segment["end_step"] <= end
+                    or segment["start_step"] != previous_end
+                    or segment["end_step"] <= previous_end
                     or not isinstance(segment["segment"], str)
                     or command.shape != (3,)
                     or not np.isfinite(command).all()
                 ):
                     raise ValueError("Invalid motion command schedule")
-                end = segment["end_step"]
-            if end < count:
+                previous_end = segment["end_step"]
+            if previous_end < frame_count:
                 raise ValueError("Motion extends past its command schedule")
-        return {
-            "metadata": metadata,
-            "time": times.tolist(),
-            "positions": np.round(positions.astype(float), 5).tolist(),
-            "terminated": bool(data["terminated"][-1]),
-            "truncated": bool(data["truncated"][-1]),
-        }
+    return metadata, arrays
+
+
+def load_motion(path: Path) -> dict:
+    """Return the validated payload consumed by the offline HTML replay."""
+    metadata, arrays = _read_motion_arrays(path)
+    # JSON replay omits these fields; release validation-only arrays first.
+    del arrays["quaternions"], arrays["joints"]
+    return {
+        "metadata": metadata,
+        "time": arrays["time"].tolist(),
+        "positions": np.round(arrays["positions"].astype(float), 5).tolist(),
+        "terminated": bool(arrays["terminated"][-1]),
+        "truncated": bool(arrays["truncated"][-1]),
+    }
 
 
 def render_motion(path: Path, output: Path) -> None:

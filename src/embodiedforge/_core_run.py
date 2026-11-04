@@ -3,32 +3,17 @@
 import hashlib
 import json
 import logging
+import os
 import shutil
 from pathlib import Path
 from uuid import uuid4
 
-from ._adam_checkpoint import validate_adam_checkpoint
+from .learning.checkpoints import validate_adam_checkpoint
+from .runtime.artifacts import discard_partial
+from .runtime.artifacts import write_json as write_json
+from .runtime.hashing import file_sha256
 
 LOGGER = logging.getLogger(__name__)
-
-
-def write_json(path: Path, value: dict) -> None:
-    temporary = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
-    try:
-        temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
-        temporary.replace(path)
-    except BaseException:
-        _remove_partial(temporary)
-        raise
-
-
-def _remove_partial(path: Path) -> None:
-    try:
-        path.unlink(missing_ok=True)
-    except OSError:
-        LOGGER.warning(
-            "Could not remove partial core PPO artifact %s", path, exc_info=True
-        )
 
 
 def publish_checkpoint(root: Path, checkpoint: dict, optimizer, metadata: dict) -> None:
@@ -50,31 +35,34 @@ def publish_checkpoint(root: Path, checkpoint: dict, optimizer, metadata: dict) 
         raise ValueError("Invalid core PPO checkpoint update count")
     directory = root / "checkpoints"
     directory.mkdir(exist_ok=True)
-    target = directory / f"checkpoint-{updates:09d}.pt"
-    temporary = target.with_name(f"{target.name}.{uuid4().hex}.tmp")
+    # CPython 3.12.0 retains unique pathlib components through interning.
+    # Keep high-volume snapshot and temporary names as filesystem strings.
+    name = f"checkpoint-{updates:09d}.pt"
+    target = os.path.join(os.fspath(directory), name)
+    temporary = f"{target}.{uuid4().hex}.tmp"
     previous = metadata.get("checkpoint")
     try:
         torch.save(checkpoint, temporary)
-        checksum = hashlib.sha256(temporary.read_bytes()).hexdigest()
-        temporary.replace(target)
+        checksum = file_sha256(temporary)
+        os.replace(temporary, target)
     except BaseException:
-        _remove_partial(temporary)
+        discard_partial(temporary, label="core PPO artifact")
         raise
     committed = {
         **metadata,
         "saved_updates": updates,
-        "checkpoint": target.relative_to(root).as_posix(),
+        "checkpoint": f"checkpoints/{name}",
         "checkpoint_sha256": checksum,
     }
     write_json(root / "run.json", committed)
     metadata.update(committed)
     alias = root / "checkpoint.pt"
-    alias_temporary = alias.with_name(f"{alias.name}.{uuid4().hex}.tmp")
+    alias_temporary = f"{os.fspath(alias)}.{uuid4().hex}.tmp"
     try:
         shutil.copyfile(target, alias_temporary)
-        alias_temporary.replace(alias)
+        os.replace(alias_temporary, alias)
     except BaseException:
-        _remove_partial(alias_temporary)
+        discard_partial(alias_temporary, label="core PPO artifact")
         raise
     keep = {committed["checkpoint"], previous}
     for old in directory.glob("checkpoint-*.pt"):
@@ -82,7 +70,7 @@ def publish_checkpoint(root: Path, checkpoint: dict, optimizer, metadata: dict) 
         if (
             number.isdecimal()
             and old.name == f"checkpoint-{int(number):09d}.pt"
-            and old.relative_to(root).as_posix() not in keep
+            and f"checkpoints/{old.name}" not in keep
         ):
             try:
                 old.unlink()
@@ -92,8 +80,9 @@ def publish_checkpoint(root: Path, checkpoint: dict, optimizer, metadata: dict) 
                 )
 
 
-def _resume_manifest(root: Path) -> dict:
-    metadata = json.loads((root / "run.json").read_text())
+def _resume_manifest(root: str) -> dict:
+    with open(os.path.join(root, "run.json"), encoding="utf-8") as stream:
+        metadata = json.load(stream)
     updates = metadata.get("saved_updates")
     if (
         type(metadata.get("schema_version")) is not int
@@ -107,6 +96,11 @@ def _resume_manifest(root: Path) -> dict:
     return metadata
 
 
+def _read_bytes(path: str) -> bytes:
+    with open(path, "rb") as stream:
+        return stream.read()
+
+
 def read_resume(path: str | Path) -> dict:
     """Read verified bytes, retrying a directory reference pruned by live training.
 
@@ -114,15 +108,17 @@ def read_resume(path: str | Path) -> dict:
     source continues independently. At most three reads are attempted if its
     committed progress advances and removes the previously selected snapshot.
     """
-    source = Path(path)
+    # Avoid retaining every live-training checkpoint name in pathlib's intern
+    # table on CPython 3.12.0. Read one immutable byte snapshot as before.
+    source = os.fspath(path)
     metadata = None
-    if source.is_dir():
+    if os.path.isdir(source):
         root = source
         metadata = _resume_manifest(root)
         for attempt in range(3):
-            source = root / metadata["checkpoint"]
+            source = os.path.join(root, metadata["checkpoint"])
             try:
-                payload = source.read_bytes()
+                payload = _read_bytes(source)
                 break
             except FileNotFoundError:
                 newer = _resume_manifest(root)
@@ -130,13 +126,13 @@ def read_resume(path: str | Path) -> dict:
                     raise
                 metadata = newer
     else:
-        payload = source.read_bytes()
+        payload = _read_bytes(source)
     checksum = hashlib.sha256(payload).hexdigest()
     if metadata is not None and checksum != metadata.get("checkpoint_sha256"):
         raise ValueError("Core PPO checkpoint hash mismatch")
     return {
         "payload": payload,
         "sha256": checksum,
-        "source": str(source.resolve()),
+        "source": os.path.realpath(source),
         "saved_updates": metadata["saved_updates"] if metadata is not None else None,
     }

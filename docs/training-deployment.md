@@ -23,9 +23,9 @@
 
 ONNX 评估的用途因入口而异：[Microduck 的 `evaluate --onnx`](microduck.md) 还需要 checkpoint，用实际观测对照动作，仿真由 PyTorch 驱动；[RLinf 的 `evaluate --onnx`](rlinf.md) 单独加载导出策略，用 CPU ONNX 动作直接驱动 PickCube；[SONIC 的 `evaluate`](humanoid-motion.md) 使用固定 bundle 的预训练 ONNX 和配套控制参数，直接驱动 X2 MuJoCo 仿真。
 
-GMR 的参考动作回放、SONIC 的模型体积、控制预设和外力消融见[人形动作接入实验](humanoid-integration-study-20260928.md)。
+GMR 的参考动作回放、SONIC 的模型体积、控制预设和外力消融见[人形动作接入实验](experiments/humanoid-integration-study-20260928.md)。
 
-RLinf 的连续训练、完整状态续训及 ONNX 闭环命令与实测结果见 [2026-09-28 续训对照](rl-resume-study-20260928.md)，包含两个训练种子的全部比较结果和模型、保存点大小。另见 [压缩与后训练实验](rl-compression-study-20260928.md)，包含 FP16/INT8 存储导出命令、动态 INT8 逐层消融及推理 batch 对照。
+RLinf 的连续训练、完整状态续训及 ONNX 闭环命令与实测结果见 [2026-09-28 续训对照](experiments/rl-resume-study-20260928.md)，包含两个训练种子的全部比较结果和模型、保存点大小。另见 [压缩与后训练实验](experiments/rl-compression-study-20260928.md)，包含 FP16/INT8 存储导出命令、动态 INT8 逐层消融及推理 batch 对照。
 
 **训练实际使用哪份实现？** `train` 使用核心 `VectorEnv`。Go1 和 `h1-native` 使用本仓库维护的机器人环境与 PPO，但尚未接入核心 `VectorEnv`；MuJoCo/mjbatch 仍负责底层物理计算。Go1 可使用 `--standalone` 从已安装依赖启动；默认模式仍使用固定版本的 mjbatch SDK 检出。`h1` 命令使用 IsaacLab，`h1-native` 不使用。统一 Web 查看器是独立可视化入口，不是训练环境。
 
@@ -299,7 +299,7 @@ python -m embodiedforge h1-native evaluate --headless \
   --output runs/commands-h1-native-eval
 ```
 
-128 环境、5000 轮起始预算来自 [三种子实验](rl-training-study-20260925.md)。训练或续训完成不等于行走合格，仍需通过上述评估阈值。示例只覆盖前进；站立和左右转向应另换 `--velocity` 及输出目录分别评估。本轮较小批量的 [保存点对照](h1-checkpoint-publication-20260929.md) 用于验证软件一致性，不能作为部署配方。
+128 环境、5000 轮起始预算来自 [三种子实验](experiments/rl-training-study-20260925.md)。训练或续训完成不等于行走合格，仍需通过上述评估阈值。示例只覆盖前进；站立和左右转向应另换 `--velocity` 及输出目录分别评估。本轮较小批量的 [保存点对照](experiments/h1-checkpoint-publication-20260929.md) 用于验证软件一致性，不能作为部署配方。
 
 默认评估使用标称起点。要覆盖不同初始状态，可添加 `--randomized-reset --num-envs 32 --seed 9701`，并使用新输出目录；它采样训练内的初始状态和物理随机化，保持固定指令、关闭观测噪声。范围和统计口径见 [H1 评估说明](h1-native.md#评估与网页回放)。
 

@@ -1,0 +1,2405 @@
+{
+  "schema_version": 1,
+  "stage": "Completed bounded optimization and validation; previous interpreter GC exit failure remains unresolved",
+  "started_utc": "2026-10-21T15:11:22.160597+00:00",
+  "deadline_utc": "2026-10-21T20:11:22.160597+00:00",
+  "last_updated_utc": "2026-10-22T02:44:23.397906+00:00",
+  "baseline": {
+    "scope": "Dirty source/test/documentation worktree as received at start of this five-hour continuation; earlier edits preserved",
+    "archive": "/tmp/embodiedforge-fivehour-20261021/baseline.tar.gz"
+  },
+  "changes": {
+    "src/embodiedforge/__init__.py": {
+      "baseline_sha256": "b398f568b4528c2eb0deab750f0c18f2d5ed33a1737d5a39d8d1201911a1ba78",
+      "candidate_sha256": "d391fb624b9e35f78448d62574facf4113fb74921d6f56af1c8b7d8a6b97a058"
+    },
+    "src/embodiedforge/_go1_metrics.py": {
+      "baseline_sha256": "1df410bbe1063aae082114fe1a496343adeecd8b4a3bf474ff8bc3763dac96f7",
+      "candidate_sha256": "344b5658747add044dd4931eaa94eff7e7b9e52fc28075dfe62bd6af36a3a8b1"
+    },
+    "src/embodiedforge/_mjbatch_recipe.py": {
+      "baseline_sha256": "a1fc6b431476e844e9f1c413888b21aaad09a66782d951d26379a06247c1f215",
+      "candidate_sha256": "ab0f2bd85c875e5a965ffb808585e41b7b7d7c4ca29eb19cbdb96f59e7e1dc36"
+    },
+    "src/embodiedforge/recipes.py": {
+      "baseline_sha256": "d90bc26026795f77baccd3d72389108cf7678c4c6904bda8d274a108a6268f8a",
+      "candidate_sha256": "4c7ee069b01bdb76443be05739052246dc7966e83d75823239995003c99a6be8"
+    },
+    "src/embodiedforge/cli.py": {
+      "baseline_sha256": "5343d3a7eb2ba3c990fe31a79ac2cd1cc59a118417ebd2cd6574730276f66116",
+      "candidate_sha256": "e6d10cfaac65ce530df940c4c4b59b68c020edbbcaf4e7c96e8b80170743205e"
+    },
+    "src/embodiedforge/runtime/process.py": {
+      "baseline_sha256": "4618c4d0048b9b0009c59b71840ccbc96cbaf1cae250e5ce3a56b766ac25d46f",
+      "candidate_sha256": "c929ce1da0a21b05d6297368428b23aa7b07db00f8b3fe87c81ec5e54f1ef076"
+    },
+    "src/embodiedforge/workflows/recipe_validation.py": {
+      "baseline_sha256": "a829c65d0f8f6299c3341fd19bfb839e8711633760d2960d84a057d4ebd98bb3",
+      "candidate_sha256": "56b692dac40b445173aab67dd7746c51fd2d21d23370a87be144afbe02222030"
+    },
+    "src/embodiedforge/workflows/recipe_catalog.py": {
+      "baseline_sha256": "373846fbf07af648909b638e712bf7dac229fa6bc1a1de42b2ce7759d11e5ab9",
+      "candidate_sha256": "458890b4a75c4e57bc00e61ce1227e02096caff7c7a1209eb5080e2afec430ca"
+    },
+    "tests/test_run_lifecycle.py": {
+      "baseline_sha256": "ca9ff435907f9f34a330c49589de45e418d13295e371f37b5923a86aa245b9cf",
+      "candidate_sha256": "1dca995d5f9db26e234689284008adcf1375a4145ab526730d87f07c2ff30dd8"
+    },
+    "tests/test_process_startup.py": {
+      "baseline_sha256": "e69af0be29fc7800904c2ccc993fe8edc61d6801a3a1fa292898b7f453f2f475",
+      "candidate_sha256": "137d8c3804247934ff3285078cf75691cb296fbca8e8606f1ed86bdcd97a0b7d"
+    },
+    "tests/test_async_recorder.py": {
+      "baseline_sha256": "020daaaeac5fe4704031f2874ca5d23dadfba6547be811bfe7b62026ea326d66",
+      "candidate_sha256": "3dab976482adfac5c66cfea4a7a0ed68e073b2be1f721c25cb2eae9f72b6db9d"
+    },
+    "tests/test_process_logs.py": {
+      "baseline_sha256": null,
+      "candidate_sha256": "2a5bd993eba26577498667d8793e9691575e51ad21d01613c052cf4b3bfc0478"
+    },
+    "tests/test_import_boundaries.py": {
+      "baseline_sha256": null,
+      "candidate_sha256": "769c4da4cfdb5b2b877f94c5e5bffb7349e38853ad15af88800726781905d94b"
+    },
+    "benchmarks/process_lifecycle_soak.py": {
+      "baseline_sha256": null,
+      "candidate_sha256": "96beb5176c007fbe021f3fc86ddbe6083a260d152b1731c8095f492fcfa679f4"
+    },
+    "benchmarks/import_startup.py": {
+      "baseline_sha256": null,
+      "candidate_sha256": "b4209b2be0bbca833fe361ee9d362ad32c57054bf1e847d6f55857c80a943956"
+    },
+    "docs/run-records.md": {
+      "baseline_sha256": "a42dd8609fcf7fa6d573129871fe84ed5fdfc77223e8c114c6ba73d348350fa3",
+      "candidate_sha256": "d08893bda607f3cd98257c27480c151032c1404f385d60a2948cf9cb2f650255"
+    },
+    "docs/current-architecture.md": {
+      "baseline_sha256": "be8b1c3801914be27db537337092cac3113abedf239574f90e0437b4c6802ea3",
+      "candidate_sha256": "aedca31a79e1478adab13d486cabc2f6480785aa54657e642d2dfff40f9a96f6"
+    },
+    "docs/experiments/README.md": {
+      "baseline_sha256": "cbd0eeffa4cca89cdc93241a8faec7945b196cd8eecb836ed58ef42381fab652",
+      "candidate_sha256": "8086bf9b373655d4cd4000dd31774c52e2c65a9de1446d99a7a5a10074d3e656"
+    }
+  },
+  "source_hashes": {
+    "process_lifecycle_soak.py": "96beb5176c007fbe021f3fc86ddbe6083a260d152b1731c8095f492fcfa679f4",
+    "import_startup.py": "b4209b2be0bbca833fe361ee9d362ad32c57054bf1e847d6f55857c80a943956",
+    "src/embodiedforge/_act_bundle.py": "ac4db52202c51ebe8e65a7ede6558807900a537ced74492ba3a186b6dae33f96",
+    "src/embodiedforge/_act_dataset.py": "b56ed1bd023f5b910fbf0508cc49d105883fce8c99f255fb6bba487f5d9b6f17",
+    "src/embodiedforge/_h1_motion.py": "f647ac363aeb00d2a3ccfdf131dcec396d699a3d58a76afce085a07ef638ec52",
+    "src/embodiedforge/h1.py": "50836e8d92a3b5840c2b031e6b45c100f251e74c0b42a8208c7319f9ce4ab4a4",
+    "src/embodiedforge/_go1_recovery.py": "1175af625a624c483cea23251b86c109fab5d7bca2774cea416b8f3e2ed5ecbf",
+    "src/embodiedforge/_rlinf_export.py": "0607652b06fc15a0fa71e51cbaf065de65e6bf93258106840b6dc9bf572118e1",
+    "src/embodiedforge/_core_run.py": "ad3b23a57a7f8665dd832016a29bf5ebfacce667a9d84caed473a6fc8e90aef9",
+    "src/embodiedforge/_act_compare.py": "653414ed69604f9802f54b0b9d5b7bcc4feaa3121db1f08254a878785caf944a",
+    "src/embodiedforge/_microduck_native_worker.py": "4b70966a42da1be74ed6078d0e8bec2d339a30b442bb7f5a69f0c50c024484d4",
+    "src/embodiedforge/_rlinf_onnx.py": "6f8280525f64e9934bcd2034cf9b27eab47e571713c472f6576a7ed158b4af8b",
+    "src/embodiedforge/_act_checkpoints.py": "2c1104ca5f501885b7359ac87c23540d13bcb5aaf8e6d11bbc54fd536f6fee80",
+    "src/embodiedforge/native_h1.py": "e197795d32572f2454b57279201713866885f4929782ac5c5798998f0580b3f9",
+    "src/embodiedforge/sonic.py": "926423c99437256fc00147363eebf05d37eb167471ab84cd565391f3a3282e87",
+    "src/embodiedforge/_rlinf_worker.py": "2dea8bd3fe64993ebaa18dfc607f3be5fe900deeb178da2b16d3f50a61323558",
+    "src/embodiedforge/diagnostics.py": "982d60b6d88a0c857b996bcefe2d032d6f3efd0d5a22ee085b3ad8fd316d7877",
+    "src/embodiedforge/batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+    "src/embodiedforge/tasks.py": "3084c5f8c4019a5443c9796523f7b366a46b1adb9821d1d6733fe902ff1643b9",
+    "src/embodiedforge/_h1_worker.py": "5674e9b60d3a2b71ef371907b2d052223dda427fef190aba509103d44eecef89",
+    "src/embodiedforge/_microduck_run.py": "85e7c0a34e8268cc83b60db76a9dd67e97699cd27a3723d8d36064f5ea92ea76",
+    "src/embodiedforge/_go1_resume.py": "c1be5aba21c461552178374d60fceeda028b45fba48899a9f608d95f3a3cfe8b",
+    "src/embodiedforge/robot_replay.py": "dd13bd3fcf8045ea093bcf09daf5a50b09a7595517be05c7065b941cb7853440",
+    "src/embodiedforge/env.py": "1a4126796e12df4d4f1b082f3fa92df03b0248384bca083c414bbc196841c95c",
+    "src/embodiedforge/_go1_assets.py": "5fff5b621c6069549190dc8a50f396ccffa43e396c37428e1f5e4c3a513f4d70",
+    "src/embodiedforge/core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+    "src/embodiedforge/_adam_checkpoint.py": "47e13a0278a38debc5c27dfac5924af1b79658f7e5fda91c4c50c0104208e8f9",
+    "src/embodiedforge/_weave_evaluation.py": "7bfcd64c31750c952b8a4ad94ed2b4441709742f6042506ef396487aed4ca924",
+    "src/embodiedforge/policies.py": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+    "src/embodiedforge/_motion_clips.py": "426515cdfadb024efa98f19c3f6113d65b5ba007c977fb9ecf2f5511ecfcc730",
+    "src/embodiedforge/_wuji_recipe.py": "f181d8f6816051642e466fe06a7ca2169877dea53bf43e4463d77873d1d4c53b",
+    "src/embodiedforge/motion.py": "9319696b86a02f011127be9d81141b798361cce603cea10a115c6e5cec4d65ea",
+    "src/embodiedforge/training.py": "c967aec79e5e9686883f4e3d6318aae6ca7eec4c9cf4db01c422acf9e052264e",
+    "src/embodiedforge/microduck.py": "b94f872ee1f99a7ca01fdc3021dc923c8b7a839df5147f0fa39994b685d1b3ff",
+    "src/embodiedforge/graphics.py": "4e0fe21c13a433cc2552fa4024fb4f03effc6619d0ccaf45e5f91cdef6624107",
+    "src/embodiedforge/__init__.py": "d391fb624b9e35f78448d62574facf4113fb74921d6f56af1c8b7d8a6b97a058",
+    "src/embodiedforge/_go1_metrics.py": "344b5658747add044dd4931eaa94eff7e7b9e52fc28075dfe62bd6af36a3a8b1",
+    "src/embodiedforge/_sonic_worker.py": "d58a4657e4d49e3ec1784e7281fad3b3c430867814a4bf42a565407bf63c86e5",
+    "src/embodiedforge/gmr.py": "488a5437edfe57c2d69d1dad11f64ea3cfed35d72887c0fae6ada5893433586e",
+    "src/embodiedforge/_go1_live_worker.py": "2684446a771c8617a9cb9e44ae05044836e74cba10bcbb1dd26738902c92dc7b",
+    "src/embodiedforge/weave.py": "9a3f178d542c38c08aaec43b4b17711ef56b61430ceb3b64ddd5a999851da04f",
+    "src/embodiedforge/_go1_implementation.py": "54c870d858f0bdf022adc37cbefb8213c837a00579dcab847c88d6b7c03f2e91",
+    "src/embodiedforge/sensors.py": "89ce41ca3366655380b7029ca8fd7df6a36ecd01b2344ca6e2fe9a65277088f4",
+    "src/embodiedforge/rlinf.py": "8a0faf418871d6e3f0379e826e92113da5b189eea762b5c4e50850096415780c",
+    "src/embodiedforge/_microduck_export.py": "c37f6fca760fe5d788847600f14b7008826c76ce32ca25c70953d6affed0447a",
+    "src/embodiedforge/_go1_checkpoint.py": "f3c77adccaf059a65afa9af3275f913e94bc949c17a814ff861012802d6abbc5",
+    "src/embodiedforge/_go1_training_viewer.py": "d92a43fb4783a1b872bd2375c84cdb44bb1ef77ae741f1545858c6fd0d145e9c",
+    "src/embodiedforge/_weave_worker.py": "42a8aba555d467b854496e544a4566a537415e9092a3b60c2218710d7bb78bca",
+    "src/embodiedforge/_microduck_process.py": "eb4c2a848e8d58a4455d4e65529181686b48c18763cc9a81b96c4832a30a222f",
+    "src/embodiedforge/_mjbatch_recipe.py": "ab0f2bd85c875e5a965ffb808585e41b7b7d7c4ca29eb19cbdb96f59e7e1dc36",
+    "src/embodiedforge/_ppo_parameters.py": "21b6d6bf3b69f31efea9ee56d60ea0aa6c4f981b22628c6616ba8ae22f62802f",
+    "src/embodiedforge/__main__.py": "a2b6d2c663999e08203c72c9206a9bdd32acf47b8303ea123a4e7ee5727a2d41",
+    "src/embodiedforge/visualization.py": "67e1c40009f25ee033461883fb308c3937a719f50c313b3abfaa8c0185454e18",
+    "src/embodiedforge/_microduck_inputs.py": "1bfe9afe0ad282d638d720bf93254baf92bb8dbea458adcda16e7d9879d56f6e",
+    "src/embodiedforge/go1_live.py": "a6402bbeae668ce0692a89388fb9518f48cb456763dd659754be6e95738aea96",
+    "src/embodiedforge/_wuji_diagnostics.py": "99ed83e5a3b8cd5bd6092771e83ff5de02664c7d90776d22f3b138433aa73c8b",
+    "src/embodiedforge/rollout.py": "c5a9fe02142c74951fceb4821defe6f9135425b87056f25ea1fc66e201cd1197",
+    "src/embodiedforge/logging.py": "afe275a1536239248212b8bce7ff5ad4bc5cf0c9104fad9222cb3b0bd2194f8e",
+    "src/embodiedforge/_microduck_native.py": "e3987b472ca8ce3bfa49afde467e633d595215636d126f78e37d1011c547b3e3",
+    "src/embodiedforge/_wuji_training_viewer.py": "495c9941c0f96935217485d93c97b91385de78668ad607a5932e9dabc906af9d",
+    "src/embodiedforge/_live_channel.py": "508f6b50564f3a9381e641c788da605b10bcea345c0b89af6c6a762db0ecb37b",
+    "src/embodiedforge/_h1_metrics.py": "0c0c5dcf61ad931fa658a5c1520667b0f9f68a2723a75e5b0220f2ff10e4a145",
+    "src/embodiedforge/_recipe_worker.py": "f86fbd0465015fa5c9c867a17a076d3229cb1ed9bee89a19e1ae462aedcebff8",
+    "src/embodiedforge/recipes.py": "4c7ee069b01bdb76443be05739052246dc7966e83d75823239995003c99a6be8",
+    "src/embodiedforge/cli.py": "e6d10cfaac65ce530df940c4c4b59b68c020edbbcaf4e7c96e8b80170743205e",
+    "src/embodiedforge/_h1_evaluate.py": "ec33235d2745f556491eaae2f9b3e5bfb2161727ba7fa12c99ae9fb34373c373",
+    "src/embodiedforge/_training_runtime.py": "8f65ce811678846171b8e4c7816f8fb379493ecf09d323fe5d3477a6401f20c3",
+    "src/embodiedforge/data.py": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a",
+    "src/embodiedforge/_microduck_worker.py": "4c434241331db365f3321cd08f292ea782e1ef2021a08c0d9e6880942eaac819",
+    "src/embodiedforge/_motion_sdk.py": "e89910098fdec6917db874e871d07d401e7760eba53de4839766c3a322108ceb",
+    "src/embodiedforge/_hashing.py": "a769db9586d8e400abe43c1cd60a89e76bbcb73c30ab337c340ad69d448cc7c2",
+    "src/embodiedforge/_gmr_worker.py": "28dc6add27f3173baddcddb7364f4ca3c7adda4320f0e4fe0f7a6d2bdb097a7a",
+    "src/embodiedforge/_microduck_reports.py": "5d6753a553dc959b29e1967800ce85bc1c0be81433181fcbf1852f33708db3ee",
+    "src/embodiedforge/act.py": "c1d859378dab9ff0e7b89f96c1147e796a164dba0446e038dbc1a484f792b303",
+    "src/embodiedforge/runtime/process.py": "c929ce1da0a21b05d6297368428b23aa7b07db00f8b3fe87c81ec5e54f1ef076",
+    "src/embodiedforge/runtime/implementation.py": "21abf68d58c7088b11e77b24f9fd1d3370043a81ed17c25fc1b20badcae15a9b",
+    "src/embodiedforge/runtime/__init__.py": "54183b39a8671d49bf1a6fad5a13275216c57c0a6e0da0f069d189e34d5179a7",
+    "src/embodiedforge/runtime/hashing.py": "d38691a91e524f71e276fd249e14f937270ea0d2834d6bd69e58925fb1b756ac",
+    "src/embodiedforge/runtime/environment.py": "660ce71471f340e0031a1bc61da1881ca6b962e92f7b9667b10fa194c8655b1f",
+    "src/embodiedforge/runtime/artifacts.py": "e378358f73aa2a442760a7298b533f3f2186da697cee2d20e30744a7f4e94d2a",
+    "src/embodiedforge/runtime/provenance.py": "baa700a66e7120f490a1a08ff1247590566a0b8803114abc6acf96a6a9c02aa3",
+    "src/embodiedforge/runtime/records.py": "0981654c63eec99a046adb934f334f2fa7aa3befec4f51217249de6bf267c217",
+    "src/embodiedforge/backends/physics.py": "83890aca7e1bb5c169051419d5626e1a775eadba8cca7f527cb6c01e5787c7cb",
+    "src/embodiedforge/backends/newton.py": "9cd3860f3ed2db508006d6d2242a7f6c5dd2d8e016b5d8dd668bae11b93561f0",
+    "src/embodiedforge/backends/__init__.py": "7c3caf1568fe29afb073e8d8eff670ea3d15259f7db7895758212aa4238450dd",
+    "src/embodiedforge/backends/render.py": "0a1c5f8de49ac1ba37869bc3101c99cc0bf825253fbc785c2229cd04bca5514f",
+    "src/embodiedforge/backends/mjbatch.py": "5127cb1828f7441c1735755919c46e131b1e69a4074b5e59483604c1b6f0269f",
+    "src/embodiedforge/envs/specs.py": "7e51421ef5adde171cba638ed2269af6460e54a655262e6b54edbe07b4a84f9b",
+    "src/embodiedforge/envs/__init__.py": "e3b2bb542e23907ed5189c785bb03a01f5548d76cddca57338dccab04d3fe6a7",
+    "src/embodiedforge/envs/evaluation.py": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc",
+    "src/embodiedforge/envs/observations.py": "275a09fab837307f9977d6ec01a3967054a6ce33adec95320d53bb50494e3e0f",
+    "src/embodiedforge/envs/locomotion.py": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+    "src/embodiedforge/envs/base.py": "05fd6dfac9049d94ebbd316c570356806298614d528fb88c475dd1f0f7fc95c6",
+    "src/embodiedforge/workflows/recipe_progress.py": "cc9c7076d303284cdceedeccb5709459446be38661a0d45cf1a9d0ad4eeb292e",
+    "src/embodiedforge/workflows/rlinf_catalog.py": "248ca931bc7b53bb9b57f3e6b7f273c0b61e61574039522e059e2187a05cf722",
+    "src/embodiedforge/workflows/recipe_validation.py": "56b692dac40b445173aab67dd7746c51fd2d21d23370a87be144afbe02222030",
+    "src/embodiedforge/workflows/__init__.py": "60fb3d9f7d42647a215f2be0bf621f6eb07938a68e40697e4e14e992019781b1",
+    "src/embodiedforge/workflows/rlinf_artifacts.py": "80914298f80d9b8eebc1d553d69df4503e9032129ac8201d45075bacc7e67623",
+    "src/embodiedforge/workflows/recipe_catalog.py": "458890b4a75c4e57bc00e61ce1227e02096caff7c7a1209eb5080e2afec430ca",
+    "src/embodiedforge/workflows/go1_settings.py": "20773588df42f7049e7305ac8d2e6b67b79750fa2db47be96d31762e12ae9c16",
+    "src/embodiedforge/workflows/recipe_artifacts.py": "beaeec23c86757884a69c0de4cf824449c12f0edbec2be95f59b8e832f271ae1",
+    "src/embodiedforge/viewers/frames.py": "c3982a32ef06ae813106ed46fa9dbc44271d6437378034f9f095694d9896972e",
+    "src/embodiedforge/viewers/newton.py": "d55e2514f06be3702e9e5f1ce55c724308afcf30b4756026c65735843ccfb259",
+    "src/embodiedforge/viewers/__init__.py": "5df57a38fcc577cfe5fb3bfefc41a4cd57441b0b0c2d136afb8d7616e0543383",
+    "src/embodiedforge/viewers/rtx.py": "4d0108d9f997429a46620995c4de810f335c749dcad04d61bd1129e03252e49c",
+    "src/embodiedforge/viewers/web.py": "c087cd064425ab6cb72e11fcc0d306995cfacb979b1c534b4d0c0bb439a7511f",
+    "src/embodiedforge/viewers/viser.py": "6e253b29bf3ca21dbd14eebf6ec0226cfc6499d859e7f9f95a39c75b16348f13",
+    "src/embodiedforge/viewers/robot.py": "c3b83ca63c5da31718b7976c8897ec9501c7dd3a30fd634098fd539182d9c4a9",
+    "src/embodiedforge/viewers/style.py": "a42c5a4114214a6934857818bb2bf745755da40f80fc7e36d8f6732435f4ba60",
+    "src/embodiedforge/viewers/dependencies.py": "68cfe76e444e624791e0cde332a8e0280a36bfb33b97841c8b10ce8d68ef5460",
+    "src/embodiedforge/viewers/timing.py": "53765d3b3dd7f3352415793dd63a60fcb1dd44bdb65b62de0a946af659a63416",
+    "src/embodiedforge/learning/__init__.py": "fc42e81d53edb034ce1130bdc217ecfa08f5f469062576ed9649570cbb9d7bb9",
+    "src/embodiedforge/learning/checkpoints.py": "e6635c3aba8ddbe90652d31be6ae9b7a8a18c73b7144935ac39037a15ad2f9e4",
+    "src/embodiedforge/learning/advantages.py": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+    "src/embodiedforge/learning/parameters.py": "a1417de3bda65982d1dc6cc639560dbbf80cee3fcbf42b8e96079674408e64d2",
+    "src/embodiedforge/locomotion/h1_native.py": "58651c65fc15fb14a5305c99dd8572c1df9df1258f5d0f393fff92f7968f724c",
+    "src/embodiedforge/locomotion/go1_config.py": "8e0e6636ed0f8c88da31ad1091b1e4b8c779f71f761eb2d795bd1ee203c93549",
+    "src/embodiedforge/locomotion/articulation.py": "58a0abde71ebee6db3dfd11edd994f0673ce355c1ea98357ba0ad59c03be1f6c",
+    "src/embodiedforge/locomotion/go1_ppo.py": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce",
+    "src/embodiedforge/locomotion/h1_ppo.py": "f88a1cda6fe969c4d95b7716cbe813f701c1a24820c38feb03f3c66acd1bc170",
+    "src/embodiedforge/locomotion/__init__.py": "67e07baec885bd1353838c537f8c2df43fb405ebf341b6e9e60cc8f56ee37428",
+    "src/embodiedforge/locomotion/go1_light_loco.py": "99cac844466dd804bad88cbcfc82e14176e3b93ccf125736c2309ffc64aa4b54",
+    "src/embodiedforge/locomotion/h1_config.py": "5e6be344733fa1792d8977b43a699f3385dfc77218a73f68f64453565c052bcf",
+    "src/embodiedforge/locomotion/go1.py": "fb4567b2f4512858b89b5114224d69b2fc8c56cc0b87fab0b5316b62f1c3094d",
+    "src/embodiedforge/locomotion/microduck/__init__.py": "7c93bc82c7bd846e18b67c918e136a2721d41e17737ffca2012dccb5c38c399c",
+    "src/embodiedforge/locomotion/microduck/checkpoint.py": "82fdc32abdab1f5beb7dabbe7061d89f0efe1d121b664661dc12ec894e721105",
+    "src/embodiedforge/locomotion/microduck/export.py": "3bac4b1626abd2b02e060decaabbd313e74ca507fe4e876a10ae536d7a90e7fe",
+    "src/embodiedforge/locomotion/microduck/actuator/friction_dr_bam.py": "03d0461caf973419bbd3f746f2cba73fe9464d00ae59ff3e8f8cd158d8f2e832",
+    "src/embodiedforge/locomotion/microduck/actuator/__init__.py": "b8a82f30822166f14e0bcd7730d67153908097c2353c4d0cdbf3c51d9ad475cc",
+    "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+    "src/embodiedforge/locomotion/microduck/tasks/symmetry.py": "f84f19cc1f93afa7cb1d6e98152a70dcf7f38d6df0720d8675ed8ea93c663941",
+    "src/embodiedforge/locomotion/microduck/tasks/microduck_velocity_env_cfg.py": "02ef1c12bef07fd591b8a9cdd85e46bd0de8fd674b82569528bb1c29de42945c",
+    "src/embodiedforge/locomotion/microduck/tasks/__init__.py": "0e8069547a5ad8b20307adc16a77825660cf3acc3cecf118b7293d5c88a1234d",
+    "src/embodiedforge/locomotion/microduck/robot/__init__.py": "26782f5a79ab0206de698956d9c4ca3879d99b3bbd8080654e773a2530f08181",
+    "src/embodiedforge/locomotion/microduck/robot/microduck_constants.py": "cbd2a8ed29a42b3eb7184ddab51df77f2bb0c8239e2450e1373465ff92f050e0"
+  },
+  "tests": {
+    "frozen-main-suite": {
+      "tests": 3319,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 80,
+      "passed": 3239,
+      "xml": "/tmp/embodiedforge-fivehour-20261021/frozen-main-suite.xml",
+      "xml_testcases": 3319,
+      "passed_including_xml_subtests": 3239,
+      "subtests_passed": 0
+    },
+    "frozen-native-suite": {
+      "tests": 3388,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 59,
+      "passed": 3329,
+      "xml": "/tmp/embodiedforge-fivehour-20261021/frozen-native-suite.xml",
+      "xml_testcases": 3413,
+      "passed_including_xml_subtests": 3354,
+      "subtests_passed": 25
+    },
+    "frozen-act-sdk": {
+      "tests": 82,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 82,
+      "xml": "/tmp/embodiedforge-fivehour-20261021/frozen-act-sdk.xml",
+      "xml_testcases": 82,
+      "passed_including_xml_subtests": 82,
+      "subtests_passed": 0
+    },
+    "frozen-microduck-sdk": {
+      "tests": 84,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 84,
+      "xml": "/tmp/embodiedforge-fivehour-20261021/frozen-microduck-sdk.xml",
+      "xml_testcases": 84,
+      "passed_including_xml_subtests": 84,
+      "subtests_passed": 0
+    },
+    "sdist-tests": {
+      "tests": 91,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 91,
+      "xml": "/tmp/embodiedforge-fivehour-20261021/sdist-tests.xml",
+      "xml_testcases": 91,
+      "passed_including_xml_subtests": 91,
+      "subtests_passed": 0
+    },
+    "final-sdist-tests": {
+      "tests": 111,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 111,
+      "xml": "/tmp/embodiedforge-fivehour-20261021/final-sdist-tests.xml",
+      "xml_testcases": 111,
+      "passed_including_xml_subtests": 111,
+      "subtests_passed": 0
+    }
+  },
+  "startup": {
+    "py310": {
+      "embodiedforge": {
+        "baseline_median_ms": 118.73235900202417,
+        "candidate_median_ms": 19.455608999123797,
+        "latency_reduction_percent": 83.61389501341239,
+        "baseline_median_rss_bytes": 32155648.0,
+        "candidate_median_rss_bytes": 10584064.0,
+        "rss_reduction_percent": 67.08489905101587,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "embodiedforge.runtime.process": {
+        "baseline_median_ms": 109.28902649902739,
+        "candidate_median_ms": 26.187637999100843,
+        "latency_reduction_percent": 76.03818165647775,
+        "baseline_median_rss_bytes": 32675840.0,
+        "candidate_median_rss_bytes": 12165120.0,
+        "rss_reduction_percent": 62.77029144468818,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "embodiedforge.runtime.records": {
+        "baseline_median_ms": 115.99826499877963,
+        "candidate_median_ms": 29.62510200086399,
+        "latency_reduction_percent": 74.46073697638869,
+        "baseline_median_rss_bytes": 32817152.0,
+        "candidate_median_rss_bytes": 14522368.0,
+        "rss_reduction_percent": 55.747628557164255,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "runs-inspect": {
+        "baseline_median_ms": 137.0458344972576,
+        "candidate_median_ms": 38.86897450138349,
+        "latency_reduction_percent": 71.63797451854599,
+        "baseline_median_rss_bytes": 35770368.0,
+        "candidate_median_rss_bytes": 16744448.0,
+        "rss_reduction_percent": 53.18905301729073,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:recipes": {
+        "baseline_median_ms": 137.45594399733818,
+        "candidate_median_ms": 44.73227400012547,
+        "latency_reduction_percent": 67.45701007954105,
+        "baseline_median_rss_bytes": 35981312.0,
+        "candidate_median_rss_bytes": 17020928.0,
+        "rss_reduction_percent": 52.695087938983434,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:microduck": {
+        "baseline_median_ms": 125.91619500017259,
+        "candidate_median_ms": 54.10264049714897,
+        "latency_reduction_percent": 57.03281813981529,
+        "baseline_median_rss_bytes": 36210688.0,
+        "candidate_median_rss_bytes": 19441664.0,
+        "rss_reduction_percent": 46.30959787342345,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:h1": {
+        "baseline_median_ms": 139.06602399947587,
+        "candidate_median_ms": 41.013073503563646,
+        "latency_reduction_percent": 70.50820011671706,
+        "baseline_median_rss_bytes": 35846144.0,
+        "candidate_median_rss_bytes": 16924672.0,
+        "rss_reduction_percent": 52.78523681654573,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:rlinf": {
+        "baseline_median_ms": 121.71336749815964,
+        "candidate_median_ms": 41.448977499385364,
+        "latency_reduction_percent": 65.94541885466107,
+        "baseline_median_rss_bytes": 35858432.0,
+        "candidate_median_rss_bytes": 16924672.0,
+        "rss_reduction_percent": 52.80141641441545,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:gmr": {
+        "baseline_median_ms": 145.3331939992495,
+        "candidate_median_ms": 38.98419650067808,
+        "latency_reduction_percent": 73.175985865363,
+        "baseline_median_rss_bytes": 35837952.0,
+        "candidate_median_rss_bytes": 16885760.0,
+        "rss_reduction_percent": 52.88302188696497,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:sonic": {
+        "baseline_median_ms": 134.30130149936303,
+        "candidate_median_ms": 40.36842950154096,
+        "latency_reduction_percent": 69.9418925573611,
+        "baseline_median_rss_bytes": 35835904.0,
+        "candidate_median_rss_bytes": 16869376.0,
+        "rss_reduction_percent": 52.92604869127901,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      }
+    },
+    "py3120": {
+      "embodiedforge": {
+        "baseline_median_ms": 119.72737450196291,
+        "candidate_median_ms": 37.23086200261605,
+        "latency_reduction_percent": 68.90363448001138,
+        "baseline_median_rss_bytes": 37249024.0,
+        "candidate_median_rss_bytes": 19820544.0,
+        "rss_reduction_percent": 46.789091708819,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "embodiedforge.runtime.process": {
+        "baseline_median_ms": 101.57619250094285,
+        "candidate_median_ms": 39.64591349722468,
+        "latency_reduction_percent": 60.969285694719574,
+        "baseline_median_rss_bytes": 37865472.0,
+        "candidate_median_rss_bytes": 20559872.0,
+        "rss_reduction_percent": 45.70285034344745,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "embodiedforge.runtime.records": {
+        "baseline_median_ms": 112.56003299786244,
+        "candidate_median_ms": 40.21411649955553,
+        "latency_reduction_percent": 64.27318344840995,
+        "baseline_median_rss_bytes": 38027264.0,
+        "candidate_median_rss_bytes": 20912128.0,
+        "rss_reduction_percent": 45.00753985351141,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "runs-inspect": {
+        "baseline_median_ms": 135.55361700127833,
+        "candidate_median_ms": 43.68873649946181,
+        "latency_reduction_percent": 67.77014330864384,
+        "baseline_median_rss_bytes": 40488960.0,
+        "candidate_median_rss_bytes": 21426176.0,
+        "rss_reduction_percent": 47.08143651997977,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:recipes": {
+        "baseline_median_ms": 141.21155999964685,
+        "candidate_median_ms": 44.45916799886618,
+        "latency_reduction_percent": 68.51591470345817,
+        "baseline_median_rss_bytes": 40687616.0,
+        "candidate_median_rss_bytes": 21600256.0,
+        "rss_reduction_percent": 46.91196456435295,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:microduck": {
+        "baseline_median_ms": 135.80664699838962,
+        "candidate_median_ms": 52.842474502540426,
+        "latency_reduction_percent": 61.08992036069705,
+        "baseline_median_rss_bytes": 40886272.0,
+        "candidate_median_rss_bytes": 23982080.0,
+        "rss_reduction_percent": 41.34441995592065,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:h1": {
+        "baseline_median_ms": 144.2776164985844,
+        "candidate_median_ms": 45.510736999858636,
+        "latency_reduction_percent": 68.45613470450895,
+        "baseline_median_rss_bytes": 40577024.0,
+        "candidate_median_rss_bytes": 21516288.0,
+        "rss_reduction_percent": 46.97420885277344,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:rlinf": {
+        "baseline_median_ms": 133.1077444992843,
+        "candidate_median_ms": 44.45449400009238,
+        "latency_reduction_percent": 66.60262393648222,
+        "baseline_median_rss_bytes": 40562688.0,
+        "candidate_median_rss_bytes": 21518336.0,
+        "rss_reduction_percent": 46.95041906492982,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:gmr": {
+        "baseline_median_ms": 138.13234900226234,
+        "candidate_median_ms": 42.71082250124891,
+        "latency_reduction_percent": 69.07978267961737,
+        "baseline_median_rss_bytes": 40534016.0,
+        "candidate_median_rss_bytes": 21458944.0,
+        "rss_reduction_percent": 47.05941794664511,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      },
+      "help:sonic": {
+        "baseline_median_ms": 135.59376399643952,
+        "candidate_median_ms": 46.19154900137801,
+        "latency_reduction_percent": 65.93386919874065,
+        "baseline_median_rss_bytes": 40513536.0,
+        "candidate_median_rss_bytes": 21442560.0,
+        "rss_reduction_percent": 47.07309675462542,
+        "baseline_threads": [
+          32
+        ],
+        "candidate_threads": [
+          1
+        ]
+      }
+    }
+  },
+  "training_parity": {
+    "comparisons": 9,
+    "all_match": true,
+    "details": {
+      "scope": "deterministic CPU policy, optimizer and rollout equality",
+      "comparisons": [
+        {
+          "component": "core",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "58708958868e8d013b0cb4cfd374488c59e2500d7544eaa168dc83cee9a79cf3",
+            "optimizer": "cf345e579236731fd92fb91fe41073a24af00f402596fdc5ad8fb1e194c7f5b2"
+          },
+          "candidate": {
+            "policy": "58708958868e8d013b0cb4cfd374488c59e2500d7544eaa168dc83cee9a79cf3",
+            "optimizer": "cf345e579236731fd92fb91fe41073a24af00f402596fdc5ad8fb1e194c7f5b2"
+          }
+        },
+        {
+          "component": "core",
+          "seed": 17,
+          "match": true,
+          "reference": {
+            "policy": "3b8fc57f3304fcd19bcf5e9054dd1983211f7d117e86ebcd1e31e9a454343f12",
+            "optimizer": "1611881bdd45cecedb161ab5d6bd0fb339772ad4bb8d65f5ef329d84e13822ef"
+          },
+          "candidate": {
+            "policy": "3b8fc57f3304fcd19bcf5e9054dd1983211f7d117e86ebcd1e31e9a454343f12",
+            "optimizer": "1611881bdd45cecedb161ab5d6bd0fb339772ad4bb8d65f5ef329d84e13822ef"
+          }
+        },
+        {
+          "component": "core",
+          "seed": 1001,
+          "match": true,
+          "reference": {
+            "policy": "fa7f559abd67e79aa4fc881f0fed38611a2d5026db703c387a2706c89a2c0efc",
+            "optimizer": "3ffaa099e035fc4a83962ad8efd150192a782ba20bdea36ad48f97ea320c7d28"
+          },
+          "candidate": {
+            "policy": "fa7f559abd67e79aa4fc881f0fed38611a2d5026db703c387a2706c89a2c0efc",
+            "optimizer": "3ffaa099e035fc4a83962ad8efd150192a782ba20bdea36ad48f97ea320c7d28"
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "741d5eeb5cbf15102ce209731ebb7b1a16ce7308e5ce7bd1f354cc0c608f55cd",
+            "optimizer": "68e09e1caa1c8a8de983458cb7eb2f14b4105c7fea74e70f35a49902c12cb607",
+            "rollouts": [
+              "b141a7f20544fcb00b7cba27c81b81adcc2ac7ee5ff2d563ce29b9a7b0f2315d",
+              "b2a5f419ff4e2520b9cd48e115f197ce0a7f388cf7a1855bf1c0d2100609567b",
+              "ecbb6a428888146bd7514922077adfbe99254f74d00986c3d1f248ae107c4c5b"
+            ]
+          },
+          "candidate": {
+            "policy": "741d5eeb5cbf15102ce209731ebb7b1a16ce7308e5ce7bd1f354cc0c608f55cd",
+            "optimizer": "68e09e1caa1c8a8de983458cb7eb2f14b4105c7fea74e70f35a49902c12cb607",
+            "rollouts": [
+              "b141a7f20544fcb00b7cba27c81b81adcc2ac7ee5ff2d563ce29b9a7b0f2315d",
+              "b2a5f419ff4e2520b9cd48e115f197ce0a7f388cf7a1855bf1c0d2100609567b",
+              "ecbb6a428888146bd7514922077adfbe99254f74d00986c3d1f248ae107c4c5b"
+            ]
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 17,
+          "match": true,
+          "reference": {
+            "policy": "323f680f39cf4438e5f3d08cebab07e32ad67dc86447ae50e3eb9f5a8e5b5783",
+            "optimizer": "d3762ce26e8f06efca8e150cde9927c9bcd72a5e5d5ea751df11bd588fc47091",
+            "rollouts": [
+              "88926629e44406ad6d76798ed34f370607f1cc1414fb650017f21a67d2a38288",
+              "6dc15605f21a78ebe6571eafdc45a11f6ef0c9ce34b29ceed3db077011445367",
+              "5bfe8432da5d996b98dd2d2791c0cf718f83e4963971fefd014235c734ca66cb"
+            ]
+          },
+          "candidate": {
+            "policy": "323f680f39cf4438e5f3d08cebab07e32ad67dc86447ae50e3eb9f5a8e5b5783",
+            "optimizer": "d3762ce26e8f06efca8e150cde9927c9bcd72a5e5d5ea751df11bd588fc47091",
+            "rollouts": [
+              "88926629e44406ad6d76798ed34f370607f1cc1414fb650017f21a67d2a38288",
+              "6dc15605f21a78ebe6571eafdc45a11f6ef0c9ce34b29ceed3db077011445367",
+              "5bfe8432da5d996b98dd2d2791c0cf718f83e4963971fefd014235c734ca66cb"
+            ]
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 1001,
+          "match": true,
+          "reference": {
+            "policy": "e79dc2823c7fb47ef51946e47685321eaa5801b54302fe2e423499417de1d215",
+            "optimizer": "224e35509a0a58829497682f2176d0f3ce98b8c8efc23d3faa7d0fc12a070e6a",
+            "rollouts": [
+              "db3c8615a10fb706cb38972ea1677984c1b6891a69a7aef5ba8f151c53c858f9",
+              "ad09e697590fa8cec13cefacbd076c4c33f3107aee18cd0ebdbdffd7a7e62e92",
+              "d3f50e7cbc5954addadaef173db8b3e6f68119ea31ba48f8cd0e4918cfa9c9aa"
+            ]
+          },
+          "candidate": {
+            "policy": "e79dc2823c7fb47ef51946e47685321eaa5801b54302fe2e423499417de1d215",
+            "optimizer": "224e35509a0a58829497682f2176d0f3ce98b8c8efc23d3faa7d0fc12a070e6a",
+            "rollouts": [
+              "db3c8615a10fb706cb38972ea1677984c1b6891a69a7aef5ba8f151c53c858f9",
+              "ad09e697590fa8cec13cefacbd076c4c33f3107aee18cd0ebdbdffd7a7e62e92",
+              "d3f50e7cbc5954addadaef173db8b3e6f68119ea31ba48f8cd0e4918cfa9c9aa"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "94352ce0835adade77bb12b89d6463b18d5d35a72f11d8dd7d53d65ee5d00713",
+            "optimizer": "8c24431bc3b90c143198060642defa46b71d248de390a8838b4e50737e61eefb",
+            "rollouts": [
+              "076e57a321e0f9867f917d6a80c7735c3cd83980601fd65e169fd225354e8667",
+              "549a1d788a29c16488fd418735b0a35a0336b9d876d313209fffeef148f86c0e",
+              "50ef5fd36e542774c9f9c7ec2b49e96f7b5cbfd0bf3cb1deaaac088d7693a22e"
+            ]
+          },
+          "candidate": {
+            "policy": "94352ce0835adade77bb12b89d6463b18d5d35a72f11d8dd7d53d65ee5d00713",
+            "optimizer": "8c24431bc3b90c143198060642defa46b71d248de390a8838b4e50737e61eefb",
+            "rollouts": [
+              "076e57a321e0f9867f917d6a80c7735c3cd83980601fd65e169fd225354e8667",
+              "549a1d788a29c16488fd418735b0a35a0336b9d876d313209fffeef148f86c0e",
+              "50ef5fd36e542774c9f9c7ec2b49e96f7b5cbfd0bf3cb1deaaac088d7693a22e"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 17,
+          "match": true,
+          "reference": {
+            "policy": "946c19a133f0f0291986e82f36a4a848218b123cc658b133ecc4561e7d947b5a",
+            "optimizer": "80822ccadd34550dcaff12caa2efe355a953ff7d515f4e65f924fddd9434bcc3",
+            "rollouts": [
+              "c469aa6e460c135b07f8b9c630baa19ea96314aec747991176acc04bbd6d96d6",
+              "198e09c3b5c6ff7534f04cfe863d32545d6406a526ddcaee2a1fd7c0847814f1",
+              "a840cf5f84715ad3714e4e543478d38f70e0b3f8af07e81330edfb11db038d1c"
+            ]
+          },
+          "candidate": {
+            "policy": "946c19a133f0f0291986e82f36a4a848218b123cc658b133ecc4561e7d947b5a",
+            "optimizer": "80822ccadd34550dcaff12caa2efe355a953ff7d515f4e65f924fddd9434bcc3",
+            "rollouts": [
+              "c469aa6e460c135b07f8b9c630baa19ea96314aec747991176acc04bbd6d96d6",
+              "198e09c3b5c6ff7534f04cfe863d32545d6406a526ddcaee2a1fd7c0847814f1",
+              "a840cf5f84715ad3714e4e543478d38f70e0b3f8af07e81330edfb11db038d1c"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 1001,
+          "match": true,
+          "reference": {
+            "policy": "209f9a4efaf46f2f2db96468b76818366aa741f7c63fb49531ecbb1cb486ae89",
+            "optimizer": "67648a85e5c1bf7be70310c0bb66b4e7b47c99ab99a0b2c4c36ebb53c1b86d9d",
+            "rollouts": [
+              "92cd5c725bfc00b1ed229fef2db5cb38abeed7634ffb50d9e6e3d094e9df5064",
+              "6ace17ce3a0f93a80a7ca3eeedd7293e4bd8eb45b48c39b0f775ce9f73f1ffb6",
+              "c878c9a001d994704aeaeb604889de0881c71281eae79f7ff173a561708ca570"
+            ]
+          },
+          "candidate": {
+            "policy": "209f9a4efaf46f2f2db96468b76818366aa741f7c63fb49531ecbb1cb486ae89",
+            "optimizer": "67648a85e5c1bf7be70310c0bb66b4e7b47c99ab99a0b2c4c36ebb53c1b86d9d",
+            "rollouts": [
+              "92cd5c725bfc00b1ed229fef2db5cb38abeed7634ffb50d9e6e3d094e9df5064",
+              "6ace17ce3a0f93a80a7ca3eeedd7293e4bd8eb45b48c39b0f775ce9f73f1ffb6",
+              "c878c9a001d994704aeaeb604889de0881c71281eae79f7ff173a561708ca570"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "live_probes": {
+    "time_utc": "2026-10-22T02:33:00.721386+00:00",
+    "probes": {
+      "captured-py3120-gdb": {
+        "seconds": 5400.3,
+        "scenarios": 10784,
+        "rss_bytes": 39915520,
+        "threads": 1,
+        "fds": 5,
+        "status": "complete"
+      },
+      "captured-py3120-debug": {
+        "seconds": 5400.2,
+        "scenarios": 10432,
+        "rss_bytes": 41558016,
+        "threads": 1,
+        "fds": 5,
+        "status": "complete"
+      },
+      "captured-py31214": {
+        "seconds": 5401.4,
+        "scenarios": 11144,
+        "rss_bytes": 39538688,
+        "threads": 32,
+        "fds": 5,
+        "status": "complete"
+      },
+      "captured-py3100": {
+        "seconds": 5400.9,
+        "scenarios": 11280,
+        "rss_bytes": 35860480,
+        "threads": 32,
+        "fds": 5,
+        "status": "complete"
+      },
+      "control-py31214-numpy252": {
+        "seconds": 5401.2,
+        "scenarios": 11076,
+        "rss_bytes": 39337984,
+        "threads": 32,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      },
+      "control-py3120-numpy241": {
+        "seconds": 5400.8,
+        "scenarios": 10568,
+        "rss_bytes": 38944768,
+        "threads": 1,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      },
+      "candidate-lifecycle-py3120": {
+        "seconds": 7201.9,
+        "scenarios": 15392,
+        "rss_bytes": 22614016,
+        "threads": 1,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      },
+      "candidate-lifecycle-py31214": {
+        "seconds": 7200.9,
+        "scenarios": 16296,
+        "rss_bytes": 21544960,
+        "threads": 1,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      },
+      "final-py3120-core": {
+        "seconds": 14402.7,
+        "scenarios": 31312,
+        "rss_bytes": 39063552,
+        "threads": 1,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      },
+      "final-py3120-stdlib": {
+        "seconds": 14400.1,
+        "scenarios": 31392,
+        "rss_bytes": 22839296,
+        "threads": 1,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      },
+      "final-py31214-core": {
+        "seconds": 14402.1,
+        "scenarios": 32944,
+        "rss_bytes": 41365504,
+        "threads": 32,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      },
+      "final-py3100-stdlib": {
+        "seconds": 14401.1,
+        "scenarios": 33568,
+        "rss_bytes": 18460672,
+        "threads": 1,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      },
+      "allocation-py31214-core": {
+        "seconds": 3601.6,
+        "scenarios": 7944,
+        "traced_current_bytes": 1076015,
+        "traced_peak_bytes": 2042661,
+        "rss_bytes": 41054208,
+        "threads": 32,
+        "fds": 5,
+        "status": "complete",
+        "exitcode": 0,
+        "exit_verified": true
+      }
+    }
+  },
+  "allocation_probe": {
+    "warmup_seconds": 300,
+    "net_traced_bytes": 1028793,
+    "net_allocation_count": 1249,
+    "top_changes": [
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:404",
+        "bytes": 961216,
+        "count": 1
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013",
+        "bytes": 33609,
+        "count": 425
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:36",
+        "bytes": 6592,
+        "count": 103
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:280",
+        "bytes": 6528,
+        "count": 102
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:39",
+        "bytes": 3328,
+        "count": 104
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:38",
+        "bytes": 3328,
+        "count": 104
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:37",
+        "bytes": 3328,
+        "count": 104
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:283",
+        "bytes": 3296,
+        "count": 103
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:278",
+        "bytes": 2656,
+        "count": 83
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:281",
+        "bytes": 2448,
+        "count": 102
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:291",
+        "bytes": 896,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/tracemalloc.py:558",
+        "bytes": 496,
+        "count": 8
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/tracemalloc.py:560",
+        "bytes": 312,
+        "count": 2
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/tracemalloc.py:423",
+        "bytes": 312,
+        "count": 2
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:293",
+        "bytes": 272,
+        "count": 2
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/json/encoder.py:249",
+        "bytes": 112,
+        "count": 1
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:247",
+        "bytes": -72,
+        "count": -1
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1056",
+        "bytes": 56,
+        "count": 1
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:297",
+        "bytes": 48,
+        "count": 2
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:296",
+        "bytes": 32,
+        "count": 1
+      },
+      {
+        "location": "<frozen abc>:123",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py:105",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py:301",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/re/_compiler.py:766",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/records.py:155",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:359",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1078",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:432",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1167",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/records.py:164",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/records.py:154",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/hashing.py:20",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/allocation-probe.py:235",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:56",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:46",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/platform.py:1114",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/records.py:161",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1162",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:385",
+        "bytes": 0,
+        "count": 0
+      },
+      {
+        "location": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/records.py:85",
+        "bytes": 0,
+        "count": 0
+      }
+    ],
+    "notes": "Includes benchmark sample retention and snapshot bookkeeping; captures Python allocations after core import, not a strict RSS bound"
+  },
+  "infinite_stdout_flood": {
+    "scenarios": 500,
+    "all_passed": true,
+    "seconds": 24.933128673001193,
+    "max_job_seconds": 0.08305287300026976,
+    "max_log_bytes": 14413837,
+    "total_logged_bytes": 2114693476,
+    "initial_resources": {
+      "fds": 4,
+      "threads": 1
+    },
+    "native_thread_exit_settling": [
+      {
+        "iteration": 312,
+        "initial_sample": {
+          "fds": 4,
+          "threads": 2
+        },
+        "settled_sample": {
+          "fds": 4,
+          "threads": 1
+        },
+        "seconds": 0.003555711002263706,
+        "tasks": {
+          "2965364": {
+            "comm": "python",
+            "wchan": "0"
+          },
+          "2973744": {
+            "comm": "python",
+            "wchan": "0"
+          }
+        },
+        "python_threads": [
+          "MainThread"
+        ]
+      }
+    ],
+    "final_resources": {
+      "fds": 4,
+      "threads": 1
+    },
+    "scope": "500 real jobs with detached infinite raw-byte stdout writer; final worker marker retained, reader joined, fixture descendant reaped"
+  },
+  "flood_probe_initial_harness": {
+    "status": "349th iteration saw native thread count 2 after Python join; v2 measured 3.6 ms settling and passed 500; raw failure retained"
+  },
+  "previous_exit_failure": {
+    "reference": "docs/experiments/architecture-lifecycle-20261021.json",
+    "status": "Not reproduced in extended checks; root cause still unresolved; do not label the previous SIGSEGV fixed",
+    "observed": "SIGSEGV 139 after 7088 verified scenarios in previous one-hour captured probe; tupledealloc+56, inline _PyGCHead_SET_PREV",
+    "rapid_rechecks": {
+      "reference_runtime_100000": 0,
+      "candidate_before_fixes_100000": 0,
+      "bare_subprocess_100000": 0
+    },
+    "numpy_control_environments": [
+      "py31214-numpy252-environment.log",
+      "py3120-numpy241-environment.log"
+    ],
+    "notes": "Conda CPython 3.12.0 uses fork here; standalone CPython 3.12.14 uses vfork here. Same NumPy version control confirms launch/thread behavior differs; this does not establish the SIGSEGV cause."
+  },
+  "distribution": {
+    "scope": "Final frozen 133 production Python modules; documentation and experiment index at build time",
+    "wheel": {
+      "file": "/tmp/embodiedforge-fivehour-20261021/final-dist/embodiedforge-0.1.0-py3-none-any.whl",
+      "bytes": 8245087,
+      "sha256": "2e4c74acc12afcee75f02b1fb4d8469ee368d19e76b914a8b8dcb482f808ee71",
+      "source_modules_exact": 133
+    },
+    "sdist": {
+      "file": "/tmp/embodiedforge-fivehour-20261021/final-dist/embodiedforge-0.1.0.tar.gz",
+      "bytes": 67491459,
+      "sha256": "ace49e50669ee2711403bdd10753a2b0979981f398ff6eee919c50b05b169c67"
+    }
+  },
+  "wheel_validation": {
+    "package": "/tmp/embodiedforge-fivehour-20261021/wheel-env/lib/python3.10/site-packages/embodiedforge/__init__.py",
+    "python": "/tmp/embodiedforge-fivehour-20261021/wheel-env/bin/python",
+    "evaluation": {
+      "transitions": 16,
+      "completed_episodes": 4,
+      "terminated_episodes": 0,
+      "truncated_episodes": 4,
+      "mean_step_reward": -0.01231109444051981,
+      "mean_episode_return": -0.04924437776207924,
+      "success_rate": 0.0
+    },
+    "resumed_updates": 2,
+    "resources_verified": true,
+    "core_imports_without_sdks": true
+  },
+  "wheel_stdlib_validation": {
+    "package": "/tmp/embodiedforge-fivehour-20261021/wheel-env/lib/python3.10/site-packages/embodiedforge/__init__.py",
+    "standard_library_only": true,
+    "isolation_flags": {
+      "isolated": 1,
+      "no_site": 1
+    },
+    "status": "complete"
+  },
+  "wheel_strict_read": {
+    "sha256_and_crc_verified_episodes": 4,
+    "transitions": 16
+  },
+  "limitations": [
+    "CPU/Linux validation; source parity checks numerical compatibility, not policy quality",
+    "Run completion is not interpreter-exit verification; outer supervisor or GDB inferior status must also pass",
+    "Earlier build and exploratory test attempts are retained separately; final distribution checks cover all 133 frozen production modules",
+    "Long-probe source identity is recorded per run; only final-* probes use all final 133 modules"
+  ],
+  "probes": {
+    "captured-py3120-gdb": {
+      "verified_scenarios": 10784,
+      "seconds": 5400.2518686309995,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "direct-exit-status.json",
+        "details": {
+          "driver_exitcode": 1,
+          "inferior_exitcode": 0,
+          "interpreter_exit_verified": true,
+          "tooling_note": "Exploratory GDB script requested registers after normal interpreter exit; log explicitly records exited normally. Final four-hour GDB driver correctly returns 0."
+        }
+      },
+      "resources": {
+        "warmup_rss_bytes": 39907328,
+        "last_sample_rss_bytes": 39915520,
+        "rss_delta_after_warmup_bytes": 8192,
+        "sampled_threads": [
+          1
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 39931904,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 39915520,
+          "threads": 1,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T16:41:24.145868+00:00"
+    },
+    "captured-py3120-debug": {
+      "verified_scenarios": 10432,
+      "seconds": 5400.170906699997,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "direct-exit-status.json",
+        "details": {
+          "returncode": 0,
+          "interpreter_exit_verified": true
+        }
+      },
+      "resources": {
+        "warmup_rss_bytes": 41422848,
+        "last_sample_rss_bytes": 41558016,
+        "rss_delta_after_warmup_bytes": 135168,
+        "sampled_threads": [
+          1
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 41377792,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 41558016,
+          "threads": 1,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T16:41:25.895671+00:00"
+    },
+    "captured-py31214": {
+      "verified_scenarios": 11144,
+      "seconds": 5401.395528093002,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "direct-exit-status.json",
+        "details": {
+          "returncode": 0,
+          "interpreter_exit_verified": true
+        }
+      },
+      "resources": {
+        "warmup_rss_bytes": 38899712,
+        "last_sample_rss_bytes": 39538688,
+        "rss_delta_after_warmup_bytes": 638976,
+        "sampled_threads": [
+          32
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 38764544,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 39538688,
+          "threads": 32,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T16:41:25.970335+00:00"
+    },
+    "captured-py3100": {
+      "verified_scenarios": 11280,
+      "seconds": 5400.894306843002,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "direct-exit-status.json",
+        "details": {
+          "returncode": 0,
+          "interpreter_exit_verified": true
+        }
+      },
+      "resources": {
+        "warmup_rss_bytes": 35012608.0,
+        "last_sample_rss_bytes": 35860480,
+        "rss_delta_after_warmup_bytes": 847872.0,
+        "sampled_threads": [
+          32
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 34959360,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 35860480,
+          "threads": 32,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T16:41:39.219711+00:00"
+    },
+    "control-py31214-numpy252": {
+      "verified_scenarios": 11076,
+      "seconds": 5401.215562243,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "control-py31214-numpy252.exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 38711296,
+        "last_sample_rss_bytes": 39337984,
+        "rss_delta_after_warmup_bytes": 626688,
+        "sampled_threads": [
+          32
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 38592512,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 39337984,
+          "threads": 32,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T17:02:12.533987+00:00"
+    },
+    "control-py3120-numpy241": {
+      "verified_scenarios": 10568,
+      "seconds": 5400.814117951995,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "control-py3120-numpy241.exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 38862848.0,
+        "last_sample_rss_bytes": 38944768,
+        "rss_delta_after_warmup_bytes": 81920.0,
+        "sampled_threads": [
+          1
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 38842368,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 38944768,
+          "threads": 1,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T17:02:12.136663+00:00"
+    },
+    "candidate-lifecycle-py3120": {
+      "verified_scenarios": 15392,
+      "seconds": 7201.906680155,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "candidate-lifecycle-py3120.exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 22507520,
+        "last_sample_rss_bytes": 22614016,
+        "rss_delta_after_warmup_bytes": 106496,
+        "sampled_threads": [
+          1
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 22454272,
+          "threads": 1,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 22614016,
+          "threads": 1,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T17:25:39.667167+00:00"
+    },
+    "candidate-lifecycle-py31214": {
+      "verified_scenarios": 16296,
+      "seconds": 7200.939890534006,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "candidate-lifecycle-py31214.exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 21061632,
+        "last_sample_rss_bytes": 21544960,
+        "rss_delta_after_warmup_bytes": 483328,
+        "sampled_threads": [
+          1
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 20926464,
+          "threads": 1,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 21544960,
+          "threads": 1,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T17:25:38.698504+00:00"
+    },
+    "final-py3120-core": {
+      "verified_scenarios": 31312,
+      "seconds": 14402.709879309004,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "final-py3120-core.gdb-exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 38842368,
+        "last_sample_rss_bytes": 39063552,
+        "rss_delta_after_warmup_bytes": 221184,
+        "sampled_threads": [
+          1
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 38797312,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 39063552,
+          "threads": 1,
+          "fds": 4
+        }
+      },
+      "source_scope": "final frozen 133 production modules",
+      "finished_at": "2026-10-21T19:44:45.987603+00:00"
+    },
+    "final-py3120-stdlib": {
+      "verified_scenarios": 31392,
+      "seconds": 14400.088200459999,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "final-py3120-stdlib.exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 22605824,
+        "last_sample_rss_bytes": 22839296,
+        "rss_delta_after_warmup_bytes": 233472,
+        "sampled_threads": [
+          1
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 22573056,
+          "threads": 1,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 22839296,
+          "threads": 1,
+          "fds": 4
+        }
+      },
+      "source_scope": "final frozen 133 production modules",
+      "finished_at": "2026-10-21T19:44:42.892278+00:00"
+    },
+    "final-py31214-core": {
+      "verified_scenarios": 32944,
+      "seconds": 14402.122220646,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "final-py31214-core.exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 39837696,
+        "last_sample_rss_bytes": 41365504,
+        "rss_delta_after_warmup_bytes": 1527808,
+        "sampled_threads": [
+          32
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 39772160,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 41365504,
+          "threads": 32,
+          "fds": 4
+        }
+      },
+      "source_scope": "final frozen 133 production modules",
+      "finished_at": "2026-10-21T19:44:45.034481+00:00"
+    },
+    "final-py3100-stdlib": {
+      "verified_scenarios": 33568,
+      "seconds": 14401.085567066999,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "final-py3100-stdlib.exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 17756160.0,
+        "last_sample_rss_bytes": 18460672,
+        "rss_delta_after_warmup_bytes": 704512.0,
+        "sampled_threads": [
+          1
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "rss_bytes": 17448960,
+          "threads": 1,
+          "fds": 4
+        },
+        "final": {
+          "rss_bytes": 18460672,
+          "threads": 1,
+          "fds": 4
+        }
+      },
+      "source_scope": "final frozen 133 production modules",
+      "finished_at": "2026-10-21T19:44:43.889367+00:00"
+    },
+    "allocation-py31214-core": {
+      "verified_scenarios": 7944,
+      "seconds": 3601.5946322840027,
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "benchmark",
+        "operation": "validate",
+        "task": "process-lifecycle"
+      },
+      "exit": {
+        "returncode": 0,
+        "verified": true,
+        "source": "allocation-py31214-core.exit.json"
+      },
+      "resources": {
+        "warmup_rss_bytes": 39604224,
+        "last_sample_rss_bytes": 41054208,
+        "rss_delta_after_warmup_bytes": 1449984,
+        "sampled_threads": [
+          32
+        ],
+        "sampled_fds": [
+          5
+        ],
+        "initial": {
+          "traced_current_bytes": 21366,
+          "traced_peak_bytes": 1072494,
+          "rss_bytes": 39157760,
+          "threads": 32,
+          "fds": 4
+        },
+        "final": {
+          "traced_current_bytes": 1072687,
+          "traced_peak_bytes": 2042661,
+          "rss_bytes": 41054208,
+          "threads": 32,
+          "fds": 4
+        }
+      },
+      "source_scope": "recorded per-probe source; see benchmark.py and run manifest",
+      "finished_at": "2026-10-21T17:30:16.274892+00:00"
+    }
+  },
+  "validated_final_source_scenarios": 129216,
+  "validated_all_long_probe_scenarios": 234132,
+  "all_probe_interpreters_exited_zero": true,
+  "workload_completed_utc": "2026-10-21T19:44:45.987603+00:00",
+  "changes_summary": [
+    "公共导出按需加载，运行记录和六类 SDK 启动器的帮助路径无需 NumPy；公共类身份和序列化兼容",
+    "统一 CLI 分发目录，SDK 命令前的核心选项明确报错，避免误执行 reach rollout",
+    "日志回显改为可停止的非阻塞读取，退出时仅排空已缓冲字节，覆盖持有 stdout 的脱组进程",
+    "进程超时参数在创建日志或子进程前校验；信号、训练锁、终态发布与原始日志保持既有契约"
+  ],
+  "memory_investigation": {
+    "hour_probe": "allocation-py31214-core/allocations.json",
+    "path_component_trace": {
+      "calls": 422,
+      "unique_components": 35,
+      "examples": [
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/benchmark.py",
+          "new": [
+            "benchmark.py",
+            "embodiedforge-fivehour-20261021",
+            "path-probe",
+            "tmp"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "<frozen genericpath>:113:samefile",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/shutil.py:216:_samefile",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/shutil.py:239:copyfile",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:242:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe.py",
+          "new": [
+            "path-probe.py"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/hashing.py:11:file_sha256",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:253:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py",
+          "new": [
+            "embodiedforge",
+            "final-source",
+            "process.py",
+            "runtime",
+            "src"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/hashing.py:11:file_sha256",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:254:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/run.json",
+          "new": [
+            "run.json"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:840:stat",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:860:exists",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/records.py:151:managed_run",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py:137:__enter__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:247:main"
+          ]
+        },
+        {
+          "path": "/proc/self/status",
+          "new": [
+            "proc",
+            "self",
+            "status"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1027:read_text",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:33:resources",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:261:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/proc/self/fd",
+          "new": [
+            "fd"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1056:iterdir",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:38:resources",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:261:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/samples.jsonl",
+          "new": [
+            "samples.jsonl"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:262:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle",
+          "new": [
+            "cycle"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1311:mkdir",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:265:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/success",
+          "new": [
+            "success"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:274:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/__init__.py",
+          "new": [
+            "__init__.py"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "<frozen posixpath>:423:realpath",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1240:resolve",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:281:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/success.log",
+          "new": [
+            "success.log"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:108:run_process",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:267:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/success/verified.json",
+          "new": [
+            "verified.json"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1027:read_text",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:289:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/failure",
+          "new": [
+            "failure"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:274:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/failure.log",
+          "new": [
+            "failure.log"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:108:run_process",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:267:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/timeout",
+          "new": [
+            "timeout"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:274:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/timeout.log",
+          "new": [
+            "timeout.log"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:108:run_process",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:267:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/interrupt",
+          "new": [
+            "interrupt"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:274:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/interrupt.log",
+          "new": [
+            "interrupt.log"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:108:run_process",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:267:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/detached-success",
+          "new": [
+            "detached-success"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:274:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/detached-success.log",
+          "new": [
+            "detached-success.log"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:108:run_process",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:267:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/detached-failure",
+          "new": [
+            "detached-failure"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:274:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/detached-failure.log",
+          "new": [
+            "detached-failure.log"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:108:run_process",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:267:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/detached-timeout",
+          "new": [
+            "detached-timeout"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:274:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/detached-timeout.log",
+          "new": [
+            "detached-timeout.log"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:108:run_process",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:267:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/detached-interrupt",
+          "new": [
+            "detached-interrupt"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:274:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/cycle/detached-interrupt.log",
+          "new": [
+            "detached-interrupt.log"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:1013:open",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/process.py:108:run_process",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:267:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        },
+        {
+          "path": "/tmp/embodiedforge-fivehour-20261021/path-probe/path-components.json",
+          "new": [
+            "path-components.json"
+          ],
+          "stack": [
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:415:_load_parts",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:557:drive",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:443:__str__",
+            "/home/ubuntu/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pathlib.py:448:__fspath__",
+            "/tmp/embodiedforge-fivehour-20261021/final-source/src/embodiedforge/runtime/artifacts.py:25:write_json",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:316:main",
+            "/tmp/embodiedforge-fivehour-20261021/path-probe.py:323:<module>"
+          ]
+        }
+      ]
+    },
+    "fixed_path_batches": {
+      "intern-capacity-py31214-core-startup-trace": {
+        "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+        "core_preloaded": true,
+        "startup_tracing": true,
+        "samples": [
+          {
+            "batch": 1,
+            "operations": 100000,
+            "seconds": 2.743929575997754,
+            "net_bytes": 191443,
+            "pathlib_bytes": 415088
+          },
+          {
+            "batch": 2,
+            "operations": 200000,
+            "seconds": 5.559833763007191,
+            "net_bytes": 1304670,
+            "pathlib_bytes": 415088
+          },
+          {
+            "batch": 3,
+            "operations": 300000,
+            "seconds": 8.285334612999577,
+            "net_bytes": 1307238,
+            "pathlib_bytes": 415088
+          },
+          {
+            "batch": 4,
+            "operations": 400000,
+            "seconds": 11.017821412009653,
+            "net_bytes": 1307470,
+            "pathlib_bytes": 415088
+          },
+          {
+            "batch": 5,
+            "operations": 500000,
+            "seconds": 13.784243169007823,
+            "net_bytes": 1307750,
+            "pathlib_bytes": 415088
+          }
+        ]
+      },
+      "intern-capacity-py3120": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "core_preloaded": false,
+        "samples": [
+          {
+            "batch": 1,
+            "operations": 100000,
+            "seconds": 1.7229536140075652,
+            "net_bytes": 935,
+            "pathlib_bytes": 183
+          },
+          {
+            "batch": 2,
+            "operations": 200000,
+            "seconds": 3.353773615002865,
+            "net_bytes": 3859,
+            "pathlib_bytes": 183
+          },
+          {
+            "batch": 3,
+            "operations": 300000,
+            "seconds": 5.023172568995506,
+            "net_bytes": 5599,
+            "pathlib_bytes": 183
+          },
+          {
+            "batch": 4,
+            "operations": 400000,
+            "seconds": 6.679371707999962,
+            "net_bytes": 5755,
+            "pathlib_bytes": 183
+          },
+          {
+            "batch": 5,
+            "operations": 500000,
+            "seconds": 8.327334611007245,
+            "net_bytes": 6007,
+            "pathlib_bytes": 183
+          }
+        ]
+      },
+      "intern-capacity-py31214-core": {
+        "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+        "core_preloaded": true,
+        "samples": [
+          {
+            "batch": 1,
+            "operations": 100000,
+            "seconds": 2.077039957002853,
+            "net_bytes": 416608,
+            "pathlib_bytes": 415088
+          },
+          {
+            "batch": 2,
+            "operations": 200000,
+            "seconds": 4.155983851000201,
+            "net_bytes": 418824,
+            "pathlib_bytes": 415088
+          },
+          {
+            "batch": 3,
+            "operations": 300000,
+            "seconds": 6.160155146004399,
+            "net_bytes": 420472,
+            "pathlib_bytes": 415088
+          },
+          {
+            "batch": 4,
+            "operations": 400000,
+            "seconds": 8.12823424700764,
+            "net_bytes": 420656,
+            "pathlib_bytes": 415088
+          },
+          {
+            "batch": 5,
+            "operations": 500000,
+            "seconds": 10.108578944011242,
+            "net_bytes": 420984,
+            "pathlib_bytes": 415088
+          }
+        ]
+      },
+      "intern-capacity-py31214": {
+        "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+        "core_preloaded": false,
+        "samples": [
+          {
+            "batch": 1,
+            "operations": 100000,
+            "seconds": 2.146355233009672,
+            "net_bytes": 208360,
+            "pathlib_bytes": 207552
+          },
+          {
+            "batch": 2,
+            "operations": 200000,
+            "seconds": 4.169036396997399,
+            "net_bytes": 211480,
+            "pathlib_bytes": 207552
+          },
+          {
+            "batch": 3,
+            "operations": 300000,
+            "seconds": 6.205175536000752,
+            "net_bytes": 213248,
+            "pathlib_bytes": 207552
+          },
+          {
+            "batch": 4,
+            "operations": 400000,
+            "seconds": 8.315996302000713,
+            "net_bytes": 213432,
+            "pathlib_bytes": 207552
+          },
+          {
+            "batch": 5,
+            "operations": 500000,
+            "seconds": 10.239593102000072,
+            "net_bytes": 213712,
+            "pathlib_bytes": 207552
+          }
+        ]
+      },
+      "intern-capacity-py31214-startup-trace": {
+        "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+        "core_preloaded": false,
+        "startup_tracing": true,
+        "samples": [
+          {
+            "batch": 1,
+            "operations": 100000,
+            "seconds": 2.3187061180069577,
+            "net_bytes": 90828,
+            "pathlib_bytes": 207552
+          },
+          {
+            "batch": 2,
+            "operations": 200000,
+            "seconds": 4.619430414997623,
+            "net_bytes": 502652,
+            "pathlib_bytes": 207552
+          },
+          {
+            "batch": 3,
+            "operations": 300000,
+            "seconds": 6.853967590999673,
+            "net_bytes": 505340,
+            "pathlib_bytes": 207552
+          },
+          {
+            "batch": 4,
+            "operations": 400000,
+            "seconds": 9.073515844997019,
+            "net_bytes": 505572,
+            "pathlib_bytes": 207552
+          },
+          {
+            "batch": 5,
+            "operations": 500000,
+            "seconds": 11.264904606010532,
+            "net_bytes": 505852,
+            "pathlib_bytes": 207552
+          }
+        ]
+      }
+    },
+    "interpretation": "Fixed-path parsing allocations at pathlib.py:404 plateau after the first 100000 operations through 500000; no linear accumulation observed in these controls. Import timing and measurement bookkeeping affect tracked allocation baselines. This is not a strict RSS bound."
+  },
+  "exploratory_failures_retained": [
+    "Unconfigured pytest launch loaded an incompatible external launch_testing plugin; corrected runs disable plugin autoload",
+    "First source-tree suite omitted PYTHONPATH for subprocess tests; corrected final suites pass",
+    "Detached stdout regression failed in both baseline cases before the nonblocking fix",
+    "First flood harness sampled a native thread still exiting after Python join; measured 3.6 ms settling, then 500 scenarios passed",
+    "Exploratory GDB driver requested registers after normal exit and returned 1; inferior exit was 0; final GDB driver reports exit 0 explicitly"
+  ],
+  "charts": {
+    "svg": {
+      "path": "assets/architecture-runtime-20261021-fivehour-performance.svg",
+      "sha256": "df4b02bdc014f431b43e29f409b53266660612cdf6e626bfcd6a2af2a97d4bad",
+      "bytes": 85717
+    },
+    "png": {
+      "path": "assets/architecture-runtime-20261021-fivehour-performance.png",
+      "sha256": "09a65a697cd29d548eacf444c5780caa068b404bac014665c660b0a23a59b7d1",
+      "bytes": 161670
+    }
+  },
+  "reproduction": {
+    "process_soak": "PYTHONPATH=src python benchmarks/process_lifecycle_soak.py --duration 14400 --preload-core --output /new/probe/path",
+    "fresh_startup": "python benchmarks/import_startup.py --source src --trials 30 --output /new/startup.json",
+    "scope": "Linux CPU; SDK/model dependencies and native assets are required for their own parity tests; workload summary and actual interpreter exit are distinct checks"
+  },
+  "evidence": {
+    "path": "assets/architecture-runtime-20261021-fivehour-evidence.tar.gz",
+    "bytes": 2568420,
+    "sha256": "9e0519b85a4f40b6e6cf58ab3685f08afce839929e6a5a1062c44398a3d4b29b",
+    "entries": 667,
+    "all_entries_decoded_and_sha256_verified": true,
+    "frozen_source_modules_verified": 133
+  },
+  "completed_at_utc": "2026-10-22T02:45:18.363401+00:00"
+}

@@ -3,19 +3,14 @@
 import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
 
 import numpy as np
 
-from .core import Array, Observation, Policy, StepResult
+from .core import Array, Observation, Policy
 from .env import VectorEnv
+from .envs.base import TransitionWriter as TransitionWriter
+from .envs.observations import replace_reset_rows
 from .policies import ActionExecutor
-
-
-class TransitionWriter(Protocol):
-    """Borrow one transition synchronously; copy any arrays retained after append."""
-
-    def append(self, observation: Observation, result: StepResult) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -63,7 +58,11 @@ def run_episode_batch(
     digest = hashlib.sha256()
     for name, value in sorted(observation.items()):
         digest.update(f"{name}:{value.dtype}:{value.shape}:".encode())
-        digest.update(value.tobytes())
+        digest.update(
+            value
+            if type(value) is np.ndarray and value.flags.c_contiguous
+            else value.tobytes()
+        )
     done = np.zeros(env.config.num_envs, dtype=bool)
     success = np.zeros_like(done)
     returns = np.zeros(env.config.num_envs, dtype=np.float64)
@@ -174,30 +173,7 @@ def run_rollout(
             executor.reset(ids)
             if on_reset is not None:
                 on_reset(ids.copy())
-            if (
-                len(ids) == env.config.num_envs
-                and tuple(observation) == tuple(reset_observation)
-                and all(
-                    type(value) is np.ndarray
-                    and type(reset_observation[key]) is np.ndarray
-                    and reset_observation[key].flags.c_contiguous
-                    and value.shape == reset_observation[key].shape
-                    and value.dtype is reset_observation[key].dtype
-                    and value.dtype.kind in "biuf"
-                    and value.dtype.metadata is None
-                    for key, value in observation.items()
-                )
-            ):
-                # flatnonzero returns canonical row order, and reset already
-                # owns its arrays. Matching base-array layouts preserve the
-                # replacement path's C order and custom array copy behavior.
-                # dtype equality ignores metadata and native byteorder spelling.
-                # Share only plain numeric dtype objects; copy custom layouts.
-                observation = reset_observation
-            else:
-                observation = {key: value.copy() for key, value in observation.items()}
-                for key in observation:
-                    observation[key][ids] = reset_observation[key]
+            observation = replace_reset_rows(observation, reset_observation, ids)
     return RolloutSummary(
         completed_episodes=completed,
         success_rate=successes / completed if completed else None,

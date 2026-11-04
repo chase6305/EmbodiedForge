@@ -1,0 +1,777 @@
+{
+  "status": "complete",
+  "objective": "Two-hour subtraction across runtime, data and training boundaries; preserve behavior and existing work.",
+  "started_at": "2026-10-30T12:43:41+00:00",
+  "deadline": "2026-10-30T14:43:41+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261030-124341-twohour",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37842,
+  "baseline_files": 428,
+  "historical_files": 193,
+  "changed_files_this_round": [
+    "src/embodiedforge/data.py",
+    "src/embodiedforge/rollout.py",
+    "tests/test_dataset_reads.py",
+    "tests/test_rollout.py"
+  ],
+  "changes": [
+    {
+      "area": "compact episode reader",
+      "change": "Release each validated compact backing array after its independent obs/next copies are made."
+    },
+    {
+      "area": "episode reader dispatch",
+      "change": "Use one decoder call while preserving verified single-FD reads and nonverified validation order."
+    },
+    {
+      "area": "initial evaluation observation hash",
+      "change": "Hash plain C-contiguous arrays through their buffer without a full bytes copy; retain existing custom/strided conversion."
+    },
+    {
+      "area": "regression coverage",
+      "change": "Four compact-reader ownership cases and ten hash layouts, including overlapping structured dtype and custom tobytes."
+    }
+  ],
+  "audit_decisions": [
+    "Retain immutable checkpoint byte snapshots: streaming the same descriptor alone does not preserve the old in-place-mutation guarantees.",
+    "Keep public episode arrays independent; release private backing references rather than return overlapping obs/next views.",
+    "Keep subclass and strided-array tobytes fallback; use the direct array buffer for exotic base dtypes rather than memoryview .data conversion."
+  ],
+  "validation": {
+    "baseline-targets": {
+      "tests": 247,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 247,
+      "tool_exit": 0
+    },
+    "candidate-targets": {
+      "tests": 247,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 247,
+      "tool_exit": 0
+    },
+    "candidate-boundaries": {
+      "tests": 90,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 90,
+      "tool_exit": 0
+    },
+    "candidate-full": {
+      "tests": 3641,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 81,
+      "passed": 3560,
+      "tool_exit": 0
+    },
+    "source-release-targets": {
+      "tests": 154,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 154,
+      "tool_exit": 0
+    },
+    "release": {
+      "status": "passed",
+      "artifacts": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302105,
+          "sha256": "b14491c3bfbcd321349f942dbad547596d08d8866751a3ddc323f0b8fe242111"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19755935,
+          "sha256": "1b77cb5635595a96e61c5af60ffb34ebd19641a4ee024ea095fa27ab239cabdf"
+        }
+      },
+      "exact_python_modules": 141,
+      "exact_resources": 49,
+      "historical_evidence_tar_members": 0,
+      "installed_host_imports_without_site_packages": true,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/source-release/embodiedforge-0.1.0",
+      "installed_root": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/installed-wheel",
+      "target_tests": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/source-release-targets.xml"
+    },
+    "build_tool_exit": 0,
+    "release_tool_exit": 0,
+    "patch_reverse_check": "passed",
+    "architecture": {
+      "modules": 141,
+      "explicit_import_edges": 389,
+      "cycles": [],
+      "production_declarations_and_signatures_retained": true,
+      "scope": "Explicit imports and existing declaration signatures, including methods and directly nested definitions."
+    },
+    "workflow_sustained": [
+      {
+        "name": "numpy126",
+        "summary": {
+          "status": "complete",
+          "scope": "Compare real recording, compact/transitions reads, windows and paired evaluation.",
+          "started_at": "2026-10-30T13:00:54.559107+00:00",
+          "requested_seconds": 5400.0,
+          "seconds": 5400.098502326,
+          "cycles": 20403,
+          "counts": {
+            "episodes_per_side": 81618,
+            "transitions_per_side": 243674,
+            "windows_per_side": 243674,
+            "paired_evaluations": 20403,
+            "transition_cycles": 10202,
+            "compact_cycles": 10201,
+            "invalid_marker_rejections_per_side": 1201
+          },
+          "last_sample": {
+            "time": "2026-10-30T14:30:54.657585+00:00",
+            "seconds": 5400.098502326,
+            "cycles": 20403,
+            "rss_kib": 41248,
+            "fds": 4
+          },
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline/src/embodiedforge/data.py": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline/src/embodiedforge/rollout.py": "c5a9fe02142c74951fceb4821defe6f9135425b87056f25ea1fc66e201cd1197",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate/src/embodiedforge/data.py": "7e4d287676b4af8af04586d6608d2260701419b8cdbd8313243db298c4a409e4",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate/src/embodiedforge/rollout.py": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54"
+          },
+          "failures": [],
+          "numpy": "1.26.4",
+          "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+          "limits": "Real deterministic CPU VectorEnv and local NPZ workflows with small raster images; no trained robot actor or training-throughput claim. Changed baseline modules loaded alongside unchanged shared dependencies."
+        },
+        "supervisor": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-soak.py",
+            "--baseline",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline",
+            "--candidate",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-numpy126",
+            "--seconds",
+            "5400"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-soak.py",
+            "--baseline",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline",
+            "--candidate",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-numpy126",
+            "--seconds",
+            "5400"
+          ],
+          "supervisor_pid": 1602557,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-30T13:00:54.393338+00:00",
+          "timeout": 5520.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 1602560,
+          "seconds": 5400.312855488999,
+          "finished_at": "2026-10-30T14:30:54.706169+00:00"
+        },
+        "resources": {
+          "samples": 181,
+          "fds_observed": [
+            4
+          ],
+          "rss_min_kib": 37952,
+          "rss_max_kib": 41248
+        }
+      },
+      {
+        "name": "numpy22",
+        "summary": {
+          "status": "complete",
+          "scope": "Compare real recording, compact/transitions reads, windows and paired evaluation.",
+          "started_at": "2026-10-30T13:00:54.554011+00:00",
+          "requested_seconds": 5400.0,
+          "seconds": 5400.040827869991,
+          "cycles": 20291,
+          "counts": {
+            "episodes_per_side": 81172,
+            "transitions_per_side": 242321,
+            "windows_per_side": 242321,
+            "paired_evaluations": 20291,
+            "transition_cycles": 10146,
+            "compact_cycles": 10145,
+            "invalid_marker_rejections_per_side": 1194
+          },
+          "last_sample": {
+            "time": "2026-10-30T14:30:54.594816+00:00",
+            "seconds": 5400.040827869991,
+            "cycles": 20291,
+            "rss_kib": 43196,
+            "fds": 4
+          },
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline/src/embodiedforge/data.py": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline/src/embodiedforge/rollout.py": "c5a9fe02142c74951fceb4821defe6f9135425b87056f25ea1fc66e201cd1197",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate/src/embodiedforge/data.py": "7e4d287676b4af8af04586d6608d2260701419b8cdbd8313243db298c4a409e4",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate/src/embodiedforge/rollout.py": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54"
+          },
+          "failures": [],
+          "numpy": "2.2.6",
+          "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+          "limits": "Real deterministic CPU VectorEnv and local NPZ workflows with small raster images; no trained robot actor or training-throughput claim. Changed baseline modules loaded alongside unchanged shared dependencies."
+        },
+        "supervisor": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-soak.py",
+            "--baseline",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline",
+            "--candidate",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-numpy22",
+            "--seconds",
+            "5400"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-soak.py",
+            "--baseline",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline",
+            "--candidate",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-numpy22",
+            "--seconds",
+            "5400"
+          ],
+          "supervisor_pid": 1602554,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-30T13:00:54.394930+00:00",
+          "timeout": 5520.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 1602561,
+          "seconds": 5400.245849743995,
+          "finished_at": "2026-10-30T14:30:54.640745+00:00"
+        },
+        "resources": {
+          "samples": 181,
+          "fds_observed": [
+            4
+          ],
+          "rss_min_kib": 39564,
+          "rss_max_kib": 43196
+        }
+      }
+    ],
+    "candidate-numpy126-targets": {
+      "tests": 261,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 261,
+      "tool_exit": 0
+    },
+    "lint": {
+      "ruff_check": "passed",
+      "ruff_format_check": "passed",
+      "git_diff_check": "passed"
+    },
+    "workflow_tool_exits": {
+      "numpy126": 0,
+      "numpy22": 0
+    },
+    "evidence_script_syntax": {
+      "status": "passed",
+      "scripts_parsed": 8
+    },
+    "monitor_tool_exit": 0,
+    "monitor_evidence": {
+      "status": "complete",
+      "samples": 126,
+      "seconds": 5648.342235264005,
+      "last_sample": {
+        "time": "2026-10-30T14:43:41.015687+00:00",
+        "jobs": [
+          {
+            "name": "numpy126",
+            "minutes": 90.0,
+            "cycles": 20403,
+            "episodes_per_side": 81618,
+            "status": "complete",
+            "fds": 4,
+            "rss_kib": 41248,
+            "observed_exit": 0
+          },
+          {
+            "name": "numpy22",
+            "minutes": 90.0,
+            "cycles": 20291,
+            "episodes_per_side": 81172,
+            "status": "complete",
+            "fds": 4,
+            "rss_kib": 43196,
+            "observed_exit": 0
+          }
+        ],
+        "source_files_verified": 143,
+        "full_preservation_check": false,
+        "remaining_minutes": 0.0
+      }
+    },
+    "artifact_integrity": {
+      "status": "passed",
+      "checked_at": "2026-10-30T14:34:07.837275+00:00",
+      "artifacts_unchanged": [
+        "embodiedforge-0.1.0-py3-none-any.whl",
+        "embodiedforge-0.1.0.tar.gz"
+      ]
+    }
+  },
+  "preserved_models": [
+    {
+      "path": "runs/supermimic/tasks/backflip/reference/current.json",
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+    },
+    {
+      "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+      "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+      "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+      "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+    },
+    {
+      "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+    }
+  ],
+  "preserved_data": [
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+      "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+      "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+      "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+      "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+      "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+      "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+      "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+      "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+      "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+    }
+  ],
+  "probe_fixture_corrections": [
+    {
+      "initial_log": "candidate-boundaries-initial-fixture.log",
+      "initial_xml": "candidate-boundaries-initial-fixture.xml",
+      "cause": "The first hash test computed a reference with an extra reset; state_version advances even under reseeding.",
+      "correction": "Compute the reference from the same reset observation passed into the evaluated function.",
+      "production_change_required": false
+    }
+  ],
+  "generated_build_files": [
+    "src/embodiedforge.egg-info/SOURCES.txt"
+  ],
+  "workflow_jobs": [
+    {
+      "name": "numpy126",
+      "summary": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-numpy126/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow126-supervisor",
+      "tool_session_id": 44066,
+      "requested_seconds": 5400
+    },
+    {
+      "name": "numpy22",
+      "summary": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow-numpy22/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/workflow22-supervisor",
+      "tool_session_id": 66067,
+      "requested_seconds": 5400
+    }
+  ],
+  "benchmarks": {
+    "compact_numpy126": {
+      "before": {
+        "status": "measured",
+        "scope": "Real compact-NPZ decode/validation/owned-copy cost; fixture construction excluded.",
+        "numpy": "1.26.4",
+        "samples": [
+          {
+            "verify_archive": false,
+            "seconds": [
+              0.10093282398884185,
+              0.09539255998970475,
+              0.10185276999254711,
+              0.09986838400072884,
+              0.10041149499011226
+            ],
+            "median_seconds": 0.10041149499011226,
+            "retained_traced_bytes": 100701749,
+            "peak_traced_bytes": 151843123,
+            "output_array_bytes": 100672384,
+            "sha256": "526c8236cda4feccae55b83012780506b475cc8170cb51c46755c926ff2e5ca9"
+          },
+          {
+            "verify_archive": true,
+            "seconds": [
+              0.10451634500350337,
+              0.1054698750085663,
+              0.10682519699912518,
+              0.10615923300792929,
+              0.10643067800265271
+            ],
+            "median_seconds": 0.10615923300792929,
+            "retained_traced_bytes": 100701221,
+            "peak_traced_bytes": 151846318,
+            "output_array_bytes": 100672384,
+            "sha256": "526c8236cda4feccae55b83012780506b475cc8170cb51c46755c926ff2e5ca9"
+          }
+        ],
+        "fixture": {
+          "steps": 64,
+          "camera_fields": 4,
+          "camera_shape": [
+            256,
+            256,
+            3
+          ]
+        },
+        "limits": "Traced Python/NumPy allocation peak, not process RSS or training memory. Timing and tracing run separately."
+      },
+      "after": {
+        "status": "measured",
+        "scope": "Real compact-NPZ decode/validation/owned-copy cost; fixture construction excluded.",
+        "numpy": "1.26.4",
+        "samples": [
+          {
+            "verify_archive": false,
+            "seconds": [
+              0.09259805601323023,
+              0.09227224701317027,
+              0.09139144601067528,
+              0.0904576139873825,
+              0.09292718100186903
+            ],
+            "median_seconds": 0.09227224701317027,
+            "retained_traced_bytes": 100701085,
+            "peak_traced_bytes": 113495076,
+            "output_array_bytes": 100672384,
+            "sha256": "526c8236cda4feccae55b83012780506b475cc8170cb51c46755c926ff2e5ca9"
+          },
+          {
+            "verify_archive": true,
+            "seconds": [
+              0.09158005299104843,
+              0.09131765599886421,
+              0.0916787110036239,
+              0.09235167800216004,
+              0.09132906800368801
+            ],
+            "median_seconds": 0.09158005299104843,
+            "retained_traced_bytes": 100700954,
+            "peak_traced_bytes": 113499225,
+            "output_array_bytes": 100672384,
+            "sha256": "526c8236cda4feccae55b83012780506b475cc8170cb51c46755c926ff2e5ca9"
+          }
+        ],
+        "fixture": {
+          "steps": 64,
+          "camera_fields": 4,
+          "camera_shape": [
+            256,
+            256,
+            3
+          ]
+        },
+        "limits": "Traced Python/NumPy allocation peak, not process RSS or training memory. Timing and tracing run separately."
+      },
+      "peak_reduction_fraction": [
+        0.2525504365449596,
+        0.2525388399605448
+      ]
+    },
+    "compact_numpy22": {
+      "before": {
+        "status": "measured",
+        "scope": "Real compact-NPZ decode/validation/owned-copy cost; fixture construction excluded.",
+        "numpy": "2.2.6",
+        "samples": [
+          {
+            "verify_archive": false,
+            "seconds": [
+              0.10565221001161262,
+              0.10635836000437848,
+              0.1063832390063908,
+              0.10648624300665688,
+              0.10778570000547916
+            ],
+            "median_seconds": 0.1063832390063908,
+            "retained_traced_bytes": 100701615,
+            "peak_traced_bytes": 151842989,
+            "output_array_bytes": 100672384,
+            "sha256": "526c8236cda4feccae55b83012780506b475cc8170cb51c46755c926ff2e5ca9"
+          },
+          {
+            "verify_archive": true,
+            "seconds": [
+              0.10528592599439435,
+              0.10263465400203131,
+              0.102667876999476,
+              0.10685541400744114,
+              0.10609230599948205
+            ],
+            "median_seconds": 0.10528592599439435,
+            "retained_traced_bytes": 100701087,
+            "peak_traced_bytes": 151846184,
+            "output_array_bytes": 100672384,
+            "sha256": "526c8236cda4feccae55b83012780506b475cc8170cb51c46755c926ff2e5ca9"
+          }
+        ],
+        "fixture": {
+          "steps": 64,
+          "camera_fields": 4,
+          "camera_shape": [
+            256,
+            256,
+            3
+          ]
+        },
+        "limits": "Traced Python/NumPy allocation peak, not process RSS or training memory. Timing and tracing run separately."
+      },
+      "after": {
+        "status": "measured",
+        "scope": "Real compact-NPZ decode/validation/owned-copy cost; fixture construction excluded.",
+        "numpy": "2.2.6",
+        "samples": [
+          {
+            "verify_archive": false,
+            "seconds": [
+              0.09041289301239885,
+              0.08992876400589012,
+              0.09046584399766289,
+              0.08961007899779361,
+              0.08938465200481005
+            ],
+            "median_seconds": 0.08992876400589012,
+            "retained_traced_bytes": 100701085,
+            "peak_traced_bytes": 113495076,
+            "output_array_bytes": 100672384,
+            "sha256": "526c8236cda4feccae55b83012780506b475cc8170cb51c46755c926ff2e5ca9"
+          },
+          {
+            "verify_archive": true,
+            "seconds": [
+              0.08802724599081557,
+              0.08867626699793618,
+              0.08758232100808527,
+              0.08738414499384817,
+              0.08767255299608223
+            ],
+            "median_seconds": 0.08767255299608223,
+            "retained_traced_bytes": 100701021,
+            "peak_traced_bytes": 113499292,
+            "output_array_bytes": 100672384,
+            "sha256": "526c8236cda4feccae55b83012780506b475cc8170cb51c46755c926ff2e5ca9"
+          }
+        ],
+        "fixture": {
+          "steps": 64,
+          "camera_fields": 4,
+          "camera_shape": [
+            256,
+            256,
+            3
+          ]
+        },
+        "limits": "Traced Python/NumPy allocation peak, not process RSS or training memory. Timing and tracing run separately."
+      },
+      "peak_reduction_fraction": [
+        0.25254977692779745,
+        0.25253773911104677
+      ]
+    },
+    "initial_observation_hash": {
+      "before": {
+        "status": "measured",
+        "scope": "Initial-observation hashing only: identical bytes, timing and allocation.",
+        "source": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/baseline/src/embodiedforge/rollout.py",
+        "source_sha256": "c5a9fe02142c74951fceb4821defe6f9135425b87056f25ea1fc66e201cd1197",
+        "numpy": "1.26.4",
+        "image_bytes": 50331648,
+        "seconds": [
+          0.03884143200411927,
+          0.03916876300354488,
+          0.038609201001236215,
+          0.039480644001741894,
+          0.039674491999903694,
+          0.04082604800350964,
+          0.039600782009074464,
+          0.03911821701331064,
+          0.03769787099736277,
+          0.03438264998840168,
+          0.03592226200271398
+        ],
+        "median_seconds": 0.03911821701331064,
+        "peak_traced_bytes": 50331915,
+        "sha256": "91b1ef0b65b1a626b9aae801c03e53bb0d08377014c63a90fa6803eef4f790cc",
+        "limits": "Extracted hash statements over an immutable 48 MiB contiguous image batch. Excludes rendering, inference and training; traced peak is not RSS."
+      },
+      "after": {
+        "status": "measured",
+        "scope": "Initial-observation hashing only: identical bytes, timing and allocation.",
+        "source": "/tmp/embodiedforge-subtraction-20261030-124341-twohour/candidate/src/embodiedforge/rollout.py",
+        "source_sha256": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54",
+        "numpy": "1.26.4",
+        "image_bytes": 50331648,
+        "seconds": [
+          0.020913943997584283,
+          0.021048349008196965,
+          0.021082994004245847,
+          0.021129101995029487,
+          0.021363627005484886,
+          0.021038189996033907,
+          0.021000657987315208,
+          0.02081943400844466,
+          0.020935975990141742,
+          0.02086413999495562,
+          0.020918573005474173
+        ],
+        "median_seconds": 0.021000657987315208,
+        "peak_traced_bytes": 567,
+        "sha256": "91b1ef0b65b1a626b9aae801c03e53bb0d08377014c63a90fa6803eef4f790cc",
+        "limits": "Extracted hash statements over an immutable 48 MiB contiguous image batch. Excludes rendering, inference and training; traced peak is not RSS."
+      }
+    }
+  },
+  "metrics": {
+    "modules_before": 141,
+    "modules_after": 141,
+    "source_lines_before": 37842,
+    "source_lines_after": 37845,
+    "source_lines_delta": 3,
+    "source_bytes_before": 1515257,
+    "source_bytes_after": 1515327,
+    "source_bytes_delta": 70,
+    "interpretation": "This round subtracts retained image payloads and a hash bytes copy; source-line count is reported without treating added guard lines as a reduction."
+  },
+  "preservation": {
+    "checked_at": "2026-10-30T14:43:57.801480+00:00",
+    "baseline_files_checked": 428,
+    "expected_changed_files": [
+      "src/embodiedforge.egg-info/SOURCES.txt",
+      "src/embodiedforge/data.py",
+      "src/embodiedforge/rollout.py",
+      "tests/test_dataset_reads.py",
+      "tests/test_rollout.py"
+    ],
+    "unexpected_changes": [],
+    "historical_files_unchanged": 193,
+    "models_and_registry": 6,
+    "reference_data_files": 9,
+    "frozen_production_source_matches": true
+  },
+  "limits": [
+    "Allocation benchmarks measure traced Python/NumPy peaks, not process RSS, full training memory or overall training throughput.",
+    "The compact reader fixture is a real compact NPZ with 64 transitions and four 256x256 RGB fields. Default and verified reads are measured separately on two NumPy environments.",
+    "The hash benchmark isolates initial-observation hash statements over one immutable, C-contiguous 48 MiB image batch. The public digest format is unchanged.",
+    "Each sustained comparison runs real deterministic CPU VectorEnv recording, reading, window generation and paired evaluation with small raster images. This does not evaluate trained robot skill quality.",
+    "Only changed baseline modules are loaded alongside unchanged shared dependencies. All production source is separately frozen and checked.",
+    "Overlapping test suites are reported separately. The main suite skips optional SDK dependencies.",
+    "The initial hash fixture used an extra reset and was corrected to hash the same observation; its initial failure log remains in the evidence.",
+    "Existing checkpoint byte-snapshot guarantees and all task/training parameters are retained; existing policy checkpoints and training parameters were not modified, and dependencies were not upgraded."
+  ],
+  "elapsed_seconds": 7216.80148,
+  "last_updated_at": "2026-10-30T14:43:57.801480+00:00",
+  "environment": {
+    "benchmark_python": "/home/ubuntu/miniconda3/envs/dp/bin/python",
+    "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+    "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+    "benchmark_environment": {
+      "numpy": "1.26.4",
+      "torch": "2.8.0+cu128",
+      "pytest": "9.1.1",
+      "setuptools": "83.0.0"
+    },
+    "full_suite_python": "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+    "workflow_environment_details": "Recorded in each sustained summary."
+  },
+  "reproduction": {
+    "snapshot_patch": "scratch/this-round.patch in the evidence bundle, relative to this round initial working tree.",
+    "compact_benchmark": "compact-reader-bench.py --prepare creates the real compact NPZ fixture; run baseline/candidate readers in the recorded environments.",
+    "hash_benchmark": "hash-bench.py extracts only initial-observation hash statements from the supplied source file.",
+    "sustained_comparison": "Exact commands and observed exits are stored under workflow126-supervisor and workflow22-supervisor.",
+    "full_suite": "env PYTHONPATH=src PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /home/ubuntu/miniconda3/envs/xvla2/bin/python -m pytest -q --tb=short"
+  },
+  "finished_at": "2026-10-30T14:43:57.801480+00:00",
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261030-124341-twohour-evidence.tar.gz",
+    "bytes": 1343989,
+    "sha256": "39f99e51c1d4b92970a511286c86535644d5d360e81a55905323f613e08a55b8",
+    "verified_members": 460,
+    "report_snapshot": "scratch/state.json",
+    "snapshot_note": "Frozen before inserting the bundle checksum, to avoid self-reference."
+  }
+}

@@ -3,13 +3,7 @@
 import numpy as np
 
 from ._h1_metrics import BASIC_COMMANDS, FirstEpisodeMetrics
-
-SWITCHING_SUITES = (
-    "switching",
-    "lateral-switching",
-    "maneuver-switching",
-    "maneuver-switching-mirrored",
-)
+from .workflows.recipe_catalog import SWITCHING_SUITES as SWITCHING_SUITES
 
 TRACKING_PROTOCOL = {
     "version": 1,

@@ -3,7 +3,8 @@
 import json
 from pathlib import Path
 
-from .recipes import sha256, write_json
+from .runtime.artifacts import write_json
+from .runtime.hashing import file_sha256 as sha256
 
 
 def _values(before, after):

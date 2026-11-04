@@ -1,12 +1,13 @@
 """Named, packed reference motions; independent of robot and simulator SDKs."""
 
-import hashlib
 import json
-import logging
 from array import array
 from pathlib import Path
 
 import numpy as np
+
+from .runtime.artifacts import discard_partial
+from .runtime.hashing import stream_sha256
 
 
 def _names(value, name):
@@ -188,30 +189,24 @@ class MotionClips:
                 metadata = json.loads(str(data["metadata"]))
                 arrays = {key: data[key] for key in data.files if key != "metadata"}
             stream.seek(0)
-            digest = hashlib.sha256()
-            for block in iter(lambda: stream.read(1024 * 1024), b""):
-                digest.update(block)
+            digest = stream_sha256(stream)
         library = cls(arrays, metadata)
-        library.sha256 = digest.hexdigest()
+        library.sha256 = digest
         return library
 
     def save(self, path):
         path = Path(path)
-        with path.open("xb") as stream:
-            try:
+        stream = path.open("xb")
+        try:
+            with stream:
                 np.savez_compressed(
                     stream,
                     metadata=np.array(json.dumps(self.metadata, allow_nan=False)),
                     **self.arrays,
                 )
-            except BaseException:
-                try:
-                    path.unlink(missing_ok=True)
-                except OSError as exc:
-                    logging.getLogger(__name__).warning(
-                        "Could not remove partial motion snapshot %s: %s", path, exc
-                    )
-                raise
+        except BaseException:
+            discard_partial(path, label="motion snapshot")
+            raise
 
     def frames(self, clip_ids, steps, offsets=(0,)):
         """Gather [batch, future, ...] without crossing a clip's final frame."""
@@ -291,9 +286,7 @@ def import_weave(path, layout):
         with np.load(stream, allow_pickle=False) as data:
             arrays = {name: data[name] for name in data.files if name != "metadata"}
         stream.seek(0)
-        digest = hashlib.sha256()
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
+        digest = stream_sha256(stream)
     if layout["quaternion_order"] == "xyzw":
         for name in ("body_quat_w", "object_quat_w"):
             if name not in arrays:
@@ -306,7 +299,7 @@ def import_weave(path, layout):
         "source": {
             "format": "weave-packed-npz",
             "path": str(Path(path).resolve()),
-            "sha256": digest.hexdigest(),
+            "sha256": digest,
         },
     }
     return MotionClips(arrays, metadata)

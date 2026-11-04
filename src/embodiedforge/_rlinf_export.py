@@ -4,7 +4,7 @@ import hashlib
 import io
 import json
 
-from .rlinf import REVISION
+from .workflows.rlinf_catalog import REVISION
 
 
 def export_actor(

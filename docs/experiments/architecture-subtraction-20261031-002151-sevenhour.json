@@ -1,0 +1,1145 @@
+{
+  "status": "complete",
+  "objective": "Seven-hour subtraction across runtime, data and training boundaries; preserve behavior and existing work.",
+  "started_at": "2026-10-31T00:21:51+00:00",
+  "deadline": "2026-10-31T07:21:51+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37845,
+  "baseline_files": 428,
+  "historical_files": 197,
+  "changed_files_this_round": [
+    "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+    "src/embodiedforge/workflows/supermimic_reference_evaluate.py",
+    "tests/test_microduck_task.py",
+    "tests/test_supermimic_reference.py"
+  ],
+  "changes": [
+    {
+      "area": "action history",
+      "change": "Keep each fresh advanced-indexed action tensor as its primary history snapshot; retain independent second-history copies."
+    },
+    {
+      "area": "partial resets",
+      "change": "Remove extra clones after integer tensor indexing and before assignment into owned history storage."
+    },
+    {
+      "area": "physical evaluation state",
+      "change": "Use the owned torch.cat result directly before terrain-origin subtraction."
+    }
+  ],
+  "audit_decisions": [
+    "Preserve clones where indexing can produce a view or where two history arrays require independent storage.",
+    "Retain reward formulas, reset distributions, RNG order, trained weights and all dependency versions.",
+    "Verify ownership and autograd independently from copy-volume measurements."
+  ],
+  "validation": {
+    "baseline-sdk": {
+      "tests": 58,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "tool_exit": 0,
+      "passed": 58
+    },
+    "candidate-sdk": {
+      "tests": 119,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "tool_exit": 0,
+      "passed": 119
+    },
+    "structural": {
+      "status": "passed",
+      "clone_calls_removed": 13,
+      "removed_by_function": {
+        "reset_with_forward_velocity": 2,
+        "reset_action_history": 1,
+        "leg_action_rate_l2": 2,
+        "neck_action_rate_l2": 2,
+        "leg_action_acceleration_l2": 2,
+        "neck_action_acceleration_l2": 2,
+        "set_random_crouch_state": 1,
+        "actual_state": 1
+      },
+      "production_files_changed": [
+        "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+        "src/embodiedforge/workflows/supermimic_reference_evaluate.py"
+      ],
+      "complete_module_asts_identical_after_removing_allowed_clones": true,
+      "all_other_production_bytes_unchanged": true,
+      "production_bytes_delta": -104,
+      "new_production_modules": 0,
+      "new_production_functions": 0,
+      "source_sha256": {
+        "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "ff19aeb7ef5e4ea7d8bf7d6b32e913372454f4f00d0e1e177e606adddcbe3d06",
+        "src/embodiedforge/workflows/supermimic_reference_evaluate.py": "6bd58b1970d34151f3102922be3d2fa83fe01ca48f03963d7e57124408389f98"
+      }
+    },
+    "lint": "passed",
+    "candidate_full_tool_exit": 0,
+    "candidate-full": {
+      "tests": 3665,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 81,
+      "tool_exit": 0,
+      "passed": 3584
+    },
+    "candidate-microduck": {
+      "tests": 429,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "tool_exit": 0,
+      "passed": 429
+    },
+    "numerical_smoke_tool_exit": 0,
+    "physics_smoke_tool_exit": 0,
+    "patch_reverse_check": "passed",
+    "architecture": {
+      "modules": 141,
+      "explicit_import_edges": 389,
+      "cycles": []
+    },
+    "workflow_sustained": [
+      {
+        "name": "numerical",
+        "summary": {
+          "status": "complete",
+          "scope": "Compare real old/new SDK functions: values, gradients, ownership and RNG.",
+          "started_at": "2026-10-31T00:40:18.202490+00:00",
+          "requested_seconds": 23400.0,
+          "seconds": 23400.016286558995,
+          "counts": {
+            "cycles": 871975,
+            "cpu_cycles": 435988,
+            "cuda_cycles": 435987,
+            "float32_cycles": 435988,
+            "float64_cycles": 435987,
+            "layout_0_cycles": 290660,
+            "layout_1_cycles": 290659,
+            "layout_2_cycles": 290656,
+            "reward_comparisons": 10463700,
+            "state_comparisons": 871975,
+            "gradient_comparisons": 1046370,
+            "gradient_bitwise_equal": 1046370,
+            "gradient_max_abs_error": 0,
+            "ownership_checks": 40808430,
+            "reset_comparisons": 13328760,
+            "rng_comparisons": 3487900
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "5cc62163fe3b1348478e202b81aaee1334365e7cd10b323737a48a6a60c4fc77",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/baseline/src/embodiedforge/workflows/supermimic_reference_evaluate.py": "afa4c4d47122bfd1a8ab8a561704c89aae5676ed0583a828c626099a888ab30c",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/candidate/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "ff19aeb7ef5e4ea7d8bf7d6b32e913372454f4f00d0e1e177e606adddcbe3d06",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/candidate/src/embodiedforge/workflows/supermimic_reference_evaluate.py": "6bd58b1970d34151f3102922be3d2fa83fe01ca48f03963d7e57124408389f98"
+          },
+          "torch": "2.9.1+cu128",
+          "cuda": "12.8",
+          "gpu": "NVIDIA GeForce RTX 5090 D v2",
+          "last_sample": {
+            "time": "2026-10-31T07:10:18.218789+00:00",
+            "seconds": 23400.016286558995,
+            "rss_kib": 1651120,
+            "fds": 46,
+            "cuda_allocated_bytes": 0,
+            "cuda_reserved_bytes": 2097152,
+            "cycles": 871975
+          },
+          "limits": "Real SDK modules on synthetic CPU/CUDA tensors; simulator writes captured on tensor fixtures. Values/RNG/ownership exact; gradients use recorded dtype tolerances. No learned-skill or throughput claim."
+        },
+        "supervisor": {
+          "command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/numerical-soak.py",
+            "--seconds",
+            "23400",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/numerical-soak"
+          ],
+          "launched_command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/numerical-soak.py",
+            "--seconds",
+            "23400",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/numerical-soak"
+          ],
+          "supervisor_pid": 2159358,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-31T00:40:14.474323+00:00",
+          "timeout": 23580.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 2159362,
+          "seconds": 23404.98360283699,
+          "finished_at": "2026-10-31T07:10:19.457886+00:00"
+        },
+        "resources": {
+          "scope": "Sampled combined worker process resources, not separate old/new memory measurements. CUDA counters come from the Torch allocator and exclude Warp/driver allocations.",
+          "samples": 782,
+          "fds_observed": [
+            18,
+            25,
+            46
+          ],
+          "fds_after_five_minutes": [
+            46
+          ],
+          "rss_min_kib": 885796,
+          "rss_max_kib": 1651120,
+          "max_cuda_allocated_bytes": 0,
+          "max_cuda_reserved_bytes": 2097152
+        }
+      },
+      {
+        "name": "physics",
+        "summary": {
+          "status": "complete",
+          "scope": "Compare stateful reward helpers on actual mjlab/MuJoCo-Warp robot states.",
+          "started_at": "2026-10-31T00:40:21.292234+00:00",
+          "requested_seconds": 23400.0,
+          "seconds": 23400.05567890001,
+          "num_envs": 32,
+          "counts": {
+            "steps": 327726,
+            "physics_transitions": 10487232,
+            "reward_comparisons": 1310904,
+            "history_comparisons": 1966356,
+            "reset_events": 176675,
+            "reset_comparisons": 964670,
+            "state_comparisons": 19278,
+            "ownership_checks": 38556
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "5cc62163fe3b1348478e202b81aaee1334365e7cd10b323737a48a6a60c4fc77",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/baseline/src/embodiedforge/workflows/supermimic_reference_evaluate.py": "afa4c4d47122bfd1a8ab8a561704c89aae5676ed0583a828c626099a888ab30c",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/candidate/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "ff19aeb7ef5e4ea7d8bf7d6b32e913372454f4f00d0e1e177e606adddcbe3d06",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/candidate/src/embodiedforge/workflows/supermimic_reference_evaluate.py": "6bd58b1970d34151f3102922be3d2fa83fe01ca48f03963d7e57124408389f98"
+          },
+          "torch": "2.9.1+cu128",
+          "gpu": "NVIDIA GeForce RTX 5090 D v2",
+          "last_sample": {
+            "time": "2026-10-31T07:10:21.347927+00:00",
+            "seconds": 23400.05567890001,
+            "rss_kib": 2836552,
+            "fds": 46,
+            "cuda_allocated_bytes": 8742912,
+            "cuda_reserved_bytes": 25165824,
+            "steps": 327726
+          },
+          "limits": "Actual 32-environment physics with small seeded random actions. Old/new stateful reward helpers use independent histories on the same physics states. State snapshot comparison centers the actual robot qpos/qvel. No trained actor or skill-quality claim."
+        },
+        "supervisor": {
+          "command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/physics-soak.py",
+            "--seconds",
+            "23400",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/physics-soak"
+          ],
+          "launched_command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/physics-soak.py",
+            "--seconds",
+            "23400",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/physics-soak"
+          ],
+          "supervisor_pid": 2159357,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-31T00:40:14.472895+00:00",
+          "timeout": 23580.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 2159361,
+          "seconds": 23408.166471898992,
+          "finished_at": "2026-10-31T07:10:22.639337+00:00"
+        },
+        "resources": {
+          "scope": "Sampled combined worker process resources, not separate old/new memory measurements. CUDA counters come from the Torch allocator and exclude Warp/driver allocations.",
+          "samples": 782,
+          "fds_observed": [
+            46
+          ],
+          "fds_after_five_minutes": [
+            46
+          ],
+          "rss_min_kib": 2797872,
+          "rss_max_kib": 2836552,
+          "max_cuda_allocated_bytes": 8749056,
+          "max_cuda_reserved_bytes": 25165824
+        }
+      }
+    ],
+    "build_tool_exit": 0,
+    "source-release-targets": {
+      "tests": 187,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "tool_exit": 0,
+      "passed": 187
+    },
+    "source-release-sdk": {
+      "tests": 119,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "tool_exit": 0,
+      "passed": 119
+    },
+    "release": {
+      "status": "passed",
+      "artifacts": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302088,
+          "sha256": "732bc30b7b057f67408b64dad23322c4cc032335cd6b8af263fdba808eab94f9"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19778505,
+          "sha256": "31d6bcc315bca43e43a3d4165247a317747e261abd17ad06db16a9306eef4402"
+        }
+      },
+      "exact_python_modules": 141,
+      "exact_resources": 49,
+      "historical_evidence_tar_members": 0,
+      "installed_host_imports_without_site_packages": true,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/source-release/embodiedforge-0.1.0",
+      "installed_root": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/installed-wheel",
+      "target_tests": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/source-release-targets.xml",
+      "sdk_tests": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/source-release-sdk.xml",
+      "sdk_returncode": 0
+    },
+    "release_tool_exit": 0,
+    "junit_evidence_audit": {
+      "status": "passed",
+      "scope": "Independent testcase-level counts from original XML; overlapping suites remain separate runs.",
+      "runs": [
+        {
+          "name": "baseline-sdk",
+          "tests": 58,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 58
+        },
+        {
+          "name": "candidate-sdk",
+          "tests": 119,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 119
+        },
+        {
+          "name": "candidate-microduck",
+          "tests": 429,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 429
+        },
+        {
+          "name": "candidate-full",
+          "tests": 3665,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 81,
+          "passed": 3584
+        },
+        {
+          "name": "source-release-targets",
+          "tests": 187,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 187
+        },
+        {
+          "name": "source-release-sdk",
+          "tests": 119,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 119
+        }
+      ]
+    },
+    "source_import_provenance": {
+      "status": "passed",
+      "expected_source_root": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/source-release/embodiedforge-0.1.0/src",
+      "loaded_modules": [
+        "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/source-release/embodiedforge-0.1.0/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+        "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/source-release/embodiedforge-0.1.0/src/embodiedforge/workflows/supermimic_reference_evaluate.py"
+      ]
+    },
+    "artifact_integrity": {
+      "status": "passed",
+      "artifacts": [
+        {
+          "name": "embodiedforge-0.1.0-py3-none-any.whl",
+          "bytes": 8302088,
+          "sha256": "732bc30b7b057f67408b64dad23322c4cc032335cd6b8af263fdba808eab94f9"
+        },
+        {
+          "name": "embodiedforge-0.1.0.tar.gz",
+          "bytes": 19778505,
+          "sha256": "31d6bcc315bca43e43a3d4165247a317747e261abd17ad06db16a9306eef4402"
+        }
+      ],
+      "matches_verified_release": true
+    },
+    "helper_call_cost_tool_exit": 0,
+    "workflow_tool_exits": {
+      "numerical": 0,
+      "physics": 0
+    },
+    "monitor_tool_exit": 0,
+    "monitor_evidence": {
+      "status": "complete",
+      "samples": 533,
+      "seconds": 24008.52157901498,
+      "last_sample": {
+        "time": "2026-10-31T07:21:51.032873+00:00",
+        "jobs": [
+          {
+            "name": "numerical",
+            "minutes": 390.0,
+            "units": 871975,
+            "status": "complete",
+            "fds": 46,
+            "rss_kib": 1651120,
+            "observed_exit": 0
+          },
+          {
+            "name": "physics",
+            "minutes": 390.0,
+            "units": 327726,
+            "status": "complete",
+            "fds": 46,
+            "rss_kib": 2836552,
+            "observed_exit": 0
+          }
+        ],
+        "source_files_verified": 143,
+        "full_preservation_check": true,
+        "remaining_minutes": 0.0
+      }
+    }
+  },
+  "preserved_models": [
+    {
+      "path": "runs/supermimic/tasks/backflip/reference/current.json",
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+    },
+    {
+      "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+      "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+      "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+      "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+    },
+    {
+      "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+    }
+  ],
+  "preserved_data": [
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+      "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+      "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+      "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+      "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+      "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+      "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+      "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+      "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+      "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+    }
+  ],
+  "audit_fixture_adjustments": [
+    "The private AST selector was restricted to primary history assignment targets; independent secondary-history clone calls are deliberately unchanged."
+  ],
+  "benchmarks": {
+    "clone_payload": {
+      "status": "passed",
+      "scope": "Measure clone payload/call counts; this is not a whole-process RSS benchmark.",
+      "torch": "2.9.1+cu128",
+      "device": "cpu",
+      "history_helpers_per_control_step": [
+        "leg_action_rate_l2",
+        "neck_action_rate_l2",
+        "leg_action_acceleration_l2",
+        "neck_action_acceleration_l2"
+      ],
+      "results": [
+        {
+          "batch": 4096,
+          "dtype": "torch.float32",
+          "before": {
+            "history_initial": {
+              "clone_calls": 6,
+              "cloned_payload_bytes": 688128
+            },
+            "history_steady": {
+              "clone_calls": 6,
+              "cloned_payload_bytes": 688128
+            },
+            "state_snapshot": {
+              "clone_calls": 1,
+              "cloned_payload_bytes": 1163264
+            }
+          },
+          "after": {
+            "history_initial": {
+              "clone_calls": 2,
+              "cloned_payload_bytes": 229376
+            },
+            "history_steady": {
+              "clone_calls": 2,
+              "cloned_payload_bytes": 229376
+            },
+            "state_snapshot": {
+              "clone_calls": 0,
+              "cloned_payload_bytes": 0
+            }
+          },
+          "output_values_bitwise_identical": true
+        },
+        {
+          "batch": 4096,
+          "dtype": "torch.float64",
+          "before": {
+            "history_initial": {
+              "clone_calls": 6,
+              "cloned_payload_bytes": 1376256
+            },
+            "history_steady": {
+              "clone_calls": 6,
+              "cloned_payload_bytes": 1376256
+            },
+            "state_snapshot": {
+              "clone_calls": 1,
+              "cloned_payload_bytes": 2326528
+            }
+          },
+          "after": {
+            "history_initial": {
+              "clone_calls": 2,
+              "cloned_payload_bytes": 458752
+            },
+            "history_steady": {
+              "clone_calls": 2,
+              "cloned_payload_bytes": 458752
+            },
+            "state_snapshot": {
+              "clone_calls": 0,
+              "cloned_payload_bytes": 0
+            }
+          },
+          "output_values_bitwise_identical": true
+        },
+        {
+          "batch": 65536,
+          "dtype": "torch.float32",
+          "before": {
+            "history_initial": {
+              "clone_calls": 6,
+              "cloned_payload_bytes": 11010048
+            },
+            "history_steady": {
+              "clone_calls": 6,
+              "cloned_payload_bytes": 11010048
+            },
+            "state_snapshot": {
+              "clone_calls": 1,
+              "cloned_payload_bytes": 18612224
+            }
+          },
+          "after": {
+            "history_initial": {
+              "clone_calls": 2,
+              "cloned_payload_bytes": 3670016
+            },
+            "history_steady": {
+              "clone_calls": 2,
+              "cloned_payload_bytes": 3670016
+            },
+            "state_snapshot": {
+              "clone_calls": 0,
+              "cloned_payload_bytes": 0
+            }
+          },
+          "output_values_bitwise_identical": true
+        },
+        {
+          "batch": 65536,
+          "dtype": "torch.float64",
+          "before": {
+            "history_initial": {
+              "clone_calls": 6,
+              "cloned_payload_bytes": 22020096
+            },
+            "history_steady": {
+              "clone_calls": 6,
+              "cloned_payload_bytes": 22020096
+            },
+            "state_snapshot": {
+              "clone_calls": 1,
+              "cloned_payload_bytes": 37224448
+            }
+          },
+          "after": {
+            "history_initial": {
+              "clone_calls": 2,
+              "cloned_payload_bytes": 7340032
+            },
+            "history_steady": {
+              "clone_calls": 2,
+              "cloned_payload_bytes": 7340032
+            },
+            "state_snapshot": {
+              "clone_calls": 0,
+              "cloned_payload_bytes": 0
+            }
+          },
+          "output_values_bitwise_identical": true
+        }
+      ],
+      "reset_results": [
+        {
+          "operation": "reset_with_forward_velocity",
+          "before": {
+            "clone_calls": 2,
+            "cloned_payload_bytes": 209664
+          },
+          "after": {
+            "clone_calls": 0,
+            "cloned_payload_bytes": 0
+          }
+        },
+        {
+          "operation": "set_random_crouch_state",
+          "before": {
+            "clone_calls": 1,
+            "cloned_payload_bytes": 131072
+          },
+          "after": {
+            "clone_calls": 0,
+            "cloned_payload_bytes": 0
+          }
+        }
+      ],
+      "limits": "Profiler CPU clone payload allocation sums, excluding input/cat/index allocations and retained histories. Synthetic batch sizes; no end-to-end training memory, RSS or throughput claim."
+    },
+    "helper_call_cost": {
+      "status": "passed",
+      "scope": "Paired eager helper timings under the shared host; exclude simulator/training.",
+      "torch": "2.9.1+cu128",
+      "helpers": [
+        "leg_action_rate_l2",
+        "neck_action_rate_l2",
+        "leg_action_acceleration_l2",
+        "neck_action_acceleration_l2"
+      ],
+      "results": [
+        {
+          "device": "cpu",
+          "batch": 1,
+          "dtype": "torch.float32",
+          "pairs": 7,
+          "iterations_per_sample": 200,
+          "host_us_before": [
+            33.57868001330644,
+            32.59781500673853,
+            34.503639908507466,
+            32.01711006113328,
+            32.16348501155153,
+            32.86562496214174,
+            32.2562649671454
+          ],
+          "host_us_after": [
+            28.920814947923645,
+            29.618645057780668,
+            29.259014991112053,
+            29.30218994151801,
+            31.485899962717667,
+            29.40113001386635,
+            29.389209958026186
+          ],
+          "host_median_us_before": 32.59781500673853,
+          "host_median_us_after": 29.389209958026186,
+          "host_median_ratio_after_before": 0.9015699350386194,
+          "cuda_event_us_before": [],
+          "cuda_event_us_after": [],
+          "outputs_bitwise_identical": true
+        },
+        {
+          "device": "cpu",
+          "batch": 1024,
+          "dtype": "torch.float32",
+          "pairs": 7,
+          "iterations_per_sample": 200,
+          "host_us_before": [
+            93.36095492471941,
+            94.9961700825952,
+            93.5482099885121,
+            95.12375996564515,
+            92.94110495829955,
+            92.78140496462584,
+            94.67195006436668
+          ],
+          "host_us_after": [
+            91.75835497444496,
+            89.39716499298811,
+            90.63186502316967,
+            88.50557002006099,
+            90.01608996186405,
+            89.70645503723063,
+            88.04679499007761
+          ],
+          "host_median_us_before": 93.5482099885121,
+          "host_median_us_after": 89.70645503723063,
+          "host_median_ratio_after_before": 0.9589328865645506,
+          "cuda_event_us_before": [],
+          "cuda_event_us_after": [],
+          "outputs_bitwise_identical": true
+        },
+        {
+          "device": "cpu",
+          "batch": 4096,
+          "dtype": "torch.float32",
+          "pairs": 7,
+          "iterations_per_sample": 200,
+          "host_us_before": [
+            282.7319549396634,
+            341.39490002417006,
+            312.9926699330099,
+            293.9968349528499,
+            296.21580004459247,
+            289.06850508064963,
+            290.08639496169053
+          ],
+          "host_us_after": [
+            269.7395349969156,
+            303.08417000924237,
+            298.89655503211543,
+            275.55805500014685,
+            285.10026008007117,
+            278.1923650763929,
+            280.8683099283371
+          ],
+          "host_median_us_before": 293.9968349528499,
+          "host_median_us_after": 280.8683099283371,
+          "host_median_ratio_after_before": 0.9553446722424128,
+          "cuda_event_us_before": [],
+          "cuda_event_us_after": [],
+          "outputs_bitwise_identical": true
+        },
+        {
+          "device": "cpu",
+          "batch": 16384,
+          "dtype": "torch.float32",
+          "pairs": 7,
+          "iterations_per_sample": 200,
+          "host_us_before": [
+            1113.2837399782147,
+            1062.5759200775065,
+            1046.6063900094014,
+            1030.1522249937989,
+            1041.4052799751516,
+            1025.6017050414812,
+            1023.6245450505521
+          ],
+          "host_us_after": [
+            1054.0523000236135,
+            1021.9749300449621,
+            1013.528859912185,
+            994.8521250043996,
+            1011.6418599500321,
+            996.0683301324025,
+            988.7369749776553
+          ],
+          "host_median_us_before": 1041.4052799751516,
+          "host_median_us_after": 1011.6418599500321,
+          "host_median_ratio_after_before": 0.9714199451477433,
+          "cuda_event_us_before": [],
+          "cuda_event_us_after": [],
+          "outputs_bitwise_identical": true
+        },
+        {
+          "device": "cuda:0",
+          "batch": 1,
+          "dtype": "torch.float32",
+          "pairs": 7,
+          "iterations_per_sample": 200,
+          "host_us_before": [
+            415.51168003934436,
+            299.4113649765495,
+            146.86648501083255,
+            288.3342451241333,
+            205.26837994111702,
+            345.6121050112415,
+            282.6283899776172
+          ],
+          "host_us_after": [
+            153.59097509644926,
+            241.8282299186103,
+            259.0173250064254,
+            101.90665503614582,
+            352.7893549471628,
+            102.6610899134539,
+            102.16149501502514
+          ],
+          "host_median_us_before": 288.3342451241333,
+          "host_median_us_after": 153.59097509644926,
+          "host_median_ratio_after_before": 0.5326837782668703,
+          "cuda_event_us_before": [
+            415.45520782470703,
+            299.3534469604492,
+            146.79311752319336,
+            288.2604789733887,
+            205.2120018005371,
+            345.5331039428711,
+            282.55807876586914
+          ],
+          "cuda_event_us_after": [
+            153.03536415100098,
+            241.7670440673828,
+            258.94784927368164,
+            101.84975624084473,
+            352.22862243652344,
+            102.59663581848145,
+            102.09759712219238
+          ],
+          "outputs_bitwise_identical": true
+        },
+        {
+          "device": "cuda:0",
+          "batch": 1024,
+          "dtype": "torch.float32",
+          "pairs": 7,
+          "iterations_per_sample": 200,
+          "host_us_before": [
+            364.99868001556024,
+            164.46044988697395,
+            224.49595999205485,
+            283.8462599902414,
+            194.39860494458117,
+            199.65669998782687,
+            272.1624801051803
+          ],
+          "host_us_after": [
+            104.70027002156712,
+            331.2120099144522,
+            269.30504507618025,
+            106.88803507946432,
+            194.24134996370412,
+            365.88506496627815,
+            105.79930996755138
+          ],
+          "host_median_us_before": 224.49595999205485,
+          "host_median_us_after": 194.24134996370412,
+          "host_median_ratio_after_before": 0.8652331648666575,
+          "cuda_event_us_before": [
+            364.9342346191406,
+            164.40704345703125,
+            224.40128326416016,
+            283.77344131469727,
+            194.34688568115234,
+            199.12992477416992,
+            272.08736419677734
+          ],
+          "cuda_event_us_after": [
+            104.62080001831055,
+            331.13712310791016,
+            269.23168182373047,
+            106.8291187286377,
+            193.58287811279297,
+            365.82862854003906,
+            105.73087692260742
+          ],
+          "outputs_bitwise_identical": true
+        },
+        {
+          "device": "cuda:0",
+          "batch": 4096,
+          "dtype": "torch.float32",
+          "pairs": 7,
+          "iterations_per_sample": 200,
+          "host_us_before": [
+            340.35309494356625,
+            326.45826489897445,
+            127.55118994391523,
+            251.7591200012248,
+            118.11743999714963,
+            118.56093493406661,
+            265.02460008487105
+          ],
+          "host_us_after": [
+            226.3341449724976,
+            332.19763499801047,
+            223.36941008688882,
+            138.1795050110668,
+            120.49786993884481,
+            232.9298949916847,
+            103.89498493168503
+          ],
+          "host_median_us_before": 251.7591200012248,
+          "host_median_us_after": 223.36941008688882,
+          "host_median_ratio_after_before": 0.8872346316026293,
+          "cuda_event_us_before": [
+            340.28369903564453,
+            326.4039993286133,
+            127.48815536499023,
+            251.68960571289062,
+            118.03999900817871,
+            118.4928035736084,
+            264.95471954345703
+          ],
+          "cuda_event_us_after": [
+            226.27744674682617,
+            332.1414566040039,
+            223.3185577392578,
+            138.10015678405762,
+            120.45248031616211,
+            232.86752700805664,
+            103.83119583129883
+          ],
+          "outputs_bitwise_identical": true
+        },
+        {
+          "device": "cuda:0",
+          "batch": 16384,
+          "dtype": "torch.float32",
+          "pairs": 7,
+          "iterations_per_sample": 200,
+          "host_us_before": [
+            123.16950000240467,
+            270.3247350291349,
+            117.77754494687542,
+            347.445035004057,
+            200.55465996847488,
+            183.04580502444878,
+            338.0811199895106
+          ],
+          "host_us_after": [
+            255.53409504937008,
+            104.79580509127118,
+            270.8160149632022,
+            106.3152399729006,
+            191.2301199627109,
+            388.1879350228701,
+            106.35786995408125
+          ],
+          "host_median_us_before": 200.55465996847488,
+          "host_median_us_after": 191.2301199627109,
+          "host_median_ratio_after_before": 0.9535062411053938,
+          "cuda_event_us_before": [
+            123.11311721801758,
+            270.25487899780273,
+            117.70544052124023,
+            347.3664093017578,
+            200.50655364990234,
+            182.16352462768555,
+            338.0014419555664
+          ],
+          "cuda_event_us_after": [
+            255.46384811401367,
+            104.73119735717773,
+            270.74047088623047,
+            106.25215530395508,
+            190.65839767456055,
+            388.1275177001953,
+            106.28959655761719
+          ],
+          "outputs_bitwise_identical": true
+        }
+      ],
+      "limits": "Seven alternating-order pairs with warm caches while the sustained workloads share the same CPU/GPU. Samples include four helpers and action pointer selection; CUDA host times synchronize completion. These are local observations, not end-to-end training throughput guarantees."
+    }
+  },
+  "workflow_jobs": [
+    {
+      "name": "numerical",
+      "summary": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/numerical-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/numerical-supervisor",
+      "requested_seconds": 23400
+    },
+    {
+      "name": "physics",
+      "summary": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/physics-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261031-002151-sevenhour/physics-supervisor",
+      "requested_seconds": 23400
+    }
+  ],
+  "generated_build_files": [
+    "src/embodiedforge.egg-info/SOURCES.txt"
+  ],
+  "metrics": {
+    "modules_before": 141,
+    "modules_after": 141,
+    "source_lines_before": 37845,
+    "source_lines_after": 37845,
+    "source_lines_delta": 0,
+    "source_bytes_before": 1515301,
+    "source_bytes_after": 1515197,
+    "source_bytes_delta": -104,
+    "clone_calls_removed": 13,
+    "new_production_functions": 0,
+    "interpretation": "Thirteen redundant clones removed. Required independent histories and view snapshots retained; reward/reset formulas and public signatures unchanged."
+  },
+  "preservation": {
+    "checked_at": "2026-11-01T07:04:29.438314+00:00",
+    "baseline_files_checked": 428,
+    "expected_changed_files": [
+      "src/embodiedforge.egg-info/SOURCES.txt",
+      "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+      "src/embodiedforge/workflows/supermimic_reference_evaluate.py",
+      "tests/test_microduck_task.py",
+      "tests/test_supermimic_reference.py"
+    ],
+    "unexpected_changes": [],
+    "historical_files_unchanged": 197,
+    "models_and_registry": 6,
+    "reference_data_files": 9,
+    "frozen_source_and_test_files_checked": 143
+  },
+  "limits": [
+    "Paired eager helper timings use seven alternating-order pairs on the shared host. They include four helpers and action pointer selection; they are local observations rather than end-to-end training throughput guarantees.",
+    "Profiler results sum clone payload allocations on synthetic CPU batches. They exclude index/cat allocations and retained snapshots; they are not process RSS, GPU memory or training throughput improvements.",
+    "The four action-history rewards remove four per-step clone calls while retaining two required secondary-history copies. At batch 4096 float32, clone payloads change from 672 KiB to 224 KiB per control step.",
+    "Tensor fixtures load the full real SDK modules. Rewards and state snapshots cover float32/float64, CPU/CUDA and three layouts; reset fixtures use the SDK float32 convention.",
+    "Numerical reward/state outputs, ownership and RNG are checked exactly. Gradient comparisons use the recorded dtype tolerances and retain observed bitwise equality/error counts.",
+    "Physical comparison uses independent histories on the same actual 32-environment robot states. Small seeded actions are not a trained actor or robot skill evaluation.",
+    "Changed baseline modules load beside unchanged shared dependencies; all 141 production modules and both changed test files are separately frozen.",
+    "Main, SDK and source-release suites overlap and are separate runs. Optional dependencies are skipped by the main environment.",
+    "Existing checkpoints, registry entries, reference data, training/reset/reward parameters and dependency versions are unchanged."
+  ],
+  "elapsed_seconds": 110558.438314,
+  "last_updated_at": "2026-11-01T07:04:29.438314+00:00",
+  "environment": {
+    "full_suite": {
+      "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+      "executable": "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+      "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+      "distributions": {
+        "torch": "2.13.0",
+        "numpy": "2.2.6",
+        "mujoco": null,
+        "mjlab": null,
+        "pytest": "9.1.1",
+        "setuptools": "83.0.0"
+      }
+    },
+    "microduck_sdk": {
+      "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+      "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+      "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+      "distributions": {
+        "torch": "2.9.1",
+        "numpy": "2.4.1",
+        "mujoco": "3.10.0",
+        "mjlab": "1.3.0",
+        "pytest": "9.1.1",
+        "setuptools": "80.9.0"
+      }
+    },
+    "gpu": "NVIDIA GeForce RTX 5090 D v2, 595.99.02, 24455 MiB"
+  },
+  "reproduction": {
+    "snapshot_patch": "scratch/this-round.patch is relative to the initial working tree, including prior uncommitted work.",
+    "structural_audit": "scratch/structural-audit.py normalizes exactly 13 clone removals and compares complete module ASTs.",
+    "clone_profiler": "scratch/clone-benchmark.py measures CPU clone payload allocations; synthetic batch sizes and scope are recorded.",
+    "workflows": "Exact commands, summaries, samples and supervisor exits are retained for both 23400-second workflows.",
+    "final_verifier": "scratch/final-verify.py independently checks final report, every archive member, retained inputs, release artifacts and actual workflow exits."
+  },
+  "generated_build_hashes": {
+    "src/embodiedforge.egg-info/SOURCES.txt": "8926de1a0e1c2d6ced7d57d945a08a23b690fa9a638de0d550494e048feeb321"
+  },
+  "requested_window_seconds": 25200,
+  "supervised_window": {
+    "started_at": "2026-10-31T00:21:51+00:00",
+    "deadline": "2026-10-31T07:21:51+00:00",
+    "monitor_completed_at": "2026-10-31T07:21:51.032873+00:00",
+    "scheduled_window_seconds": 25200,
+    "monitor_process_seconds": 24008.52157901498
+  },
+  "evidence_reviewed_at": "2026-11-01T07:04:29.383929+00:00",
+  "elapsed_interpretation": "Wall time from original start to evidence finalization includes a gap after the supervised seven-hour window completed; it is not continuous agent activity.",
+  "finished_at": "2026-11-01T07:04:29.438314+00:00",
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261031-002151-sevenhour-evidence.tar.gz",
+    "bytes": 1518055,
+    "sha256": "b7769172f66c4a9cf18d1170a8fec0aadf30b9f182091fc63f5134efa2961fd4",
+    "verified_members": 459,
+    "report_snapshot": "scratch/state.json",
+    "snapshot_note": "Frozen before inserting the bundle checksum, to avoid self-reference."
+  }
+}

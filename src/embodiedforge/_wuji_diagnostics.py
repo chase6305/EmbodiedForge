@@ -5,7 +5,7 @@ import subprocess
 
 import numpy as np
 
-from ._hashing import file_sha256
+from .runtime.hashing import file_sha256
 
 
 def verify_video(result, output):
@@ -189,7 +189,7 @@ class TrialDiagnostics:
             row["action_delta_square_sum"] += float(
                 np.square(action - self.previous_action).sum()
             )
-        self.previous_action = action.astype(float).copy()
+        self.previous_action = action.astype(float)
         row["steps"] += 1
 
     def finish(self):

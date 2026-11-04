@@ -10,7 +10,7 @@ from embodiedforge.data import (
     action_windows,
     read_episodes,
 )
-from embodiedforge.rollout import run_rollout
+from embodiedforge.rollout import DemonstrationPolicy, run_rollout
 
 
 @pytest.fixture
@@ -30,6 +30,37 @@ def dataset(tmp_path):
 
 def identity(episode):
     return (int(episode["obs/env_id"][0]), int(episode["obs/episode_id"][0]))
+
+
+@pytest.mark.parametrize("verify", [False, True])
+@pytest.mark.parametrize("keys", [None, ()])
+def test_compact_public_arrays_remain_owned_and_independent(tmp_path, verify, keys):
+    root = tmp_path / "compact"
+    with VectorEnv(
+        Config(
+            num_envs=1, max_steps=2, render="raster", channels=("rgb",), image_size=8
+        )
+    ) as env:
+        with EpisodeRecorder(
+            root, env, episode_format="compact", verify_archive=True
+        ) as writer:
+            policy = DemonstrationPolicy(
+                lambda observation: np.zeros((len(observation["env_id"]), 2))
+            )
+            run_rollout(env, policy, steps=2, writer=writer)
+    options = EpisodeReadOptions(observation_keys=keys, verify_archive=verify)
+    first = next(read_episodes(root, options=options))
+    second = next(read_episodes(root, options=options))
+    for name, value in first.items():
+        assert value.flags.owndata and value.flags.c_contiguous
+        np.testing.assert_array_equal(value, second[name])
+        assert not np.shares_memory(value, second[name])
+        if name.startswith("obs/"):
+            following = first["next/" + name[4:]]
+            assert not np.shares_memory(value, following)
+            expected = following.copy()
+            value.fill(7)
+            np.testing.assert_array_equal(following, expected)
 
 
 def test_partitions_cover_each_episode_once_without_opening_other_archives(
@@ -306,3 +337,15 @@ def test_invalid_batch_options(kwargs):
 
     with pytest.raises(ValueError):
         BatchOptions(**kwargs)
+
+
+@pytest.mark.parametrize("name", [".published.npz", ".npz"])
+def test_hidden_complete_archives_remain_visible_to_the_reader(dataset, name):
+    expected = {identity(episode) for episode in read_episodes(dataset)}
+    original = sorted(dataset.glob("*.npz"))[0]
+    renamed = dataset / name
+    original.replace(renamed)
+    original.with_suffix(".json").replace(renamed.with_suffix(".json"))
+    actual = [identity(episode) for episode in read_episodes(dataset)]
+    assert len(actual) == len(expected)
+    assert set(actual) == expected

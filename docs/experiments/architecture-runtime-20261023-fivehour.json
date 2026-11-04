@@ -1,0 +1,967 @@
+{
+  "stage": "complete",
+  "work_period_complete": true,
+  "started_at": "2026-10-23T06:51:15.429257+00:00",
+  "requested_seconds": 18000,
+  "finished_at": "2026-10-23T11:51:30.686417+00:00",
+  "observed_seconds": 18015.25716,
+  "strict_sustained_validation_status": "rejected",
+  "scope": "Three runtime cancellation/error-priority fixes and user-requested SuperMimic offline compatibility preflight/integration specification. No SuperMimic policy inference or training.",
+  "changes": [
+    "Retain the original interruption/timeout when cancellation repeats during initial SIGINT forwarding, then finish protected cleanup.",
+    "Retain already observed worker/capture failures when cancellation arrives during final cleanup.",
+    "Retry cleanup interrupted repeatedly during temporary-handler installation while retaining the first failure.",
+    "Add source-specific SuperMimic catalog/preflight for the official project and two independent pinned reproductions; probe isolated SDK metadata and hash checkpoints without loading policies."
+  ],
+  "current_runtime_process_sha256": "ff49ede188573070f7225a59e15887248de4172f40cdd33f334f6f347112337c",
+  "production_module_count": 135,
+  "changed_production_modules": {
+    "src/embodiedforge/runtime/process.py": "ff49ede188573070f7225a59e15887248de4172f40cdd33f334f6f347112337c",
+    "src/embodiedforge/cli.py": "f213c08b07082c58d05803d8536056e20957b9c5c110717e691209bafd4c81fd",
+    "src/embodiedforge/supermimic.py": "086556dd2dbf27d5813bc4fd5bfb9fdea0279ff69a1abcb300cf91e7f3cafccd",
+    "src/embodiedforge/workflows/supermimic_catalog.py": "5f5aff9ec0ea36f8b01c5c8b2e1b624aa96c68b863e43d938e7ad054758a8d6f"
+  },
+  "current_code_matches_validated_snapshot": true,
+  "source_versions": {
+    "baseline": "0744a7ed0ddaba909d4dadabcd403f1ef2edf68c45ad81ee6e04da46375f6a90",
+    "reviewed": "9261576419d03c4a2cee142d956a05c186a73392ece284f89903297c8815a507",
+    "final": "8a12c340928dac8f75d199c887c4aec187d11b508b717e064297dc234b532f70",
+    "release": "ff49ede188573070f7225a59e15887248de4172f40cdd33f334f6f347112337c",
+    "integration_runtime": "ff49ede188573070f7225a59e15887248de4172f40cdd33f334f6f347112337c"
+  },
+  "source_version_meanings": {
+    "final": "Historical intermediate snapshot with two fixes, not the current code",
+    "release": "All three runtime fixes",
+    "integration": "Current whole-project snapshot including SuperMimic preflight"
+  },
+  "validation": {
+    "main": {
+      "code": 0,
+      "passed": 3361,
+      "skipped": 80
+    },
+    "native": {
+      "code": 0,
+      "passed": 3451,
+      "skipped": 59,
+      "subtests": 25
+    },
+    "targeted_runtime_import_preflight": {
+      "code": 0,
+      "passed": 160
+    },
+    "format": {
+      "code": 0,
+      "files_already_formatted": 282,
+      "source_tests_benchmarks_match_frozen_validation": true
+    },
+    "ACT_SDK_same_runtime": {
+      "code": 0,
+      "passed": 82,
+      "source": "release"
+    },
+    "Microduck_SDK_same_runtime": {
+      "code": 0,
+      "passed": 362,
+      "subtests": 2,
+      "source": "release"
+    },
+    "actual_PPO_cancel_resume": {
+      "code": 0,
+      "cases": 6,
+      "source": "release",
+      "scope": "Six real CPU PPO cancellations; policy/Adam state equals a normal two-stage reference. Not a claim of continuous RNG parity."
+    },
+    "numerical_parity": {
+      "code": 0,
+      "source": "release",
+      "comparisons": 9
+    },
+    "installed_wheel": {
+      "all_checks_passed": true,
+      "package": "/tmp/embodiedforge-fivehour-20261023/integration-wheel/wheel-env/lib/python3.10/site-packages/embodiedforge/__init__.py",
+      "module_count": 135,
+      "production_hashes": {
+        "src/embodiedforge/_act_bundle.py": "ac4db52202c51ebe8e65a7ede6558807900a537ced74492ba3a186b6dae33f96",
+        "src/embodiedforge/_act_dataset.py": "b56ed1bd023f5b910fbf0508cc49d105883fce8c99f255fb6bba487f5d9b6f17",
+        "src/embodiedforge/_h1_motion.py": "f647ac363aeb00d2a3ccfdf131dcec396d699a3d58a76afce085a07ef638ec52",
+        "src/embodiedforge/h1.py": "50836e8d92a3b5840c2b031e6b45c100f251e74c0b42a8208c7319f9ce4ab4a4",
+        "src/embodiedforge/_go1_recovery.py": "1175af625a624c483cea23251b86c109fab5d7bca2774cea416b8f3e2ed5ecbf",
+        "src/embodiedforge/_rlinf_export.py": "0607652b06fc15a0fa71e51cbaf065de65e6bf93258106840b6dc9bf572118e1",
+        "src/embodiedforge/_core_run.py": "91fcf9e1c49590e845ba913d5b71fe319a30b283e5fd008476f6c38c4f88d30e",
+        "src/embodiedforge/_act_compare.py": "653414ed69604f9802f54b0b9d5b7bcc4feaa3121db1f08254a878785caf944a",
+        "src/embodiedforge/_microduck_native_worker.py": "4b70966a42da1be74ed6078d0e8bec2d339a30b442bb7f5a69f0c50c024484d4",
+        "src/embodiedforge/_rlinf_onnx.py": "6f8280525f64e9934bcd2034cf9b27eab47e571713c472f6576a7ed158b4af8b",
+        "src/embodiedforge/_act_checkpoints.py": "2c1104ca5f501885b7359ac87c23540d13bcb5aaf8e6d11bbc54fd536f6fee80",
+        "src/embodiedforge/native_h1.py": "e197795d32572f2454b57279201713866885f4929782ac5c5798998f0580b3f9",
+        "src/embodiedforge/sonic.py": "926423c99437256fc00147363eebf05d37eb167471ab84cd565391f3a3282e87",
+        "src/embodiedforge/_rlinf_worker.py": "2dea8bd3fe64993ebaa18dfc607f3be5fe900deeb178da2b16d3f50a61323558",
+        "src/embodiedforge/diagnostics.py": "982d60b6d88a0c857b996bcefe2d032d6f3efd0d5a22ee085b3ad8fd316d7877",
+        "src/embodiedforge/batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+        "src/embodiedforge/tasks.py": "3084c5f8c4019a5443c9796523f7b366a46b1adb9821d1d6733fe902ff1643b9",
+        "src/embodiedforge/_h1_worker.py": "5674e9b60d3a2b71ef371907b2d052223dda427fef190aba509103d44eecef89",
+        "src/embodiedforge/_microduck_run.py": "85e7c0a34e8268cc83b60db76a9dd67e97699cd27a3723d8d36064f5ea92ea76",
+        "src/embodiedforge/_go1_resume.py": "c1be5aba21c461552178374d60fceeda028b45fba48899a9f608d95f3a3cfe8b",
+        "src/embodiedforge/robot_replay.py": "dd13bd3fcf8045ea093bcf09daf5a50b09a7595517be05c7065b941cb7853440",
+        "src/embodiedforge/env.py": "1a4126796e12df4d4f1b082f3fa92df03b0248384bca083c414bbc196841c95c",
+        "src/embodiedforge/_go1_assets.py": "5fff5b621c6069549190dc8a50f396ccffa43e396c37428e1f5e4c3a513f4d70",
+        "src/embodiedforge/core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+        "src/embodiedforge/_adam_checkpoint.py": "47e13a0278a38debc5c27dfac5924af1b79658f7e5fda91c4c50c0104208e8f9",
+        "src/embodiedforge/_weave_evaluation.py": "7bfcd64c31750c952b8a4ad94ed2b4441709742f6042506ef396487aed4ca924",
+        "src/embodiedforge/policies.py": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+        "src/embodiedforge/_motion_clips.py": "426515cdfadb024efa98f19c3f6113d65b5ba007c977fb9ecf2f5511ecfcc730",
+        "src/embodiedforge/supermimic.py": "086556dd2dbf27d5813bc4fd5bfb9fdea0279ff69a1abcb300cf91e7f3cafccd",
+        "src/embodiedforge/_wuji_recipe.py": "f181d8f6816051642e466fe06a7ca2169877dea53bf43e4463d77873d1d4c53b",
+        "src/embodiedforge/motion.py": "9319696b86a02f011127be9d81141b798361cce603cea10a115c6e5cec4d65ea",
+        "src/embodiedforge/training.py": "c967aec79e5e9686883f4e3d6318aae6ca7eec4c9cf4db01c422acf9e052264e",
+        "src/embodiedforge/microduck.py": "b94f872ee1f99a7ca01fdc3021dc923c8b7a839df5147f0fa39994b685d1b3ff",
+        "src/embodiedforge/graphics.py": "4e0fe21c13a433cc2552fa4024fb4f03effc6619d0ccaf45e5f91cdef6624107",
+        "src/embodiedforge/__init__.py": "d391fb624b9e35f78448d62574facf4113fb74921d6f56af1c8b7d8a6b97a058",
+        "src/embodiedforge/_go1_metrics.py": "344b5658747add044dd4931eaa94eff7e7b9e52fc28075dfe62bd6af36a3a8b1",
+        "src/embodiedforge/_sonic_worker.py": "d58a4657e4d49e3ec1784e7281fad3b3c430867814a4bf42a565407bf63c86e5",
+        "src/embodiedforge/gmr.py": "488a5437edfe57c2d69d1dad11f64ea3cfed35d72887c0fae6ada5893433586e",
+        "src/embodiedforge/_go1_live_worker.py": "2684446a771c8617a9cb9e44ae05044836e74cba10bcbb1dd26738902c92dc7b",
+        "src/embodiedforge/weave.py": "9a3f178d542c38c08aaec43b4b17711ef56b61430ceb3b64ddd5a999851da04f",
+        "src/embodiedforge/_go1_implementation.py": "54c870d858f0bdf022adc37cbefb8213c837a00579dcab847c88d6b7c03f2e91",
+        "src/embodiedforge/sensors.py": "89ce41ca3366655380b7029ca8fd7df6a36ecd01b2344ca6e2fe9a65277088f4",
+        "src/embodiedforge/rlinf.py": "8a0faf418871d6e3f0379e826e92113da5b189eea762b5c4e50850096415780c",
+        "src/embodiedforge/_microduck_export.py": "c37f6fca760fe5d788847600f14b7008826c76ce32ca25c70953d6affed0447a",
+        "src/embodiedforge/_go1_checkpoint.py": "f3c77adccaf059a65afa9af3275f913e94bc949c17a814ff861012802d6abbc5",
+        "src/embodiedforge/_go1_training_viewer.py": "d92a43fb4783a1b872bd2375c84cdb44bb1ef77ae741f1545858c6fd0d145e9c",
+        "src/embodiedforge/_weave_worker.py": "42a8aba555d467b854496e544a4566a537415e9092a3b60c2218710d7bb78bca",
+        "src/embodiedforge/_microduck_process.py": "eb4c2a848e8d58a4455d4e65529181686b48c18763cc9a81b96c4832a30a222f",
+        "src/embodiedforge/_mjbatch_recipe.py": "ab0f2bd85c875e5a965ffb808585e41b7b7d7c4ca29eb19cbdb96f59e7e1dc36",
+        "src/embodiedforge/_ppo_parameters.py": "21b6d6bf3b69f31efea9ee56d60ea0aa6c4f981b22628c6616ba8ae22f62802f",
+        "src/embodiedforge/__main__.py": "a2b6d2c663999e08203c72c9206a9bdd32acf47b8303ea123a4e7ee5727a2d41",
+        "src/embodiedforge/visualization.py": "67e1c40009f25ee033461883fb308c3937a719f50c313b3abfaa8c0185454e18",
+        "src/embodiedforge/_microduck_inputs.py": "1bfe9afe0ad282d638d720bf93254baf92bb8dbea458adcda16e7d9879d56f6e",
+        "src/embodiedforge/go1_live.py": "a6402bbeae668ce0692a89388fb9518f48cb456763dd659754be6e95738aea96",
+        "src/embodiedforge/_wuji_diagnostics.py": "99ed83e5a3b8cd5bd6092771e83ff5de02664c7d90776d22f3b138433aa73c8b",
+        "src/embodiedforge/rollout.py": "c5a9fe02142c74951fceb4821defe6f9135425b87056f25ea1fc66e201cd1197",
+        "src/embodiedforge/logging.py": "afe275a1536239248212b8bce7ff5ad4bc5cf0c9104fad9222cb3b0bd2194f8e",
+        "src/embodiedforge/_microduck_native.py": "e3987b472ca8ce3bfa49afde467e633d595215636d126f78e37d1011c547b3e3",
+        "src/embodiedforge/_wuji_training_viewer.py": "495c9941c0f96935217485d93c97b91385de78668ad607a5932e9dabc906af9d",
+        "src/embodiedforge/_live_channel.py": "508f6b50564f3a9381e641c788da605b10bcea345c0b89af6c6a762db0ecb37b",
+        "src/embodiedforge/_h1_metrics.py": "0c0c5dcf61ad931fa658a5c1520667b0f9f68a2723a75e5b0220f2ff10e4a145",
+        "src/embodiedforge/_recipe_worker.py": "f86fbd0465015fa5c9c867a17a076d3229cb1ed9bee89a19e1ae462aedcebff8",
+        "src/embodiedforge/recipes.py": "4c7ee069b01bdb76443be05739052246dc7966e83d75823239995003c99a6be8",
+        "src/embodiedforge/cli.py": "f213c08b07082c58d05803d8536056e20957b9c5c110717e691209bafd4c81fd",
+        "src/embodiedforge/_h1_evaluate.py": "ec33235d2745f556491eaae2f9b3e5bfb2161727ba7fa12c99ae9fb34373c373",
+        "src/embodiedforge/_training_runtime.py": "8f65ce811678846171b8e4c7816f8fb379493ecf09d323fe5d3477a6401f20c3",
+        "src/embodiedforge/data.py": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a",
+        "src/embodiedforge/_microduck_worker.py": "4c434241331db365f3321cd08f292ea782e1ef2021a08c0d9e6880942eaac819",
+        "src/embodiedforge/_motion_sdk.py": "e89910098fdec6917db874e871d07d401e7760eba53de4839766c3a322108ceb",
+        "src/embodiedforge/_hashing.py": "a769db9586d8e400abe43c1cd60a89e76bbcb73c30ab337c340ad69d448cc7c2",
+        "src/embodiedforge/_gmr_worker.py": "28dc6add27f3173baddcddb7364f4ca3c7adda4320f0e4fe0f7a6d2bdb097a7a",
+        "src/embodiedforge/_microduck_reports.py": "5d6753a553dc959b29e1967800ce85bc1c0be81433181fcbf1852f33708db3ee",
+        "src/embodiedforge/act.py": "c1d859378dab9ff0e7b89f96c1147e796a164dba0446e038dbc1a484f792b303",
+        "src/embodiedforge/runtime/process.py": "ff49ede188573070f7225a59e15887248de4172f40cdd33f334f6f347112337c",
+        "src/embodiedforge/runtime/implementation.py": "21abf68d58c7088b11e77b24f9fd1d3370043a81ed17c25fc1b20badcae15a9b",
+        "src/embodiedforge/runtime/__init__.py": "54183b39a8671d49bf1a6fad5a13275216c57c0a6e0da0f069d189e34d5179a7",
+        "src/embodiedforge/runtime/hashing.py": "d38691a91e524f71e276fd249e14f937270ea0d2834d6bd69e58925fb1b756ac",
+        "src/embodiedforge/runtime/environment.py": "660ce71471f340e0031a1bc61da1881ca6b962e92f7b9667b10fa194c8655b1f",
+        "src/embodiedforge/runtime/artifacts.py": "e378358f73aa2a442760a7298b533f3f2186da697cee2d20e30744a7f4e94d2a",
+        "src/embodiedforge/runtime/provenance.py": "baa700a66e7120f490a1a08ff1247590566a0b8803114abc6acf96a6a9c02aa3",
+        "src/embodiedforge/runtime/records.py": "939f1fcf262d1a6db19712221b31118ab2b466d07e1d99123feb96161e1608b2",
+        "src/embodiedforge/backends/physics.py": "83890aca7e1bb5c169051419d5626e1a775eadba8cca7f527cb6c01e5787c7cb",
+        "src/embodiedforge/backends/newton.py": "9cd3860f3ed2db508006d6d2242a7f6c5dd2d8e016b5d8dd668bae11b93561f0",
+        "src/embodiedforge/backends/__init__.py": "7c3caf1568fe29afb073e8d8eff670ea3d15259f7db7895758212aa4238450dd",
+        "src/embodiedforge/backends/render.py": "0a1c5f8de49ac1ba37869bc3101c99cc0bf825253fbc785c2229cd04bca5514f",
+        "src/embodiedforge/backends/mjbatch.py": "5127cb1828f7441c1735755919c46e131b1e69a4074b5e59483604c1b6f0269f",
+        "src/embodiedforge/envs/specs.py": "7e51421ef5adde171cba638ed2269af6460e54a655262e6b54edbe07b4a84f9b",
+        "src/embodiedforge/envs/__init__.py": "e3b2bb542e23907ed5189c785bb03a01f5548d76cddca57338dccab04d3fe6a7",
+        "src/embodiedforge/envs/evaluation.py": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc",
+        "src/embodiedforge/envs/observations.py": "275a09fab837307f9977d6ec01a3967054a6ce33adec95320d53bb50494e3e0f",
+        "src/embodiedforge/envs/locomotion.py": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+        "src/embodiedforge/envs/base.py": "05fd6dfac9049d94ebbd316c570356806298614d528fb88c475dd1f0f7fc95c6",
+        "src/embodiedforge/workflows/recipe_progress.py": "cc9c7076d303284cdceedeccb5709459446be38661a0d45cf1a9d0ad4eeb292e",
+        "src/embodiedforge/workflows/rlinf_catalog.py": "248ca931bc7b53bb9b57f3e6b7f273c0b61e61574039522e059e2187a05cf722",
+        "src/embodiedforge/workflows/recipe_validation.py": "56b692dac40b445173aab67dd7746c51fd2d21d23370a87be144afbe02222030",
+        "src/embodiedforge/workflows/__init__.py": "60fb3d9f7d42647a215f2be0bf621f6eb07938a68e40697e4e14e992019781b1",
+        "src/embodiedforge/workflows/rlinf_artifacts.py": "80914298f80d9b8eebc1d553d69df4503e9032129ac8201d45075bacc7e67623",
+        "src/embodiedforge/workflows/recipe_catalog.py": "458890b4a75c4e57bc00e61ce1227e02096caff7c7a1209eb5080e2afec430ca",
+        "src/embodiedforge/workflows/supermimic_catalog.py": "5f5aff9ec0ea36f8b01c5c8b2e1b624aa96c68b863e43d938e7ad054758a8d6f",
+        "src/embodiedforge/workflows/go1_settings.py": "20773588df42f7049e7305ac8d2e6b67b79750fa2db47be96d31762e12ae9c16",
+        "src/embodiedforge/workflows/recipe_artifacts.py": "beaeec23c86757884a69c0de4cf824449c12f0edbec2be95f59b8e832f271ae1",
+        "src/embodiedforge/viewers/frames.py": "c3982a32ef06ae813106ed46fa9dbc44271d6437378034f9f095694d9896972e",
+        "src/embodiedforge/viewers/newton.py": "d55e2514f06be3702e9e5f1ce55c724308afcf30b4756026c65735843ccfb259",
+        "src/embodiedforge/viewers/__init__.py": "5df57a38fcc577cfe5fb3bfefc41a4cd57441b0b0c2d136afb8d7616e0543383",
+        "src/embodiedforge/viewers/rtx.py": "4d0108d9f997429a46620995c4de810f335c749dcad04d61bd1129e03252e49c",
+        "src/embodiedforge/viewers/web.py": "c087cd064425ab6cb72e11fcc0d306995cfacb979b1c534b4d0c0bb439a7511f",
+        "src/embodiedforge/viewers/viser.py": "6e253b29bf3ca21dbd14eebf6ec0226cfc6499d859e7f9f95a39c75b16348f13",
+        "src/embodiedforge/viewers/robot.py": "c3b83ca63c5da31718b7976c8897ec9501c7dd3a30fd634098fd539182d9c4a9",
+        "src/embodiedforge/viewers/style.py": "a42c5a4114214a6934857818bb2bf745755da40f80fc7e36d8f6732435f4ba60",
+        "src/embodiedforge/viewers/dependencies.py": "68cfe76e444e624791e0cde332a8e0280a36bfb33b97841c8b10ce8d68ef5460",
+        "src/embodiedforge/viewers/timing.py": "53765d3b3dd7f3352415793dd63a60fcb1dd44bdb65b62de0a946af659a63416",
+        "src/embodiedforge/learning/__init__.py": "fc42e81d53edb034ce1130bdc217ecfa08f5f469062576ed9649570cbb9d7bb9",
+        "src/embodiedforge/learning/checkpoints.py": "e6635c3aba8ddbe90652d31be6ae9b7a8a18c73b7144935ac39037a15ad2f9e4",
+        "src/embodiedforge/learning/advantages.py": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+        "src/embodiedforge/learning/parameters.py": "a1417de3bda65982d1dc6cc639560dbbf80cee3fcbf42b8e96079674408e64d2",
+        "src/embodiedforge/locomotion/h1_native.py": "58651c65fc15fb14a5305c99dd8572c1df9df1258f5d0f393fff92f7968f724c",
+        "src/embodiedforge/locomotion/go1_config.py": "8e0e6636ed0f8c88da31ad1091b1e4b8c779f71f761eb2d795bd1ee203c93549",
+        "src/embodiedforge/locomotion/articulation.py": "58a0abde71ebee6db3dfd11edd994f0673ce355c1ea98357ba0ad59c03be1f6c",
+        "src/embodiedforge/locomotion/go1_ppo.py": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce",
+        "src/embodiedforge/locomotion/h1_ppo.py": "f88a1cda6fe969c4d95b7716cbe813f701c1a24820c38feb03f3c66acd1bc170",
+        "src/embodiedforge/locomotion/__init__.py": "67e07baec885bd1353838c537f8c2df43fb405ebf341b6e9e60cc8f56ee37428",
+        "src/embodiedforge/locomotion/go1_light_loco.py": "99cac844466dd804bad88cbcfc82e14176e3b93ccf125736c2309ffc64aa4b54",
+        "src/embodiedforge/locomotion/h1_config.py": "5e6be344733fa1792d8977b43a699f3385dfc77218a73f68f64453565c052bcf",
+        "src/embodiedforge/locomotion/go1.py": "fb4567b2f4512858b89b5114224d69b2fc8c56cc0b87fab0b5316b62f1c3094d",
+        "src/embodiedforge/locomotion/microduck/__init__.py": "7c93bc82c7bd846e18b67c918e136a2721d41e17737ffca2012dccb5c38c399c",
+        "src/embodiedforge/locomotion/microduck/checkpoint.py": "82fdc32abdab1f5beb7dabbe7061d89f0efe1d121b664661dc12ec894e721105",
+        "src/embodiedforge/locomotion/microduck/export.py": "3bac4b1626abd2b02e060decaabbd313e74ca507fe4e876a10ae536d7a90e7fe",
+        "src/embodiedforge/locomotion/microduck/actuator/friction_dr_bam.py": "03d0461caf973419bbd3f746f2cba73fe9464d00ae59ff3e8f8cd158d8f2e832",
+        "src/embodiedforge/locomotion/microduck/actuator/__init__.py": "b8a82f30822166f14e0bcd7730d67153908097c2353c4d0cdbf3c51d9ad475cc",
+        "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+        "src/embodiedforge/locomotion/microduck/tasks/symmetry.py": "f84f19cc1f93afa7cb1d6e98152a70dcf7f38d6df0720d8675ed8ea93c663941",
+        "src/embodiedforge/locomotion/microduck/tasks/microduck_velocity_env_cfg.py": "02ef1c12bef07fd591b8a9cdd85e46bd0de8fd674b82569528bb1c29de42945c",
+        "src/embodiedforge/locomotion/microduck/tasks/__init__.py": "0e8069547a5ad8b20307adc16a77825660cf3acc3cecf118b7293d5c88a1234d",
+        "src/embodiedforge/locomotion/microduck/robot/__init__.py": "26782f5a79ab0206de698956d9c4ca3879d99b3bbd8080654e773a2530f08181",
+        "src/embodiedforge/locomotion/microduck/robot/microduck_constants.py": "cbd2a8ed29a42b3eb7184ddab51df77f2bb0c8239e2450e1373465ff92f050e0"
+      },
+      "source_hashes_match": true,
+      "initial_updates": 1,
+      "resumed_updates": 2,
+      "startup_cancellation_signal": 15,
+      "child_returncode": 0,
+      "shutdown_log_bytes": 2097152,
+      "scope": "Installed wheel under isolated Python; exact 135 production modules, actual PPO save+resume, startup SIGTERM with binary shutdown output exceeding pipe capacity",
+      "supermimic_catalog_exit": 0,
+      "official_preflight_exit": 2,
+      "official_inference_executed": false
+    },
+    "source_distribution": {
+      "build_returncode": 0,
+      "tests_returncode": 0,
+      "workload_launcher_observed_returncode": 0,
+      "outer_tool_exit": null,
+      "passed": 3361,
+      "skipped": 80,
+      "selected_files_verified": 339,
+      "archive_bytes": 303568297,
+      "archive_sha256": "bf876f4691507b9cdfc759b777ad992077ea9975eb1711039dad20b1a92bb41a",
+      "scope": "All package files, tests, benchmarks and named current guides byte-match the source at build time. Own final report/index/primary archive are published later and are not claimed to be inside this earlier source artifact."
+    },
+    "sustained": {
+      "all_recorded_attempts": 17,
+      "superseded_preworkload_attempts": [
+        {
+          "name": "integration-sdist-soak",
+          "configuration": {
+            "session_id": 61020,
+            "duration": 2700,
+            "source": "integration-sdist",
+            "trace": "outer-compact-with-IP",
+            "environment": "owned extracted source release; -I -S root; debug allocator",
+            "scenarios_per_cycle": 76,
+            "scheduled_build_start": "2026-10-23T10:48:00+00:00",
+            "waiting_build_tests_not_counted_as_workload": true,
+            "include_in_acceptance": false,
+            "superseded_reason": "Stopped deliberately before build/workload: full pytest must run outside outer strace because its own trace-mode tests need ptrace."
+          },
+          "observed_tool_result": {
+            "tool_exit": 143,
+            "session_id": 61020,
+            "observed_at": "2026-10-23T10:16:34.169952+00:00",
+            "expected_planning_stop": true,
+            "scope": "Deliberately stopped identity-verified preparation supervisor before any build or workload. Source-controller exit -15 and supervisor143 are independently observed."
+          }
+        }
+      ],
+      "planned_probes": 16,
+      "accounted_attempts": 16,
+      "terminal_probes": 15,
+      "unobserved_tool_results": [
+        "integration-sdist-soak-v2"
+      ],
+      "accepted_probes": 9,
+      "accepted_fault_scenarios": 892212,
+      "accepted_current_runtime_scenarios": 324976,
+      "accepted_startup_iterations": 34339,
+      "accepted_forced_startup_fallbacks": 0,
+      "all_terminal_probes_accepted": false,
+      "all_planned_attempts_accounted_for": true,
+      "all_planned_probes_complete": false
+    },
+    "accepted_profiles": [
+      {
+        "name": "baseline-sdk",
+        "source": "baseline",
+        "requested_seconds": 10800,
+        "actual_seconds": 10801.840382472,
+        "verified_scenarios": 130848,
+        "startup_iterations": 0,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        }
+      },
+      {
+        "name": "baseline-isolated",
+        "source": "baseline",
+        "requested_seconds": 10800,
+        "actual_seconds": 10800.723040504003,
+        "verified_scenarios": 220896,
+        "startup_iterations": 0,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        }
+      },
+      {
+        "name": "gdb-startup",
+        "source": "standalone worker",
+        "requested_seconds": 9000,
+        "actual_seconds": 9000.311775363021,
+        "verified_scenarios": 0,
+        "startup_iterations": 25724,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true
+        }
+      },
+      {
+        "name": "final-modern-sdk",
+        "source": "final",
+        "requested_seconds": 10800,
+        "actual_seconds": 10802.128681428003,
+        "verified_scenarios": 215492,
+        "startup_iterations": 0,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        }
+      },
+      {
+        "name": "integration-modern-sdk",
+        "source": "integration",
+        "requested_seconds": 7200,
+        "actual_seconds": 7201.288768055005,
+        "verified_scenarios": 144856,
+        "startup_iterations": 0,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        }
+      },
+      {
+        "name": "integration-wheel-soak",
+        "source": "installed-integration-wheel",
+        "requested_seconds": 3600,
+        "actual_seconds": 3602.065400341002,
+        "verified_scenarios": 80636,
+        "startup_iterations": 0,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        }
+      },
+      {
+        "name": "integration-native-confirmation",
+        "source": "integration",
+        "requested_seconds": 2700,
+        "actual_seconds": 2702.8857708789874,
+        "verified_scenarios": 35416,
+        "startup_iterations": 0,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        }
+      },
+      {
+        "name": "integration-isolated-confirmation",
+        "source": "integration",
+        "requested_seconds": 2700,
+        "actual_seconds": 2701.759018554003,
+        "verified_scenarios": 64068,
+        "startup_iterations": 0,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        }
+      },
+      {
+        "name": "gdb-exact-confirmation",
+        "source": "standalone exact frozen startup -c worker",
+        "requested_seconds": 2700,
+        "actual_seconds": 2700.2331164700154,
+        "verified_scenarios": 0,
+        "startup_iterations": 8615,
+        "forced_startup_fallbacks": 0,
+        "checks": {
+          "actual_tool_exit_zero": true,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true
+        }
+      }
+    ],
+    "excluded_profiles": [
+      {
+        "name": "reviewed-sdk",
+        "actual_tool_result": {
+          "tool_exit": 143,
+          "session_id": 49352,
+          "classification": "Actual outer143 after full4h workload and independently observed interpreter0/supervisor0; original outside sender not established, excluded by original acceptance rule",
+          "unpolled_until_workload_completion": true
+        },
+        "checks": {
+          "actual_tool_exit_zero": false,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        },
+        "summary_scenarios_not_counted": 181800,
+        "summary_startup_iterations_not_counted": 0,
+        "interpreter_exit_zero_verified": true,
+        "note": "Summary completion or disappeared PID does not establish an unobserved exit. Outer143 remains excluded even where inner/kernel exits0."
+      },
+      {
+        "name": "reviewed-clean-sdk",
+        "actual_tool_result": {
+          "tool_exit": 143,
+          "session_id": 99647,
+          "classification": "Actual outer143 after full4h workload and independently observed interpreter0/supervisor0; original outside sender not established, excluded by original acceptance rule",
+          "unpolled_until_workload_completion": true
+        },
+        "checks": {
+          "actual_tool_exit_zero": false,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        },
+        "summary_scenarios_not_counted": 191520,
+        "summary_startup_iterations_not_counted": 0,
+        "interpreter_exit_zero_verified": true,
+        "note": "Summary completion or disappeared PID does not establish an unobserved exit. Outer143 remains excluded even where inner/kernel exits0."
+      },
+      {
+        "name": "final-sdk",
+        "actual_tool_result": {
+          "tool_exit": 143,
+          "session_id": 7168,
+          "observed_at": "2026-10-23T10:16:34.169952+00:00",
+          "classification": "Outer143 despite later completed benchmark summary; supervisor result and interpreter terminal kernel records absent. Command/session binding verified; original sender and root interpreter exit remain unobserved.",
+          "profile_binding_verified": true,
+          "binding_source": "Own thread tool launch at2026-10-23T07:12:28.095Z"
+        },
+        "checks": {
+          "actual_tool_exit_zero": false,
+          "independent_supervisor_result_present": false
+        },
+        "summary_scenarios_not_counted": 123692,
+        "summary_startup_iterations_not_counted": 0,
+        "interpreter_exit_zero_verified": false,
+        "note": "Summary completion or disappeared PID does not establish an unobserved exit. Outer143 remains excluded even where inner/kernel exits0."
+      },
+      {
+        "name": "release-sdk",
+        "actual_tool_result": {
+          "tool_exit": 143,
+          "session_id": 6553,
+          "classification": "Unclassified outer command exit143 while workload continued; terminal root exit not inferred. Excluded unless independently complete evidence exists; outer143 remains a rejection."
+        },
+        "checks": {
+          "actual_tool_exit_zero": false,
+          "independent_supervisor_result_present": false
+        },
+        "summary_scenarios_not_counted": 154736,
+        "summary_startup_iterations_not_counted": 0,
+        "interpreter_exit_zero_verified": false,
+        "note": "Summary completion or disappeared PID does not establish an unobserved exit. Outer143 remains excluded even where inner/kernel exits0."
+      },
+      {
+        "name": "gdb-exact",
+        "actual_tool_result": {
+          "tool_exit": 143,
+          "session_id": 3247,
+          "classification": "Unclassified outer command exit143 while workload continued; terminal root exit not inferred. Excluded unless independently complete evidence exists; outer143 remains a rejection."
+        },
+        "checks": {
+          "actual_tool_exit_zero": false,
+          "independent_supervisor_result_present": false
+        },
+        "summary_scenarios_not_counted": 0,
+        "summary_startup_iterations_not_counted": 31576,
+        "interpreter_exit_zero_verified": false,
+        "note": "Summary completion or disappeared PID does not establish an unobserved exit. Outer143 remains excluded even where inner/kernel exits0."
+      },
+      {
+        "name": "integration-isolated",
+        "actual_tool_result": {
+          "tool_exit": 143,
+          "session_id": 62169,
+          "classification": "Outer command143 despite independently waited benchmark0, supervisor0 and both terminal kernel exits0. Entire probe excluded under original acceptance rule; original outside sender unidentified."
+        },
+        "checks": {
+          "actual_tool_exit_zero": false,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        },
+        "summary_scenarios_not_counted": 147288,
+        "summary_startup_iterations_not_counted": 0,
+        "interpreter_exit_zero_verified": true,
+        "note": "Summary completion or disappeared PID does not establish an unobserved exit. Outer143 remains excluded even where inner/kernel exits0."
+      },
+      {
+        "name": "integration-sdist-soak-v2",
+        "actual_tool_result": {
+          "tool_exit": null,
+          "session_id": 84744,
+          "observation_status": "unrecoverable_after_execution_server_restart",
+          "observed_at": "2026-10-23T11:32:04.248460+00:00",
+          "actual_recovery_query_error": "Unknown process id84744",
+          "classification": "Execution server restarted while original source-package command was still running. OS preparation/workload processes survived; original outer terminal exit cannot be recovered. No numeric exit inferred."
+        },
+        "checks": {
+          "actual_tool_exit_zero": false,
+          "child_exit_observed": true,
+          "child_exit_zero": true,
+          "supervisor_completed": true,
+          "no_supervisor_cancel_or_timeout": true,
+          "duration_satisfied": true,
+          "summary_passed": true,
+          "interpreter_exit_zero_verified": true,
+          "supervisor_kernel_exit_zero_verified": true,
+          "manifest_complete": true,
+          "recorded_runtime_hash_matches_source": true,
+          "recorded_fixture_hash_matches_source": true,
+          "scenario_count_matches_protocol": true
+        },
+        "summary_scenarios_not_counted": 73492,
+        "summary_startup_iterations_not_counted": 0,
+        "interpreter_exit_zero_verified": true,
+        "note": "Original outer exit is unobserved after execution-server restart; inner/kernel0 does not restore it."
+      }
+    ],
+    "superseded_before_workload": [
+      {
+        "name": "integration-sdist-soak",
+        "configuration": {
+          "session_id": 61020,
+          "duration": 2700,
+          "source": "integration-sdist",
+          "trace": "outer-compact-with-IP",
+          "environment": "owned extracted source release; -I -S root; debug allocator",
+          "scenarios_per_cycle": 76,
+          "scheduled_build_start": "2026-10-23T10:48:00+00:00",
+          "waiting_build_tests_not_counted_as_workload": true,
+          "include_in_acceptance": false,
+          "superseded_reason": "Stopped deliberately before build/workload: full pytest must run outside outer strace because its own trace-mode tests need ptrace."
+        },
+        "observed_tool_result": {
+          "tool_exit": 143,
+          "session_id": 61020,
+          "observed_at": "2026-10-23T10:16:34.169952+00:00",
+          "expected_planning_stop": true,
+          "scope": "Deliberately stopped identity-verified preparation supervisor before any build or workload. Source-controller exit -15 and supervisor143 are independently observed."
+        }
+      }
+    ],
+    "fatal_signal_audit": {
+      "scanned_traces": 16,
+      "empty_trace_files": 1,
+      "no_fatal_records_in_available_files": true,
+      "all_scanned_scopes_without_fatal_deliveries": true,
+      "entries": {
+        "baseline-sdk": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 15204302,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "c7484f140b9471193110ab5642c6b17943a3d81d93ddee35da01664daa1a9ee4",
+          "coverage_note": "Entire original trace file; acceptance separately requires observed root exits",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "baseline-isolated": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 45240862,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "ed397203ed75e73d6c637780cebe1f4c16e823c93fc153f093bab2447848c382",
+          "coverage_note": "Entire original trace file; acceptance separately requires observed root exits",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "final-sdk": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 970802,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "3e3bf8b833d687e8feb5f70ffb6790ec756cc4e3686d1b1b0677a4c7ac744538",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "gdb-exact": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 0,
+          "empty_trace": true,
+          "first_records": [],
+          "selected_trace_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "Supervisor only; target exits checked separately under GDB"
+        },
+        "release-sdk": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 978046,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "8921effd63fc0711d2e86aaefa4ad705cc62d63ab7b2cdca634245922b9a0533",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "final-modern-sdk": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 1704060,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "266a6b40c28b63d96ea5bd9fe43f08afe7295ae2d3176be5bd6096ba7f46b029",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "integration-sdist-soak": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 7,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "af43eb3fb87b0d902c05fd15e4b9dc60ce97743fb65f477fd83c3b09ef3b208d",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "integration-modern-sdk": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 1164071,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "a50e9394536c35970380da4679300be0b3afba7d74c46d55c683488013f60bce",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "integration-isolated": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 1184300,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "160d70d16dc63ea68000e42b1f372df86b22c1897b6a7b14b63535935ae7e3eb",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "integration-wheel-soak": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 649419,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "124f2888d19bb302f8f02e58f244dd40cf15e73ef45b86aeff79209c3bf47ec7",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "reviewed-sdk": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 1441803,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "d484e1b0997ffe3263cd793077facae5716310e115c33877cf6a03132a1a3634",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "reviewed-clean-sdk": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 1518514,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "63683094f385896af04f462d6f602128187275e0aecbdd98076c94de8be1d3a8",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "gdb-exact-confirmation": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 3,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "72723e81c1603dbba33f7955f0487ea8277f56672caac1ca752da0d1d1d0d756",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "Supervisor only; target exits checked separately under GDB"
+        },
+        "integration-native-confirmation": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 283430,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "4f3318480f8caf734406efc121ba3186c311c825d9a054718c9141db49535641",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "integration-isolated-confirmation": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 516933,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "a910698c4ef0f1c2a83586c0eb2af6ffc7689cd8b62eb280379c9848d1a59508",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        },
+        "integration-sdist-soak-v2": {
+          "fatal_delivery_or_terminal_records": 0,
+          "original_trace_lines": 594394,
+          "empty_trace": false,
+          "first_records": [],
+          "selected_trace_sha256": "385f04d46f390fca73fab8a414c0527d7dfc3a436b409b8cecd348ba9cfc2529",
+          "coverage_note": "Entire original trace file retained and hash-verified. Missing terminal root records or outer143 mean this does not establish a completed accepted workload; see collected.json and kernel-exit-proof.json.",
+          "scope": "All traced benchmark/controller processes and descendants"
+        }
+      },
+      "scope": "Selected evidence retains all configured SIGSEGV/SIGABRT deliveries and terminal records, including those potentially masked by an expected scenario failure. Controlled debugger crashes are excluded. Empty files and instrumentation gaps do not establish absence of faults. This does not establish the cause of historical crashes."
+    }
+  },
+  "supermimic": {
+    "implemented_operations": [
+      "catalog",
+      "preflight"
+    ],
+    "policy_inference_implemented": false,
+    "evaluation_ready": false,
+    "actual_offline_preflights": {
+      "official": {
+        "observed_exit": 2,
+        "rejected_checks": [
+          "authorized_official_policy_release",
+          "official_export_contract"
+        ],
+        "status": "rejected",
+        "evaluation_ready": false
+      },
+      "cuboi": {
+        "observed_exit": 2,
+        "rejected_checks": [
+          "package:torch",
+          "package:warp-lang",
+          "package:mujoco",
+          "package:mujoco-warp",
+          "framework_revision",
+          "checkpoint_present",
+          "declared_checkpoint_contract",
+          "motion_data_present"
+        ],
+        "status": "rejected",
+        "evaluation_ready": false
+      },
+      "vibed": {
+        "observed_exit": 2,
+        "rejected_checks": [
+          "package:isaaclab",
+          "package:newton",
+          "framework_revision",
+          "checkpoint_present",
+          "declared_checkpoint_contract",
+          "motion_data_present"
+        ],
+        "status": "rejected",
+        "evaluation_ready": false
+      }
+    },
+    "guide": "../supermimic.md",
+    "scope": "Prerequisites and declared metadata only. Official browser demo rights do not grant local inference; no separately authorized official model package was supplied. Independent reproduction checkpoints/observations are not interchangeable."
+  },
+  "remaining_issues": [
+    "Six unclassified outside143 command exits remain unexplained; excluded from accepted counts. Late execution-server restart also made the source-package outer exit unrecoverable, retained as unobserved. Independently verified inner0 is distinguished from unobserved interpreter exit.",
+    "Historical Python3.12.0 GC SIGSEGV and early worker-startup SIGSEGV remain unexplained; no causal fix claimed.",
+    "SuperMimic inference/evaluation is not implemented. Matching isolated SDKs, authorized models/motions and full verified export contracts are still required for that later scope."
+  ],
+  "evidence": {
+    "primary_archive": {
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/docs/experiments/assets/architecture-runtime-20261023-fivehour-evidence.tar.gz",
+      "bytes": 193272877,
+      "sha256": "5e08a2464c2c3095b0a7b2a47e09900aebb7e20c636dd743c28c147d67ae41d3",
+      "manifest_sha256": "e2d5badea28ea52984e93135c96c424ab2402464827ae8132f42a32f4908ed40",
+      "verified_files": 2891,
+      "all_manifested_members_decompressed_and_hashed": true,
+      "full_trace_scope": "Selected signal/exit records and excerpts in this package; full original trace gzip files in runs/architecture-runtime-20261023-fivehour/artifacts/full-kernel-traces/ with raw/trace-integrity.json hashes."
+    },
+    "trace_integrity": "raw/trace-integrity.json inside primary archive",
+    "kernel_exit_proof": "raw/kernel-exit-proof.json inside primary archive",
+    "full_trace_scope": "Entire original trace-file bytes preserved as separate ignored run gzip artifacts with verified decompression hashes. Some failed files are partial or empty and do not prove full-period coverage.",
+    "distributions": {
+      "wheel": {
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-runtime-20261023-fivehour/artifacts/distributions/embodiedforge-0.1.0-py3-none-any.whl",
+        "source_path": "/tmp/embodiedforge-fivehour-20261023/integration-wheel-dist/embodiedforge-0.1.0-py3-none-any.whl",
+        "bytes": 8252881,
+        "sha256": "ffeafec45521ad9cec5cdfb5166c670a8e722c306c50242f39e8376d366b6414",
+        "copy_hash_verified": true,
+        "module_count": 135,
+        "observed_validation_tool_exit": 0,
+        "source_snapshot": "integration",
+        "long_soak_actual_tool_exit": 0,
+        "long_soak_seconds": 3602.065400341002,
+        "long_soak_verified_scenarios": 80636,
+        "long_soak_requested_seconds": 3600
+      },
+      "sdist": {
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-runtime-20261023-fivehour/artifacts/distributions/embodiedforge-0.1.0.tar.gz",
+        "source_path": "/tmp/embodiedforge-fivehour-20261023/integration-sdist-dist/embodiedforge-0.1.0.tar.gz",
+        "bytes": 303568297,
+        "sha256": "bf876f4691507b9cdfc759b777ad992077ea9975eb1711039dad20b1a92bb41a",
+        "copy_hash_verified": true,
+        "selected_files_verified": 339,
+        "build_returncode": 0,
+        "full_source_pytest_returncode": 0,
+        "passed": 3361,
+        "skipped": 80,
+        "long_soak": "internal_complete_outer_unobserved_after_server_restart",
+        "scope": "Source snapshot before own final archive/report/index publication",
+        "long_soak_internal_launcher_exit": 0,
+        "long_soak_outer_tool_exit": null,
+        "long_soak_seconds": 2700.565741880011,
+        "long_soak_scenarios_not_accepted": 73492
+      }
+    },
+    "source_distribution_publication_scope": "Built before own final archive/report/index; those later publications are not claimed to be inside the earlier source artifact."
+  },
+  "execution_layer_C_control": {
+    "actual_tool_exit": 0,
+    "session_id": 69245,
+    "complete_marker": {
+      "pid": 225434,
+      "parent_pid": 7879,
+      "duration": 2700.0,
+      "seconds": 2700.027578328,
+      "realtime_ns": 1792754510281211495,
+      "scope": "Idle C root; marker alone is not an observed process exit"
+    },
+    "signal_records": [],
+    "calibration": {
+      "observed_child_exit": 143,
+      "signal_number": 15,
+      "original_sender_pid": 225417,
+      "controller_pid": 225417,
+      "sender_uid": 1000,
+      "signal_code": 0,
+      "realtime_ns": 1792751810217207463,
+      "monotonic_ns": 200949406445798,
+      "original_sender_verified": true,
+      "source_sha256": "d1bcedfe796c1cb08187fb4abdaa70256f4a6256997354b181dc1b1a87417eb5",
+      "binary_sha256": "80af9a9f2085766896f20621d02df4d7e9e0f1b931be2eec2c7ea2584353686a",
+      "scope": "Controlled SIGTERM to an idle C-only root; not the historical sender and not a policy evaluation"
+    },
+    "scope": "45-minute idle C-only root, explicit exec and non-login shell, unpolled until completion. Actual tool0 and no recorded signal; does not identify historical143 senders or establish a timeout/eviction cause."
+  }
+}

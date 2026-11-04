@@ -18,11 +18,12 @@ from ._go1_assets import recorded_go1_assets, reuse_asset_cache
 from ._go1_implementation import copy_go1_implementation
 from ._live_channel import JsonChannel
 from .logging import get_logger, setup_logging
-from .recipes import checkpoint_input, sha256
+from .runtime.hashing import file_sha256 as sha256
 from .viewers.frames import OrbitCamera, frame_dependencies
 from .viewers.robot import RobotSceneSpec, RobotSceneUpdate
 from .viewers.timing import RateClock
 from .viewers.web import WebViewer
+from .workflows.recipe_artifacts import checkpoint_input
 
 
 @dataclass(frozen=True)

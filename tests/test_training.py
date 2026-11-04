@@ -10,7 +10,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from embodiedforge import Config
-from embodiedforge._ppo_parameters import bounded_log_std
+from embodiedforge.learning.parameters import bounded_log_std
 from embodiedforge.training import (
     ActorCritic,
     PPOConfig,

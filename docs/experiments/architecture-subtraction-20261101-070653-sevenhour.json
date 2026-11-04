@@ -1,0 +1,2735 @@
+{
+  "status": "complete",
+  "objective": "Seven-hour subtraction across runtime, data and training boundaries; preserve behavior and existing work.",
+  "started_at": "2026-11-01T07:06:53+00:00",
+  "deadline": "2026-11-01T14:06:53+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37845,
+  "baseline_files": 428,
+  "historical_files": 199,
+  "changed_files_this_round": [
+    "src/embodiedforge/locomotion/articulation.py",
+    "src/embodiedforge/locomotion/h1_native.py",
+    "tests/test_native_h1.py"
+  ],
+  "changes": [
+    "Default articulation reset broadcasts one owned template row and scalar zero instead of materializing full-batch defaults.",
+    "Joint snapshot and previous-velocity extraction use one owned C-contiguous np.take buffer instead of advanced-index temporary plus copy.",
+    "Action clipping reuses the private float64 validation buffer; caller action storage remains unchanged."
+  ],
+  "audit_decisions": [
+    "Retain finite_array ownership copy and C-contiguous previous velocities to preserve reset ownership and reward reduction rounding.",
+    "Reject force-cache np.take(out=) replacement: largest tested batches regressed and allocation savings were absent.",
+    "Retain CLI command tiling: initialization-only change has no measured material benefit."
+  ],
+  "validation": {
+    "tests": {
+      "baseline-native": {
+        "tests": 54,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 54
+      },
+      "candidate-native-final": {
+        "tests": 101,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 101
+      },
+      "candidate-full-final": {
+        "tests": 3665,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 81,
+        "passed": 3584
+      },
+      "source-release-targets": {
+        "tests": 187,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 187
+      },
+      "source-release-native": {
+        "tests": 101,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 101
+      }
+    },
+    "structural-audit": {
+      "status": "passed",
+      "changed_files": [
+        "src/embodiedforge/locomotion/articulation.py",
+        "src/embodiedforge/locomotion/h1_native.py",
+        "tests/test_native_h1.py"
+      ],
+      "production_modules": 141,
+      "production_lines": 37842,
+      "unchanged_production_modules": 139,
+      "exact_ast_replacements": 6,
+      "new_production_functions": 0,
+      "new_production_modules": 0,
+      "frozen_files": 142,
+      "scope": "Six specified replacements explain the complete production AST difference; comments and formatting ignored."
+    },
+    "train-parity": {
+      "status": "passed",
+      "seconds": 14.421288563986309,
+      "commands": [
+        {
+          "kind": "baseline",
+          "stage": "fresh-train",
+          "command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/light-loco-venv/bin/python",
+            "-m",
+            "embodiedforge.native_h1",
+            "train",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline-fresh-train",
+            "--model",
+            "/home/ubuntu/workspace/3rdparty/mink/examples/unitree_h1/h1.xml",
+            "--updates",
+            "4",
+            "--num-envs",
+            "8",
+            "--threads",
+            "1",
+            "--seed",
+            "442",
+            "--horizon",
+            "24"
+          ],
+          "returncode": 0
+        },
+        {
+          "kind": "baseline",
+          "stage": "resumed-train",
+          "command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/light-loco-venv/bin/python",
+            "-m",
+            "embodiedforge.native_h1",
+            "train",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline-resumed-train",
+            "--resume",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline-fresh-train",
+            "--updates",
+            "3",
+            "--num-envs",
+            "8",
+            "--threads",
+            "1",
+            "--seed",
+            "442",
+            "--horizon",
+            "24"
+          ],
+          "returncode": 0
+        },
+        {
+          "kind": "baseline",
+          "stage": "evaluation",
+          "command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/light-loco-venv/bin/python",
+            "-m",
+            "embodiedforge.native_h1",
+            "evaluate",
+            "--run",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline-resumed-train",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline-evaluation",
+            "--num-envs",
+            "8",
+            "--threads",
+            "1",
+            "--seed",
+            "115",
+            "--steps",
+            "120",
+            "--velocity",
+            "0.3",
+            "0",
+            "0.1",
+            "--record-motion"
+          ],
+          "returncode": 0
+        },
+        {
+          "kind": "candidate",
+          "stage": "fresh-train",
+          "command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/light-loco-venv/bin/python",
+            "-m",
+            "embodiedforge.native_h1",
+            "train",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate-fresh-train",
+            "--model",
+            "/home/ubuntu/workspace/3rdparty/mink/examples/unitree_h1/h1.xml",
+            "--updates",
+            "4",
+            "--num-envs",
+            "8",
+            "--threads",
+            "1",
+            "--seed",
+            "442",
+            "--horizon",
+            "24"
+          ],
+          "returncode": 0
+        },
+        {
+          "kind": "candidate",
+          "stage": "resumed-train",
+          "command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/light-loco-venv/bin/python",
+            "-m",
+            "embodiedforge.native_h1",
+            "train",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate-resumed-train",
+            "--resume",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate-fresh-train",
+            "--updates",
+            "3",
+            "--num-envs",
+            "8",
+            "--threads",
+            "1",
+            "--seed",
+            "442",
+            "--horizon",
+            "24"
+          ],
+          "returncode": 0
+        },
+        {
+          "kind": "candidate",
+          "stage": "evaluation",
+          "command": [
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/light-loco-venv/bin/python",
+            "-m",
+            "embodiedforge.native_h1",
+            "evaluate",
+            "--run",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate-resumed-train",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate-evaluation",
+            "--num-envs",
+            "8",
+            "--threads",
+            "1",
+            "--seed",
+            "115",
+            "--steps",
+            "120",
+            "--velocity",
+            "0.3",
+            "0",
+            "0.1",
+            "--record-motion"
+          ],
+          "returncode": 0
+        }
+      ],
+      "comparisons": [
+        {
+          "stage": "fresh-train",
+          "updates": 4,
+          "policy_optimizer_progress_bitwise_equal": true,
+          "metrics_excluding_elapsed_exact": true
+        },
+        {
+          "stage": "resumed-train",
+          "updates": 7,
+          "policy_optimizer_progress_bitwise_equal": true,
+          "metrics_excluding_elapsed_exact": true
+        }
+      ],
+      "evaluation_exact": true,
+      "motion_exact": true,
+      "scope": "Two independent fresh 4-update PPO runs, corresponding 3-update policy+optimizer resumes (environment/RNG reset), and recorded real native H1 evaluation. Validation runs only, not learned-skill quality. All outputs are private scratch files."
+    },
+    "release-verification": {
+      "status": "passed",
+      "artifacts": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302184,
+          "sha256": "11caf4ec584c03c5a304b0c9419afcfe8441eae78a5839187fde1d65131402d0"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19789531,
+          "sha256": "28a86959faf6d31c6c95e29ed098a001adb92adff889d107233a91a4658e20b3"
+        }
+      },
+      "exact_python_modules": 141,
+      "exact_resources": 49,
+      "historical_evidence_tar_members": 0,
+      "installed_host_imports_without_site_packages": true,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/source-release/embodiedforge-0.1.0",
+      "installed_root": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/installed-wheel",
+      "target_tests": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/source-release-targets.xml",
+      "sdk_tests": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/source-release-native.xml",
+      "sdk_returncode": 0
+    },
+    "tool-exit-observations": {
+      "recorded_at": "2026-11-01 08:37:09 UTC",
+      "observations": {
+        "baseline-native": {
+          "chunk_id": "15e5de",
+          "wall_time_seconds": 1.0891e-05,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "candidate-native-v3": {
+          "chunk_id": "feb457",
+          "wall_time_seconds": 1.6952e-05,
+          "exit_code": 1,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "candidate-full-final": {
+          "chunk_id": "dde5d0",
+          "wall_time_seconds": 1.5679e-05,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "train-parity": {
+          "chunk_id": "2ad513",
+          "wall_time_seconds": 1.034e-05,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "physics-smoke": {
+          "chunk_id": "fa6352",
+          "wall_time_seconds": 1.3345e-05,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "clip-benchmarks": [
+          {
+            "session_id": 64041,
+            "chunk_id": "5aac8c",
+            "wall_time_seconds": 7.695e-06,
+            "exit_code": 0,
+            "original_token_count": 0,
+            "output": ""
+          },
+          {
+            "session_id": 86947,
+            "chunk_id": "8027c5",
+            "wall_time_seconds": 1.0199e-05,
+            "exit_code": 0,
+            "original_token_count": 0,
+            "output": ""
+          },
+          {
+            "session_id": 91611,
+            "chunk_id": "4321c6",
+            "wall_time_seconds": 7.414e-06,
+            "exit_code": 0,
+            "original_token_count": 0,
+            "output": ""
+          }
+        ],
+        "training-tensor-bytes": {
+          "exit_code": 0,
+          "observed_by": "root exec_command normal completion",
+          "recorded_at": "2026-11-01T11:39:14.407444+00:00"
+        },
+        "native-physics": {
+          "session_id": 44480,
+          "chunk_id": "11bbbc",
+          "wall_time_seconds": 1.1262e-05,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": "",
+          "observed_at": "2026-11-01 13:36:56 UTC"
+        },
+        "numpy126": {
+          "session_id": 44119,
+          "chunk_id": "a6b237",
+          "wall_time_seconds": 3.567e-06,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": "",
+          "observed_at": "2026-11-01 13:36:56 UTC"
+        },
+        "numpy226": {
+          "session_id": 74161,
+          "chunk_id": "2c6bcf",
+          "wall_time_seconds": 4.218e-06,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": "",
+          "observed_at": "2026-11-01 13:36:56 UTC"
+        },
+        "candidate-native-final-stage1": {
+          "exit_code": 0,
+          "session_id": 9816
+        },
+        "build-stage1": {
+          "chunk_id": "16d790",
+          "wall_time_seconds": 1.0921e-05,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "release-verification-stage1": {
+          "exit_code": 0,
+          "session_id": 52877,
+          "observed_by": "root write_stdin after process completion"
+        },
+        "window-phase1": {
+          "session_id": 81548,
+          "exit_code": 1,
+          "controlled_monitor_stop_signal": 15,
+          "reason": "Restart monitoring with corrected placement of an original test assertion; production source and completed five-hour workers unchanged."
+        },
+        "candidate-native-final": {
+          "session_id": 60219,
+          "chunk_id": "550b8b",
+          "wall_time_seconds": 1.2995e-05,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "build": {
+          "session_id": 57048,
+          "chunk_id": "f109f6",
+          "wall_time_seconds": 1.3155e-05,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "release-verification": {
+          "exit_code": 0,
+          "session_id": 82277,
+          "observed_by": "root write_stdin after corrected source-release verification",
+          "recorded_at": "2026-11-01T13:44:20.973969+00:00"
+        }
+      }
+    },
+    "sustained": [
+      {
+        "name": "native-physics",
+        "summary": {
+          "status": "complete",
+          "scope": "Independent before/after H1 environments on real MuJoCo/mjbatch physics.",
+          "started_at": "2026-11-01T08:35:15.525423+00:00",
+          "seconds": 18000.020161666005,
+          "requested_seconds": 18000.0,
+          "num_envs": 32,
+          "numpy": "2.5.2",
+          "counts": {
+            "steps": 704452,
+            "paired_physics_transitions": 22542464,
+            "reward_term_comparisons": 9157876,
+            "snapshot_checks": 100636,
+            "reset_rows": 395652,
+            "default_reset_checks": 9922,
+            "invalid_input_checks": 6235,
+            "rng_checks": 2211666,
+            "action_ownership_checks": 704452
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline/src/embodiedforge/locomotion/articulation.py": "58a0abde71ebee6db3dfd11edd994f0673ce355c1ea98357ba0ad59c03be1f6c",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline/src/embodiedforge/locomotion/h1_native.py": "58651c65fc15fb14a5305c99dd8572c1df9df1258f5d0f393fff92f7968f724c",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate/src/embodiedforge/locomotion/articulation.py": "9d939816b55510e40c93f67e1d40304582c98f8f6a861be42038ad553f57ebc7",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate/src/embodiedforge/locomotion/h1_native.py": "2469d9d6615ed83da5e81cc2fee492154344363a0a77fbacfcbfdca11b115ab2"
+          },
+          "limits": "Both independent environments execute every transition with identical actions and seeds; reset, reward, observations and RNG are compared exactly. Random actions validate runtime semantics, not learned skill or end-to-end throughput."
+        },
+        "observed_process_exit": {
+          "command": [
+            ".cache/light-loco-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/native-physics-soak.py",
+            "--seconds",
+            "18000",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/native-physics-soak"
+          ],
+          "launched_command": [
+            ".cache/light-loco-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/native-physics-soak.py",
+            "--seconds",
+            "18000",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/native-physics-soak"
+          ],
+          "supervisor_pid": 3285649,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-01T08:35:15.054693+00:00",
+          "timeout": 18600.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3285655,
+          "seconds": 18000.54122951202,
+          "finished_at": "2026-11-01T13:35:15.595877+00:00"
+        }
+      },
+      {
+        "name": "numpy126",
+        "summary": {
+          "status": "complete",
+          "scope": "Actual changed methods on deterministic NumPy fixtures; no physics claim.",
+          "numpy": "1.26.4",
+          "started_at": "2026-11-01T08:35:48.064771+00:00",
+          "seconds": 18000.004242137977,
+          "requested_seconds": 18000.0,
+          "counts": {
+            "cycles": 3027068,
+            "snapshot_comparisons": 3027068,
+            "reset_comparisons": 3027068,
+            "step_comparisons": 3027068,
+            "reward_term_comparisons": 39351884,
+            "ownership_checks": 15135340,
+            "invalid_input_checks": 275188
+          },
+          "failures": [],
+          "limits": "Real snapshot/reset/H1.step ASTs with synthetic arrays and a deterministic integration fixture. Covers NumPy compatibility, exact outputs, layout, validation and ownership; does not execute MuJoCo."
+        },
+        "observed_process_exit": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy-soak.py",
+            "--seconds",
+            "18000",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy126-soak"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy-soak.py",
+            "--seconds",
+            "18000",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy126-soak"
+          ],
+          "supervisor_pid": 3288633,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-01T08:35:47.935445+00:00",
+          "timeout": 18600.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3288634,
+          "seconds": 18000.157683533005,
+          "finished_at": "2026-11-01T13:35:48.093094+00:00"
+        }
+      },
+      {
+        "name": "numpy226",
+        "summary": {
+          "status": "complete",
+          "scope": "Actual changed methods on deterministic NumPy fixtures; no physics claim.",
+          "numpy": "2.2.6",
+          "started_at": "2026-11-01T08:35:49.227666+00:00",
+          "seconds": 18000.00351946801,
+          "requested_seconds": 18000.0,
+          "counts": {
+            "cycles": 3048421,
+            "snapshot_comparisons": 3048421,
+            "reset_comparisons": 3048421,
+            "step_comparisons": 3048421,
+            "reward_term_comparisons": 39629473,
+            "ownership_checks": 15242105,
+            "invalid_input_checks": 277130
+          },
+          "failures": [],
+          "limits": "Real snapshot/reset/H1.step ASTs with synthetic arrays and a deterministic integration fixture. Covers NumPy compatibility, exact outputs, layout, validation and ownership; does not execute MuJoCo."
+        },
+        "observed_process_exit": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy-soak.py",
+            "--seconds",
+            "18000",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy226-soak"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy-soak.py",
+            "--seconds",
+            "18000",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy226-soak"
+          ],
+          "supervisor_pid": 3288745,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-01T08:35:49.101355+00:00",
+          "timeout": 18600.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3288751,
+          "seconds": 18000.143733885023,
+          "finished_at": "2026-11-01T13:35:49.245053+00:00"
+        }
+      }
+    ],
+    "worker_resources": {
+      "scope": "Combined worker-process RSS and descriptors over time; not separate old/new memory usage or training RSS.",
+      "samples": 326,
+      "workers": {
+        "native-physics": {
+          "live_samples": 293,
+          "rss_first_kib": 604784,
+          "rss_latest_kib": 604876,
+          "rss_min_kib": 604784,
+          "rss_max_kib": 604876,
+          "file_descriptor_values": [
+            4
+          ],
+          "thread_values": [
+            3
+          ]
+        },
+        "numpy126": {
+          "live_samples": 294,
+          "rss_first_kib": 47316,
+          "rss_latest_kib": 47268,
+          "rss_min_kib": 46536,
+          "rss_max_kib": 47992,
+          "file_descriptor_values": [
+            3
+          ],
+          "thread_values": [
+            32
+          ]
+        },
+        "numpy226": {
+          "live_samples": 294,
+          "rss_first_kib": 45552,
+          "rss_latest_kib": 46016,
+          "rss_min_kib": 45120,
+          "rss_max_kib": 46472,
+          "file_descriptor_values": [
+            3
+          ],
+          "thread_values": [
+            32
+          ]
+        }
+      }
+    },
+    "consumer-audit": {
+      "status": "passed",
+      "repository_articulation_consumers": [
+        "src/embodiedforge/locomotion/h1_native.py"
+      ],
+      "go1_uses_direct_mjbatch": true,
+      "existing_passed_native_suite_includes_real_go1_and_h1_adapters": true,
+      "scope": "Static repository dependency audit and inspection of the already passed parametrized native adapter suite; external library consumers are not enumerated."
+    },
+    "training-tensor-bytes": {
+      "status": "passed",
+      "scope": "Verify saved policy/Adam tensor bytes, including signed zeros, without retraining.",
+      "counts": {
+        "tensors": 136,
+        "tensor_payload_bytes": 2077744,
+        "scalar_values": 102
+      },
+      "stages": [
+        {
+          "stage": "fresh-train",
+          "files": [
+            {
+              "path": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline-fresh-train/checkpoint-000000004.pt",
+              "sha256": "0eabff5831909226c1e31c2f904b49678fdf5f17f73bb146219e1e43d1da62c7"
+            },
+            {
+              "path": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate-fresh-train/checkpoint-000000004.pt",
+              "sha256": "0eabff5831909226c1e31c2f904b49678fdf5f17f73bb146219e1e43d1da62c7"
+            }
+          ],
+          "all_tensor_payloads_byte_identical": true
+        },
+        {
+          "stage": "resumed-train",
+          "files": [
+            {
+              "path": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline-resumed-train/checkpoint-000000007.pt",
+              "sha256": "0265483e1e287608d4c70daf446d0f35012ee6460171b4d79b1c6cba208b2426"
+            },
+            {
+              "path": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/candidate-resumed-train/checkpoint-000000007.pt",
+              "sha256": "0265483e1e287608d4c70daf446d0f35012ee6460171b4d79b1c6cba208b2426"
+            }
+          ],
+          "all_tensor_payloads_byte_identical": true
+        }
+      ],
+      "torch": "2.9.0+cu128",
+      "new_training_runs": 0
+    }
+  },
+  "preserved_models": [
+    {
+      "path": "runs/supermimic/tasks/backflip/reference/current.json",
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+    },
+    {
+      "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+      "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+      "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+      "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+    },
+    {
+      "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+    }
+  ],
+  "preserved_data": [
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+      "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+      "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+      "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+      "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+      "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+      "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+      "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+      "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+      "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+    }
+  ],
+  "source_frozen": true,
+  "structural_audit": {
+    "status": "passed",
+    "changed_files": [
+      "src/embodiedforge/locomotion/articulation.py",
+      "src/embodiedforge/locomotion/h1_native.py",
+      "tests/test_native_h1.py"
+    ],
+    "production_modules": 141,
+    "production_lines": 37842,
+    "unchanged_production_modules": 139,
+    "exact_ast_replacements": 6,
+    "new_production_functions": 0,
+    "new_production_modules": 0,
+    "frozen_files": 142,
+    "scope": "Six specified replacements explain the complete production AST difference; comments and formatting ignored."
+  },
+  "workflow_jobs": [
+    {
+      "name": "native-physics",
+      "summary": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/native-physics-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/native-physics-supervisor",
+      "requested_seconds": 18000
+    },
+    {
+      "name": "numpy126",
+      "summary": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy126-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy126-supervisor",
+      "requested_seconds": 18000
+    },
+    {
+      "name": "numpy226",
+      "summary": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy226-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/numpy226-supervisor",
+      "requested_seconds": 18000
+    }
+  ],
+  "metrics": {
+    "production_modules_before": 141,
+    "production_modules_after": 141,
+    "production_lines_before": 37845,
+    "production_lines_after": 37842,
+    "production_bytes_before": 1515197,
+    "production_bytes_after": 1515303,
+    "new_production_functions": 0,
+    "new_production_modules": 0,
+    "unchanged_production_modules": 139,
+    "exact_ast_replacements": 6
+  },
+  "benchmarks": {
+    "snapshot-numpy252.json": {
+      "status": "passed",
+      "scope": "Compare actual snapshot method with two direct column gathers, before editing.",
+      "numpy": "2.5.2",
+      "source": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline/src/embodiedforge/locomotion/articulation.py",
+      "source_sha256": "58a0abde71ebee6db3dfd11edd994f0673ce355c1ea98357ba0ad59c03be1f6c",
+      "results": [
+        {
+          "batch": 512,
+          "selected_joints": 19,
+          "source_qpos_columns": 26,
+          "full_snapshot_before": {
+            "peak_traced_bytes": 1230160,
+            "seconds": [
+              0.0002836823507095687,
+              0.0002524076000554487,
+              0.00024186764931073413,
+              0.0003251654008636251,
+              0.00023770724947098644,
+              0.00024674934975337236,
+              0.00023264564952114598
+            ],
+            "median_seconds": 0.00024674934975337236
+          },
+          "full_snapshot_proposed": {
+            "peak_traced_bytes": 1230112,
+            "seconds": [
+              0.0002663420003955252,
+              0.0002748070503002964,
+              0.00021834354993188754,
+              0.0001678018510574475,
+              0.0001627192003070377,
+              0.00016094335005618633,
+              0.00015954574919305742
+            ],
+            "median_seconds": 0.0001678018510574475
+          },
+          "joint_extraction_before": {
+            "peak_traced_bytes": 155936,
+            "seconds": [
+              8.465550490655004e-06,
+              7.819849997758865e-06,
+              7.903949881438167e-06,
+              8.22509900899604e-06,
+              7.800299499649554e-06,
+              7.796799764037132e-06,
+              7.843849016353487e-06
+            ],
+            "median_seconds": 7.843849016353487e-06
+          },
+          "joint_extraction_proposed": {
+            "peak_traced_bytes": 78400,
+            "seconds": [
+              4.49004874099046e-06,
+              4.431400157045573e-06,
+              4.4244006858207285e-06,
+              4.47999918833375e-06,
+              4.416400042828173e-06,
+              4.417350282892585e-06,
+              4.409349639900029e-06
+            ],
+            "median_seconds": 4.4244006858207285e-06
+          },
+          "fields_bitwise_identical": true,
+          "owned_C_contiguous_outputs": true
+        },
+        {
+          "batch": 4096,
+          "selected_joints": 19,
+          "source_qpos_columns": 26,
+          "full_snapshot_before": {
+            "peak_traced_bytes": 9831504,
+            "seconds": [
+              0.0022889461004524493,
+              0.0023957278492162002,
+              0.0027637875493383033,
+              0.0027820321003673596,
+              0.0034482399991247804,
+              0.0034127628008718603,
+              0.002881343199987896
+            ],
+            "median_seconds": 0.0027820321003673596
+          },
+          "full_snapshot_proposed": {
+            "peak_traced_bytes": 9831776,
+            "seconds": [
+              0.0029749595007160677,
+              0.002538216749962885,
+              0.002496850449824706,
+              0.0035988642994198017,
+              0.0030681720993015913,
+              0.002642534900223836,
+              0.0032039387500844897
+            ],
+            "median_seconds": 0.0029749595007160677
+          },
+          "joint_extraction_before": {
+            "peak_traced_bytes": 1245472,
+            "seconds": [
+              0.0001031603998853825,
+              8.936375088524074e-05,
+              7.474260055460036e-05,
+              7.007925014477224e-05,
+              7.703340088482946e-05,
+              6.289214943535625e-05,
+              6.310905009740964e-05
+            ],
+            "median_seconds": 7.474260055460036e-05
+          },
+          "joint_extraction_proposed": {
+            "peak_traced_bytes": 623232,
+            "seconds": [
+              3.2414900488220155e-05,
+              3.165300004184246e-05,
+              3.2031199953053144e-05,
+              3.124365030089393e-05,
+              3.060099988942966e-05,
+              3.053785039810464e-05,
+              3.1025250791572034e-05
+            ],
+            "median_seconds": 3.124365030089393e-05
+          },
+          "fields_bitwise_identical": true,
+          "owned_C_contiguous_outputs": true
+        },
+        {
+          "batch": 16384,
+          "selected_joints": 19,
+          "source_qpos_columns": 26,
+          "full_snapshot_before": {
+            "peak_traced_bytes": 39322672,
+            "seconds": [
+              0.01335111904918449,
+              0.014153673750115559,
+              0.013265779450011905,
+              0.012581377549213357,
+              0.0116897195999627,
+              0.013141009600076359,
+              0.01255089680053061
+            ],
+            "median_seconds": 0.013141009600076359
+          },
+          "full_snapshot_proposed": {
+            "peak_traced_bytes": 39322976,
+            "seconds": [
+              0.012014250800712034,
+              0.010909550900396425,
+              0.011865404900163412,
+              0.012345876000472345,
+              0.012259099099901504,
+              0.01165930449933512,
+              0.010330852700280956
+            ],
+            "median_seconds": 0.011865404900163412
+          },
+          "joint_extraction_before": {
+            "peak_traced_bytes": 4981024,
+            "seconds": [
+              0.0003430027500144206,
+              0.0003171812495565973,
+              0.0003176331505528651,
+              0.0003179176492267288,
+              0.0002939973506727256,
+              0.00031798929994693027,
+              0.00031098655017558485
+            ],
+            "median_seconds": 0.0003176331505528651
+          },
+          "joint_extraction_proposed": {
+            "peak_traced_bytes": 2491008,
+            "seconds": [
+              0.0001282123994315043,
+              0.00013424380013020708,
+              0.00012041709996992722,
+              0.00012014055100735277,
+              0.0001253143505891785,
+              0.00013517454935936258,
+              0.00013425629877019673
+            ],
+            "median_seconds": 0.0001282123994315043
+          },
+          "fields_bitwise_identical": true,
+          "owned_C_contiguous_outputs": true
+        }
+      ],
+      "limits": "Synthetic C-contiguous buffers matching native bind layout. Full-method proposal changes exactly two extraction expressions; timings are shared-host observations. Extraction peaks exclude already-retained source buffers."
+    },
+    "snapshot-numpy126.json": {
+      "status": "passed",
+      "scope": "Compare actual snapshot method with two direct column gathers, before editing.",
+      "numpy": "1.26.4",
+      "source": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline/src/embodiedforge/locomotion/articulation.py",
+      "source_sha256": "58a0abde71ebee6db3dfd11edd994f0673ce355c1ea98357ba0ad59c03be1f6c",
+      "results": [
+        {
+          "batch": 512,
+          "selected_joints": 19,
+          "source_qpos_columns": 26,
+          "full_snapshot_before": {
+            "peak_traced_bytes": 1230248,
+            "seconds": [
+              0.00024735049955779684,
+              0.0001975717503228225,
+              0.00017621430015424266,
+              0.00017174435051856563,
+              0.00017026550049195066,
+              0.00020025830017402768,
+              0.00017156950052594767
+            ],
+            "median_seconds": 0.00017621430015424266
+          },
+          "full_snapshot_proposed": {
+            "peak_traced_bytes": 1230296,
+            "seconds": [
+              0.0001930882499436848,
+              0.0001813349997974001,
+              0.0001732447009999305,
+              0.0001681374997133389,
+              0.00017322159983450546,
+              0.0001627212011953816,
+              0.00015983774937922135
+            ],
+            "median_seconds": 0.00017322159983450546
+          },
+          "joint_extraction_before": {
+            "peak_traced_bytes": 155936,
+            "seconds": [
+              9.267548739444464e-06,
+              8.805700053926557e-06,
+              8.784650708548724e-06,
+              9.08470101421699e-06,
+              8.86530033312738e-06,
+              8.860300295054912e-06,
+              8.831250306684524e-06
+            ],
+            "median_seconds": 8.860300295054912e-06
+          },
+          "joint_extraction_proposed": {
+            "peak_traced_bytes": 78448,
+            "seconds": [
+              4.647800233215094e-06,
+              4.61524905404076e-06,
+              4.6062006731517615e-06,
+              5.209899973124265e-06,
+              4.608249582815915e-06,
+              4.611250187736005e-06,
+              4.608249582815915e-06
+            ],
+            "median_seconds": 4.611250187736005e-06
+          },
+          "fields_bitwise_identical": true,
+          "owned_C_contiguous_outputs": true
+        },
+        {
+          "batch": 4096,
+          "selected_joints": 19,
+          "source_qpos_columns": 26,
+          "full_snapshot_before": {
+            "peak_traced_bytes": 9831592,
+            "seconds": [
+              0.002469783151173033,
+              0.002606062749691773,
+              0.003026978549314663,
+              0.002646970249770675,
+              0.0030699900496983902,
+              0.002786817199375946,
+              0.0029043192000244742
+            ],
+            "median_seconds": 0.002786817199375946
+          },
+          "full_snapshot_proposed": {
+            "peak_traced_bytes": 9831896,
+            "seconds": [
+              0.002618111600168049,
+              0.002617890700639691,
+              0.0027696932505932637,
+              0.002614818849542644,
+              0.0024027075996855274,
+              0.002431191550567746,
+              0.002503527549561113
+            ],
+            "median_seconds": 0.002614818849542644
+          },
+          "joint_extraction_before": {
+            "peak_traced_bytes": 1245472,
+            "seconds": [
+              0.00011046724976040422,
+              8.198180003091693e-05,
+              8.520289993612096e-05,
+              0.00010450195113662631,
+              7.835744909243659e-05,
+              8.209144871216268e-05,
+              8.206394995795563e-05
+            ],
+            "median_seconds": 8.209144871216268e-05
+          },
+          "joint_extraction_proposed": {
+            "peak_traced_bytes": 623216,
+            "seconds": [
+              3.3238450123462825e-05,
+              3.2352798734791576e-05,
+              3.265185077907518e-05,
+              3.2620799902360884e-05,
+              3.201814979547635e-05,
+              3.228464920539409e-05,
+              3.2445949909742924e-05
+            ],
+            "median_seconds": 3.2445949909742924e-05
+          },
+          "fields_bitwise_identical": true,
+          "owned_C_contiguous_outputs": true
+        },
+        {
+          "batch": 16384,
+          "selected_joints": 19,
+          "source_qpos_columns": 26,
+          "full_snapshot_before": {
+            "peak_traced_bytes": 39322760,
+            "seconds": [
+              0.013276041850622278,
+              0.013415874700876884,
+              0.01368946545117069,
+              0.013539605100231712,
+              0.012013431300874799,
+              0.014464940800098702,
+              0.013368174400238787
+            ],
+            "median_seconds": 0.013415874700876884
+          },
+          "full_snapshot_proposed": {
+            "peak_traced_bytes": 39323096,
+            "seconds": [
+              0.012389664399961475,
+              0.011233198399713729,
+              0.012922278299811296,
+              0.012026035149756354,
+              0.012196104299800937,
+              0.011417194949171972,
+              0.011891603050753475
+            ],
+            "median_seconds": 0.012026035149756354
+          },
+          "joint_extraction_before": {
+            "peak_traced_bytes": 4981024,
+            "seconds": [
+              0.0005409395991591737,
+              0.00050650740013225,
+              0.0004410524488775991,
+              0.0004712460999144241,
+              0.00037688390002585945,
+              0.0003735550490091555,
+              0.0003833626498817466
+            ],
+            "median_seconds": 0.0004410524488775991
+          },
+          "joint_extraction_proposed": {
+            "peak_traced_bytes": 2490992,
+            "seconds": [
+              0.00014364209928316996,
+              0.00012716839992208407,
+              0.0001284768499317579,
+              0.00013213475031079725,
+              0.00012995315046282485,
+              0.00014551865024259314,
+              0.00012570060061989352
+            ],
+            "median_seconds": 0.00012995315046282485
+          },
+          "fields_bitwise_identical": true,
+          "owned_C_contiguous_outputs": true
+        }
+      ],
+      "limits": "Synthetic C-contiguous buffers matching native bind layout. Full-method proposal changes exactly two extraction expressions; timings are shared-host observations. Extraction peaks exclude already-retained source buffers."
+    },
+    "gather-numpy252.json": {
+      "status": "passed",
+      "scope": "Alternating-order column-gather timings and allocation peaks.",
+      "numpy": "2.5.2",
+      "results": [
+        {
+          "operation": "owned_extraction",
+          "batch": 1,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            1.51888991240412e-06,
+            1.438129984308034e-06,
+            1.493640011176467e-06,
+            1.4403401291929185e-06,
+            1.443450164515525e-06,
+            1.414500002283603e-06,
+            1.6175801283679902e-06,
+            1.475200115237385e-06,
+            1.39636016683653e-06
+          ],
+          "seconds_proposed": [
+            1.2790298205800354e-06,
+            1.221120182890445e-06,
+            1.17513001896441e-06,
+            1.2177199823781848e-06,
+            1.1955699301324785e-06,
+            1.1893597547896205e-06,
+            1.201289996970445e-06,
+            1.193069911096245e-06,
+            1.228740147780627e-06
+          ],
+          "median_seconds_before": 1.443450164515525e-06,
+          "median_seconds_proposed": 1.201289996970445e-06,
+          "peak_traced_bytes_before": 3464,
+          "peak_traced_bytes_proposed": 728,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 1,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            1.7242800095118582e-06,
+            1.4505599392578006e-06,
+            1.4714000280946493e-06,
+            1.549749867990613e-06,
+            1.534020120743662e-06,
+            1.4991499483585358e-06,
+            1.481320068705827e-06,
+            1.5034698299132288e-06,
+            1.4594799722544848e-06
+          ],
+          "seconds_proposed": [
+            1.5025600441731512e-06,
+            1.4373299200087785e-06,
+            1.490130089223385e-06,
+            1.4793098671361803e-06,
+            1.4642797759734093e-06,
+            1.5172900748439134e-06,
+            1.5018600970506667e-06,
+            1.5015600365586579e-06,
+            1.466289977543056e-06
+          ],
+          "median_seconds_before": 1.4991499483585358e-06,
+          "median_seconds_proposed": 1.490130089223385e-06,
+          "peak_traced_bytes_before": 3432,
+          "peak_traced_bytes_proposed": 728,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_extraction",
+          "batch": 64,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            2.915450022555888e-06,
+            2.862650144379586e-06,
+            3.2189299236051737e-06,
+            2.692030102480203e-06,
+            2.7466300525702538e-06,
+            2.8776799445040525e-06,
+            2.8455199208110573e-06,
+            2.7688697446137667e-06,
+            2.7618499007076026e-06
+          ],
+          "seconds_proposed": [
+            1.9947899272665383e-06,
+            1.9578300998546183e-06,
+            1.99940986931324e-06,
+            1.9652402261272073e-06,
+            1.963030081242323e-06,
+            1.955319894477725e-06,
+            2.024749992415309e-06,
+            1.9709498155862095e-06,
+            2.0062201656401157e-06
+          ],
+          "median_seconds_before": 2.8455199208110573e-06,
+          "median_seconds_proposed": 1.9709498155862095e-06,
+          "peak_traced_bytes_before": 19744,
+          "peak_traced_bytes_proposed": 10304,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 64,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            2.79080995824188e-06,
+            2.841509995050728e-06,
+            2.7646598755382003e-06,
+            2.789009886328131e-06,
+            2.638220030348748e-06,
+            2.4336299975402653e-06,
+            2.4144997587427497e-06,
+            2.445050049573183e-06,
+            2.4023698642849923e-06
+          ],
+          "seconds_proposed": [
+            2.595240075606853e-06,
+            2.5467501836828887e-06,
+            2.5679898681119086e-06,
+            2.569390053395182e-06,
+            2.1956799901090564e-06,
+            2.207100042141974e-06,
+            2.204800257459283e-06,
+            2.237060107290745e-06,
+            2.174830005969852e-06
+          ],
+          "median_seconds_before": 2.638220030348748e-06,
+          "median_seconds_proposed": 2.237060107290745e-06,
+          "peak_traced_bytes_before": 13256,
+          "peak_traced_bytes_proposed": 10304,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_extraction",
+          "batch": 512,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            1.3871100090909749e-05,
+            1.3823200133629143e-05,
+            1.3573130127042532e-05,
+            1.3295809912960976e-05,
+            1.3418429880402982e-05,
+            1.3492569851223379e-05,
+            1.338355999905616e-05,
+            1.3663000136148184e-05,
+            1.354266976704821e-05
+          ],
+          "seconds_proposed": [
+            5.801140214316547e-06,
+            5.810149887111038e-06,
+            6.97838026098907e-06,
+            7.146999996621161e-06,
+            7.387859805021435e-06,
+            6.866059848107397e-06,
+            7.178859959822148e-06,
+            7.323040044866502e-06,
+            7.3963802424259484e-06
+          ],
+          "median_seconds_before": 1.354266976704821e-05,
+          "median_seconds_proposed": 7.146999996621161e-06,
+          "peak_traced_bytes_before": 155936,
+          "peak_traced_bytes_proposed": 78400,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 512,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            1.3487870164681226e-05,
+            1.3303720043040813e-05,
+            1.330801984295249e-05,
+            1.3335779949557035e-05,
+            1.3420030009001493e-05,
+            1.389393990393728e-05,
+            1.3739049900323152e-05,
+            1.3752869854215533e-05,
+            1.3737439876422287e-05
+          ],
+          "seconds_proposed": [
+            9.206919930875301e-06,
+            9.30429989239201e-06,
+            9.455699764657765e-06,
+            9.384860168211163e-06,
+            9.397179819643498e-06,
+            9.189689881168307e-06,
+            9.391669882461429e-06,
+            9.387559839524328e-06,
+            9.496569982729851e-06
+          ],
+          "median_seconds_before": 1.3487870164681226e-05,
+          "median_seconds_proposed": 9.387559839524328e-06,
+          "peak_traced_bytes_before": 81352,
+          "peak_traced_bytes_proposed": 78400,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_extraction",
+          "batch": 4096,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            0.0003464229399105534,
+            0.0003143858799012378,
+            0.0003216679199249484,
+            0.0003170118702109903,
+            0.00031201685982523486,
+            0.0003247594099957496,
+            0.0003115824301494285,
+            0.0003121519202250056,
+            0.00030787637981120495
+          ],
+          "seconds_proposed": [
+            5.1197419816162436e-05,
+            4.864707007072866e-05,
+            5.016416020225733e-05,
+            4.9370049964636564e-05,
+            5.049690022133291e-05,
+            4.8062360147014264e-05,
+            4.975347983418033e-05,
+            4.8408219881821424e-05,
+            5.116136017022654e-05
+          ],
+          "median_seconds_before": 0.0003143858799012378,
+          "median_seconds_proposed": 4.975347983418033e-05,
+          "peak_traced_bytes_before": 1245472,
+          "peak_traced_bytes_proposed": 623168,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 4096,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            0.00011650098982499912,
+            0.00011598370998399333,
+            0.00011151100014103577,
+            0.00011128837999422103,
+            0.00011056189017836005,
+            0.00011488913994980976,
+            0.0001137274201028049,
+            0.00011266799992881715,
+            0.00011173281993251294
+          ],
+          "seconds_proposed": [
+            6.00761198438704e-05,
+            6.949093978619202e-05,
+            7.15648801997304e-05,
+            6.975894997594878e-05,
+            7.030929991742596e-05,
+            6.95584702771157e-05,
+            7.17881100717932e-05,
+            7.03998698736541e-05,
+            7.103217008989304e-05
+          ],
+          "median_seconds_before": 0.00011266799992881715,
+          "median_seconds_proposed": 7.030929991742596e-05,
+          "peak_traced_bytes_before": 626120,
+          "peak_traced_bytes_proposed": 623168,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_extraction",
+          "batch": 16384,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            0.001654149910027627,
+            0.0015304881799966096,
+            0.0016540932000498288,
+            0.0016635765301180072,
+            0.001638058069802355,
+            0.0016442385199479759,
+            0.0015579229799914174,
+            0.001591550259909127,
+            0.00154066161980154
+          ],
+          "seconds_proposed": [
+            0.00019981234014267103,
+            0.00019523752998793498,
+            0.00017039386002579704,
+            0.00019428181985858828,
+            0.0001955100501072593,
+            0.00016384529008064418,
+            0.00019601741019869222,
+            0.0001898316398728639,
+            0.00018135560996597632
+          ],
+          "median_seconds_before": 0.001638058069802355,
+          "median_seconds_proposed": 0.00019428181985858828,
+          "peak_traced_bytes_before": 4981024,
+          "peak_traced_bytes_proposed": 2490944,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 16384,
+          "numpy": "2.5.2",
+          "seconds_before": [
+            0.0004917122100596316,
+            0.00047331518988357856,
+            0.0004690882601425983,
+            0.0004916949800099247,
+            0.0004928523700800724,
+            0.0004949287298950367,
+            0.000494171480240766,
+            0.0004919129898189567,
+            0.00048172200011322277
+          ],
+          "seconds_proposed": [
+            0.0005952414200874046,
+            0.000596396509790793,
+            0.0005344089501886629,
+            0.0005181595400790684,
+            0.0005102547898422926,
+            0.0005762790300650522,
+            0.0005232238699682057,
+            0.0005362722001154907,
+            0.0005441655201138928
+          ],
+          "median_seconds_before": 0.0004917122100596316,
+          "median_seconds_proposed": 0.0005362722001154907,
+          "peak_traced_bytes_before": 2493896,
+          "peak_traced_bytes_proposed": 2490944,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        }
+      ],
+      "limits": "Synthetic C-contiguous source and output buffers, float64, reversed int32 indices; timings are local shared-host observations. Allocation peaks exclude already-retained buffers."
+    },
+    "gather-numpy126.json": {
+      "status": "passed",
+      "scope": "Alternating-order column-gather timings and allocation peaks.",
+      "numpy": "1.26.4",
+      "results": [
+        {
+          "operation": "owned_extraction",
+          "batch": 1,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            9.981001494452357e-07,
+            9.724500705488025e-07,
+            9.730597957968712e-07,
+            1.1141199502162636e-06,
+            1.0509000276215375e-06,
+            9.725501877255738e-07,
+            1.0494000161997974e-06,
+            1.167530135717243e-06,
+            1.0254498920403422e-06
+          ],
+          "seconds_proposed": [
+            8.744699880480767e-07,
+            8.137401891872287e-07,
+            8.158502168953419e-07,
+            8.135399548336864e-07,
+            8.137497934512794e-07,
+            8.126400643959641e-07,
+            8.17560066934675e-07,
+            8.438099757768214e-07,
+            8.289801189675927e-07
+          ],
+          "median_seconds_before": 1.0254498920403422e-06,
+          "median_seconds_proposed": 8.158502168953419e-07,
+          "peak_traced_bytes_before": 2672,
+          "peak_traced_bytes_proposed": 776,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 1,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            1.2649100972339512e-06,
+            1.0251597268506885e-06,
+            1.0220499825663865e-06,
+            1.0476898751221597e-06,
+            1.020949857775122e-06,
+            1.0360800661146641e-06,
+            1.0653299978002906e-06,
+            1.1067098239436746e-06,
+            1.0724400635808707e-06
+          ],
+          "seconds_proposed": [
+            1.0664298315532506e-06,
+            1.0381700121797621e-06,
+            1.017239992506802e-06,
+            1.0108199785463513e-06,
+            1.070240105036646e-06,
+            1.0082201333716512e-06,
+            1.0018100147135556e-06,
+            9.985000360757112e-07,
+            1.0416898294351996e-06
+          ],
+          "median_seconds_before": 1.0476898751221597e-06,
+          "median_seconds_proposed": 1.017239992506802e-06,
+          "peak_traced_bytes_before": 2640,
+          "peak_traced_bytes_proposed": 776,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_extraction",
+          "batch": 64,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            1.9876897567883134e-06,
+            2.237049920950085e-06,
+            1.9477997557260096e-06,
+            1.9150500884279607e-06,
+            1.9196499488316476e-06,
+            1.957929925993085e-06,
+            1.9547197734937073e-06,
+            1.9893900025635957e-06,
+            1.9348799833096564e-06
+          ],
+          "seconds_proposed": [
+            1.3462599599733949e-06,
+            1.351269893348217e-06,
+            1.3554800534620882e-06,
+            1.3456601300276816e-06,
+            1.676390238571912e-06,
+            1.3533802120946348e-06,
+            1.345670025330037e-06,
+            1.3445600052364171e-06,
+            1.3450600090436638e-06
+          ],
+          "median_seconds_before": 1.9547197734937073e-06,
+          "median_seconds_proposed": 1.3462599599733949e-06,
+          "peak_traced_bytes_before": 19744,
+          "peak_traced_bytes_proposed": 10352,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 64,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            1.9625300774350764e-06,
+            1.9590300507843493e-06,
+            1.9538201740942895e-06,
+            2.0125298760831356e-06,
+            2.1008000476285816e-06,
+            1.9461000920273365e-06,
+            2.1262498921714723e-06,
+            1.9527098629623653e-06,
+            1.9971100846305488e-06
+          ],
+          "seconds_proposed": [
+            1.6702699940651655e-06,
+            1.710659998934716e-06,
+            1.681300054769963e-06,
+            1.6548499115742743e-06,
+            1.6551499720662831e-06,
+            1.6494400915689767e-06,
+            1.7518299864605069e-06,
+            1.6578499344177544e-06,
+            1.6575498739257456e-06
+          ],
+          "median_seconds_before": 1.9625300774350764e-06,
+          "median_seconds_proposed": 1.6578499344177544e-06,
+          "peak_traced_bytes_before": 12392,
+          "peak_traced_bytes_proposed": 10352,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_extraction",
+          "batch": 512,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            9.902949968818576e-06,
+            1.644979987759143e-05,
+            1.1599669815041125e-05,
+            1.1190790100954473e-05,
+            1.0527029808145016e-05,
+            1.010803011013195e-05,
+            1.0185280116274953e-05,
+            1.0104830143973232e-05,
+            1.0330360091757028e-05
+          ],
+          "seconds_proposed": [
+            6.8163700052537025e-06,
+            7.726209878455847e-06,
+            5.2157300524413584e-06,
+            5.128660122863949e-06,
+            5.406489945016801e-06,
+            5.11904014274478e-06,
+            5.549659836106002e-06,
+            5.210920062381774e-06,
+            5.326129903551191e-06
+          ],
+          "median_seconds_before": 1.0330360091757028e-05,
+          "median_seconds_proposed": 5.326129903551191e-06,
+          "peak_traced_bytes_before": 155936,
+          "peak_traced_bytes_proposed": 78448,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 512,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            1.071528997272253e-05,
+            9.760980028659104e-06,
+            9.835819946601987e-06,
+            1.033787993947044e-05,
+            1.00266799563542e-05,
+            9.89463005680591e-06,
+            9.71909990767017e-06,
+            9.816879755817353e-06,
+            9.90565022220835e-06
+          ],
+          "seconds_proposed": [
+            6.8259899853728715e-06,
+            6.690930167678743e-06,
+            6.704360130243003e-06,
+            6.842420261818915e-06,
+            7.427030068356544e-06,
+            7.093200110830367e-06,
+            6.664379907306284e-06,
+            6.6814100136980414e-06,
+            6.597860192414373e-06
+          ],
+          "median_seconds_before": 9.89463005680591e-06,
+          "median_seconds_proposed": 6.704360130243003e-06,
+          "peak_traced_bytes_before": 80488,
+          "peak_traced_bytes_proposed": 78448,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_extraction",
+          "batch": 4096,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            0.00024403620016528294,
+            0.0002749786799540743,
+            0.00025576360989362003,
+            0.0003028380899922922,
+            0.0002961340401088819,
+            0.00027418566984124484,
+            0.000273434940027073,
+            0.00029919586988398807,
+            0.00026750735996756704
+          ],
+          "seconds_proposed": [
+            4.7049240092746916e-05,
+            3.5397159808780995e-05,
+            4.9955760187003764e-05,
+            3.7146490067243574e-05,
+            4.0544060175307096e-05,
+            3.972629987401888e-05,
+            3.652629995485768e-05,
+            4.6846549957990645e-05,
+            3.687076998176053e-05
+          ],
+          "median_seconds_before": 0.00027418566984124484,
+          "median_seconds_proposed": 3.972629987401888e-05,
+          "peak_traced_bytes_before": 1245472,
+          "peak_traced_bytes_proposed": 623216,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 4096,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            8.29993499792181e-05,
+            8.685278007760643e-05,
+            8.564488001866266e-05,
+            8.65215400699526e-05,
+            8.126675005769357e-05,
+            8.582081994973123e-05,
+            8.731356007046998e-05,
+            9.532961004879326e-05,
+            8.064856985583901e-05
+          ],
+          "seconds_proposed": [
+            5.9017309977207335e-05,
+            5.2505019993986934e-05,
+            5.383855022955686e-05,
+            5.274988012388349e-05,
+            5.555562005611137e-05,
+            5.621997988782823e-05,
+            5.329322011675686e-05,
+            5.471812997711822e-05,
+            6.531778984935954e-05
+          ],
+          "median_seconds_before": 8.582081994973123e-05,
+          "median_seconds_proposed": 5.471812997711822e-05,
+          "peak_traced_bytes_before": 625256,
+          "peak_traced_bytes_proposed": 623216,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_extraction",
+          "batch": 16384,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            0.0017731452602311037,
+            0.0017313773700152525,
+            0.0014976400797604584,
+            0.0014621659700060263,
+            0.0016016225298517385,
+            0.0016351390100317075,
+            0.0015239728600136004,
+            0.0016953943701810204,
+            0.0016745567199541256
+          ],
+          "seconds_proposed": [
+            0.0001596103300107643,
+            0.00015098713018232957,
+            0.00015480868984013796,
+            0.00013963942998088897,
+            0.0001575009198859334,
+            0.00018898312991950662,
+            0.00018353836989263073,
+            0.00019694848015205935,
+            0.00020431701006600633
+          ],
+          "median_seconds_before": 0.0016351390100317075,
+          "median_seconds_proposed": 0.0001596103300107643,
+          "peak_traced_bytes_before": 4981024,
+          "peak_traced_bytes_proposed": 2490992,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        },
+        {
+          "operation": "owned_force_transfer",
+          "batch": 16384,
+          "numpy": "1.26.4",
+          "seconds_before": [
+            0.0004931911299354397,
+            0.000497954780003056,
+            0.00046773106994805856,
+            0.0004365855100331828,
+            0.00043107341014547273,
+            0.0004165538799134083,
+            0.0004920730899902992,
+            0.00041958265006542206,
+            0.00042842637980356813
+          ],
+          "seconds_proposed": [
+            0.000680382440041285,
+            0.0005553885799599812,
+            0.0006964438001159579,
+            0.0005392234199098311,
+            0.0004801448900252581,
+            0.00048214259004453197,
+            0.0007525633898330852,
+            0.0004702162998728454,
+            0.0004602388199418783
+          ],
+          "median_seconds_before": 0.0004365855100331828,
+          "median_seconds_proposed": 0.0005392234199098311,
+          "peak_traced_bytes_before": 2493032,
+          "peak_traced_bytes_proposed": 2490992,
+          "values_bitwise_identical": true,
+          "C_contiguous_output": true
+        }
+      ],
+      "limits": "Synthetic C-contiguous source and output buffers, float64, reversed int32 indices; timings are local shared-host observations. Allocation peaks exclude already-retained buffers."
+    },
+    "clip-numpy126.json": {
+      "status": "passed",
+      "numpy": "1.26.4",
+      "scope": "Isolated action validation and clipping, not full H1 step or training RSS; actual finite_array AST and unchanged clip bounds.",
+      "rows": [
+        {
+          "num_envs": 1,
+          "baseline": {
+            "peak_bytes": 2616,
+            "samples_us": [
+              4.625330038834363,
+              4.5333500020205975,
+              4.547970020212233,
+              4.1136599611490965,
+              4.287989868316799,
+              3.448509960435331,
+              2.6817602338269353,
+              2.6652298402041197,
+              2.669240057002753
+            ],
+            "median_us": 4.1136599611490965
+          },
+          "candidate": {
+            "peak_bytes": 2520,
+            "samples_us": [
+              5.286770174279809,
+              4.613100027199835,
+              4.637750098481774,
+              4.213750071357936,
+              4.2210600804537535,
+              2.7646200032904744,
+              2.805700059980154,
+              2.807190176099539,
+              2.772430016193539
+            ],
+            "median_us": 4.213750071357936
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 64,
+          "baseline": {
+            "peak_bytes": 21768,
+            "samples_us": [
+              3.8169999606907368,
+              4.073080199304968,
+              3.8279197178781033,
+              4.556500061880797,
+              3.8150997716002166,
+              3.928910009562969,
+              3.8448598934337497,
+              3.7775299279019237,
+              3.767110174521804
+            ],
+            "median_us": 3.8279197178781033
+          },
+          "candidate": {
+            "peak_bytes": 12096,
+            "samples_us": [
+              4.046940011903644,
+              4.263040027581155,
+              3.8589799078181386,
+              3.8642901927232742,
+              3.8874399615451694,
+              3.8931399467401206,
+              3.8372399285435677,
+              3.8399500772356987,
+              3.765299916267395
+            ],
+            "median_us": 3.8642901927232742
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 512,
+          "baseline": {
+            "peak_bytes": 157960,
+            "samples_us": [
+              10.616530198603868,
+              11.432869941927493,
+              10.537479829508811,
+              11.202130117453635,
+              10.284800082445145,
+              10.213069908786565,
+              11.108159960713238,
+              10.492590081412345,
+              10.52055013133213
+            ],
+            "median_us": 10.537479829508811
+          },
+          "candidate": {
+            "peak_bytes": 80192,
+            "samples_us": [
+              10.816900175996125,
+              10.445200023241341,
+              11.316550080664456,
+              10.465139930602163,
+              10.13952016364783,
+              12.054539984092116,
+              10.666119924280792,
+              10.280389979016036,
+              10.265159944538027
+            ],
+            "median_us": 10.465139930602163
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 4096,
+          "baseline": {
+            "peak_bytes": 1247496,
+            "samples_us": [
+              72.66486994922161,
+              69.27056994754821,
+              73.57810012763366,
+              69.08231996931136,
+              75.64810017356649,
+              71.58703985624015,
+              84.69727006740868,
+              75.45594009570777,
+              85.28969017788768
+            ],
+            "median_us": 73.57810012763366
+          },
+          "candidate": {
+            "peak_bytes": 624960,
+            "samples_us": [
+              69.0895298612304,
+              74.59793007001281,
+              72.59723992319778,
+              72.43092986755073,
+              71.6858301893808,
+              72.69763998920098,
+              76.52135012904182,
+              75.14044991694391,
+              74.23394010402262
+            ],
+            "median_us": 72.69763998920098
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 16384,
+          "baseline": {
+            "peak_bytes": 4983048,
+            "samples_us": [
+              904.8155599157326,
+              951.6718500526622,
+              826.4430300914682,
+              807.1756901335903,
+              1057.9475600388832,
+              957.1238499484025,
+              658.1950400141068,
+              612.4652799917385,
+              473.17241987911984
+            ],
+            "median_us": 826.4430300914682
+          },
+          "candidate": {
+            "peak_bytes": 2492736,
+            "samples_us": [
+              708.7712499196641,
+              767.980050004553,
+              757.8983300481923,
+              771.5610001469031,
+              747.5287601118907,
+              665.7152299885638,
+              672.8219400974922,
+              586.140209925361,
+              505.3316900739446
+            ],
+            "median_us": 708.7712499196641
+          },
+          "exact_equal": true
+        }
+      ]
+    },
+    "clip-numpy226.json": {
+      "status": "passed",
+      "numpy": "2.2.6",
+      "scope": "Isolated action validation and clipping, not full H1 step or training RSS; actual finite_array AST and unchanged clip bounds.",
+      "rows": [
+        {
+          "num_envs": 1,
+          "baseline": {
+            "peak_bytes": 2520,
+            "samples_us": [
+              2.984129823744297,
+              2.7548999059945345,
+              2.9289201484061778,
+              2.764209930319339,
+              3.8617898826487362,
+              4.0137700852938,
+              3.8766098441556096,
+              3.856169932987541,
+              3.0097801936790347
+            ],
+            "median_us": 3.0097801936790347
+          },
+          "candidate": {
+            "peak_bytes": 2424,
+            "samples_us": [
+              3.0419399263337255,
+              2.8062998899258673,
+              2.903370186686516,
+              3.0037600663490593,
+              3.798270190600306,
+              3.868589992634952,
+              4.036920145153999,
+              3.4120300551876426,
+              3.0926300678402185
+            ],
+            "median_us": 3.0926300678402185
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 64,
+          "baseline": {
+            "peak_bytes": 21672,
+            "samples_us": [
+              4.411929985508323,
+              4.462920187506825,
+              4.684529849328101,
+              4.633740172721446,
+              4.640660190489143,
+              5.561989964917302,
+              5.562790029216558,
+              4.1809899266809225,
+              3.4193502506241202
+            ],
+            "median_us": 4.633740172721446
+          },
+          "candidate": {
+            "peak_bytes": 12000,
+            "samples_us": [
+              4.697160038631409,
+              3.9978401036933064,
+              4.593359772115946,
+              4.673219809774309,
+              4.620919935405254,
+              5.73180994251743,
+              5.6188899907283485,
+              3.5486998967826366,
+              3.3724599052220583
+            ],
+            "median_us": 4.620919935405254
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 512,
+          "baseline": {
+            "peak_bytes": 157864,
+            "samples_us": [
+              6.492850079666823,
+              6.397370016202331,
+              6.396259996108711,
+              6.406079919543117,
+              6.410700152628124,
+              6.411799986381084,
+              6.597049941774458,
+              6.555359868798405,
+              7.765950285829604
+            ],
+            "median_us": 6.411799986381084
+          },
+          "candidate": {
+            "peak_bytes": 80096,
+            "samples_us": [
+              6.662870000582188,
+              6.34838012047112,
+              6.323130219243467,
+              6.388050096575171,
+              6.638919876422733,
+              6.366609886754304,
+              7.0046199834905565,
+              8.843980031087995,
+              9.192540019284934
+            ],
+            "median_us": 6.638919876422733
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 4096,
+          "baseline": {
+            "peak_bytes": 1247400,
+            "samples_us": [
+              37.937760062050074,
+              36.42120980657637,
+              39.318070048466325,
+              38.82574004819617,
+              40.78623984241858,
+              39.47026008972898,
+              41.55387985520065,
+              49.06796995783225,
+              61.590379918925464
+            ],
+            "median_us": 39.47026008972898
+          },
+          "candidate": {
+            "peak_bytes": 624864,
+            "samples_us": [
+              51.59844004083425,
+              42.19280002871528,
+              36.622490151785314,
+              44.029759883414954,
+              39.49539997847751,
+              43.65194006823003,
+              38.46045001409948,
+              63.171770016197115,
+              89.19326006434858
+            ],
+            "median_us": 43.65194006823003
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 16384,
+          "baseline": {
+            "peak_bytes": 4982952,
+            "samples_us": [
+              946.8664901214652,
+              944.2952400422655,
+              800.5436701932922,
+              867.5757300807163,
+              892.501549969893,
+              712.7259200206026,
+              628.3262997749262,
+              625.4841398913413,
+              502.2681099944748
+            ],
+            "median_us": 800.5436701932922
+          },
+          "candidate": {
+            "peak_bytes": 2492640,
+            "samples_us": [
+              714.3935500062071,
+              754.5800699153915,
+              673.4580401098356,
+              718.3978200191632,
+              640.8230800298043,
+              713.6080801137723,
+              632.0041400613263,
+              511.05497987009585,
+              470.14951007440686
+            ],
+            "median_us": 673.4580401098356
+          },
+          "exact_equal": true
+        }
+      ]
+    },
+    "clip-numpy252.json": {
+      "status": "passed",
+      "numpy": "2.5.2",
+      "scope": "Isolated action validation and clipping, not full H1 step or training RSS; actual finite_array AST and unchanged clip bounds.",
+      "rows": [
+        {
+          "num_envs": 1,
+          "baseline": {
+            "peak_bytes": 2048,
+            "samples_us": [
+              3.561220073606819,
+              3.4106301609426737,
+              3.3385001006536186,
+              3.4070300171151757,
+              3.331580082885921,
+              3.3772698952816427,
+              3.351320046931505,
+              3.7849400541745126,
+              3.4233598853461444
+            ],
+            "median_us": 3.4070300171151757
+          },
+          "candidate": {
+            "peak_bytes": 1952,
+            "samples_us": [
+              3.7397502455860376,
+              3.379079862497747,
+              3.3748699934221804,
+              3.747770097106695,
+              3.327069862280041,
+              3.350109909661114,
+              3.335299843456596,
+              3.573849971871823,
+              3.5945800482295454
+            ],
+            "median_us": 3.379079862497747
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 64,
+          "baseline": {
+            "peak_bytes": 21200,
+            "samples_us": [
+              4.486060061026365,
+              4.436970048118383,
+              4.313540121074766,
+              4.432569839991629,
+              4.389880050439388,
+              4.342290048953146,
+              4.429859982337803,
+              4.4913802412338555,
+              4.401909827720374
+            ],
+            "median_us": 4.429859982337803
+          },
+          "candidate": {
+            "peak_bytes": 11528,
+            "samples_us": [
+              4.3586199171841145,
+              4.325759946368635,
+              4.324259934946895,
+              4.340890154708177,
+              4.264739982318133,
+              4.283080052118748,
+              4.563299880828708,
+              4.366339999251068,
+              4.315240075811744
+            ],
+            "median_us": 4.325759946368635
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 512,
+          "baseline": {
+            "peak_bytes": 157392,
+            "samples_us": [
+              5.086300079710782,
+              5.839520017616451,
+              7.263400184456259,
+              7.229739858303219,
+              6.729299784637988,
+              7.113519823178649,
+              9.217890037689358,
+              8.766139799263328,
+              9.285419946536422
+            ],
+            "median_us": 7.229739858303219
+          },
+          "candidate": {
+            "peak_bytes": 79624,
+            "samples_us": [
+              5.210119998082519,
+              6.413600058294833,
+              7.193470082711428,
+              6.984380015637726,
+              7.0331699680536985,
+              6.934480043128133,
+              8.84247972862795,
+              8.631889941170812,
+              9.067709906958044
+            ],
+            "median_us": 7.0331699680536985
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 4096,
+          "baseline": {
+            "peak_bytes": 1246928,
+            "samples_us": [
+              32.5592199806124,
+              43.21772983530536,
+              30.662440112791955,
+              29.4079800369218,
+              36.71857004519552,
+              32.310950045939535,
+              33.74135005287826,
+              33.1911098328419,
+              40.504510106984526
+            ],
+            "median_us": 33.1911098328419
+          },
+          "candidate": {
+            "peak_bytes": 624392,
+            "samples_us": [
+              30.8035098714754,
+              45.5578399123624,
+              34.64515000814572,
+              33.77521992661059,
+              43.464190093800426,
+              53.759809816256166,
+              38.29523979220539,
+              43.949399841949344,
+              51.90201016375795
+            ],
+            "median_us": 43.464190093800426
+          },
+          "exact_equal": true
+        },
+        {
+          "num_envs": 16384,
+          "baseline": {
+            "peak_bytes": 4982480,
+            "samples_us": [
+              278.7852002074942,
+              351.36132006300613,
+              779.6250001410954,
+              790.0530699407682,
+              775.9228299255483,
+              753.2757997978479,
+              813.980620005168,
+              773.0000198353082,
+              600.2746801823378
+            ],
+            "median_us": 773.0000198353082
+          },
+          "candidate": {
+            "peak_bytes": 2492168,
+            "samples_us": [
+              212.77658001054078,
+              455.01635991968215,
+              621.0966600337997,
+              610.4462599614635,
+              680.605820089113,
+              698.0608499725349,
+              685.4710000334308,
+              602.1218601381406,
+              653.7905300501734
+            ],
+            "median_us": 621.0966600337997
+          },
+          "exact_equal": true
+        }
+      ]
+    },
+    "reset-proposal-benchmark.json": {
+      "status": "passed",
+      "scope": "Measure reset orchestration with real MuJoCo topology and a no-op backend.",
+      "numpy": "2.5.2",
+      "mujoco": "3.11.0",
+      "source": "/tmp/embodiedforge-subtraction-20261101-070653-sevenhour/baseline/src/embodiedforge/locomotion/articulation.py",
+      "results": [
+        {
+          "batch": 0,
+          "nq": 26,
+          "nv": 25,
+          "nu": 19,
+          "peak_traced_bytes_before": 2257,
+          "peak_traced_bytes_proposed": 1739,
+          "seconds_before": [
+            2.609490038594231e-05,
+            2.3861200315877795e-05,
+            2.2524649102706464e-05,
+            2.2083299700170756e-05,
+            2.23442999413237e-05,
+            2.2080849157646297e-05,
+            2.1593400742858648e-05
+          ],
+          "seconds_proposed": [
+            2.1544299670495093e-05,
+            2.614955010358244e-05,
+            2.063610008917749e-05,
+            2.063409920083359e-05,
+            2.0098550885450094e-05,
+            2.0178750855848192e-05,
+            2.3212500673253088e-05
+          ],
+          "median_seconds_before": 2.23442999413237e-05,
+          "median_seconds_proposed": 2.063610008917749e-05,
+          "state_and_control_bitwise_identical": true
+        },
+        {
+          "batch": 1,
+          "nq": 26,
+          "nv": 25,
+          "nu": 19,
+          "peak_traced_bytes_before": 4545,
+          "peak_traced_bytes_proposed": 4153,
+          "seconds_before": [
+            2.7349800802767277e-05,
+            2.6376949972473084e-05,
+            2.5986699620261787e-05,
+            2.647064975462854e-05,
+            2.617110003484413e-05,
+            2.6010250439867378e-05,
+            2.598269929876551e-05
+          ],
+          "seconds_proposed": [
+            2.6292300026398153e-05,
+            2.70281991106458e-05,
+            2.613300021039322e-05,
+            2.6026299747172742e-05,
+            2.5817898858804256e-05,
+            2.6034850452560932e-05,
+            2.567815099610016e-05
+          ],
+          "median_seconds_before": 2.617110003484413e-05,
+          "median_seconds_proposed": 2.6034850452560932e-05,
+          "state_and_control_bitwise_identical": true
+        },
+        {
+          "batch": 512,
+          "nq": 26,
+          "nv": 25,
+          "nu": 19,
+          "peak_traced_bytes_before": 295001,
+          "peak_traced_bytes_proposed": 11581,
+          "seconds_before": [
+            6.968200032133609e-05,
+            6.744974962202832e-05,
+            6.744675047229976e-05,
+            7.124395051505417e-05,
+            6.806290039094166e-05,
+            6.717929936712607e-05,
+            6.744925049133599e-05
+          ],
+          "seconds_proposed": [
+            4.9089499225374314e-05,
+            4.813370032934472e-05,
+            4.81001494335942e-05,
+            6.0619848954956976e-05,
+            4.7721900045871735e-05,
+            4.861210036324337e-05,
+            4.856750019825995e-05
+          ],
+          "median_seconds_before": 6.744974962202832e-05,
+          "median_seconds_proposed": 4.856750019825995e-05,
+          "state_and_control_bitwise_identical": true
+        },
+        {
+          "batch": 4096,
+          "nq": 26,
+          "nv": 25,
+          "nu": 19,
+          "peak_traced_bytes_before": 2330668,
+          "peak_traced_bytes_proposed": 68836,
+          "seconds_before": [
+            0.00037958449975121765,
+            0.0005003572994610294,
+            0.0005587634499534033,
+            0.0006420221994630993,
+            0.0005591391513007693,
+            0.0006179214993608184,
+            0.00036487515026237813
+          ],
+          "seconds_proposed": [
+            0.00021006544993724675,
+            0.00020180224964860827,
+            0.00039301899960264564,
+            0.0003656411499832757,
+            0.00034670724999159576,
+            0.00023408389970427378,
+            0.00030021919956197963
+          ],
+          "median_seconds_before": 0.0005587634499534033,
+          "median_seconds_proposed": 0.00030021919956197963,
+          "state_and_control_bitwise_identical": true
+        },
+        {
+          "batch": 16384,
+          "nq": 26,
+          "nv": 25,
+          "nu": 19,
+          "peak_traced_bytes_before": 9310341,
+          "peak_traced_bytes_proposed": 265533,
+          "seconds_before": [
+            0.0024658805501530877,
+            0.002666917399619706,
+            0.0022846698004286735,
+            0.0027950691495789216,
+            0.0027637984007014894,
+            0.002870206949592102,
+            0.0025958122001611627
+          ],
+          "seconds_proposed": [
+            0.000916856799449306,
+            0.0008065633490332402,
+            0.001197185300407,
+            0.0009010032488731667,
+            0.0009267310000723228,
+            0.0008707384011358954,
+            0.0009139838512055576
+          ],
+          "median_seconds_before": 0.002666917399619706,
+          "median_seconds_proposed": 0.0009139838512055576,
+          "state_and_control_bitwise_identical": true
+        }
+      ],
+      "limits": "Only Python/NumPy reset orchestration is measured. Native reset/forward are no-op spies; real dynamics and validation/error-order behavior require separate integration tests. Timings are shared-host observations."
+    }
+  },
+  "integrity": {
+    "baseline_files_checked": 428,
+    "baseline_snapshot_files_checked": 428,
+    "frozen_source_and_test_files_checked": 142,
+    "historical_files_checked": 199,
+    "model_and_registry_files_checked": 6,
+    "reference_data_files_checked": 9,
+    "all_preserved": true
+  },
+  "elapsed_seconds": 25202.04940199852,
+  "last_updated_at": "2026-11-01T14:06:55.049402+00:00",
+  "requested_window_seconds": 25200,
+  "limits": [
+    "Allocation measurements isolate NumPy extraction, reset orchestration or action normalization; they are not whole-training RSS, full physics speed or skill-quality improvements.",
+    "Full snapshot timings vary by NumPy and shared-host contention; no universal full-method speedup is claimed.",
+    "Native physics runs both independent real MuJoCo/mjbatch environments; NumPy 1.26/2.2 jobs use deterministic fixtures and do not execute physics.",
+    "Fresh and resumed training parity respects the existing policy+optimizer resume contract: environment and RNG reset.",
+    "Final main and native suites run separately and overlap; main skips unavailable optional dependencies. An earlier new test incorrectly expected float32 action state; the corrected float64 contract passes all 16 input-ownership cases.",
+    "The authorized seven-hour window includes investigation, implementation, measurements, packaging and five-hour sustained checks; the background validation monitor begins after code freeze.",
+    "Integrity monitoring was restarted once to refresh the corrected test snapshot after restoring an original assertion to its original test. All 397 first-phase samples and the controlled SIGTERM are retained; production source and completed five-hour workers were unchanged. Native and source-release checks were rerun on the corrected test."
+  ],
+  "monitor_phases": [
+    {
+      "status": "superseded_for_test_assertion_placement_correction",
+      "controlled_stop_signal": 15,
+      "pid": 3308408,
+      "samples": 397,
+      "first_sample": {
+        "time": "2026-11-01T08:41:03.145139+00:00",
+        "jobs": [
+          {
+            "name": "native-physics",
+            "seconds": 330.1,
+            "units": 12358,
+            "status": "running",
+            "observed_exit": null
+          },
+          {
+            "name": "numpy126",
+            "seconds": 300.0,
+            "units": 47404,
+            "status": "running",
+            "observed_exit": null
+          },
+          {
+            "name": "numpy226",
+            "seconds": 300.0,
+            "units": 47950,
+            "status": "running",
+            "observed_exit": null
+          }
+        ],
+        "frozen_files_checked": 142,
+        "full_preservation_check": true,
+        "remaining_minutes": 325.83
+      },
+      "last_sample": {
+        "time": "2026-11-01T13:38:53.649729+00:00",
+        "jobs": [
+          {
+            "name": "native-physics",
+            "seconds": 18000.0,
+            "units": 704452,
+            "status": "complete",
+            "observed_exit": 0
+          },
+          {
+            "name": "numpy126",
+            "seconds": 18000.0,
+            "units": 3027068,
+            "status": "complete",
+            "observed_exit": 0
+          },
+          {
+            "name": "numpy226",
+            "seconds": 18000.0,
+            "units": 3048421,
+            "status": "complete",
+            "observed_exit": 0
+          }
+        ],
+        "frozen_files_checked": 142,
+        "full_preservation_check": false,
+        "remaining_minutes": 27.99
+      },
+      "recorded_at": "2026-11-01T13:39:37.123510+00:00",
+      "scope": "Production sources and all completed five-hour workers are unchanged. Restart integrity monitoring to update only the corrected test snapshot; all first-phase evidence is retained."
+    }
+  ],
+  "test_assertion_placement_correction": {
+    "recorded_at": "2026-11-01T13:41:24.183867+00:00",
+    "path": "tests/test_native_h1.py",
+    "change": "Restore the pre-existing cleared-force assertion to its original test and remove its accidental placement in the new empty-reset test.",
+    "production_source_changed": false,
+    "prior_monitor_samples_preserved": 397,
+    "previous_test_snapshot": "scratch/stage1-native-h1-test.py",
+    "previous_test_sha256": "a7efa305aceb595e4e53f6ab21c5f7c4c42cab2642a360c9d095425d89460044",
+    "final_test_sha256": "9dc186f025e3f8085feb3aadb41da0aee040a19117ca7e7599e54c62d35998cb",
+    "patch": "scratch/test-assertion-placement-fix.patch",
+    "snapshot_provenance": "Recovered unchanged from the source-release tree built before the assertion placement correction."
+  },
+  "measured_allocation_examples": [
+    {
+      "operation": "Default articulation reset orchestration with real H1 topology and a no-op backend",
+      "num_envs": 4096,
+      "numpy": "2.5.2",
+      "peak_traced_bytes_before": 2330668,
+      "peak_traced_bytes_after": 68836
+    },
+    {
+      "operation": "Single joint-column extraction, not the complete snapshot method",
+      "num_envs": 4096,
+      "numpy": "2.5.2",
+      "peak_traced_bytes_before": 1245472,
+      "peak_traced_bytes_after": 623232
+    },
+    {
+      "operation": "Action validation and clipping, not the complete H1 step",
+      "num_envs": 4096,
+      "numpy": "2.5.2",
+      "peak_traced_bytes_before": 1246928,
+      "peak_traced_bytes_after": 624392
+    }
+  ],
+  "monitor": {
+    "status": "complete",
+    "started_at": "2026-11-01T13:41:25.415236+00:00",
+    "finished_at": "2026-11-01T14:06:54.054596+00:00",
+    "seconds": 1528.6393644980271,
+    "samples": 35,
+    "last_sample": {
+      "time": "2026-11-01T14:06:54.054396+00:00",
+      "jobs": [
+        {
+          "name": "native-physics",
+          "seconds": 18000.0,
+          "units": 704452,
+          "status": "complete",
+          "observed_exit": 0
+        },
+        {
+          "name": "numpy126",
+          "seconds": 18000.0,
+          "units": 3027068,
+          "status": "complete",
+          "observed_exit": 0
+        },
+        {
+          "name": "numpy226",
+          "seconds": 18000.0,
+          "units": 3048421,
+          "status": "complete",
+          "observed_exit": 0
+        }
+      ],
+      "frozen_files_checked": 142,
+      "full_preservation_check": true,
+      "remaining_minutes": 0.0
+    }
+  },
+  "observed_window_processes": {
+    "started_at": "2026-11-01T13:41:25.399311+00:00",
+    "monitor_returncode": 0,
+    "finalization": [],
+    "monitor_exit_observed_at": "2026-11-01T14:06:54.058237+00:00"
+  },
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261101-070653-sevenhour-evidence.tar.gz",
+    "bytes": 2093780,
+    "sha256": "ae9776f44a47d1b7bc829fb6957be78364bd0aa2f26f59d34f2924e363a6ed8c",
+    "verified_members": 681,
+    "report_snapshot": "scratch/state.json",
+    "snapshot_note": "Frozen before inserting archive identity to avoid self-reference."
+  }
+}

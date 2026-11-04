@@ -1,5 +1,6 @@
 """Reject damaged Adam state and preserve the last checkpoint on save failure."""
 
+import os
 from copy import deepcopy
 from pathlib import Path
 
@@ -204,7 +205,7 @@ def test_failed_save_preserves_checkpoint_and_original_error(
     )
 
     def failed_write(value, temporary):
-        temporary.write_bytes(b"partial checkpoint")
+        Path(temporary).write_bytes(b"partial checkpoint")
         raise error
 
     def failed_replace(self, target):
@@ -215,11 +216,11 @@ def test_failed_save_preserves_checkpoint_and_original_error(
         def denied(self, **kwargs):
             raise PermissionError("temporary file removal denied")
 
-        monkeypatch.setattr(Path, "unlink", denied)
+        monkeypatch.setattr(os, "unlink", denied)
     if failure in ("write", "interrupt"):
         monkeypatch.setattr(torch, "save", failed_write)
     else:
-        monkeypatch.setattr(Path, "replace", failed_replace)
+        monkeypatch.setattr(os, "replace", failed_replace)
     with pytest.raises(type(error), match="Injected") as caught:
         save_go1_checkpoint(path, checkpoint, optimizer=trained)
     assert caught.value is error

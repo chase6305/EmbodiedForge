@@ -1,5 +1,7 @@
 """Exercise chunk execution, partial resets and recording through one runner."""
 
+import hashlib
+
 import numpy as np
 import pytest
 
@@ -49,6 +51,83 @@ class RetainingWriter:
         self.policy.needs_reset.update(
             np.flatnonzero(result.terminated | result.truncated).tolist()
         )
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [
+        "c",
+        "fortran",
+        "strided",
+        "negative",
+        "subclass",
+        "empty",
+        "overlap",
+        "endian",
+        "readonly",
+        "metadata",
+    ],
+)
+def test_episode_hash_preserves_raw_c_order_bytes_and_custom_array_conversion(
+    layout, monkeypatch
+):
+    class TaggedArray(np.ndarray):
+        def tobytes(self, order="C"):
+            return b"custom-array:" + super().tobytes(order=order)
+
+    extra = np.arange(24, dtype=np.float32).reshape(2, 3, 4).copy()
+    if layout == "fortran":
+        extra = np.asfortranarray(extra)
+    elif layout == "strided":
+        extra = extra[:, :, ::2]
+    elif layout == "negative":
+        extra = extra[:, ::-1]
+    elif layout == "subclass":
+        extra = extra.view(TaggedArray)
+    elif layout == "empty":
+        extra = extra[:, :, :0]
+    elif layout == "overlap":
+        extra = np.zeros(
+            (2, 3),
+            dtype={
+                "names": ["a", "b"],
+                "formats": ["i4", "i4"],
+                "offsets": [0, 0],
+                "itemsize": 4,
+            },
+        )
+    elif layout == "endian":
+        extra = extra.astype(">f4")
+    elif layout == "readonly":
+        extra.flags.writeable = False
+    elif layout == "metadata":
+        extra = extra.astype(np.dtype("f4", metadata={"unit": "test"}))
+
+    class ExtraTask(ReachTask):
+        def observe(self, state):
+            observation = super().observe(state)
+            observation["extra"] = extra
+            return observation
+
+    with VectorEnv(Config(num_envs=2, max_steps=1), task=ExtraTask()) as env:
+        original_reset = env.reset
+        hashes = []
+
+        def reset(*args, **kwargs):
+            initial = original_reset(*args, **kwargs)
+            expected = hashlib.sha256()
+            for name, value in sorted(initial.items()):
+                expected.update(f"{name}:{value.dtype}:{value.shape}:".encode())
+                expected.update(value.tobytes())
+            hashes.append(expected.hexdigest())
+            return initial
+
+        monkeypatch.setattr(env, "reset", reset)
+        policy = DemonstrationPolicy(
+            lambda observation: np.zeros((len(observation["env_id"]), 2))
+        )
+        result = run_episode_batch(env, policy)
+    assert [result.initial_observation_sha256] == hashes
 
 
 @pytest.mark.parametrize("num_envs", [1, 3])

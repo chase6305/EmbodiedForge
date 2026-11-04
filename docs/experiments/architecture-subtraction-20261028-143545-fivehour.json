@@ -1,0 +1,602 @@
+{
+  "status": "complete",
+  "objective": "Preserve training/evaluation capabilities while removing redundant implementation, state, and internal layers",
+  "started_at": "2026-10-28T14:35:45.776850+00:00",
+  "requested_deadline": "2026-10-28T19:35:45.776850+00:00",
+  "audited_at": "2026-10-28T19:35:55.666105+00:00",
+  "elapsed_seconds": 18009.889402,
+  "changes": [
+    "ACT dataset and inference fingerprints reuse bounded regular-file snapshot hashing; old schema and stable digest dictionaries remain exact.",
+    "Parse processor JSON from its hashed bytes once and recheck selector identity after dependencies; keep linked cached model files supported.",
+    "Replace duplicated core/Go1 partial-file cleanup with the existing runtime artifacts module; preserve active publication errors and interruptions.",
+    "Publish Go1 recovery.json atomically once, removing the redundant second temporary receipt and rename.",
+    "Keep high-volume Go1 checkpoint names as filesystem strings during save and pruning, removing per-checkpoint pathlib component retention on CPython3.12.0."
+  ],
+  "metrics": {
+    "modules_before": 139,
+    "modules_after": 139,
+    "source_lines_before": 37253,
+    "source_lines_after": 37233,
+    "changed_files": [
+      "tests/test_runtime_artifacts.py",
+      "tests/test_act_checkpoints.py",
+      "tests/test_go1_recovery.py",
+      "src/embodiedforge/_go1_recovery.py",
+      "src/embodiedforge/_act_dataset.py",
+      "src/embodiedforge/_act_checkpoints.py",
+      "src/embodiedforge/_go1_checkpoint.py",
+      "tests/test_act_dataset.py",
+      "src/embodiedforge/runtime/artifacts.py",
+      "docs/architecture.md",
+      "docs/run-records.md",
+      "docs/act.md",
+      "src/embodiedforge/_core_run.py",
+      "tests/test_go1_optimizer.py"
+    ],
+    "changed_production_files": [
+      "src/embodiedforge/_go1_recovery.py",
+      "src/embodiedforge/_act_dataset.py",
+      "src/embodiedforge/_act_checkpoints.py",
+      "src/embodiedforge/_go1_checkpoint.py",
+      "src/embodiedforge/runtime/artifacts.py",
+      "src/embodiedforge/_core_run.py"
+    ]
+  },
+  "validation": {
+    "selected_modules": 139,
+    "selected_release_files": 337,
+    "historical_files_preserved": 180,
+    "package_resources_preserved": 49,
+    "tests": {
+      "main": {
+        "tests": 3586,
+        "skipped": 80,
+        "failures": 0,
+        "errors": 0,
+        "non_skipped_xml_cases": 3506,
+        "pytest_summary": "3506 passed, 80 skipped, 11 warnings in 84.43s (0:01:24)"
+      },
+      "native": {
+        "tests": 3680,
+        "skipped": 59,
+        "failures": 0,
+        "errors": 0,
+        "non_skipped_xml_cases": 3621,
+        "pytest_summary": "3596 passed, 59 skipped, 11 warnings, 25 subtests passed in 127.66s (0:02:07)"
+      },
+      "source_release": {
+        "tests": 3586,
+        "skipped": 80,
+        "failures": 0,
+        "errors": 0,
+        "non_skipped_xml_cases": 3506,
+        "pytest_summary": "3506 passed, 80 skipped, 11 warnings in 83.91s (0:01:23)"
+      }
+    },
+    "supervised_validation": {
+      "main-supervisor": {
+        "command": [
+          "env",
+          "PYTHONPATH=/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1",
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "--junitxml=/tmp/embodiedforge-subtraction-20261028-143545-fivehour/main-tests.xml"
+        ],
+        "launched_command": [
+          "env",
+          "PYTHONPATH=/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1",
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "--junitxml=/tmp/embodiedforge-subtraction-20261028-143545-fivehour/main-tests.xml"
+        ],
+        "supervisor_pid": 3582743,
+        "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+        "started_at": "2026-10-28T15:04:55.273551+00:00",
+        "timeout": 1200.0,
+        "grace": 30.0,
+        "trace": false,
+        "process_returncode": 0,
+        "termination_signal": null,
+        "timed_out": false,
+        "supervisor_signal": null,
+        "forced_stop": false,
+        "exit_observed": true,
+        "completed_successfully": true,
+        "pid": 3582745,
+        "seconds": 86.05608439201023,
+        "finished_at": "2026-10-28T15:06:21.329606+00:00"
+      },
+      "native-supervisor": {
+        "command": [
+          "env",
+          "PYTHONPATH=/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1",
+          "MENAGERIE_CACHE_DIR=/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/assets-cache",
+          ".cache/external/mjbatch/.venv/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "--junitxml=/tmp/embodiedforge-subtraction-20261028-143545-fivehour/native-tests.xml"
+        ],
+        "launched_command": [
+          "env",
+          "PYTHONPATH=/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1",
+          "MENAGERIE_CACHE_DIR=/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/assets-cache",
+          ".cache/external/mjbatch/.venv/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "--junitxml=/tmp/embodiedforge-subtraction-20261028-143545-fivehour/native-tests.xml"
+        ],
+        "supervisor_pid": 3582742,
+        "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+        "started_at": "2026-10-28T15:04:55.271510+00:00",
+        "timeout": 1200.0,
+        "grace": 30.0,
+        "trace": false,
+        "process_returncode": 0,
+        "termination_signal": null,
+        "timed_out": false,
+        "supervisor_signal": null,
+        "forced_stop": false,
+        "exit_observed": true,
+        "completed_successfully": true,
+        "pid": 3582744,
+        "seconds": 129.48209310800303,
+        "finished_at": "2026-10-28T15:07:04.753574+00:00"
+      },
+      "source-isolated-supervisor": {
+        "command": [
+          "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "--junitxml=/tmp/embodiedforge-subtraction-20261028-143545-fivehour/source-isolated-tests.xml"
+        ],
+        "launched_command": [
+          "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+          "-m",
+          "pytest",
+          "-q",
+          "--junitxml=/tmp/embodiedforge-subtraction-20261028-143545-fivehour/source-isolated-tests.xml"
+        ],
+        "supervisor_pid": 3600903,
+        "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+        "started_at": "2026-10-28T15:16:04.817781+00:00",
+        "timeout": 1200.0,
+        "grace": 30.0,
+        "trace": false,
+        "process_returncode": 0,
+        "termination_signal": null,
+        "timed_out": false,
+        "supervisor_signal": null,
+        "forced_stop": false,
+        "exit_observed": true,
+        "completed_successfully": true,
+        "pid": 3600904,
+        "seconds": 85.7224006280303,
+        "finished_at": "2026-10-28T15:17:30.540149+00:00"
+      },
+      "parity-supervisor": {
+        "command": [
+          ".cache/external/mjbatch/.venv/bin/python",
+          "benchmarks/architecture_parity.py",
+          "--reference-root",
+          "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/baseline",
+          "--candidate-root",
+          "/home/ubuntu/workspace/chase/EmbodiedForge",
+          "--python",
+          "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+          "--native",
+          "--output",
+          "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/training-parity-supervised"
+        ],
+        "launched_command": [
+          ".cache/external/mjbatch/.venv/bin/python",
+          "benchmarks/architecture_parity.py",
+          "--reference-root",
+          "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/baseline",
+          "--candidate-root",
+          "/home/ubuntu/workspace/chase/EmbodiedForge",
+          "--python",
+          "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+          "--native",
+          "--output",
+          "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/training-parity-supervised"
+        ],
+        "supervisor_pid": 3597880,
+        "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+        "started_at": "2026-10-28T15:14:42.871244+00:00",
+        "timeout": 600.0,
+        "grace": 30.0,
+        "trace": false,
+        "process_returncode": 0,
+        "termination_signal": null,
+        "timed_out": false,
+        "supervisor_signal": null,
+        "forced_stop": false,
+        "exit_observed": true,
+        "completed_successfully": true,
+        "pid": 3597912,
+        "seconds": 33.81619361008052,
+        "finished_at": "2026-10-28T15:15:16.687412+00:00"
+      },
+      "backflip-supervisor": {
+        "command": [
+          "./supermimic",
+          "eval",
+          "--task",
+          "backflip",
+          "--output",
+          "runs/architecture-subtraction-20261028-143545-fivehour/backflip-acceptance"
+        ],
+        "launched_command": [
+          "./supermimic",
+          "eval",
+          "--task",
+          "backflip",
+          "--output",
+          "runs/architecture-subtraction-20261028-143545-fivehour/backflip-acceptance"
+        ],
+        "supervisor_pid": 3596906,
+        "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+        "started_at": "2026-10-28T15:14:08.068403+00:00",
+        "timeout": 600.0,
+        "grace": 30.0,
+        "trace": false,
+        "process_returncode": 0,
+        "termination_signal": null,
+        "timed_out": false,
+        "supervisor_signal": null,
+        "forced_stop": false,
+        "exit_observed": true,
+        "completed_successfully": true,
+        "pid": 3596908,
+        "seconds": 30.509378745104186,
+        "finished_at": "2026-10-28T15:14:38.577754+00:00"
+      },
+      "soak-probe-supervisor": {
+        "command": [
+          ".cache/external/mjbatch/.venv/bin/python",
+          "-I",
+          "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/publication-fingerprint-soak.py",
+          "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/soak-probe",
+          "5"
+        ],
+        "launched_command": [
+          ".cache/external/mjbatch/.venv/bin/python",
+          "-I",
+          "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/publication-fingerprint-soak.py",
+          "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/soak-probe",
+          "5"
+        ],
+        "supervisor_pid": 3596432,
+        "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+        "started_at": "2026-10-28T15:12:37.533973+00:00",
+        "timeout": 60.0,
+        "grace": 5.0,
+        "trace": false,
+        "process_returncode": 0,
+        "termination_signal": null,
+        "timed_out": false,
+        "supervisor_signal": null,
+        "forced_stop": false,
+        "exit_observed": true,
+        "completed_successfully": true,
+        "pid": 3596435,
+        "seconds": 7.414279780932702,
+        "finished_at": "2026-10-28T15:12:44.948217+00:00"
+      }
+    },
+    "current_owned_jobs": [],
+    "soak_supervisor": {
+      "command": [
+        ".cache/external/mjbatch/.venv/bin/python",
+        "-I",
+        "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/publication-fingerprint-soak.py",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+        "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/soak",
+        "14400"
+      ],
+      "launched_command": [
+        ".cache/external/mjbatch/.venv/bin/python",
+        "-I",
+        "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/publication-fingerprint-soak.py",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+        "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/soak",
+        "14400"
+      ],
+      "supervisor_pid": 3596681,
+      "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+      "started_at": "2026-10-28T15:12:59.255243+00:00",
+      "timeout": 14700.0,
+      "grace": 30.0,
+      "trace": false,
+      "process_returncode": 0,
+      "termination_signal": null,
+      "timed_out": false,
+      "supervisor_signal": null,
+      "forced_stop": false,
+      "exit_observed": true,
+      "completed_successfully": true,
+      "pid": 3596682,
+      "seconds": 14402.294394962024,
+      "finished_at": "2026-10-28T19:13:01.549611+00:00"
+    },
+    "observed_original_exits": {
+      "main_original": {
+        "session_id": 58936,
+        "observed_exit": 0
+      },
+      "native_original": {
+        "session_id": 78084,
+        "observed_exit": 0
+      },
+      "parity_original": {
+        "session_id": 72349,
+        "observation_unavailable": true,
+        "summary_comparisons": 9
+      },
+      "probe_original": {
+        "session_id": 2490,
+        "observed_exit": 0
+      },
+      "soak_original": {
+        "session_id": 37373,
+        "observed_exit": 0,
+        "observed_at": "2026-10-28T19:13:15.226607+00:00"
+      },
+      "distribution_original": {
+        "session_id": 67694,
+        "observed_exit": 0
+      },
+      "backflip_original": {
+        "session_id": 98280,
+        "observed_exit": 0
+      },
+      "source_original": {
+        "session_id": 30470,
+        "observed_exit": 1,
+        "reason": "Archive source was not exposed to inherited child CLI processes; pytest pythonpath only affects current process. Retry explicitly selects archive src for children."
+      },
+      "parity_observed_original": {
+        "session_id": 28510,
+        "observed_exit": 0
+      },
+      "checkpoint_memory_observed_original": {
+        "session_id": 66469,
+        "observed_exit": 0
+      },
+      "source_isolated_original": {
+        "session_id": 33932,
+        "observed_exit": 0
+      }
+    },
+    "sustained_fixture": {
+      "status": "complete",
+      "scope": "private CPU checkpoint publication and ACT file fixtures; no robot training",
+      "requested_seconds": 14400.0,
+      "seconds": 14400.250792167033,
+      "started_at": "2026-10-28T15:13:00.609311+00:00",
+      "finished_at": "2026-10-28T19:13:00.861548+00:00",
+      "cycles": 52357,
+      "warmup_cycles": 8,
+      "scenario_counts_including_warmup": {
+        "stable_fingerprints": 52365,
+        "selector_mutation": 52365,
+        "fifo_substitution": 52365,
+        "checkpoint_publish": 52365,
+        "receipt_failure": 52365,
+        "signal_during_alias": 52365,
+        "checkpoint_write_failure": 52365,
+        "actual_enospc": 52365
+      },
+      "initial_resources": {
+        "VmRSS": "649544 kB",
+        "Threads": "2",
+        "fds": 17,
+        "traced_bytes": 2165,
+        "traced_peak": 11762
+      },
+      "final_resources": {
+        "VmRSS": "353468 kB",
+        "Threads": "2",
+        "fds": 17,
+        "traced_bytes": 107048,
+        "traced_peak": 1619828
+      },
+      "last_iteration": 209462,
+      "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+      "probe_sha256": "286f61aa1f4a482c0997b8a042d78357611636c36818499a06e09aadfe9cf573"
+    },
+    "fingerprint_controls": {
+      "stable_fingerprints_exact": true,
+      "linked_checkpoint_support_preserved": true,
+      "processor_race_reproduced_and_fixed": true,
+      "cleanup_error_priority_reproduced_and_fixed": true,
+      "fifo_blocking_reproduced_and_fixed": true,
+      "scope": "SDK-free fixture fingerprints and real file/process behavior; no ACT training or policy inference."
+    },
+    "checkpoint_memory": {
+      "results": {
+        "baseline": {
+          "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+          "source": "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/baseline/src",
+          "iterations": 4000,
+          "retained_python_bytes": 281422,
+          "peak_traced_bytes": 1598585,
+          "last_iteration": 4063,
+          "checkpoint_snapshots_retained": 2,
+          "top_allocations": [
+            "/home/ubuntu/miniconda3/envs/isaaclab/lib/python3.12/pathlib.py:404: size=230 KiB, count=4000, average=59 B",
+            "/home/ubuntu/miniconda3/envs/isaaclab/lib/python3.12/pathlib.py:1014: size=16.6 KiB, count=288, average=59 B",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/lib/python3.12/site-packages/torch/serialization.py:1213: size=16.2 KiB, count=319, average=52 B",
+            "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/baseline/src/embodiedforge/runtime/artifacts.py:31: size=9558 B, count=162, average=59 B",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/lib/python3.12/site-packages/torch/serialization.py:1208: size=2200 B, count=1, average=2200 B",
+            "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/checkpoint-memory-probe.py:41: size=120 B, count=3, average=40 B",
+            "/home/ubuntu/miniconda3/envs/isaaclab/lib/python3.12/tracemalloc.py:558: size=56 B, count=1, average=56 B",
+            "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/checkpoint-memory-probe.py:38: size=32 B, count=1, average=32 B"
+          ],
+          "actual_child_wait_returncode": 0
+        },
+        "candidate": {
+          "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+          "source": "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+          "iterations": 4000,
+          "retained_python_bytes": 28745,
+          "peak_traced_bytes": 1346709,
+          "last_iteration": 4063,
+          "checkpoint_snapshots_retained": 2,
+          "top_allocations": [
+            "/home/ubuntu/miniconda3/envs/isaaclab/lib/python3.12/pathlib.py:1014: size=11.5 KiB, count=199, average=59 B",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/runtime/artifacts.py:45: size=9676 B, count=164, average=59 B",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/lib/python3.12/site-packages/torch/serialization.py:1213: size=5096 B, count=98, average=52 B",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/lib/python3.12/site-packages/torch/serialization.py:1208: size=2200 B, count=1, average=2200 B",
+            "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/checkpoint-memory-probe.py:41: size=120 B, count=3, average=40 B",
+            "/home/ubuntu/miniconda3/envs/isaaclab/lib/python3.12/tracemalloc.py:558: size=56 B, count=1, average=56 B",
+            "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/checkpoint-memory-probe.py:38: size=32 B, count=1, average=32 B"
+          ],
+          "actual_child_wait_returncode": 0
+        }
+      },
+      "artifact_bytes_equal": {
+        "recovery.json": true,
+        "model.pt": true,
+        "checkpoints/model-000004063.pt": true
+      },
+      "scope": "Retained Python allocations for fresh CPython3.12.0 CPU checkpoint publication; not RSS, VRAM or robot training throughput."
+    },
+    "resource_observations": {
+      "scope": "Observed resources of the private CPU fault fixture; RSS varies with allocator and host pressure and is not an optimization gain.",
+      "samples": 240,
+      "last_sample_seconds": 14374.625309223076,
+      "sample_threads_min_max": [
+        2,
+        2
+      ],
+      "sample_fds_min_max": [
+        18,
+        18
+      ],
+      "sample_rss_kib_min_max": [
+        353292,
+        649764
+      ],
+      "traced_python_bytes_after_30min_min_max": [
+        82429,
+        113496
+      ],
+      "initial_resources": {
+        "VmRSS": "649544 kB",
+        "Threads": "2",
+        "fds": 17,
+        "traced_bytes": 2165,
+        "traced_peak": 11762
+      },
+      "final_resources": {
+        "VmRSS": "353468 kB",
+        "Threads": "2",
+        "fds": 17,
+        "traced_bytes": 107048,
+        "traced_peak": 1619828
+      },
+      "scenario_counts_including_warmup": {
+        "stable_fingerprints": 52365,
+        "selector_mutation": 52365,
+        "fifo_substitution": 52365,
+        "checkpoint_publish": 52365,
+        "receipt_failure": 52365,
+        "signal_during_alias": 52365,
+        "checkpoint_write_failure": 52365,
+        "actual_enospc": 52365
+      },
+      "total_scenarios_including_warmup": 418920
+    },
+    "backflip": {
+      "ported_checks_passed": 16,
+      "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+      "strict_v14_equivalence": false,
+      "physical_robot_tested": false
+    }
+  },
+  "distribution": {
+    "before": {
+      "actual_build_wait_returncode": 0,
+      "path": "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/distribution-before/embodiedforge-0.1.0.tar.gz",
+      "bytes": 19682641,
+      "sha256": "bb66af90cdc6a237425c6ed08d9d7a329199bedab33d1f7f495ccd0d15ba1090",
+      "members": 572,
+      "nested_historical_archives": 0
+    },
+    "after": {
+      "actual_build_wait_returncode": 0,
+      "path": "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/distribution-after/embodiedforge-0.1.0.tar.gz",
+      "bytes": 19683913,
+      "sha256": "4aa9315f23bb43a22b3ef29ff95e0eba34c5ce5f0ee898451962862f207e78d8",
+      "members": 572,
+      "nested_historical_archives": 0
+    },
+    "wheel": {
+      "actual_build_wait_returncode": 0,
+      "path": "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/wheel/embodiedforge-0.1.0-py3-none-any.whl",
+      "bytes": 8293364,
+      "sha256": "cb2f1fed9517f606b219d5ce333a64a6ad24ed523c8fa436bc6a4998281f7508",
+      "current_modules_exact": 139,
+      "retired_aliases_absent": [
+        "_microduck_inputs",
+        "_hashing",
+        "_adam_checkpoint",
+        "_ppo_parameters",
+        "_training_runtime",
+        "_microduck_process"
+      ],
+      "installed_root": "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/installed-wheel"
+    },
+    "source_release_root": "/tmp/embodiedforge-subtraction-20261028-143545-fivehour/source-release/embodiedforge-0.1.0",
+    "removed_members": [],
+    "added_members": []
+  },
+  "preserved_model": {
+    "registry": {
+      "task": "backflip",
+      "recipe": "reference",
+      "training_status": "complete",
+      "checkpoint": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+      "iteration": 21847,
+      "skill_success": null,
+      "selection": "Actual last checkpoint of a completed full-width reference-recipe run; not selected by return"
+    },
+    "registry_sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c",
+    "checkpoint_bytes": 218547233,
+    "verified_at": "2026-10-28T14:59:23.231564+00:00"
+  },
+  "preserved": [
+    "Training and evaluation commands, dependency declarations, learner/MDP implementations and checkpoint schemas.",
+    "All preexisting historical evidence and registered backflip model bytes.",
+    "Preexisting unrelated workspace changes; no reset, commit, push or foreign-process termination."
+  ],
+  "scope_limits": [
+    "Memory results measure retained Python allocations for CPU checkpoint publication, not RSS, GPU memory or training throughput.",
+    "The sustained fixture uses tiny valid CPU Adam checkpoints and file/process faults; it does not train ACT or a robot policy.",
+    "One G1 evaluation verifies current ported gates; prior GPU run-to-run variation remains and bitwise GPU repeatability is not claimed.",
+    "No strict IsaacLab3 V14 equivalence, independent-seed learning improvement or physical-robot success is claimed.",
+    "Source package archive exclusion was retained from earlier work; no new package-size reduction is claimed."
+  ],
+  "published_at": "2026-10-28T19:35:55.666252+00:00",
+  "evidence_bundle": {
+    "path": "docs/experiments/architecture-subtraction-20261028-143545-fivehour-evidence.tar.gz",
+    "bytes": 27703320,
+    "sha256": "04f23392d3ac7d3cb9d8f644cbc82cfdde0d9060e9ab76007127947776e412a7",
+    "verified_manifest_members": 316
+  }
+}

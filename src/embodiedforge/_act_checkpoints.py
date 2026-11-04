@@ -1,9 +1,12 @@
 """Inspect ACT checkpoint files without importing Torch or LeRobot."""
 
 import hashlib
+import io
 import json
 import struct
 from pathlib import Path
+
+from .runtime.hashing import file_identity, snapshot_file_hashes
 
 
 def inference_fingerprint(model):
@@ -14,9 +17,18 @@ def inference_fingerprint(model):
     """
     model = Path(model)
     names = {"config.json", "model.safetensors"}
+    fingerprints, selectors = {}, {}
     for name in ("policy_preprocessor.json", "policy_postprocessor.json"):
         names.add(name)
-        pipeline = json.loads((model / name).read_text())
+        # Hub-style saved checkpoints may link to cached files. Resolve source
+        # links while keeping logical filenames in the portable fingerprint.
+        with io.BytesIO() as payload:
+            digest, _, info = snapshot_file_hashes(
+                (model / name).resolve(strict=True), copy_to=payload
+            )
+            pipeline = json.loads(payload.getvalue())
+        fingerprints[name] = {"path": name, "size": info.st_size, "sha256": digest}
+        selectors[name] = file_identity(info)
         for step in pipeline["steps"]:
             filename = step.get("state_file")
             if filename is not None:
@@ -27,25 +39,13 @@ def inference_fingerprint(model):
                 ):
                     raise ValueError(f"{name}: invalid state_file")
                 names.add(filename)
-    files = []
-    for name in sorted(names):
-        path = model / name
-        before = path.stat()
-        digest = hashlib.sha256()
-        with path.open("rb") as stream:
-            for block in iter(lambda: stream.read(1024 * 1024), b""):
-                digest.update(block)
-        after = path.stat()
-        if (before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (
-            after.st_ino,
-            after.st_size,
-            after.st_mtime_ns,
-            after.st_ctime_ns,
-        ):
-            raise ValueError(f"Checkpoint changed while fingerprinting: {path}")
-        files.append(
-            {"path": name, "size": after.st_size, "sha256": digest.hexdigest()}
-        )
+    for name in sorted(names - fingerprints.keys()):
+        digest, _, info = snapshot_file_hashes((model / name).resolve(strict=True))
+        fingerprints[name] = {"path": name, "size": info.st_size, "sha256": digest}
+    for name, identity in selectors.items():
+        if file_identity((model / name).stat()) != identity:
+            raise ValueError(f"Checkpoint changed while fingerprinting: {model / name}")
+    files = [fingerprints[name] for name in sorted(names)]
     payload = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
     return {
         "schema_version": 1,

@@ -3,16 +3,30 @@
 import json
 import os
 import shutil
-import signal
 import tempfile
-from datetime import datetime, timezone
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from ._microduck_native import snapshot_command, snapshot_runtime
 from ._microduck_run import checkpoint_digest
 from .logging import get_logger
+from .runtime.records import run_identity, run_lifecycle
 
 LOGGER = get_logger("microduck")
+
+
+@dataclass(frozen=True)
+class ExportOperations:
+    """Launcher-supplied operations; the export workflow never imports its CLI."""
+
+    task: str
+    launcher_identity: Callable[[], dict]
+    training_environment: Callable[[dict], dict]
+    export_command: Callable[..., list[str]]
+    worker_for: Callable[[dict], Path]
+    run: Callable[..., None]
+    write_json: Callable[[Path, dict], None]
 
 
 def remove_export_links(model, report, output, validation):
@@ -23,7 +37,7 @@ def remove_export_links(model, report, output, validation):
                 published.unlink()
         except FileNotFoundError:
             pass
-        except OSError as exc:
+        except BaseException as exc:
             LOGGER.warning("Could not remove export file %s: %s", published, exc)
 
 
@@ -41,10 +55,7 @@ def publish_export(model, report, output, validation):
         raise
 
 
-def export_run(args, python, identity, env):
-    # Import lazily to share the CLI's process runner without loading SDKs.
-    from . import microduck as cli
-
+def export_run(args, python, identity, env, *, operations: ExportOperations):
     requested = args.output.expanduser()
     output = requested.parent.resolve() / requested.name
     if output.suffix.lower() != ".onnx":
@@ -60,20 +71,20 @@ def export_run(args, python, identity, env):
     attempt = Path(
         tempfile.mkdtemp(prefix=f".{output.name}.export-", dir=output.parent)
     )
-    cli.LOGGER.info("Export diagnostics: %s", attempt)
-    env = cli.training_environment(env)
+    LOGGER.info("Export diagnostics: %s", attempt)
+    env = operations.training_environment(env)
     manifest = {
         "schema": 1,
         "workflow": "export",
-        "task": cli.TASK,
+        "task": operations.task,
+        "run_contract": run_identity("microduck", "export", operations.task),
         "source": identity,
-        "launcher": cli.launcher_identity(),
+        "launcher": operations.launcher_identity(),
         "python": str(python),
         "checkpoint_source": str(checkpoint),
         "onnx": str(output),
         "validation": str(validation),
         "execution": {"headless": True, "mujoco_gl": "egl", "viewer": None},
-        "started_at": datetime.now(timezone.utc).isoformat(),
         "status": "running",
         "phase": "snapshot",
         "commands": [],
@@ -88,8 +99,8 @@ def export_run(args, python, identity, env):
         manifest.update(phase=phase, active_log=log.name)
         manifest["commands"].append(command)
         manifest["logs"].append(log.name)
-        cli.write_json(attempt / "run.json", manifest)
-        cli.run(
+        operations.write_json(attempt / "run.json", manifest)
+        operations.run(
             command,
             cwd=attempt,
             env=env,
@@ -97,9 +108,18 @@ def export_run(args, python, identity, env):
             echo=not getattr(args, "quiet", False),
         )
 
-    published = False
-    try:
-        cli.write_json(attempt / "run.json", manifest)
+    staged = attempt / "policy.onnx"
+    ready_report = attempt / "publish.validation.json"
+
+    def publish(record):
+        if record["status"] not in {"running", "complete"}:
+            phase = record["phase"]
+            record["failed_phase"] = "publish" if phase == "complete" else phase
+            if phase in {"publish", "complete"}:
+                remove_export_links(staged, ready_report, output, validation)
+        operations.write_json(attempt / "run.json", record)
+
+    with run_lifecycle(manifest, publish, label=attempt / "run.json"):
         env, source_snapshot = snapshot_runtime(attempt, identity, env)
         if source_snapshot is not None:
             manifest["implementation_snapshot"] = str(source_snapshot)
@@ -110,10 +130,9 @@ def export_run(args, python, identity, env):
         expected = manifest.get("source_run", {}).get("checkpoint_sha256")
         if expected is not None and digest != expected:
             raise ValueError("Checkpoint SHA256 mismatch after export snapshot")
-        staged = attempt / "policy.onnx"
         native = env.get("EF_MICRODUCK_NATIVE") == "1"
         execute(
-            cli.export_command(
+            operations.export_command(
                 python,
                 frozen_checkpoint,
                 staged,
@@ -125,7 +144,13 @@ def export_run(args, python, identity, env):
         # Legacy upstream exports still need standalone structural validation.
         if not native:
             execute(
-                [str(python), "-I", str(cli.worker_for(env)), "onnx", str(staged)],
+                [
+                    str(python),
+                    "-I",
+                    str(operations.worker_for(env)),
+                    "onnx",
+                    str(staged),
+                ],
                 "validate",
             )
         report = json.loads(staged.with_suffix(".validation.json").read_text())
@@ -142,36 +167,14 @@ def export_run(args, python, identity, env):
                 raise ValueError("Native export is missing checkpoint actor parity")
         manifest["phase"] = "publish"
         manifest["onnx_sha256"] = checkpoint_digest(staged)
-        cli.write_json(attempt / "run.json", manifest)
+        operations.write_json(attempt / "run.json", manifest)
         report.update(
             onnx=str(output),
             onnx_sha256=manifest["onnx_sha256"],
             checkpoint_sha256=digest,
             export_run=str(attempt / "run.json"),
         )
-        ready_report = attempt / "publish.validation.json"
-        cli.write_json(ready_report, report)
+        operations.write_json(ready_report, report)
         publish_export(staged, ready_report, output, validation)
-        published = True
         manifest.update(status="complete", phase="complete")
-        cli.finish_run(attempt, manifest)
-    except KeyboardInterrupt as exc:
-        manifest.update(
-            status="interrupted",
-            failed_phase="publish" if published else manifest["phase"],
-            interrupt_signal=getattr(exc, "signum", signal.SIGINT),
-        )
-        raise
-    except Exception as exc:
-        manifest.update(
-            status="failed",
-            failed_phase="publish" if published else manifest["phase"],
-            error=str(exc),
-        )
-        raise
-    finally:
-        if manifest["status"] != "complete":
-            if published:
-                remove_export_links(staged, ready_report, output, validation)
-            cli.finish_run(attempt, manifest)
-    cli.LOGGER.info("Validated Microduck export: %s", output)
+    LOGGER.info("Validated Microduck export: %s", output)

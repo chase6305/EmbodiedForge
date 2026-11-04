@@ -77,6 +77,55 @@ def test_large_masked_numeric_fields_keep_numpy_finite_semantics():
     assert _all_finite(value) == bool(np.isfinite(value).all()) is False
 
 
+@pytest.mark.parametrize("layout", ["C", "F", "reverse"])
+@pytest.mark.parametrize("damage", ["first", "last"])
+def test_large_recorder_continuity_rejection_is_bounded_atomic_and_retryable(
+    tmp_path, layout, damage
+):
+    def image():
+        value = np.zeros(
+            (1, 3073, 2048),
+            dtype=np.uint8,
+            order=layout if layout != "reverse" else "C",
+        )
+        return value[:, :, ::-1] if layout == "reverse" else value
+
+    with VectorEnv(Config(num_envs=1, max_steps=3, seed=42)) as env:
+        with EpisodeRecorder(tmp_path / "run", env, episode_format="compact") as writer:
+            observation = env.observe()
+            first = env.step(np.zeros((1, 2)))
+            observation["large"] = image()
+            first.observation["large"] = image()
+            writer.append(observation, first)
+            second = env.step(np.zeros((1, 2)))
+            second.observation["large"] = image()
+            broken = dict(first.observation)
+            broken["large"] = image()
+            index = (0, 0, 0) if damage == "first" else (0, -1, -1)
+            broken["large"][index] = 1
+            retained = writer.buffered_bytes
+            tracemalloc.start()
+            try:
+                with pytest.raises(ValueError, match="continuity broken"):
+                    writer.append(broken, second)
+                peak = tracemalloc.get_traced_memory()[1]
+            finally:
+                tracemalloc.stop()
+            assert peak < 4 * 1024 * 1024
+            assert writer.buffered_bytes == retained
+            assert len(next(iter(writer.pending.values()))) == 1
+            assert writer.failure is None and not writer._writes
+            assert not list(writer.root.glob("*.npz"))
+            writer.append(first.observation, second)
+            third = env.step(np.zeros((1, 2)))
+            third.observation["large"] = image()
+            writer.append(second.observation, third)
+    (episode,) = read_episodes(writer.root)
+    assert len(episode["action"]) == 3
+    assert not episode["obs/large"].any()
+    assert not episode["next/large"].any()
+
+
 @pytest.mark.parametrize("damage", ["first", "last", "nonfinite"])
 def test_reader_rejects_corrupt_large_numeric_fields(tmp_path, damage):
     directory = tmp_path / "dataset"

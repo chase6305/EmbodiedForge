@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from microduck_report_fixture import evaluation_report
 
-from embodiedforge import _microduck_inputs as inputs
+from embodiedforge import _microduck_run as inputs
 from embodiedforge import microduck
 
 
@@ -61,14 +61,14 @@ def test_single_evaluation_freezes_inputs_before_check(
 def test_change_during_copy_rejected(models, monkeypatch, role):
     checkpoint, onnx, output = models
     output.mkdir()
-    original = inputs.shutil.copyfileobj
+    original = inputs.copy_file_snapshot
 
-    def copy(reader, writer):
-        if Path(reader.name) == (checkpoint if role == "checkpoint" else onnx):
-            Path(reader.name).write_bytes(b"changed while copying")
-        original(reader, writer)
+    def copy(source, target):
+        if source == (checkpoint if role == "checkpoint" else onnx):
+            source.write_bytes(b"changed while copying")
+        return original(source, target)
 
-    monkeypatch.setattr(inputs.shutil, "copyfileobj", copy)
+    monkeypatch.setattr(inputs, "copy_file_snapshot", copy)
     with pytest.raises(ValueError, match=f"{role} changed while taking snapshot"):
         inputs.snapshot_inputs(output, checkpoint, {"onnx": str(onnx)})
 

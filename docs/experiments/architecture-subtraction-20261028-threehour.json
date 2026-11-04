@@ -1,0 +1,2267 @@
+{
+  "status": "complete",
+  "objective": "保留现有训练与评测能力，精简重复代码和内部层级",
+  "started_at": "2026-10-28T02:58:52+00:00",
+  "requested_deadline": "2026-10-28T05:58:52+00:00",
+  "published_at": "2026-10-28T05:58:58.663885+00:00",
+  "elapsed_seconds": 10806.663885,
+  "changes": [
+    {
+      "area": "内部模块",
+      "result": "移除五个已无生产调用的私有转发模块，调用与测试指向现有职责归属。",
+      "removed": [
+        "_hashing",
+        "_adam_checkpoint",
+        "_ppo_parameters",
+        "_training_runtime",
+        "_microduck_process"
+      ]
+    },
+    {
+      "area": "SuperMimic",
+      "result": "两条启动链共用运行生命周期；普通 runs inspect 可读取 launcher 记录；配置准备失败、真实工作进程退出和中断信号统一落盘。"
+    },
+    {
+      "area": "模型注册",
+      "result": "两种复现配方共享验证逻辑，保留各自命名空间、检查点格式与 SHA 验证。"
+    },
+    {
+      "area": "输入快照",
+      "result": "MotionSDK、Weave、Microduck 复用现有有界复制与校验；保留源与目标变更检测。逻辑读取减少不作为实测性能提升。"
+    },
+    {
+      "area": "网络构造",
+      "result": "Core 与 H1 复用现有 learning 层中的 MLP 构造，层序、参数名、随机数分配顺序和优化器格式不变。"
+    },
+    {
+      "area": "架构说明",
+      "result": "现有架构集中于 docs/architecture.md，旧地址保留链接，移除未实现接口草案与重复解释。"
+    },
+    {
+      "area": "源发布包",
+      "result": "不再在源发布包内嵌历史证据压缩包，仓库原件保留。实际归档成员差异仅为25个历史包及5个退役模块。"
+    }
+  ],
+  "metrics": {
+    "production_python_modules": {
+      "before": 145,
+      "after": 140
+    },
+    "production_python_lines": {
+      "before": 37331,
+      "after": 37288
+    },
+    "current_guide_lines": {
+      "before": 6357,
+      "after": 6063,
+      "files": [
+        "README.md",
+        "README.en.md",
+        "docs/README.md",
+        "docs/training-deployment.en.md",
+        "docs/light-loco-parkour.md",
+        "docs/recipes.md",
+        "docs/graphics-diagnostics.md",
+        "docs/interfaces.md",
+        "docs/weave-reference.md",
+        "docs/run-records.md",
+        "docs/newton.md",
+        "docs/humanoid-motion.md",
+        "docs/implementation.md",
+        "docs/training-deployment.md",
+        "docs/viewers.md",
+        "docs/act.md",
+        "docs/go1-live-web.md",
+        "docs/h1-native.en.md",
+        "docs/microduck-quickstart.md",
+        "docs/h1-native.md",
+        "docs/h1-isaaclab.md",
+        "docs/supermimic.md",
+        "docs/environment-adapters.md",
+        "docs/current-architecture.md",
+        "docs/wuji-training.md",
+        "docs/rlinf.md",
+        "docs/robot-web-replay.md",
+        "docs/logging.md",
+        "docs/microduck.md",
+        "docs/architecture.md"
+      ]
+    }
+  },
+  "distribution": {
+    "baseline_fixture_completion": [
+      "docs/assets/embodiedforge-overview.prompt.md",
+      "docs/assets/embodiedforge-overview.png",
+      "tests/web_camera.test.cjs"
+    ],
+    "initial_extraction_attempt": {
+      "actual_original_exit": 1,
+      "reason": "HostPython3.10 lacks tarfile.extractall(filter=...). Both builds had finished; corrected harness explicitly validates paths/types before extraction."
+    },
+    "before": {
+      "build_wait_returncode": 0,
+      "source_archive": "/tmp/embodiedforge-subtraction-20261028-threehour/distribution-before-final/embodiedforge-0.1.0.tar.gz",
+      "bytes": 718619157,
+      "sha256": "ae6abda68bde54986f094b0d804ba1cc31a3f12592c7b84ffc8e103f37256970",
+      "members": 601,
+      "historical_evidence_bundles": 25
+    },
+    "after": {
+      "build_wait_returncode": 0,
+      "source_archive": "/tmp/embodiedforge-subtraction-20261028-threehour/distribution-after/embodiedforge-0.1.0.tar.gz",
+      "bytes": 19667939,
+      "sha256": "8d07f2b00b6be98889c253dea3728903e4c9d16b572363cb889cfc9ae9bdb531",
+      "members": 571,
+      "historical_evidence_bundles": 0
+    },
+    "source_release_root": "/tmp/embodiedforge-subtraction-20261028-threehour/source-release/embodiedforge-0.1.0",
+    "wheel": {
+      "build_wait_returncode": 0,
+      "path": "/tmp/embodiedforge-subtraction-20261028-threehour/wheel-final/embodiedforge-0.1.0-py3-none-any.whl",
+      "bytes": 8293952,
+      "sha256": "4f3dd7d6e9bfd68536f1a2e5ee60f7da4dddbfbc644a0c90d8858abb42e876a6",
+      "all_current_source_modules_exact": 140,
+      "retired_modules_absent": [
+        "_hashing",
+        "_adam_checkpoint",
+        "_ppo_parameters",
+        "_training_runtime",
+        "_microduck_process"
+      ],
+      "installed_root": "/tmp/embodiedforge-subtraction-20261028-threehour/installed-wheel"
+    },
+    "source_size_reduction_fraction": 0.9726309286241307,
+    "previous_before_fixture": {
+      "build_wait_returncode": 0,
+      "source_archive": "/tmp/embodiedforge-subtraction-20261028-threehour/distribution-before-complete/embodiedforge-0.1.0.tar.gz",
+      "bytes": 718615687,
+      "sha256": "fa75ac2b7ab8eb5bb76f11ff9b5a734aa54f0b6478b64fa7aa6e0d69c1ef19a9",
+      "members": 600,
+      "historical_evidence_bundles": 25
+    }
+  },
+  "validation": {
+    "tests": {
+      "baseline": {
+        "tests": 3571,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 80,
+        "non_skipped_xml_cases": 3491
+      },
+      "main": {
+        "tests": 3576,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 80,
+        "non_skipped_xml_cases": 3496
+      },
+      "native": {
+        "tests": 3670,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 59,
+        "non_skipped_xml_cases": 3611
+      },
+      "source_release": {
+        "tests": 3576,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 80,
+        "non_skipped_xml_cases": 3496
+      }
+    },
+    "pytest_terminal_passed": {
+      "main": 3496,
+      "native": 3586,
+      "native_subtests_passed": 25,
+      "source_release": 3496
+    },
+    "native_xml_note": "XML includes25successful subtests in non-skipped case count; do not present3611as pytest terminal passed count.",
+    "training_parity": {
+      "comparisons": 9,
+      "components": [
+        "core",
+        "go1",
+        "h1"
+      ],
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "all_equal": true,
+      "scope": "Core policy/optimizer equality; Go1/H1 policy/optimizer/rollout equality on deterministic CPU probes."
+    },
+    "public_core_evaluation": {
+      "status": "complete",
+      "actual_child_waits": {
+        "baseline": 0,
+        "candidate": 0,
+        "installed-wheel": 0
+      },
+      "original_checkpoint_sha256": "e1012a9e1093994c38581b0a2b90fe9a0a644b8358912742691126ea38e29518",
+      "all_public_cli_results_equal": true,
+      "results": {
+        "baseline": {
+          "summary": {
+            "completed_episodes": 28,
+            "success_rate": 0.0,
+            "mean_step_reward": -0.015054532276416148
+          },
+          "episodes": 28,
+          "transitions": 140,
+          "transitions_sha256": "da9939dbc08fe66d642b82e090b1e9aedd5e39fe4db08b7ff6a596b344b082d8"
+        },
+        "candidate": {
+          "summary": {
+            "completed_episodes": 28,
+            "success_rate": 0.0,
+            "mean_step_reward": -0.015054532276416148
+          },
+          "episodes": 28,
+          "transitions": 140,
+          "transitions_sha256": "da9939dbc08fe66d642b82e090b1e9aedd5e39fe4db08b7ff6a596b344b082d8"
+        },
+        "installed-wheel": {
+          "summary": {
+            "completed_episodes": 28,
+            "success_rate": 0.0,
+            "mean_step_reward": -0.015054532276416148
+          },
+          "episodes": 28,
+          "transitions": 140,
+          "transitions_sha256": "da9939dbc08fe66d642b82e090b1e9aedd5e39fe4db08b7ff6a596b344b082d8"
+        }
+      },
+      "scope": "Original pre-refactor core checkpoint,37real steps with compact asynchronous recording, through baseline/candidate/installed-wheel public evaluate entry. Not a new robot training run."
+    },
+    "installed_wheel": {
+      "actual_child_wait_returncode": 0,
+      "source_release_all_production_modules_exact": 140,
+      "installed_probe": {
+        "stdlib_only": true,
+        "new_supermimic_record_inspected": true,
+        "retired_aliases_absent": 5
+      }
+    },
+    "retained_distribution_files": {
+      "retained_regular_files_compared": 546,
+      "changed": [
+        "MANIFEST.in",
+        "PKG-INFO",
+        "README.en.md",
+        "README.md",
+        "docs/README.md",
+        "docs/architecture.md",
+        "docs/current-architecture.md",
+        "docs/implementation.md",
+        "docs/interfaces.md",
+        "docs/run-records.md",
+        "src/embodiedforge.egg-info/PKG-INFO",
+        "src/embodiedforge.egg-info/SOURCES.txt",
+        "src/embodiedforge/_microduck_inputs.py",
+        "src/embodiedforge/_microduck_native.py",
+        "src/embodiedforge/_motion_sdk.py",
+        "src/embodiedforge/learning/parameters.py",
+        "src/embodiedforge/locomotion/h1_ppo.py",
+        "src/embodiedforge/recipes.py",
+        "src/embodiedforge/runtime/records.py",
+        "src/embodiedforge/supermimic_run.py",
+        "src/embodiedforge/training.py",
+        "src/embodiedforge/weave.py",
+        "src/embodiedforge/workflows/supermimic_backflip.py",
+        "src/embodiedforge/workflows/supermimic_reference.py",
+        "tests/test_core_resume.py",
+        "tests/test_documentation.py",
+        "tests/test_hashing.py",
+        "tests/test_microduck_inputs.py",
+        "tests/test_microduck_lifecycle.py",
+        "tests/test_motion_sdk.py",
+        "tests/test_rlinf.py",
+        "tests/test_runtime_provenance.py",
+        "tests/test_supermimic_reference.py",
+        "tests/test_supermimic_run.py",
+        "tests/test_training.py",
+        "tests/test_training_runtime.py",
+        "tests/test_weave.py"
+      ],
+      "expected_generated_metadata_changes": [
+        "PKG-INFO",
+        "src/embodiedforge.egg-info/PKG-INFO",
+        "src/embodiedforge.egg-info/SOURCES.txt"
+      ],
+      "unexpected_changes": [],
+      "initial_probe_exit": 1,
+      "initial_probe_reason": "Allowlist initially omitted generatedPKG-INFO changes derived from the edited README; corrected to include only known generated metadata.",
+      "scope": "Compare actual archive bytes for every retained regular file; skip archives excluded from after package."
+    },
+    "g1_backflip": {
+      "existing_checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+      "iteration": 21847,
+      "physical_checks": {
+        "checks": {
+          "complete_reference_and_extra_hold": true,
+          "zero_initial_velocity": true,
+          "correct_initial_pose": true,
+          "shared_rotation_geometry_hold": true,
+          "shared_fixed_window_leg_pose": true,
+          "dynamic_geometry": true,
+          "inverted_while_airborne": true,
+          "at_least60msairborne": true,
+          "relative_pitch_below_minus5rad": true,
+          "native320step_tracking_return": true,
+          "solved_force_balance": true,
+          "no_contact_capacity_overflow": true,
+          "no_nonfoot_force": true,
+          "no200Hznegative_nonfoot_contact_distance": true,
+          "actual_physics_model_geometry_identity": true,
+          "complete200Hzforce_coverage": true
+        },
+        "failed_checks": [],
+        "unassessed_checks": [],
+        "ported_quality_passed": true,
+        "strict_v14_equivalence": false,
+        "physical_robot_tested": false,
+        "scope": "Reference-informed thresholds on current mjlab G1, with conservative fixed-window/200Hzgeometry/model-identity checks. One evaluation does not establish independent-training robustness or exact IsaacLab3V14 reproduction."
+      },
+      "summary": {
+        "mean_norm_return": 0.9654727536335326,
+        "full_clip_zero_padded_return": 0.9654727536335326,
+        "native320step_zero_padded_return": 0.9446475654840469,
+        "failed": 0,
+        "executed_control_steps": 570,
+        "actual_state_samples": 571
+      },
+      "skill_success": true
+    },
+    "lifecycle_soak": {
+      "scope": "Linux captured invalid UTF-8, joined log threads, inherited locks, real process groups and escaped stdout holders; fixture reaps all descendants",
+      "cycles": 1526,
+      "verified_scenarios": 12208,
+      "seconds": 5400.698910597945,
+      "initial_resources": {
+        "rss_bytes": 34209792,
+        "threads": 32,
+        "fds": 4
+      },
+      "final_resources": {
+        "rss_bytes": 29941760,
+        "threads": 32,
+        "fds": 4
+      },
+      "samples": [
+        {
+          "seconds": 3.591129085049033,
+          "cycles": 1,
+          "verified_scenarios": 8,
+          "resources": {
+            "rss_bytes": 34545664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 35.94386540201958,
+          "cycles": 10,
+          "verified_scenarios": 80,
+          "resources": {
+            "rss_bytes": 34623488,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 68.27619913895614,
+          "cycles": 19,
+          "verified_scenarios": 152,
+          "resources": {
+            "rss_bytes": 34623488,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 100.67173782701138,
+          "cycles": 28,
+          "verified_scenarios": 224,
+          "resources": {
+            "rss_bytes": 34623488,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 132.9203146060463,
+          "cycles": 37,
+          "verified_scenarios": 296,
+          "resources": {
+            "rss_bytes": 34627584,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 165.23524588998407,
+          "cycles": 46,
+          "verified_scenarios": 368,
+          "resources": {
+            "rss_bytes": 34627584,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 197.65500817995053,
+          "cycles": 55,
+          "verified_scenarios": 440,
+          "resources": {
+            "rss_bytes": 34627584,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 229.87908251595218,
+          "cycles": 64,
+          "verified_scenarios": 512,
+          "resources": {
+            "rss_bytes": 34627584,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 262.0831351260422,
+          "cycles": 73,
+          "verified_scenarios": 584,
+          "resources": {
+            "rss_bytes": 34627584,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 294.279979111976,
+          "cycles": 82,
+          "verified_scenarios": 656,
+          "resources": {
+            "rss_bytes": 34627584,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 326.43457748694345,
+          "cycles": 91,
+          "verified_scenarios": 728,
+          "resources": {
+            "rss_bytes": 35348480,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 358.57792920502834,
+          "cycles": 100,
+          "verified_scenarios": 800,
+          "resources": {
+            "rss_bytes": 35348480,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 390.79376289399806,
+          "cycles": 109,
+          "verified_scenarios": 872,
+          "resources": {
+            "rss_bytes": 35348480,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 423.0086226379499,
+          "cycles": 118,
+          "verified_scenarios": 944,
+          "resources": {
+            "rss_bytes": 35352576,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 455.07222568802536,
+          "cycles": 127,
+          "verified_scenarios": 1016,
+          "resources": {
+            "rss_bytes": 35352576,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 487.07003263698425,
+          "cycles": 136,
+          "verified_scenarios": 1088,
+          "resources": {
+            "rss_bytes": 35368960,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 519.1652793120593,
+          "cycles": 145,
+          "verified_scenarios": 1160,
+          "resources": {
+            "rss_bytes": 35368960,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 551.208588222973,
+          "cycles": 154,
+          "verified_scenarios": 1232,
+          "resources": {
+            "rss_bytes": 35368960,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 583.1497497650562,
+          "cycles": 163,
+          "verified_scenarios": 1304,
+          "resources": {
+            "rss_bytes": 35368960,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 614.8333842729917,
+          "cycles": 172,
+          "verified_scenarios": 1376,
+          "resources": {
+            "rss_bytes": 35368960,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 646.8644055000041,
+          "cycles": 181,
+          "verified_scenarios": 1448,
+          "resources": {
+            "rss_bytes": 35368960,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 678.493408913957,
+          "cycles": 190,
+          "verified_scenarios": 1520,
+          "resources": {
+            "rss_bytes": 35373056,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 710.1258430159651,
+          "cycles": 199,
+          "verified_scenarios": 1592,
+          "resources": {
+            "rss_bytes": 35389440,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 741.9593373290263,
+          "cycles": 208,
+          "verified_scenarios": 1664,
+          "resources": {
+            "rss_bytes": 35389440,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 773.5336950670462,
+          "cycles": 217,
+          "verified_scenarios": 1736,
+          "resources": {
+            "rss_bytes": 35389440,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 805.1096760589862,
+          "cycles": 226,
+          "verified_scenarios": 1808,
+          "resources": {
+            "rss_bytes": 35389440,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 836.6905649870168,
+          "cycles": 235,
+          "verified_scenarios": 1880,
+          "resources": {
+            "rss_bytes": 35389440,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 868.4329627250554,
+          "cycles": 244,
+          "verified_scenarios": 1952,
+          "resources": {
+            "rss_bytes": 35389440,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 900.5247103660367,
+          "cycles": 253,
+          "verified_scenarios": 2024,
+          "resources": {
+            "rss_bytes": 35303424,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 932.4070206419565,
+          "cycles": 262,
+          "verified_scenarios": 2096,
+          "resources": {
+            "rss_bytes": 35303424,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 964.2352673120331,
+          "cycles": 271,
+          "verified_scenarios": 2168,
+          "resources": {
+            "rss_bytes": 35303424,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 995.8262473540381,
+          "cycles": 280,
+          "verified_scenarios": 2240,
+          "resources": {
+            "rss_bytes": 35303424,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1027.6003667219775,
+          "cycles": 289,
+          "verified_scenarios": 2312,
+          "resources": {
+            "rss_bytes": 35315712,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1059.3317386100534,
+          "cycles": 298,
+          "verified_scenarios": 2384,
+          "resources": {
+            "rss_bytes": 35315712,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1090.9563228449551,
+          "cycles": 307,
+          "verified_scenarios": 2456,
+          "resources": {
+            "rss_bytes": 35315712,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1122.7861247069668,
+          "cycles": 316,
+          "verified_scenarios": 2528,
+          "resources": {
+            "rss_bytes": 35319808,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1154.3604140590178,
+          "cycles": 325,
+          "verified_scenarios": 2600,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1185.4303486760473,
+          "cycles": 334,
+          "verified_scenarios": 2672,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1217.390715986956,
+          "cycles": 343,
+          "verified_scenarios": 2744,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1249.178791636019,
+          "cycles": 352,
+          "verified_scenarios": 2816,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1281.067031292012,
+          "cycles": 361,
+          "verified_scenarios": 2888,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1313.103594284039,
+          "cycles": 370,
+          "verified_scenarios": 2960,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1345.1987102139974,
+          "cycles": 379,
+          "verified_scenarios": 3032,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1377.3499537770404,
+          "cycles": 388,
+          "verified_scenarios": 3104,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1409.2446419120533,
+          "cycles": 397,
+          "verified_scenarios": 3176,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1441.382312851958,
+          "cycles": 406,
+          "verified_scenarios": 3248,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1473.4268425060436,
+          "cycles": 415,
+          "verified_scenarios": 3320,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1505.4633558229543,
+          "cycles": 424,
+          "verified_scenarios": 3392,
+          "resources": {
+            "rss_bytes": 35332096,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1537.6469186899485,
+          "cycles": 433,
+          "verified_scenarios": 3464,
+          "resources": {
+            "rss_bytes": 35258368,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1569.8549792380072,
+          "cycles": 442,
+          "verified_scenarios": 3536,
+          "resources": {
+            "rss_bytes": 35258368,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1602.0879891760414,
+          "cycles": 451,
+          "verified_scenarios": 3608,
+          "resources": {
+            "rss_bytes": 34832384,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1634.25608827197,
+          "cycles": 460,
+          "verified_scenarios": 3680,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1666.4466866529547,
+          "cycles": 469,
+          "verified_scenarios": 3752,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1698.645226491033,
+          "cycles": 478,
+          "verified_scenarios": 3824,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1730.7058174100239,
+          "cycles": 487,
+          "verified_scenarios": 3896,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1762.8500560419634,
+          "cycles": 496,
+          "verified_scenarios": 3968,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1794.834688225994,
+          "cycles": 505,
+          "verified_scenarios": 4040,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1826.6753224789863,
+          "cycles": 514,
+          "verified_scenarios": 4112,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1858.5246582439868,
+          "cycles": 523,
+          "verified_scenarios": 4184,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1890.6654744700063,
+          "cycles": 532,
+          "verified_scenarios": 4256,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1922.3979811660247,
+          "cycles": 541,
+          "verified_scenarios": 4328,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1954.4045735310065,
+          "cycles": 550,
+          "verified_scenarios": 4400,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 1986.2377330589807,
+          "cycles": 559,
+          "verified_scenarios": 4472,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2018.06905328203,
+          "cycles": 568,
+          "verified_scenarios": 4544,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2049.957137483987,
+          "cycles": 577,
+          "verified_scenarios": 4616,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2081.7906506879954,
+          "cycles": 586,
+          "verified_scenarios": 4688,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2113.772863466991,
+          "cycles": 595,
+          "verified_scenarios": 4760,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2145.656038830057,
+          "cycles": 604,
+          "verified_scenarios": 4832,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2177.7530682289507,
+          "cycles": 613,
+          "verified_scenarios": 4904,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2209.588779562968,
+          "cycles": 622,
+          "verified_scenarios": 4976,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2241.5749030190054,
+          "cycles": 631,
+          "verified_scenarios": 5048,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2273.6226278300164,
+          "cycles": 640,
+          "verified_scenarios": 5120,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2305.5626733320532,
+          "cycles": 649,
+          "verified_scenarios": 5192,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2337.508097494021,
+          "cycles": 658,
+          "verified_scenarios": 5264,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2369.4445715389447,
+          "cycles": 667,
+          "verified_scenarios": 5336,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2401.233574909973,
+          "cycles": 676,
+          "verified_scenarios": 5408,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2433.1137692410266,
+          "cycles": 685,
+          "verified_scenarios": 5480,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2464.743901461945,
+          "cycles": 694,
+          "verified_scenarios": 5552,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2496.4777653589845,
+          "cycles": 703,
+          "verified_scenarios": 5624,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2528.4606559249805,
+          "cycles": 712,
+          "verified_scenarios": 5696,
+          "resources": {
+            "rss_bytes": 28823552,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2560.2414330779575,
+          "cycles": 721,
+          "verified_scenarios": 5768,
+          "resources": {
+            "rss_bytes": 28778496,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2591.7691782319453,
+          "cycles": 730,
+          "verified_scenarios": 5840,
+          "resources": {
+            "rss_bytes": 28782592,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2623.1395050650463,
+          "cycles": 739,
+          "verified_scenarios": 5912,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2654.761252228054,
+          "cycles": 748,
+          "verified_scenarios": 5984,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2686.0830348420423,
+          "cycles": 757,
+          "verified_scenarios": 6056,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2717.7672850489616,
+          "cycles": 766,
+          "verified_scenarios": 6128,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2749.866772281006,
+          "cycles": 775,
+          "verified_scenarios": 6200,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2781.8112147779902,
+          "cycles": 784,
+          "verified_scenarios": 6272,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2813.860271972022,
+          "cycles": 793,
+          "verified_scenarios": 6344,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2846.050104263006,
+          "cycles": 802,
+          "verified_scenarios": 6416,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2878.0891356830252,
+          "cycles": 811,
+          "verified_scenarios": 6488,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2910.084539773059,
+          "cycles": 820,
+          "verified_scenarios": 6560,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2941.614694433054,
+          "cycles": 829,
+          "verified_scenarios": 6632,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 2973.3397282359656,
+          "cycles": 838,
+          "verified_scenarios": 6704,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3004.4711074529914,
+          "cycles": 847,
+          "verified_scenarios": 6776,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3035.792474279995,
+          "cycles": 856,
+          "verified_scenarios": 6848,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3067.121583382017,
+          "cycles": 865,
+          "verified_scenarios": 6920,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3098.8527115649777,
+          "cycles": 874,
+          "verified_scenarios": 6992,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3130.630313658039,
+          "cycles": 883,
+          "verified_scenarios": 7064,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3162.052712052013,
+          "cycles": 892,
+          "verified_scenarios": 7136,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3193.8303107139654,
+          "cycles": 901,
+          "verified_scenarios": 7208,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3225.4049610929796,
+          "cycles": 910,
+          "verified_scenarios": 7280,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3256.674774689018,
+          "cycles": 919,
+          "verified_scenarios": 7352,
+          "resources": {
+            "rss_bytes": 28794880,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3288.103626237018,
+          "cycles": 928,
+          "verified_scenarios": 7424,
+          "resources": {
+            "rss_bytes": 28798976,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3319.524606731953,
+          "cycles": 937,
+          "verified_scenarios": 7496,
+          "resources": {
+            "rss_bytes": 28798976,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3350.3945804859977,
+          "cycles": 946,
+          "verified_scenarios": 7568,
+          "resources": {
+            "rss_bytes": 28798976,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3382.1216974429553,
+          "cycles": 955,
+          "verified_scenarios": 7640,
+          "resources": {
+            "rss_bytes": 28798976,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3413.543299120036,
+          "cycles": 964,
+          "verified_scenarios": 7712,
+          "resources": {
+            "rss_bytes": 28798976,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3445.2764967710245,
+          "cycles": 973,
+          "verified_scenarios": 7784,
+          "resources": {
+            "rss_bytes": 28798976,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3476.3989582950016,
+          "cycles": 982,
+          "verified_scenarios": 7856,
+          "resources": {
+            "rss_bytes": 28803072,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3508.0844521489926,
+          "cycles": 991,
+          "verified_scenarios": 7928,
+          "resources": {
+            "rss_bytes": 28803072,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3539.4638935009716,
+          "cycles": 1000,
+          "verified_scenarios": 8000,
+          "resources": {
+            "rss_bytes": 28803072,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3570.839334364049,
+          "cycles": 1009,
+          "verified_scenarios": 8072,
+          "resources": {
+            "rss_bytes": 28803072,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3602.512956926017,
+          "cycles": 1018,
+          "verified_scenarios": 8144,
+          "resources": {
+            "rss_bytes": 28803072,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3634.4432229580125,
+          "cycles": 1027,
+          "verified_scenarios": 8216,
+          "resources": {
+            "rss_bytes": 28811264,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3666.224375976948,
+          "cycles": 1036,
+          "verified_scenarios": 8288,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3697.704997529043,
+          "cycles": 1045,
+          "verified_scenarios": 8360,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3729.2831929350505,
+          "cycles": 1054,
+          "verified_scenarios": 8432,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3761.0638365600025,
+          "cycles": 1063,
+          "verified_scenarios": 8504,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3793.301751252031,
+          "cycles": 1072,
+          "verified_scenarios": 8576,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3825.195987298037,
+          "cycles": 1081,
+          "verified_scenarios": 8648,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3857.023142762948,
+          "cycles": 1090,
+          "verified_scenarios": 8720,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3889.1153152979678,
+          "cycles": 1099,
+          "verified_scenarios": 8792,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3921.2816927609965,
+          "cycles": 1108,
+          "verified_scenarios": 8864,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3953.3799806140596,
+          "cycles": 1117,
+          "verified_scenarios": 8936,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 3985.3193806690397,
+          "cycles": 1126,
+          "verified_scenarios": 9008,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4017.209264465957,
+          "cycles": 1135,
+          "verified_scenarios": 9080,
+          "resources": {
+            "rss_bytes": 30117888,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4049.2031268239953,
+          "cycles": 1144,
+          "verified_scenarios": 9152,
+          "resources": {
+            "rss_bytes": 30121984,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4081.2495861880016,
+          "cycles": 1153,
+          "verified_scenarios": 9224,
+          "resources": {
+            "rss_bytes": 30134272,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4113.342526998953,
+          "cycles": 1162,
+          "verified_scenarios": 9296,
+          "resources": {
+            "rss_bytes": 30134272,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4145.385082665016,
+          "cycles": 1171,
+          "verified_scenarios": 9368,
+          "resources": {
+            "rss_bytes": 30134272,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4177.46916971996,
+          "cycles": 1180,
+          "verified_scenarios": 9440,
+          "resources": {
+            "rss_bytes": 29921280,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4209.556688655983,
+          "cycles": 1189,
+          "verified_scenarios": 9512,
+          "resources": {
+            "rss_bytes": 29921280,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4241.598460634006,
+          "cycles": 1198,
+          "verified_scenarios": 9584,
+          "resources": {
+            "rss_bytes": 29921280,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4273.881249548984,
+          "cycles": 1207,
+          "verified_scenarios": 9656,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4305.767499946058,
+          "cycles": 1216,
+          "verified_scenarios": 9728,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4337.497663463,
+          "cycles": 1225,
+          "verified_scenarios": 9800,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4369.022281390964,
+          "cycles": 1234,
+          "verified_scenarios": 9872,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4400.69561608904,
+          "cycles": 1243,
+          "verified_scenarios": 9944,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4432.395654311986,
+          "cycles": 1252,
+          "verified_scenarios": 10016,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4464.028997175978,
+          "cycles": 1261,
+          "verified_scenarios": 10088,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4496.108269270975,
+          "cycles": 1270,
+          "verified_scenarios": 10160,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4527.734943983029,
+          "cycles": 1279,
+          "verified_scenarios": 10232,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4559.511431507999,
+          "cycles": 1288,
+          "verified_scenarios": 10304,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4591.506896328996,
+          "cycles": 1297,
+          "verified_scenarios": 10376,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4623.244897071971,
+          "cycles": 1306,
+          "verified_scenarios": 10448,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4654.823723318055,
+          "cycles": 1315,
+          "verified_scenarios": 10520,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4686.906288424041,
+          "cycles": 1324,
+          "verified_scenarios": 10592,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4718.598223458976,
+          "cycles": 1333,
+          "verified_scenarios": 10664,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4750.322504665004,
+          "cycles": 1342,
+          "verified_scenarios": 10736,
+          "resources": {
+            "rss_bytes": 29937664,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4781.651718670968,
+          "cycles": 1351,
+          "verified_scenarios": 10808,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4813.915022197994,
+          "cycles": 1360,
+          "verified_scenarios": 10880,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4846.200596250012,
+          "cycles": 1369,
+          "verified_scenarios": 10952,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4878.137207116,
+          "cycles": 1378,
+          "verified_scenarios": 11024,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4909.363638923969,
+          "cycles": 1387,
+          "verified_scenarios": 11096,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4940.982049086015,
+          "cycles": 1396,
+          "verified_scenarios": 11168,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 4972.715116805979,
+          "cycles": 1405,
+          "verified_scenarios": 11240,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5004.396846516058,
+          "cycles": 1414,
+          "verified_scenarios": 11312,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5035.612921966007,
+          "cycles": 1423,
+          "verified_scenarios": 11384,
+          "resources": {
+            "rss_bytes": 29925376,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5067.135237204027,
+          "cycles": 1432,
+          "verified_scenarios": 11456,
+          "resources": {
+            "rss_bytes": 29929472,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5098.708655579947,
+          "cycles": 1441,
+          "verified_scenarios": 11528,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5130.234369755955,
+          "cycles": 1450,
+          "verified_scenarios": 11600,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5162.021721482975,
+          "cycles": 1459,
+          "verified_scenarios": 11672,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5194.21754415601,
+          "cycles": 1468,
+          "verified_scenarios": 11744,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5226.21895106195,
+          "cycles": 1477,
+          "verified_scenarios": 11816,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5258.177882903023,
+          "cycles": 1486,
+          "verified_scenarios": 11888,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5290.2614224969875,
+          "cycles": 1495,
+          "verified_scenarios": 11960,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5322.35795109102,
+          "cycles": 1504,
+          "verified_scenarios": 12032,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5354.562758550048,
+          "cycles": 1513,
+          "verified_scenarios": 12104,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        },
+        {
+          "seconds": 5386.493966653012,
+          "cycles": 1522,
+          "verified_scenarios": 12176,
+          "resources": {
+            "rss_bytes": 29941760,
+            "threads": 32,
+            "fds": 5
+          }
+        }
+      ],
+      "all_scenarios_passed": true
+    },
+    "lifecycle_soak_resource_analysis": {
+      "samples": 1526,
+      "threads": [
+        32
+      ],
+      "fds_while_sample_log_open": [
+        5
+      ],
+      "rss_bytes_min": 28778496,
+      "rss_bytes_max": 35389440,
+      "last": {
+        "seconds": 5400.698663693038,
+        "cycles": 1526,
+        "verified_scenarios": 12208,
+        "resources": {
+          "rss_bytes": 29941760,
+          "threads": 32,
+          "fds": 5
+        }
+      },
+      "note": "Initial/final fds are4; per-cycle samples include the open samples.jsonl descriptor, giving5. RSS is an observed90-minute range, not a claim about indefinite leak freedom."
+    },
+    "owned_processes_absent_after_completion": true,
+    "historical_artifacts_verified_unchanged": 176,
+    "source_modules_frozen_through_validation": 140,
+    "release_files_frozen_through_final_review": 331,
+    "release_archive_matches_frozen_files": {
+      "verified_at": "2026-10-28T05:39:26.186904+00:00",
+      "actual_source_archive_all_frozen_release_files_exact": 331,
+      "source_archive_sha256": "8d07f2b00b6be98889c253dea3728903e4c9d16b572363cb889cfc9ae9bdb531"
+    },
+    "style_checks": {
+      "ruff": 0,
+      "format": 0
+    },
+    "actual_exit_observations": {
+      "baseline_initial": {
+        "actual_original_exit": 1,
+        "session": 38586
+      },
+      "baseline_retry": {
+        "actual_original_exit": 0,
+        "session": 24019
+      },
+      "phase1_main": {
+        "actual_original_exit": 0,
+        "session": 49371
+      },
+      "phase1_native": {
+        "actual_original_exit": 0,
+        "session": 52582
+      },
+      "phase1_training_parity": {
+        "actual_original_exit": 0,
+        "session": 91740
+      },
+      "shared_network_training_parity_trial": {
+        "actual_original_exit": 0,
+        "session": 59782
+      },
+      "selected_training_parity": {
+        "actual_original_exit": 0,
+        "session": 49199
+      },
+      "final_main": {
+        "actual_original_exit": 0,
+        "session": 5962
+      },
+      "final_native": {
+        "actual_original_exit": 0,
+        "session": 2125
+      },
+      "backflip_acceptance": {
+        "actual_original_exit": 0,
+        "session": 26648
+      },
+      "distribution_first_parent": {
+        "actual_original_exit": 1,
+        "session": 45367,
+        "reason": "Python3.10 extraction API; both sdist child builds had already returned0"
+      },
+      "source_release_full_suite": {
+        "actual_original_exit": 0,
+        "session": 75494
+      },
+      "distribution_repaired": {
+        "actual_original_exit": 0,
+        "session": 83572
+      },
+      "cli_compatibility": {
+        "actual_child_waits": {
+          "baseline": 0,
+          "candidate": 0,
+          "installed-wheel": 0
+        },
+        "original_tool_observation": "Session id lost at compaction; child subprocess.run returncodes retained in cli-compatibility.json"
+      },
+      "distribution_equal_member_baseline": {
+        "actual_original_exit": 0,
+        "session": 24882
+      },
+      "evidence_dry_run": {
+        "actual_original_exit": 0,
+        "session": 17935,
+        "first_attempt_exit": 1,
+        "initial_reason": "Unnamed historical hash guard failed once; immediate independent verification and named guard rerun found no original artifact differences."
+      },
+      "lifecycle_soak": {
+        "actual_original_exit": 0,
+        "session": 56878,
+        "observed_at": "2026-10-28T05:19:21.670774+00:00"
+      },
+      "final_static_review": {
+        "actual_original_exit": 0,
+        "session": 16296
+      }
+    }
+  },
+  "rejected_candidates": [
+    {
+      "status": "rejected",
+      "reason": "Core rollout permits assignment/broadcast/cast semantics for extra reset observations; the shared borrowed-environment evaluator requires exact reset schema. Merging via current API changes4tested behaviors or adds a new mode/adapter, contrary to subtraction goal.",
+      "candidate_test_failures": 4,
+      "candidate_test_passes": 140,
+      "trajectory_and_reset_ids_exact_in_four_regular_cases": true,
+      "mean_reward_max_abs_delta": 1.4e-10,
+      "local_timing_ratio": 1.04925,
+      "original_core_source_restored": true
+    },
+    {
+      "status": "rejected_for_go1_only",
+      "reason": "Go1 task/learner are replayed from a standalone frozen package. An absolute shared-constructor dependency would escape that recorded source boundary. Retain its small local builder; Core/H1 already depend on the common learning layer.",
+      "numerical_parity_before_rejection": true,
+      "final_go1_learner_equals_original_baseline": true
+    }
+  ],
+  "preserved": {
+    "checkpoint": {
+      "registry": {
+        "task": "backflip",
+        "recipe": "reference",
+        "training_status": "complete",
+        "checkpoint": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+        "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+        "iteration": 21847,
+        "skill_success": null,
+        "selection": "Actual last checkpoint of a completed full-width reference-recipe run; not selected by return"
+      },
+      "registry_sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c",
+      "checkpoint_bytes": 218547233,
+      "verified_at": "2026-10-28T04:02:40.322690+00:00"
+    },
+    "training_algorithms_and_public_commands": true,
+    "repository_historical_archives": true,
+    "go1_frozen_learner_self_containment": true,
+    "core_reset_assignment_semantics": true
+  },
+  "scope_limits": [
+    "本轮是架构与发布精简，没有重新训练或声称提升策略成功率。",
+    "G1复测为现有mjlab资产与移植阈值下的模拟验收；不构成真机测试、独立训练鲁棒性或IsaacLab3V14严格等价证明。",
+    "可选依赖缺失对应的跳过项保留在测试XML；两套环境结果分别报告。"
+  ],
+  "changed_from_session_baseline": [
+    "src/embodiedforge/supermimic_run.py",
+    "src/embodiedforge/_adam_checkpoint.py",
+    "src/embodiedforge/training.py",
+    "src/embodiedforge/weave.py",
+    "src/embodiedforge/_microduck_process.py",
+    "src/embodiedforge/_ppo_parameters.py",
+    "src/embodiedforge/_microduck_inputs.py",
+    "src/embodiedforge/_microduck_native.py",
+    "src/embodiedforge/recipes.py",
+    "src/embodiedforge/_training_runtime.py",
+    "src/embodiedforge/_motion_sdk.py",
+    "src/embodiedforge/_hashing.py",
+    "src/embodiedforge/runtime/records.py",
+    "src/embodiedforge/workflows/supermimic_backflip.py",
+    "src/embodiedforge/workflows/supermimic_reference.py",
+    "src/embodiedforge/learning/parameters.py",
+    "src/embodiedforge/locomotion/h1_ppo.py",
+    "tests/test_hashing.py",
+    "tests/test_supermimic_reference.py",
+    "tests/test_rlinf.py",
+    "tests/test_runtime_provenance.py",
+    "tests/test_microduck_lifecycle.py",
+    "tests/test_weave.py",
+    "tests/test_core_resume.py",
+    "tests/test_microduck_inputs.py",
+    "tests/test_motion_sdk.py",
+    "tests/test_training_runtime.py",
+    "tests/test_supermimic_run.py",
+    "tests/test_documentation.py",
+    "tests/test_training.py",
+    "README.md",
+    "README.en.md",
+    "docs/README.md",
+    "docs/interfaces.md",
+    "docs/run-records.md",
+    "docs/implementation.md",
+    "docs/current-architecture.md",
+    "docs/architecture.md",
+    "MANIFEST.in"
+  ],
+  "preexisting_work_preserved": true,
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261028-threehour-evidence.tar.gz",
+    "sha256": "3f0237ef0c68b12b884e339f7b5bc7b3435d9e209b8cca9acf536346d6562957",
+    "bytes": 2394022,
+    "verified_members": 786
+  }
+}

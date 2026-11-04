@@ -18,7 +18,7 @@ from embodiedforge import (  # noqa: E402
     _core_run,
     training,
 )
-from embodiedforge._microduck_process import termination_signals  # noqa: E402
+from embodiedforge.runtime.process import termination_signals  # noqa: E402
 from embodiedforge.training import (  # noqa: E402
     PPOConfig,
     _collect_rollout,
@@ -114,7 +114,7 @@ def test_partial_save_keeps_last_committed_update_for_resume(
 
     def save(value, path, *args, **kwargs):
         if value["updates"] == 2:
-            path.write_bytes(b"partial serialization")
+            Path(path).write_bytes(b"partial serialization")
             raise error("save interrupted")
         return original(value, path, *args, **kwargs)
 
@@ -196,8 +196,8 @@ def test_alias_copy_failure_still_has_a_verified_recovery_point(tmp_path, monkey
     original = _core_run.shutil.copyfile
 
     def copy(source, target):
-        if source.name == "checkpoint-000000002.pt":
-            target.write_bytes(b"partial alias")
+        if Path(source).name == "checkpoint-000000002.pt":
+            Path(target).write_bytes(b"partial alias")
             raise OSError("alias copy failed")
         return original(source, target)
 
@@ -341,19 +341,19 @@ def resume_record(root, update, payload):
 
 def test_read_live_resume_retries_a_pruned_snapshot(tmp_path, monkeypatch):
     old = resume_record(tmp_path, 1, b"old snapshot")
-    original = Path.read_bytes
+    original = _core_run._read_bytes
     reads = []
 
     def read(path):
-        reads.append(path.name)
-        if path == old:
+        reads.append(Path(path).name)
+        if Path(path) == old:
             # Two subsequent commits can prune the selected file between
             # reading run.json and opening it. Use the new committed reference.
             resume_record(tmp_path, 3, b"new snapshot")
             old.unlink()
         return original(path)
 
-    monkeypatch.setattr(Path, "read_bytes", read)
+    monkeypatch.setattr(_core_run, "_read_bytes", read)
     result = _core_run.read_resume(tmp_path)
     assert result["payload"] == b"new snapshot"
     assert result["saved_updates"] == 3
@@ -364,14 +364,14 @@ def test_read_live_resume_retries_a_pruned_snapshot(tmp_path, monkeypatch):
 def test_missing_resume_without_new_commit_is_not_retried(tmp_path, monkeypatch):
     path = resume_record(tmp_path, 1, b"snapshot")
     path.unlink()
-    original = Path.read_bytes
+    original = _core_run._read_bytes
     reads = []
 
     def read(path):
-        reads.append(path)
+        reads.append(Path(path))
         return original(path)
 
-    monkeypatch.setattr(Path, "read_bytes", read)
+    monkeypatch.setattr(_core_run, "_read_bytes", read)
     with pytest.raises(FileNotFoundError):
         _core_run.read_resume(tmp_path)
     assert reads == [path]
@@ -379,17 +379,17 @@ def test_missing_resume_without_new_commit_is_not_retried(tmp_path, monkeypatch)
 
 def test_live_resume_retry_limit_is_bounded(tmp_path, monkeypatch):
     resume_record(tmp_path, 1, b"snapshot")
-    original = Path.read_bytes
+    original = _core_run._read_bytes
     reads = []
 
     def read(path):
-        reads.append(path.name)
-        update = int(path.stem.removeprefix("checkpoint-"))
+        reads.append(Path(path).name)
+        update = int(Path(path).stem.removeprefix("checkpoint-"))
         resume_record(tmp_path, update + 2, b"next snapshot")
-        path.unlink()
+        Path(path).unlink()
         return original(path)
 
-    monkeypatch.setattr(Path, "read_bytes", read)
+    monkeypatch.setattr(_core_run, "_read_bytes", read)
     with pytest.raises(FileNotFoundError):
         _core_run.read_resume(tmp_path)
     assert len(reads) == 3
@@ -397,16 +397,16 @@ def test_live_resume_retry_limit_is_bounded(tmp_path, monkeypatch):
 
 def test_live_resume_does_not_retry_or_hide_a_hash_mismatch(tmp_path, monkeypatch):
     old = resume_record(tmp_path, 1, b"snapshot")
-    original = Path.read_bytes
+    original = _core_run._read_bytes
     reads = []
 
     def read(path):
-        reads.append(path)
+        reads.append(Path(path))
         payload = original(path)
         resume_record(tmp_path, 3, b"new snapshot")
         return payload + b"corrupt"
 
-    monkeypatch.setattr(Path, "read_bytes", read)
+    monkeypatch.setattr(_core_run, "_read_bytes", read)
     with pytest.raises(ValueError, match="hash mismatch"):
         _core_run.read_resume(tmp_path)
     assert reads == [old]

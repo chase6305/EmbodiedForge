@@ -13,8 +13,8 @@ import pytest
 
 from embodiedforge import _rlinf_worker as worker
 from embodiedforge import rlinf
-from embodiedforge._microduck_process import ProcessInterrupted
 from embodiedforge.recipes import snapshot_implementation, validate_snapshot
+from embodiedforge.runtime.process import ProcessInterrupted
 
 
 def test_worker_validates_code_before_loading_sdk(tmp_path, monkeypatch):

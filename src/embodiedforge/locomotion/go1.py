@@ -14,12 +14,17 @@ import mujoco_menagerie as mm
 import numpy as np
 from mjbatch import Batch
 
+from .go1_config import ACT_DIM as ACT_DIM
+from .go1_config import ACTION_SCALE as ACTION_SCALE
 from .go1_config import COMMAND_PROFILES, REWARD_PROFILES
+from .go1_config import CTRL_DT as CTRL_DT
+from .go1_config import DECIMATION as DECIMATION
+from .go1_config import OBS_DIM as OBS_DIM
 from .go1_config import REWARD as REWARD
+from .go1_config import TIMESTEP as TIMESTEP
 
-TIMESTEP, DECIMATION, KP, KD = 0.004, 5, 35.0, 0.5
+KP, KD = 35.0, 0.5
 ROTOR_INERTIA = 0.000111842  # kg m^2, the Go1 motor's rotor
-CTRL_DT, ACTION_SCALE = TIMESTEP * DECIMATION, 0.5
 FEET, FOOT_RADIUS = ("FR", "FL", "RR", "RL"), 0.023
 STAND = np.array([0.1, 0.9, -1.8, -0.1, 0.9, -1.8] * 2)  # hip, thigh, calf per leg
 POSE_W = np.array([1.0, 1.0, 0.1] * 4)
@@ -35,7 +40,6 @@ GAIT_HZ, SWING, CEILING, WIDTH = (
 PHASE = np.array([0.0, 0.5, 0.5, 0.0])  # a trot: FR with RL, FL with RR
 SIGMA = 0.25
 FLOOR = 0.0
-OBS_DIM, ACT_DIM = 50, 12
 JOINTS, DOFS = slice(7, 7 + ACT_DIM), slice(6, 6 + ACT_DIM)
 THEME = str(Path(__file__).with_name("go1_scene.xml"))
 SEMANTICS = ("transition-v2", "upstream-v1")
@@ -261,7 +265,7 @@ class Go1:
         ):
             raise ValueError("Expected finite Go1 actions with shape (num_envs, 12)")
         self.ctrl[:] = STAND + ACTION_SCALE * action
-        flying = np.stack(self.foot_vel, 1).copy()
+        flying = np.stack(self.foot_vel, 1)
         self.batch.step(nstep=DECIMATION)
         self.steps += 1
         self.until -= 1
@@ -271,8 +275,12 @@ class Go1:
         force = np.concatenate(self.foot_force, 1)
         down = force > 0.0
         contact = down | self.down  # a bounce does not end the stance
-        height = np.stack(self.foot_pos, 1)[:, :, 2] - FOOT_RADIUS
-        slide = np.sum(np.stack(self.foot_vel, 1)[:, :, :2] ** 2, 2)
+        height = (
+            np.stack([position[:, 2] for position in self.foot_pos], 1) - FOOT_RADIUS
+        )
+        slide = np.sum(
+            np.stack([velocity[:, :2] for velocity in self.foot_vel], 1) ** 2, 2
+        )
         moving = self.moving()
         phase = np.sin(2 * np.pi * (self.clock[:, None] + PHASE)) * moving
         low = np.minimum(height - SWING * phase, 0.0)

@@ -5,28 +5,18 @@ import torch
 from torch import nn
 from torch.distributions import Normal
 
-from embodiedforge._ppo_parameters import bounded_log_std
-from embodiedforge.training import generalized_advantage
+from embodiedforge.learning.advantages import generalized_advantage
+from embodiedforge.learning.parameters import bounded_log_std, mlp
 
-from .h1_native import ACT_DIM, OBS_DIM
+from .h1_config import ACT_DIM, OBS_DIM
 
 
 class Policy(nn.Module):
     def __init__(self):
         super().__init__()
 
-        def network(output):
-            return nn.Sequential(
-                nn.Linear(OBS_DIM, 128),
-                nn.ELU(),
-                nn.Linear(128, 128),
-                nn.ELU(),
-                nn.Linear(128, 128),
-                nn.ELU(),
-                nn.Linear(128, output),
-            )
-
-        self.actor, self.critic = network(ACT_DIM), network(1)
+        self.actor = mlp((OBS_DIM, 128, 128, 128, ACT_DIM), nn.ELU)
+        self.critic = mlp((OBS_DIM, 128, 128, 128, 1), nn.ELU)
         self.log_std = nn.Parameter(torch.zeros(ACT_DIM))
         nn.init.orthogonal_(self.actor[-1].weight, 0.01)
         nn.init.zeros_(self.actor[-1].bias)
@@ -101,7 +91,8 @@ def optimize(policy, optimizer, rollout, rng, *, epochs=5):
     )
     count = advantage.size
     flat = {
-        k: torch.as_tensor(v.reshape(count, *v.shape[2:])) for k, v in rollout.items()
+        k: torch.as_tensor(rollout[k].reshape(count, *rollout[k].shape[2:]))
+        for k in ("obs", "action", "logp", "value")
     }
     advantage = torch.as_tensor(advantage.ravel())
     advantage = (advantage - advantage.mean()) / (advantage.std(unbiased=False) + 1e-8)

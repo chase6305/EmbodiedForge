@@ -54,7 +54,7 @@ class FrameRenderer(Protocol):
 
 
 def frame_dependencies(name, scene=None):
-    from . import viewer_dependencies
+    from .dependencies import viewer_dependencies
 
     if name not in FRAME_BACKENDS:
         raise ValueError(f"Unknown frame renderer: {name}")

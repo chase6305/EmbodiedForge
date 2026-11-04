@@ -1,294 +1,92 @@
-# EmbodiedForge 训练平台架构
+# 架构与模块边界
 
-本文是目标架构与接口草案，接口名称属于本平台，不代表第三方引擎已有 API。候选后端的具体能力、版本和性能需要在实现适配器时验证。
+本文是模块边界和执行路径的统一说明。操作命令见 [训练与部署](training-deployment.md)，公共接口见 [接口说明](interfaces.md)。
 
-## 1. 设计目标
+## 三条执行路径
 
-支持状态或视觉 RL、VLA 离线训练与在线评估，共用任务语义、动作定义和数据协议。物理后端与渲染后端独立选择；也允许某个引擎同时提供两者。
+| 路径 | 入口与实现 | 复用范围与边界 |
+| --- | --- | --- |
+| 核心参考运行时 | `cli.py`、`env.VectorEnv`、`training.py` | `reach` / `hold`、CPU 点质量场景、公共任务/后端协议、Episode 数据集 |
+| 原生机器人训练 | `recipes.py` → Go1 worker；`native_h1.py` → H1 环境与 PPO | 本仓库维护任务与算法；依赖 MuJoCo/mjbatch；尚未通过核心 `VectorEnv` 执行 |
+| 外部 SDK 工作流 | Microduck、IsaacLab H1、Wuji、ACT、RLinf、Weave、GMR、SONIC 等独立入口 | 独立 Python 环境、固定来源与请求/结果文件；环境和训练器保留各 SDK 的接口 |
 
-高频执行留在训练 worker 进程内。Web、任务调度、指标展示与回放通过采样和异步消息接入，不控制物理子步。
-
-“支持多后端”表示通过统一接口适配、校验和选择后端，不保证不同引擎的物理结果相同，也不保证任意物理与渲染组合都能运行。
-
-## 2. 总体结构
+统一 CLI 负责分发，不能由命令同属 `embodiedforge` 推断它们具有相同的环境、checkpoint 或数据集格式。恢复和评估必须使用对应工作流的入口。
 
 ```mermaid
 flowchart TB
-    UI[Web / CLI] --> CP[控制服务：配置、启动、停止、状态]
-    CP --> Env
-    subgraph W[训练 Worker]
-        Train[RL Trainer / VLA Evaluator] --> Policy[Policy + Action Executor]
-        Policy --> Env[VectorEnv / Runtime]
-        Task[Task：初始化、奖励、终止、成功条件] --> Env
-        Env --> Physics[PhysicsBackend]
-        Physics --> State[StateBridge：状态视图、同步、版本]
-        State --> Render[RenderBackend]
-        State --> Sensors[SensorGraph]
-        Render --> Sensors
-        Sensors --> Obs[Observation Pipeline]
-        Obs --> Policy
-        Env --> Record[有界数据记录队列]
-    end
-    Assets[Asset Registry / SceneSpec] --> Physics
-    Assets --> Render
-    Record --> Data[Episode Store]
-    Data --> Offline[VLA Offline Trainer]
-    W --> Telemetry[采样遥测 / 预览 / 回放]
-    Telemetry --> UI
+    CLI[CLI] --> Core[核心 VectorEnv / PPO]
+    CLI --> Native[Go1 / H1 环境与 PPO]
+    CLI --> SDK[外部 SDK 启动器]
+    Core --> Task[Task]
+    Core --> Physics[PhysicsBackend]
+    Core --> Sensors[SensorPipeline / RenderBackend]
+    Core --> Dataset[Episode 数据集]
+    SDK --> Worker[独立 Python 环境中的 worker]
+    Native --> Artifacts[运行记录 / checkpoint / 评估 / 运动记录]
+    Worker --> Artifacts
+    Core --> Artifacts
+    Core --> Preview[Web 预览]
+    Native --> Live[Go1 在线策略进程]
+    Live --> Preview
+    Artifacts --> Replay[运动回放]
+    Replay --> Preview
 ```
 
-核心库不依赖 Web、调度器或某个训练算法。后端适配器依赖核心协议，核心协议不导入后端 SDK。
+## 核心控制步
 
-## 3. 模块划分
+`VectorEnv` 装配任务、物理后端、渲染器和传感器，并拥有后端生命周期。任务定义初始化、观测、动作语义、奖励和终止；物理后端推进动力学；传感器负责采样频率、标定、帧龄和有效性。
 
-| 模块 | 职责 | 不承担的职责 |
-| --- | --- | --- |
-| `core` | 类型、能力声明、错误、坐标与时间约定 | 第三方引擎调用 |
-| `assets` | 资产标识、哈希、源文件、编译缓存、名称映射 | 每步状态同步 |
-| `scene` | 实体、关节、材质、相机、环境实例描述 | 具体引擎对象生命周期 |
-| `backends.physics` | 动力学、碰撞、接触、状态读写 | 奖励、策略、图像生成 |
-| `backends.render` | 场景实例、图像输出、渲染资源 | 推进物理时间 |
-| `runtime` | 后端装配、时钟、状态桥、资源与执行顺序 | 训练算法 |
-| `sensors` | 相机、关节、接触等测量及采样频率 | 策略输入归一化 |
-| `tasks` | reset 分布、动作语义、奖励、终止、成功条件 | 直接操作后端私有句柄 |
-| `envs` | 批量 reset/step、观测构建、环境规范 | Web 通信 |
-| `policies` | RL/VLA 策略适配、历史缓存、动作 chunk 执行 | 仿真求解 |
-| `training` | rollout、优化器、checkpoint、评估 | 定义场景实体 |
-| `data` | episode schema、读写、校验、数据集适配 | 训练闭环内的阻塞网络请求 |
-| `services` | 作业管理、设备分配、模型与运行记录 | 物理步进 |
-| `visualization` | 预览与回放适配 | 修改训练状态，除非显式调试模式 |
+一次 `step` 校验并裁剪动作、推进活动环境、取得状态快照、计算任务结果、按需采样相机，然后返回 reset 之前的观测。终止环境冻结，调用方显式按 ID reset。每个环境/episode 使用独立随机序列；返回观测拥有独立数组。后端或任务执行失败会关闭环境，调用方需要重新构造实例。
 
-## 4. 物理与渲染分别抽象
+`backends.resolve` 在分配资源前校验场景、控制单位、局部 reset、活动掩码、设备、传输路径和图像通道。SDK 延迟加载，核心包只要求 NumPy。当前解析器只接受 CPU `host_snapshot`，并没有实现 CUDA 事件、设备零复制或通用机器人状态桥。
 
-### 4.1 物理后端
+`SceneSpec` 当前描述平面受力球体，`StateSnapshot` 提供位置、速度、时间与版本。多个物理后端验证的是此参考场景的可替换性，不能据此推断任意机器人场景可以直接切换后端。
 
-以下 Python 为接口示意；`Batch`、`TensorView` 等类型由核心模块定义。
+## 策略、训练与数据
 
-```python
-class PhysicsBackend(Protocol):
-    def capabilities(self) -> PhysicsCapabilities: ...
-    def build(self, scene: SceneSpec, config: PhysicsConfig) -> SceneBinding: ...
-    def reset(self, env_ids: TensorView, initial: ResetState) -> None: ...
-    def apply_control(self, control: ControlBatch) -> None: ...
-    def step(self, dt: float, substeps: int) -> None: ...
-    def state_view(self, fields: set[str]) -> PhysicsStateView: ...
-    def close(self) -> None: ...
-```
+核心 PPO 使用 proprio，区分 `terminated` 和 `truncated`，并支持保存后的训练状态恢复。Go1/H1 分别维护机器人策略与训练循环，部分数学和 checkpoint 校验工具共享。外部 SDK 的训练器在 SDK 环境中执行。
 
-`step(dt, substeps)` 推进的总时长为 `dt`，内部每个子步为 `dt / substeps`。该定义避免适配器各自解释时间参数。
+`policies.ActionExecutor` 消费 `[N,H,A]` 动作 chunk，向环境提供 `[N,A]`，并依据 episode/step 标识丢弃过期动作。模型内部历史或 KV cache 仍需调用方清理。
 
-`PhysicsStateView` 按需暴露刚体位姿、线/角速度、关节位置/速度、接触数据和完成事件。不要每步导出所有状态，也不要强制转为 NumPy。状态视图默认借用后端内存，有效期到下一次状态写入；异步消费者必须取得快照或持有受保护的缓冲区。
+核心环境直接满足 `envs.base.BatchEnvironment`；原生 Go1/H1 可通过借用式适配器使用同一个 CPU 评估器和 transition 消费接口。环境规格版本 1 显式区分完成行冻结和下一步前必须 reset，两类消费者共用 `envs.specs` 的启动校验；未声明版本的旧规格继续支持。原生训练循环仍独立，适配器不保证逐行冻结，详见 [环境适配与评估](environment-adapters.md)。共用 GAE、张量有限性检查、Adam 校验与探索参数工具归属 `learning` 包，机器人策略模块不导入仿真模块。
 
-任务通过稳定实体 ID 与关节 ID 访问状态。`SceneBinding` 将这些 ID 映射到引擎内部索引，并保存关节排列、自由度数量和单位转换。
+`data.EpisodeRecorder` 通过公共环境协议记录完整 transition，支持有界内存、可选后台写入与显式背压。核心环境提供默认元数据；Go1/H1 等原生适配器需要显式 `RecordingMetadata` 描述配置和来源。读者只接受已完成的 episode；窗口不跨 episode。此数据出口尚未自动接入所有 SDK 工作流。ACT 通过单独的数据适配接入 LeRobot，导出目前限定核心环境；公共 chunk 与数据窗口接口本身不代表已实现通用 VLA 训练器。
 
-关节位置控制、速度控制、力矩控制分别声明能力。末端位姿等高级动作由独立控制器转换为底层控制命令；控制器的模型、增益和限幅进入运行配置。
+记录器在修改缓存前校验批次和 episode 的 schema、布局与数值类型。可选完整性路径在发布 NPZ 前校验 ZIP CRC，并在读回时使用完成标记中的 SHA256 核验压缩文件；配置与 I/O 成本见 [环境适配与评估](environment-adapters.md#可选归档完整性核验)。
 
-### 4.2 渲染后端
+运行记录、来源校验和 checkpoint 校验承担不同责任：运行记录描述状态与配置；来源校验追踪实现和资产；checkpoint 校验决定是否可以加载或恢复。运行状态为 `complete` 不代表策略达到验收阈值，也不能单独证明 checkpoint 兼容。
 
-```python
-class RenderBackend(Protocol):
-    def capabilities(self) -> RenderCapabilities: ...
-    def build(self, scene: SceneSpec, config: RenderConfig) -> RenderBinding: ...
-    def sync(self, update: SceneUpdate, ready: CompletionToken) -> None: ...
-    def render(self, request: RenderRequest) -> RenderBatch: ...
-    def close(self) -> None: ...
-```
+实现快照、SuperMimic 预检和 ACT 指纹共用 `runtime.hashing.snapshot_file_hashes`，从同一个普通文件描述符进行有界读取和身份复核。实现快照把源文件复制与首次哈希合并，之后独立校验目标内容，并在全部复制完成后重新校验源清单；每个文件的逻辑内容读取由四遍减为三遍，这不等同于实测耗时降低。写入目标必须是新文件，失败时调用方负责处理未发布的部分输出。Go1 的已记录实现也使用同一复制工具，将源读取与首次哈希合并，随后独立校验目标；每文件的内容处理由三遍减为两遍，私有目标已存在时拒绝覆盖。通用 `file_sha256` / `stream_sha256` 继续保留读取至 EOF 的原有语义，运动库导入和加载复用同一个流哈希实现。身份检查不提供文件锁，也不保证祖先目录在并发替换时保持不变。
 
-`SceneUpdate` 包含需要更新的实体位姿、可选变形数据和场景修订号。刚体通常只需同步位姿；柔体、粒子等必须声明额外状态与渲染能力，不能假定刚体接口足够。
+核心 PPO、Go1、原生 H1、Microduck、运动文件和 JSON 发布共用 `runtime.artifacts.discard_partial` 清理失败操作拥有的临时文件；清理失败或再次中断单独记录，保留原始保存异常或中断。Go1 的恢复记录直接使用一次原子 JSON 发布，再更新便捷模型副本；恢复仍只认已提交记录引用的快照。
 
-`RenderRequest` 指定环境 ID、相机 ID、分辨率、输出通道与目标时间。`RenderBatch` 返回图像、相机内外参、实际采样时间、状态版本和完成事件。
+公共工具归属 `runtime` 包，新运行增加版本化 `run_contract`，可通过 `embodiedforge runs inspect --run ...` 查询；旧产物保持原格式。字段与兼容范围见 [公共运行记录](run-records.md)。
 
-RGB、depth、normal、instance ID 和 semantic ID 分别声明支持情况。实例标签由统一实体 ID 映射，语义标签由任务资产标注提供，不能把引擎内部 shape ID 直接当作语义类别。
+包入口按需加载 `Config`、`VectorEnv` 等公共导出；导入 `runtime` 工具或执行 `runs inspect` 只依赖标准库，不加载 NumPy 或核心环境。CLI 先分发元数据与 SDK 工作流，再为核心命令装配后端、环境、采集和策略模块。请求核心类型时继续返回原定义模块中的对象，序列化与原有导入形式保持兼容。
 
-### 4.3 三种组合方式
+主机训练与 SDK 启动器共用 `runtime.process` 的进程组、取消转发和有界日志读取，以及 `runtime.records.run_lifecycle` 的终态发布。执行异常在收尾失败时保持为主错误，清理范围限定为启动器拥有的作业组。模型与产物的验证、发布和回滚继续由所属工作流解释；详细状态约定见 [公共运行记录](run-records.md)。
 
-| 组合 | 实现 | 适用情况 |
-| --- | --- | --- |
-| 同引擎共享资源 | 物理与渲染适配器共享一个 `BackendSession`，引用计数管理资源 | 后端允许共享模型或设备缓冲区 |
-| 跨引擎设备同步 | 状态桥映射实体并同步设备数据，渲染器独立持有场景 | 两端设备、数据格式与同步机制兼容 |
-| 跨引擎主机同步 | 状态桥显式复制到主机再上传 | 调试、低频预览或允许复制的任务 |
+`workflows` 包保存配方目录、Go1 设置继承、产物校验、结果验收和进度读取。`recipes.py` 负责 CLI 与执行编排；在线查看器直接使用产物校验模块，不反向导入命令入口。`recipes` 原有公共函数保留兼容导出。
 
-`NullRenderer` 用于纯状态训练。共享会话只是优化路径，不能让任务代码依赖它。
+RLinf 的固定版本与 SAC checkpoint 布局校验分别由 `workflows.rlinf_catalog` 和 `workflows.rlinf_artifacts` 维护。主机启动器、SDK worker、导出器和 ONNX 评估器直接依赖这些轻量模块；SDK 侧不再通过 CLI 入口加载格式工具。
 
-可将 Newton、MuJoCo 等作为物理适配器候选，将 Newton 相机渲染、独立渲染器等作为渲染适配器候选。Viser/Rerun 首先作为预览与回放输出端接入；是否能承担训练图像生成，需要单独满足渲染协议并验证。
+## 预览与训练图像
 
-### 4.4 能力协商与失败方式
+`viewers.WebViewer` 用 HTTP 线程接收命令并发送已发布画面，仿真、相机和渲染器生命周期在会话主线程处理。浏览器共享同一个会话，不是独立训练作业。
 
-启动时由 `BackendResolver` 同时检查任务、物理、渲染、传感器和数据需求，生成可查看的执行计划：
+Go1 在线模式在兼容 Python 环境中运行策略，通过有界消息通道传递状态；运动回放读取记录，不重新执行策略或物理。
 
-- 设备类型、批量环境能力、最大或实际支持的 batch、局部 reset。
-- 控制模式、接触读回、刚体/柔体、动态资产更新。
-- 渲染通道、相机模型、数据布局、深度含义、设备输出能力。
-- 两端支持的资产转换路径与实体映射完整性。
-- 传输方式、同步事件、是否需要主机复制及预计复制量。
+Web 的 `FrameRenderer` 与核心训练的 `RenderBackend` 是两套接口。Web 支持 MuJoCo、OpenGL、RTX 等画面不等于核心训练观测支持这些后端。视觉训练接入需另外验证标定、采样时间、状态版本与数据布局。
 
-缺少必需能力时在开始训练前报错，列出缺失项。仅在配置明确允许时选择降级路径，并记录在运行清单里。后端在一次运行内固定，切换后端需要重建环境。
+## 演进顺序
 
-## 5. 场景、坐标和数据约定
+先保持现有训练入口和产物兼容，提取公共进程、产物与来源工具，再建立可扩展的运行记录协议。随后通过最小环境适配接口让 Go1/H1 复用采集与评估工具，用真实机器人需求检验协议。GPU 状态与通用资产协议应在具体后端需求明确后扩展。
 
-`SceneSpec` 是声明式场景清单，引用源资产与后端编译产物；不要求所有格式先无损转换到同一种格式。可将 USD 用作场景组织格式，同时保留 URDF/MJCF 原始动力学信息。
+使用指南以稳定主题名称维护；实验结论、原始测量和证据包单独归档，日期属于实验元数据。历史报告中的版本、测试数量和性能数字仅对应其记录条件。
 
-跨后端公共描述覆盖实体层级、变换、惯性、碰撞与视觉几何、关节、执行器、材质、灯光、相机和语义标签。后端特有字段放在带命名空间的扩展中，并声明任务可移植性要求。
 
-编译缓存键包含资产内容哈希、适配器及引擎版本、编译参数、坐标转换和需要时的设备信息。对不能表达的关节、材质或碰撞语义给出明确诊断。
+SuperMimic 的 `catalog` / `preflight` 只做来源和接口预检；仓库根目录的 `./supermimic` 使用独立 SDK 执行训练、播放和评测。后空翻 reference 实现保留完整世界模型、BPTT 策略与价值网络更新，以 mjlab 承载物理仿真，并分别保存实际状态、接触力和验收记录。它不采用核心 PPO 或核心 checkpoint 格式，见 [运行说明](supermimic.md)。
 
-统一约定：
+## 扩展约束
 
-- 米、秒、千克、弧度；世界右手系，Z 向上。
-- 位姿 `T_world_entity` 表示从实体局部坐标到世界坐标；四元数采用 `xyzw`。
-- 相机光学坐标 X 向右、Y 向下、Z 向前；适配器负责与引擎相机坐标转换。
-- 深度默认是光学坐标 Z 值，单位米，零为无效值，同时提供有效掩码；射线距离作为不同通道。
-- batch 轴优先：proprio `[N, P]`、动作 `[N, A]`、RGB `[N, K, H, W, 3]`，RGB 默认 `uint8`、sRGB；网络所需布局与数值转换在观测管线完成。
-- normal 的坐标系必须写入通道规格；ID 输出保留整型，禁止有损图像压缩。
-
-## 6. 统一环境与 RL/VLA 执行
-
-```python
-class VectorEnv(Protocol):
-    @property
-    def spec(self) -> EnvSpec: ...
-    def reset(self, env_ids=None, *, seed=None) -> ResetResult: ...
-    def step(self, actions: ActionBatch) -> StepResult: ...
-    def observe(self) -> ObservationBatch: ...
-    def close(self) -> None: ...
-
-# StepResult:
-# observation, reward, terminated, truncated, info
-# observation 是本次动作之后、reset 之前的观测。
-```
-
-默认不自动 reset。done 环境进入冻结状态，下一步由后端执行活动掩码，或通过已验证的适配策略保持该环境状态不变；如果不支持则拒绝此执行模式。调用方按 ID reset 后恢复执行。可额外提供 autoreset wrapper，但必须保留最终观测与 reset 观测的区别。
-
-`observe()` 返回当前观测，不推进时间、不隐式随机化。`reset(env_ids)` 返回这些环境的观测及对应 ID，并只清除它们的控制器、传感器、历史、动作 chunk 和 episode 计数。重置后需要立即生成首帧。
-
-`EnvSpec` 固定观测字段、dtype、shape、设备、动作语义、限幅、控制周期与可选模态。语言指令可通过每个 episode 的 instruction ID 关联文本，避免每个物理子步复制字符串。
-
-`Task` 定义初始化分布、传感器需求、状态到奖励/终止/成功指标的计算，以及随机化参数。任务依赖公共状态字段和受校验的场景修改操作；后端专属任务显式声明依赖。
-
-策略适配器统一输出 `[N, H, A]` 与有效长度，单步策略的 `H=1`。`ActionExecutor` 按控制步消费动作，支持配置的重规划周期，处理局部 done 与历史缓存。环境只接收 `[N, A]`。记录动作生成时间、实际执行时间和策略版本。
-
-RL trainer 负责 rollout、value、log-prob、GAE 和优化；VLA trainer 从数据集读取图像、语言、proprio history 和动作窗口。离线 VLA 训练无需创建仿真后端，在线评估使用相同 `PolicyAdapter` 与 `VectorEnv`。
-
-## 7. 一次控制步与同步
-
-1. 执行器产生当前动作，控制器转换并校验底层控制命令。
-2. 物理后端按配置的子步推进一个控制周期。
-3. 取得本步完成事件与状态版本；任务计算奖励、终止和成功条件。
-4. 到期传感器采样；渲染器等待物理完成事件，同步对应版本的场景并渲染。
-5. 观测管线组合状态与图像，返回 `StepResult`。
-6. 记录器捕获本次 transition；预览按独立预算抽样。
-
-物理、控制、相机和预览各自配置频率，使用整数 tick 或有理数调度，避免浮点累积漂移。默认要求物理频率是控制频率的整数倍。
-
-低频图像可采用保持最近帧的策略，但观测必须带采样时间、帧龄和有效掩码；任务可要求每个控制步新帧，并在能力校验时拒绝不满足的配置。
-
-设备内存共享需要同时满足布局、设备、生命周期和流同步条件。跨设备或不支持共享时执行显式复制并计入指标。异步读取不能引用正在被下一物理步覆盖的缓冲区；使用事件加缓冲池，必要时采用双缓冲。
-
-## 8. Episode 与可复现性
-
-一次记录对应 `(obs_t, action_t, reward_t, terminated_t, truncated_t, obs_t+1)`，终止后的观测不得替换成 reset 观测。图像流与 transition 表可分开保存，通过帧 ID 和仿真时间关联。
-
-| 层级 | 必需内容 |
-| --- | --- |
-| Run manifest | schema 版本、完整配置、源码版本、依赖/适配器版本、设备、资产哈希、seed、后端组合与传输路径 |
-| Episode metadata | run/episode/env ID、任务、指令、随机化结果、相机标定、动作与观测规格 |
-| Transition | step ID、仿真时间、观测引用、实际执行动作、奖励、两类 done、成功指标、策略版本 |
-| Sensor frame | sensor/frame ID、采样时间、状态版本、有效性、数据引用 |
-
-第一版可用 JSON 元数据、分片数组和独立图像文件实现；存储格式通过 reader/writer 接口替换，避免训练器依赖目录细节。写入使用临时文件与完成标记，未完成 episode 不作为完整样本读取。
-
-训练数据队列满时选择显式背压或让记录失败并标记运行，不能静默丢 transition。预览队列允许丢旧帧，优先展示最新状态。记录、压缩与存储开销单独计量。
-
-随机种子按 run、env、episode 和随机化组件派生，避免批量 reset 改变无关环境的随机序列。配置与 seed 支持追溯；跨后端及跨设备的数值一致性不作为承诺。
-
-## 9. 配置草案
-
-以下后端 ID 是拟定注册名，不表示适配器已经存在。配置只接受注册插件，不从任意 YAML 字符串导入和执行 Python。
-
-```yaml
-schema_version: 1
-task:
-  id: reach
-  asset: robot_arm_v1
-env:
-  count: 256
-  seed: 42
-  control_hz: 50
-physics:
-  backend: newton
-  device: cuda:0
-  physics_hz: 200
-  options:
-    solver: mujoco_warp
-render:
-  backend: newton_tiled
-  device: cuda:0
-  transfer: auto
-  allow_host_copy: false
-sensors:
-  external:
-    type: camera
-    hz: 25
-    resolution: [128, 128]
-    channels: [rgb, depth]
-observation:
-  image_sampling: hold_last
-policy:
-  adapter: torch
-  execution_horizon: 1
-training:
-  algorithm: ppo
-recording:
-  enabled: true
-  env_ids: [0, 1]
-  overflow: backpressure
-preview:
-  enabled: false
-```
-
-组合解析先生成报告，再加载昂贵的模型与资源。共享会话由运行时创建和统一关闭；初始化中途失败也按逆序释放已创建资源。训练 worker 持有设备，后续分布式扩展优先按进程分配设备，跨进程只交换训练所需数据。
-
-## 10. 建议目录
-
-```text
-src/embodiedforge/
-  core/                 # specs, tensors, capabilities, errors
-  assets/               # registry, importers, cache
-  scene/                # declarative scene and stable IDs
-  backends/
-    physics/            # protocol, newton adapter, later adapters
-    render/             # protocol, null, tiled adapter
-  runtime/              # resolver, sessions, state bridge, clocks
-  sensors/
-  tasks/
-  envs/
-  policies/             # adapters, controllers, action executor
-  training/             # rl, offline, evaluation
-  data/                 # schema, recorder, readers, writers
-  visualization/
-  services/
-configs/
-examples/
-tests/contract/
-tests/integration/
-benchmarks/
-```
-
-重型依赖放在可选安装组中。仅安装核心包时可以读配置、检查 schema、处理数据；导入核心包不能触发 GPU 初始化或导入全部后端。
-
-## 11. 分阶段交付与验收
-
-| 阶段 | 交付 | 验收依据 |
-| --- | --- | --- |
-| 1：协议与运行时 | 核心 specs、能力解析、时钟、物理适配器、NullRenderer、简单任务 | 批量 reset/step、局部 reset 隔离、done 语义、资源释放；无渲染运行 |
-| 2：RL 闭环 | PPO、checkpoint、评估、指标 | 多 seed 的奖励/成功率改善；checkpoint 可加载评估；分别报告仿真和端到端吞吐 |
-| 3：视觉与数据 | 一个相机渲染适配器、状态桥、Episode writer/reader | 图像与状态时间一致、标定投影检查、深度单位与 ID 映射正确、终止 transition 完整 |
-| 4：验证可替换性 | 第二个物理适配器和一个独立渲染适配器 | 同一任务代码可切换已支持组合；轨迹投影检查；不支持组合在启动时失败 |
-| 5：VLA 链路 | 数据窗口采样、策略适配、chunk 执行、在线评估 | 窗口不跨 episode、局部 reset 清空历史、动作时序可追溯 |
-| 6：平台管理 | CLI/Web、任务状态、预览、回放与设备分配 | 预览断开不阻断训练；停止任务后设备资源释放 |
-
-契约测试验证适配器共同语义；集成测试验证具体组合。后端等价性以单位、索引、时间、边界行为和任务容差为准，不比较逐位相同的长时间轨迹。
-
-性能基准分别测量物理步、状态传输、渲染、策略推理、数据记录和完整训练吞吐，记录显存与场景规模。GPU 测量等待相应完成事件并区分预热与稳态，避免只测异步提交耗时。
-
-第一版采用单机单 worker、一个物理适配器、NullRenderer 与一个训练相机适配器。先保证真实闭环，再通过第二个后端发现并修正抽象泄漏；Web 和分布式调度随后接入。
+按具体工作流的需求扩展现有边界。新增后端先声明场景、动作、设备、reset 和传输能力，再验证目标任务；不能由统一 CLI 推断后端可互换。GPU 状态视图、通用资产注册与多作业调度尚未实现，应在实际需求出现时设计，当前不预建对应的平行接口和服务层。

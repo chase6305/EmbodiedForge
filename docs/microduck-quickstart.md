@@ -2,7 +2,7 @@
 
 使用仓库内已移植的 Microduck 平地行走实现，无需 `3rdparty/microduck_rl`，直接开始训练。主入口使用 `ef`，CUDA 训练依赖运行在独立环境中。以下输出目录与 ONNX 文件须尚不存在；重复运行时更换名称。
 
-网络结构、权重大小和预训练／后训练／消融实验的详细说明，见 [机械鸭模型与实验详解](microduck-model-training-ablation.md)。
+网络结构、权重大小和预训练／后训练／消融实验的详细说明，见 [机械鸭模型与实验详解](experiments/microduck-model-training-ablation.md)。
 
 ## 环境
 
@@ -70,7 +70,7 @@ python -m embodiedforge.microduck export \
   --output runs/duck-policy.onnx
 ```
 
-新导出的 `default_joint_pos` 元数据保留完整浮点精度，关节顺序为左腿、头颈、右腿。动作是默认关节角的偏移；具体顺序、转换公式及执行器参数说明见 [动作与关节目标](microduck-model-training-ablation.md#66-从网络动作到关节目标)。
+新导出的 `default_joint_pos` 元数据保留完整浮点精度，关节顺序为左腿、头颈、右腿。动作是默认关节角的偏移；具体顺序、转换公式及执行器参数说明见 [动作与关节目标](experiments/microduck-model-training-ablation.md#66-从网络动作到关节目标)。
 
 ## 无窗口评估与录像
 

@@ -3,10 +3,8 @@
 import hashlib
 import io
 import json
-import logging
 import math
-import sys
-import time
+from contextlib import ExitStack
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -16,13 +14,16 @@ import torch
 from torch import nn
 from torch.distributions import Normal
 
-from ._adam_checkpoint import validate_adam_checkpoint
 from ._core_run import publish_checkpoint, read_resume, write_json
-from ._microduck_process import termination_signals
-from ._ppo_parameters import bounded_log_std
-from ._training_runtime import record_training_runtime
 from .core import Array, Config, Observation
 from .env import VectorEnv
+from .envs.specs import validate_environment_spec
+from .learning.advantages import generalized_advantage as generalized_advantage
+from .learning.checkpoints import validate_adam_checkpoint
+from .learning.parameters import bounded_log_std, mlp
+from .runtime.implementation import record_training_runtime
+from .runtime.process import termination_signals
+from .runtime.records import run_identity, run_lifecycle
 
 
 @dataclass(frozen=True)
@@ -79,20 +80,8 @@ class ActorCritic(nn.Module):
         }
         self.action_scale = (action_high - action_low) / 2
         self.action_bias = (action_high + action_low) / 2
-        self.actor = nn.Sequential(
-            nn.Linear(proprio_dim, 64),
-            nn.Tanh(),
-            nn.Linear(64, 64),
-            nn.Tanh(),
-            nn.Linear(64, action_dim),
-        )
-        self.critic = nn.Sequential(
-            nn.Linear(proprio_dim, 64),
-            nn.Tanh(),
-            nn.Linear(64, 64),
-            nn.Tanh(),
-            nn.Linear(64, 1),
-        )
+        self.actor = mlp((proprio_dim, 64, 64, action_dim), nn.Tanh)
+        self.critic = mlp((proprio_dim, 64, 64, 1), nn.Tanh)
         self.log_std = nn.Parameter(torch.full((action_dim,), -0.5))
         nn.init.orthogonal_(self.actor[-1].weight, gain=0.01)
         nn.init.zeros_(self.actor[-1].bias)
@@ -112,27 +101,6 @@ class ActorCritic(nn.Module):
     def to_action(self, raw: torch.Tensor) -> torch.Tensor:
         """Map unconstrained Gaussian samples to the task's physical action range."""
         return raw.tanh() * self.action_scale + self.action_bias
-
-
-def generalized_advantage(
-    reward: Array,
-    value: Array,
-    next_value: Array,
-    terminated: Array,
-    truncated: Array,
-    gamma: float,
-    gae_lambda: float,
-) -> tuple[Array, Array]:
-    """Bootstrap at time limits, but never propagate GAE through reset."""
-    advantage = np.zeros_like(reward)
-    carry = np.zeros(reward.shape[1], dtype=np.float32)
-    # Only the carry depends on time; batch the independent transition terms.
-    delta = reward + gamma * next_value * ~terminated - value
-    discount = gamma * gae_lambda * ~(terminated | truncated)
-    for t in reversed(range(len(reward))):
-        carry = delta[t] + discount[t] * carry
-        advantage[t] = carry
-    return advantage, advantage + value
 
 
 def _collect_rollout(
@@ -215,7 +183,8 @@ def _optimize_policy(
     )
     count = advantage.size
     flat = {
-        k: torch.as_tensor(v.reshape(count, *v.shape[2:])) for k, v in rollout.items()
+        k: torch.as_tensor(rollout[k].reshape(count, *rollout[k].shape[2:]))
+        for k in ("obs", "raw", "logprob")
     }
     advantages = torch.as_tensor(advantage.reshape(-1))
     advantages = (advantages - advantages.mean()) / (
@@ -286,9 +255,7 @@ def train_ppo(
     start = restored.updates if restored else 0
     torch.manual_seed(config.seed)
     rng = np.random.default_rng(config.seed)
-    metadata = None
-    began = time.monotonic()
-    try:
+    with ExitStack() as run:
         with VectorEnv(env_config) as env:
             spec = env.spec
             if restored:
@@ -314,6 +281,7 @@ def train_ppo(
             metadata = {
                 "schema_version": 1,
                 "kind": "core-ppo",
+                "run_contract": run_identity("core", "train", env_config.task),
                 "status": "running",
                 "initial_updates": start,
                 "requested_updates": config.updates,
@@ -329,7 +297,13 @@ def train_ppo(
                 ),
                 "resume_semantics": "policy+optimizer; environment and RNG reset",
             }
-            write_json(root / "run.json", metadata)
+            run.enter_context(
+                run_lifecycle(
+                    metadata,
+                    lambda record: write_json(root / "run.json", record),
+                    label=root / "run.json",
+                )
+            )
             write_json(
                 root / "config.json",
                 {"env": env_config.to_dict(), "ppo": asdict(config)},
@@ -394,26 +368,6 @@ def train_ppo(
                             metadata,
                         )
         metadata["status"] = "complete"
-    except BaseException as error:
-        if metadata is not None:
-            metadata["status"] = (
-                "interrupted" if isinstance(error, KeyboardInterrupt) else "failed"
-            )
-            metadata["error"] = f"{type(error).__name__}: {error}"
-        raise
-    finally:
-        if metadata is not None:
-            metadata["seconds"] = time.monotonic() - began
-            active_error = sys.exc_info()[0] is not None
-            try:
-                write_json(root / "run.json", metadata)
-            except Exception:
-                if not active_error:
-                    raise
-                logging.getLogger(__name__).exception(
-                    "Could not finalize core PPO run %s; preserving the training error",
-                    root,
-                )
     return model
 
 
@@ -428,6 +382,10 @@ class PolicyCheckpoint:
 
     def validate_environment(self, spec: dict) -> None:
         """Reject semantic/dimension changes; allow device count/backend changes."""
+        if "schema_version" in self.env_spec:
+            validate_environment_spec(self.env_spec)
+        if "schema_version" in spec:
+            validate_environment_spec(spec)
         for key in (
             "task",
             "scene",
@@ -461,6 +419,8 @@ def _policy_checkpoint(checkpoint: dict, checksum: str) -> PolicyCheckpoint:
     env_spec = checkpoint.get("env_spec", {})
     if not isinstance(env_spec, dict):
         raise ValueError("Checkpoint environment specification must be a mapping")
+    if "schema_version" in env_spec:
+        validate_environment_spec(env_spec)
     model = ActorCritic(**checkpoint.get("model_spec", {}))
     model.load_state_dict(checkpoint["model"])
     for name, parameter in model.named_parameters():

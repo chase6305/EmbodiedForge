@@ -1,6 +1,7 @@
 """Checkpoint publication must remain recoverable across interruption windows."""
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,7 @@ def run(tmp_path, monkeypatch):
     # These tests cover file publication. Real Adam/policy validation is exercised
     # in test_go1_optimizer and the actual interrupted-process integration below.
     def save(path, checkpoint, **kwargs):
-        path.write_bytes(str(checkpoint["iteration"]).encode())
+        Path(path).write_bytes(str(checkpoint["iteration"]).encode())
 
     monkeypatch.setattr(_go1_checkpoint, "save_go1_checkpoint", save)
     monkeypatch.chdir(tmp_path)
@@ -96,29 +97,43 @@ def test_interruption_during_publication_keeps_a_committed_checkpoint(
 ):
     root, manifest, checkpoint = run
     checkpoint["iteration"] = 49
-    replace = Path.replace
-    unlink = Path.unlink
-    temporary = "recovery.json.tmp" if failure == "receipt" else "model.pt.tmp"
+    replace, unlink = os.replace, os.unlink
+    path_replace, path_unlink = Path.replace, Path.unlink
+    target_name = "recovery.json" if failure == "receipt" else "model.pt"
+    temporary = None
     interruption = KeyboardInterrupt("publication stopped")
 
-    def interrupt(path, target):
-        if path.name == temporary:
+    def interrupt(path, target, *, operation=replace):
+        nonlocal temporary
+        if Path(target).name == target_name:
+            temporary = Path(path)
             raise interruption
-        return replace(path, target)
+        return operation(path, target)
 
-    def cleanup(path, **kwargs):
-        if cleanup_fails and path.name == temporary:
+    def cleanup(path, *args, operation=unlink, **kwargs):
+        if cleanup_fails and Path(path) == temporary:
             raise PermissionError("cannot remove partial file")
-        return unlink(path, **kwargs)
+        return operation(path, *args, **kwargs)
 
-    monkeypatch.setattr(Path, "replace", interrupt)
-    monkeypatch.setattr(Path, "unlink", cleanup)
+    monkeypatch.setattr(os, "replace", interrupt)
+    monkeypatch.setattr(os, "unlink", cleanup)
+    monkeypatch.setattr(
+        Path,
+        "replace",
+        lambda path, target: interrupt(path, target, operation=path_replace),
+    )
+    monkeypatch.setattr(
+        Path,
+        "unlink",
+        lambda path, **kwargs: cleanup(path, operation=path_unlink, **kwargs),
+    )
     with pytest.raises(KeyboardInterrupt) as error:
         publish_training_checkpoint(
             checkpoint, optimizer=None, request=manifest["request"]
         )
     assert error.value is interruption
-    assert (root / temporary).exists() is cleanup_fails
+    assert temporary is not None
+    assert temporary.exists() is cleanup_fails
     if cleanup_fails:
         assert "cannot remove partial file" in caplog.text
     result = recovery_result(root, manifest)

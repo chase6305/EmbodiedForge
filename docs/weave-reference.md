@@ -340,8 +340,8 @@ joint_targets = reference["joint_pos"]  # [环境数, 未来帧数, 关节数]
 也不构成进程内存上限。可用 `benchmarks/motion_compare.py --reference reference.npz
 --rollout rollout.npz --output /tmp/motion-score.json` 单独测量解码后的评分，
 耗时测量不含文件加载、校验、哈希、仿真或训练。
-[2026-10-16 四小时优化记录](platform-optimization-20261016-round4-fourhour.json)
-保留各布局和小输入的正负结果，并提供[性能图](platform-optimization-20261016-round4-fourhour-performance.svg)。
+[2026-10-16 四小时优化记录](experiments/platform-optimization-20261016-round4-fourhour.json)
+保留各布局和小输入的正负结果，并提供[性能图](experiments/platform-optimization-20261016-round4-fourhour-performance.svg)。
 聚合值为各片段 RMSE 的等权均值；提前失败只计算实际记录的前缀，所以必须结合成功率、
 完成比例阅读，不能将短时失败的低误差视作较好策略。没有成功片段时 `metrics_success` 为 `null` 值字典。
 报告记录参考与实际文件的 SHA256，禁止 NaN/Infinity，也不覆盖已有结果。

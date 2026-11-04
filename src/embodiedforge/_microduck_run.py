@@ -1,17 +1,12 @@
-"""Resolve recorded Microduck checkpoints without importing its training SDK."""
+"""Microduck model handoff: resolve recorded checkpoints and freeze evaluation inputs."""
 
 import hashlib
 import json
 import re
 from pathlib import Path
 
-
-def checkpoint_digest(path):
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+from .runtime.hashing import copy_file_snapshot
+from .runtime.hashing import file_sha256 as checkpoint_digest
 
 
 def _checkpoint_relative(recorded):
@@ -112,3 +107,46 @@ def resolve_run_checkpoint(directory, identity, task, *, allow_incomplete=False)
         else "completed_run_checkpoint",
         "run_status": report["status"],
     }
+
+
+def snapshot_inputs(output, checkpoint, options, source_run=None):
+    directory = output / "inputs"
+    directory.mkdir(exist_ok=False)
+    sources = {"checkpoint": (checkpoint, "checkpoint.pt")}
+    if options.get("onnx"):
+        sources["onnx"] = (Path(options["onnx"]), "policy.onnx")
+    result = {}
+    for role, (source, filename) in sources.items():
+        expected = checkpoint_digest(source)
+        if role == "checkpoint" and source_run is not None:
+            if expected != source_run["checkpoint_sha256"]:
+                raise ValueError("Selected training run checkpoint SHA256 mismatch")
+        target = directory / filename
+        copied = copy_file_snapshot(source, target)
+        if copied != expected or checkpoint_digest(target) != expected:
+            raise ValueError(f"Evaluation {role} changed while taking snapshot; retry")
+        result[role] = {"source": str(source), "path": str(target), "sha256": expected}
+    return result
+
+
+def verify_input_snapshot(snapshot):
+    for role, item in snapshot.items():
+        if checkpoint_digest(Path(item["path"])) != item["sha256"]:
+            raise ValueError(f"Evaluation {role} snapshot SHA256 mismatch")
+
+
+def verify_report_inputs(report, snapshot):
+    if (
+        report.get("checkpoint_metadata", {}).get("sha256")
+        != snapshot["checkpoint"]["sha256"]
+    ):
+        raise ValueError("Evaluation report checkpoint differs from input snapshot")
+    parity = report.get("onnx_parity")
+    if "onnx" in snapshot:
+        if (
+            not isinstance(parity, dict)
+            or parity.get("sha256") != snapshot["onnx"]["sha256"]
+        ):
+            raise ValueError("Evaluation report ONNX differs from input snapshot")
+    elif parity is not None:
+        raise ValueError("Evaluation report contains an unrequested ONNX comparison")

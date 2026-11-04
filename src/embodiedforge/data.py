@@ -1,22 +1,94 @@
 """Versioned complete episodes and windows that never cross episode boundaries."""
 
+import fnmatch
 import json
+import logging
+import os
 import platform
 import uuid
+import zipfile
 from collections.abc import Iterator
 from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
-from dataclasses import asdict, dataclass
+from contextlib import nullcontext
+from copy import deepcopy
+from dataclasses import asdict, dataclass, field
 from importlib.metadata import PackageNotFoundError, distribution, version
 from pathlib import Path
 
 import numpy as np
 
 from .core import Array, Observation, StepResult
-from .env import VectorEnv
+from .envs.base import BatchEnvironment
+from .envs.specs import validate_environment_spec as _validate_environment_spec
+from .runtime.artifacts import write_json as _json_atomic
+from .runtime.hashing import file_sha256, stream_sha256
+from .runtime.records import run_identity, validate_run_identity
 
 _REQUIRED_OBSERVATIONS = frozenset(
     {"env_id", "episode_id", "step_id", "time", "proprio"}
 )
+LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class RecordingMetadata:
+    """Explicit provenance for recording a non-core CPU environment.
+
+    config and scene_spec describe the caller's environment; the recorder does
+    not infer assets, randomization or reconstruction settings from array shapes.
+    max_steps bounds one buffered episode and must cover the task's episode limit.
+    """
+
+    family: str
+    max_steps: int
+    seed: int
+    instruction: str
+    scene: str
+    scene_spec: dict
+    config: dict
+    calibration: dict = field(default_factory=dict)
+    source: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        if type(self.max_steps) is not int or self.max_steps <= 0:
+            raise ValueError("Recording max_steps must be a positive integer")
+        if type(self.seed) is not int or self.seed < 0:
+            raise ValueError("Recording seed must be a nonnegative integer")
+        for name in ("family", "instruction", "scene"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"Recording {name} must be a nonempty string")
+        for name in ("scene_spec", "config", "calibration", "source"):
+            if not isinstance(getattr(self, name), dict):
+                raise ValueError(f"Recording {name} must be a JSON object")
+        json.dumps(asdict(self), allow_nan=False)
+
+
+def _recording_description(env: BatchEnvironment, metadata: RecordingMetadata | None):
+    spec = deepcopy(env.spec)
+    _validate_environment_spec(spec)
+    if metadata is None:
+        try:
+            metadata = RecordingMetadata(
+                family="core",
+                max_steps=env.config.max_steps,
+                seed=env.seed,
+                instruction=env.task.spec.instruction,
+                scene=f"{env.task.scene.kind}:v1",
+                scene_spec=asdict(env.task.scene),
+                config=env.config.to_dict(),
+                calibration=env.calibration,
+            )
+        except AttributeError as error:
+            raise ValueError(
+                "Non-core recording requires explicit RecordingMetadata"
+            ) from error
+    elif not isinstance(metadata, RecordingMetadata):
+        raise ValueError("metadata must be RecordingMetadata")
+    metadata = RecordingMetadata(**asdict(metadata))
+    spec["instruction"] = metadata.instruction
+    json.dumps(spec, allow_nan=False)
+    return spec, metadata
 
 
 @dataclass(frozen=True)
@@ -25,15 +97,20 @@ class EpisodeReadOptions:
 
     None loads every field; an empty tuple loads only required state/identity
     fields. Required observations and transition fields are always validated.
-    Unselected array payloads are neither decompressed nor validated. Partition
-    membership is stable only for an unchanged directory of completed episodes.
+    Unselected array payloads are not decompressed. verify_archive additionally
+    checks the complete encoded file against its recorded SHA256; it requires a
+    dataset written with archive verification enabled. Partition membership is
+    stable only for an unchanged directory of completed episodes.
     """
 
     observation_keys: tuple[str, ...] | None = None
     shard_index: int = 0
     num_shards: int = 1
+    verify_archive: bool = False
 
     def __post_init__(self) -> None:
+        if type(self.verify_archive) is not bool:
+            raise ValueError("verify_archive must be a boolean")
         if (
             type(self.num_shards) is not int
             or self.num_shards <= 0
@@ -52,14 +129,10 @@ class EpisodeReadOptions:
             object.__setattr__(self, "observation_keys", tuple(keys))
 
 
-def _json_atomic(path: Path, value: dict) -> None:
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n")
-    temporary.replace(path)
-
-
 def _dataset_manifest(root: Path) -> dict:
     manifest = json.loads((root / "run.json").read_text())
+    if not isinstance(manifest, dict):
+        raise ValueError("Dataset manifest must be a JSON object")
     if manifest.get("kind") == "core-ppo":
         raise ValueError(
             "Expected an episode dataset, received a core PPO training run"
@@ -69,6 +142,31 @@ def _dataset_manifest(root: Path) -> dict:
         or manifest["schema_version"] != 1
     ):
         raise ValueError("Unsupported run schema")
+    if manifest.keys() == {"schema_version"}:
+        # Original standalone episode archives supplied no run-level layout.
+        # Keep their low-level reader compatible; windows still need language.
+        return manifest
+    if not {"config", "env_spec", "completed_episodes", "run_id"} <= manifest.keys():
+        raise ValueError("Expected an episode dataset manifest")
+    if (
+        not isinstance(manifest["config"], dict)
+        or not isinstance(manifest["run_id"], str)
+        or not manifest["run_id"]
+        or type(manifest["completed_episodes"]) is not int
+        or manifest["completed_episodes"] < 0
+    ):
+        raise ValueError("Invalid episode dataset metadata")
+    if "run_contract" in manifest:
+        identity = validate_run_identity(manifest["run_contract"])
+        if (
+            identity["workflow"] not in ("core-data", "episode-data")
+            or identity["operation"] != "record"
+        ):
+            raise ValueError("Expected an episode recording run identity")
+    _validate_environment_spec(manifest["env_spec"])
+    instruction = manifest["env_spec"].get("instruction")
+    if not isinstance(instruction, str) or not instruction.strip():
+        raise ValueError("Dataset instruction must be a nonempty string")
     return manifest
 
 
@@ -139,36 +237,44 @@ class EpisodeRecorder:
     append waits for storage only when queued episodes can relieve that budget.
     Incomplete buffers are discarded on close and listed in the run manifest.
     Readers only accept shards with an adjacent completion metadata file.
+    verify_archive adds a bounded SHA256 pass and ZIP CRC read-back before
+    publication, recording the hash in each completion marker. It costs extra
+    I/O/decompression and is disabled by default.
     """
 
     def __init__(
         self,
         directory: str | Path,
-        env: VectorEnv,
+        env: BatchEnvironment,
         *,
+        metadata: RecordingMetadata | None = None,
         max_buffer_bytes: int = 256 * 1024 * 1024,
         episode_format: str = "transitions",
         write_workers: int = 0,
+        verify_archive: bool = False,
     ) -> None:
         if type(max_buffer_bytes) is not int or max_buffer_bytes <= 0:
             raise ValueError("max_buffer_bytes must be a positive integer")
         if type(write_workers) is not int or write_workers < 0:
             raise ValueError("write_workers must be a nonnegative integer")
+        if type(verify_archive) is not bool:
+            raise ValueError("verify_archive must be a boolean")
         if not isinstance(episode_format, str) or episode_format not in (
             "transitions",
             "compact",
         ):
             raise ValueError("episode_format must be transitions or compact")
+        spec, metadata = _recording_description(env, metadata)
         self._episode_format = episode_format
+        self._verify_archive = verify_archive
         self._max_buffer_bytes = max_buffer_bytes
         self.buffered_bytes = 0
         self.root = Path(directory)
-        self.root.mkdir(parents=True, exist_ok=False)
         self.pending = {}
         self.closed = False
         self._closing = False
-        self.max_steps = env.config.max_steps
-        self.num_envs = env.config.num_envs
+        self.max_steps = metadata.max_steps
+        self.num_envs = spec["num_envs"]
         self.failure: BaseException | None = None
         self.close_error: BaseException | None = None
         self._writes: dict[tuple[int, int], tuple[Future, list[dict], int]] = {}
@@ -192,29 +298,52 @@ class EpisodeRecorder:
                 pass
         self.manifest = {
             "schema_version": 1,
+            "run_contract": run_identity(
+                "core-data" if metadata.family == "core" else "episode-data",
+                "record",
+                spec["task"],
+            ),
+            "environment_family": metadata.family,
             "run_id": uuid.uuid4().hex,
-            "config": env.config.to_dict(),
-            "env_spec": env.spec,
-            "calibration": env.calibration,
+            "config": metadata.config,
+            "env_spec": spec,
+            "calibration": metadata.calibration,
             "python": platform.python_version(),
             "packages": packages,
             "dependency_sources": sources,
             "status": "recording",
             "completed_episodes": 0,
             "transport": "host_snapshot",
-            "scene": f"{env.task.scene.kind}:v1",
-            "scene_spec": asdict(env.task.scene),
-            "task": env.task.spec.id,
-            "seed": env.seed,
+            "scene": metadata.scene,
+            "scene_spec": metadata.scene_spec,
+            "task": spec["task"],
+            "seed": metadata.seed,
             "max_buffer_bytes": max_buffer_bytes,
             "episode_format": episode_format,
             "write_workers": write_workers,
+            "verify_archive": verify_archive,
         }
-        _json_atomic(self.root / "run.json", self.manifest)
-        if write_workers:
-            self._executor = ThreadPoolExecutor(
-                max_workers=write_workers, thread_name_prefix="episode-writer"
-            )
+        if metadata.source:
+            self.manifest["source"] = metadata.source
+        # Resolve metadata before claiming a new directory. Once claimed, the
+        # constructor owns failure finalization even before __enter__ can run.
+        self.root.mkdir(parents=True, exist_ok=False)
+        try:
+            _json_atomic(self.root / "run.json", self.manifest)
+            if write_workers:
+                self._executor = ThreadPoolExecutor(
+                    max_workers=write_workers, thread_name_prefix="episode-writer"
+                )
+        except BaseException as error:
+            self.failure = error
+            try:
+                self.close()
+            except BaseException:
+                LOGGER.exception(
+                    "Could not finalize recorder startup %s; preserving its original error",
+                    self.root,
+                )
+            raise
 
     @property
     def max_buffer_bytes(self) -> int:
@@ -226,11 +355,22 @@ class EpisodeRecorder:
         """Fixed storage layout; changing it mid-run would invalidate byte accounting."""
         return self._episode_format
 
+    @property
+    def verify_archive(self) -> bool:
+        """Fixed integrity mode: validate ZIP CRCs and record its byte hash."""
+        return self._verify_archive
+
     def _prepare(self, observation: Observation, result: StepResult) -> list[tuple]:
         """Validate and copy an entire batch without changing memory or disk state."""
         count = self.num_envs
         _validate_observation(observation, count)
         _validate_observation(result.observation, count)
+        expected_proprio = (count, self.manifest["env_spec"]["proprio_shape"][0])
+        if any(
+            batch["proprio"].shape != expected_proprio
+            for batch in (observation, result.observation)
+        ):
+            raise ValueError("Recorded proprio layout must match environment spec")
         if observation.keys() != result.observation.keys():
             raise ValueError("Observation schema changed within a transition")
         for name, value in (
@@ -248,13 +388,15 @@ class EpisodeRecorder:
         if (
             not isinstance(action, np.ndarray)
             or action.shape != (count, self.manifest["env_spec"]["action_shape"][0])
-            or not np.isfinite(action).all()
+            or action.dtype.kind not in "fiu"
+            or not _all_finite(action)
         ):
             raise ValueError("Recorded action must be finite [N,A]")
         if (
             not isinstance(result.reward, np.ndarray)
             or result.reward.shape != (count,)
-            or not np.isfinite(result.reward).all()
+            or result.reward.dtype.kind not in "fiu"
+            or not _all_finite(result.reward)
         ):
             raise ValueError("Recorded reward must be finite [N]")
         if (result.terminated & result.truncated).any():
@@ -299,6 +441,13 @@ class EpisodeRecorder:
         next_fields = [
             (f"next/{name}", values) for name, values in result.observation.items()
         ]
+        for name, _, _, values in fields:
+            next_values = result.observation[name]
+            if values.shape != next_values.shape or values.dtype != next_values.dtype:
+                raise ValueError(f"Observation layout changed for {name}")
+        row_fields = {"action", "reward", "terminated", "truncated"}
+        row_fields.update(obs for _, obs, _, _ in fields)
+        row_fields.update(name for name, _ in next_fields)
         compact = self.episode_format == "compact"
         prepared = []
         for i in active_ids:
@@ -310,6 +459,8 @@ class EpisodeRecorder:
                     "An environment was reset before its recorded episode ended"
                 )
             rows = self.pending.get(key, [])
+            if rows and rows[-1].keys() != row_fields:
+                raise ValueError("Observation schema changed within an episode")
             if step != len(rows):
                 raise ValueError(
                     "Recording must start at reset and contain consecutive transitions"
@@ -322,7 +473,9 @@ class EpisodeRecorder:
             if (
                 key in self._writes
                 or not rows
-                and (self.root / f"env{key[0]:05d}-episode{key[1]:08d}.npz").exists()
+                and os.path.exists(
+                    os.path.join(self.root, f"env{key[0]:05d}-episode{key[1]:08d}.npz")
+                )
             ):
                 raise ValueError("Duplicate episode ID; do not reseed a recording run")
             if (
@@ -334,17 +487,20 @@ class EpisodeRecorder:
                     "next observation must precede reset and advance exactly one step"
                 )
             for name, _, next_name, values in fields:
-                next_values = result.observation[name]
-                if (
-                    values.shape != next_values.shape
-                    or values.dtype != next_values.dtype
-                ):
-                    raise ValueError(f"Observation layout changed for {name}")
                 if rows and (
                     next_name not in rows[-1]
-                    or not np.array_equal(values[i], rows[-1][next_name])
+                    or values.shape[1:] != rows[-1][next_name].shape
+                    or values.dtype != rows[-1][next_name].dtype
+                    or not _array_equal(values[i], rows[-1][next_name])
                 ):
-                    raise ValueError(f"Observation continuity broken for {name}")
+                    raise ValueError(
+                        f"Observation continuity broken or layout changed for {name}"
+                    )
+            if rows and any(
+                value.dtype != rows[-1][name].dtype
+                for name, value in (("action", action), ("reward", result.reward))
+            ):
+                raise ValueError("Action/reward layout changed within an episode")
             row = {
                 obs_name: (
                     rows[-1][next_name] if rows and compact else values[i].copy()
@@ -427,10 +583,12 @@ class EpisodeRecorder:
     def _write_episode(self, key: tuple[int, int], rows: list[dict]) -> None:
         """Publish files only; worker threads never mutate recorder bookkeeping."""
         stem = f"env{key[0]:05d}-episode{key[1]:08d}"
-        path = self.root / f"{stem}.npz"
-        if path.exists():
+        # Do not parse unique episode filenames through pathlib: on CPython
+        # 3.12 its interned path components live until interpreter shutdown.
+        path = os.path.join(self.root, f"{stem}.npz")
+        if os.path.exists(path):
             raise ValueError("Duplicate episode ID; do not reseed a recording run")
-        temporary = self.root / f"{stem}.npz.tmp"
+        temporary = os.path.join(self.root, f"{stem}.npz.tmp")
         if self.episode_format == "compact":
             arrays = {
                 f"state/{name[4:]}": np.stack(
@@ -447,18 +605,35 @@ class EpisodeRecorder:
             )
         else:
             arrays = {name: np.stack([row[name] for row in rows]) for name in rows[0]}
-        with temporary.open("wb") as stream:
+        with open(temporary, "wb") as stream:
             np.savez_compressed(stream, **arrays)
-        temporary.replace(path)
+        checksum = None
+        if self.verify_archive:
+            # Hash before CRC validation: subsequent changes are detected by
+            # strict readers even if they happen after this validation pass.
+            checksum = file_sha256(temporary)
+            try:
+                with zipfile.ZipFile(temporary) as archive:
+                    bad_entry = archive.testzip()
+                if bad_entry is not None:
+                    raise zipfile.BadZipFile(f"Bad CRC for {bad_entry}")
+            except zipfile.BadZipFile as error:
+                raise zipfile.BadZipFile(
+                    f"Episode archive failed verification: {path}: {error}"
+                ) from error
+        os.replace(temporary, path)
+        marker = {
+            "schema_version": 2 if self.episode_format == "compact" else 1,
+            "complete": True,
+            "steps": len(rows),
+            "env_id": key[0],
+            "episode_id": key[1],
+        }
+        if checksum is not None:
+            marker["archive_sha256"] = checksum
         _json_atomic(
-            self.root / f"{stem}.json",
-            {
-                "schema_version": 2 if self.episode_format == "compact" else 1,
-                "complete": True,
-                "steps": len(rows),
-                "env_id": key[0],
-                "episode_id": key[1],
-            },
+            os.path.join(self.root, f"{stem}.json"),
+            marker,
         )
 
     def _release_episode(self, key: tuple[int, int], rows: list[dict]) -> None:
@@ -601,140 +776,235 @@ def _read_episodes(
     owned: bool,
 ) -> Iterator[Observation]:
     """Internal compact views stay private; window results copy their slices."""
+    if options is not None and not isinstance(options, EpisodeReadOptions):
+        raise ValueError("options must be EpisodeReadOptions")
     options = options or EpisodeReadOptions()
     root = Path(directory)
-    _dataset_manifest(root)
+    manifest = _dataset_manifest(root)
     completed_index = 0
-    for path in sorted(root.glob("*.npz")):
-        marker = path.with_suffix(".json")
-        if not marker.exists():
+    with os.scandir(root) as entries:
+        paths = sorted(
+            (entry.path for entry in entries if fnmatch.fnmatch(entry.name, "*.npz")),
+            key=os.path.normcase,
+        )
+    for path in paths:
+        marker = os.path.splitext(path)[0] + ".json"
+        if not os.path.exists(marker):
             continue
-        metadata = json.loads(marker.read_text())
+        with open(marker, encoding="utf-8") as stream:
+            metadata = json.load(stream)
+        if not isinstance(metadata, dict):
+            raise ValueError(f"Episode marker must be a JSON object: {marker}")
         schema = metadata.get("schema_version")
-        if not metadata.get("complete"):
+        if metadata.get("complete") is False:
             continue
+        if metadata.get("complete") is not True:
+            raise ValueError(f"Episode completion marker must be boolean: {marker}")
         if type(schema) is not int or schema not in (1, 2):
             raise ValueError(f"Unsupported episode schema: {path}")
         selected = completed_index % options.num_shards == options.shard_index
         completed_index += 1
         if not selected:
             continue
-        yield _load_episode(path, metadata, options, owned=owned)
+        if options.verify_archive:
+            expected = metadata.get("archive_sha256")
+            if (
+                not isinstance(expected, str)
+                or len(expected) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in expected.lower()
+                )
+            ):
+                raise ValueError(f"Archive SHA256 is missing or invalid: {path}")
+        try:
+            source = open(path, "rb") if options.verify_archive else nullcontext()
+            with source as stream:
+                if options.verify_archive:
+                    if stream_sha256(stream) != expected.lower():
+                        raise ValueError(f"Episode archive SHA256 mismatch: {path}")
+                    stream.seek(0)
+                episode = _load_episode(
+                    path,
+                    metadata,
+                    options,
+                    owned=owned,
+                    spec=manifest.get("env_spec"),
+                    source=stream,
+                )
+        except zipfile.BadZipFile as error:
+            raise zipfile.BadZipFile(
+                f"Corrupt episode archive: {path}: {error}"
+            ) from error
+        yield episode
+        del episode
 
 
 def _load_episode(
-    path: Path, metadata: dict, options: EpisodeReadOptions, *, owned: bool
+    path: str | Path,
+    metadata: dict,
+    options: EpisodeReadOptions,
+    *,
+    owned: bool,
+    spec: dict | None,
+    source=None,
 ) -> Observation:
     """Decode and validate in a short-lived scope so scratch arrays are released."""
     schema = metadata["schema_version"]
-    for name in ("env_id", "episode_id"):
-        if type(metadata.get(name)) is not int or metadata[name] < 0:
+    for field_name in ("env_id", "episode_id"):
+        if type(metadata.get(field_name)) is not int or metadata[field_name] < 0:
             raise ValueError(f"Invalid episode identity: {path}")
-    n = metadata["steps"]
-    if type(n) is not int or n < 1:
+    step_count = metadata["steps"]
+    if type(step_count) is not int or step_count < 1:
         raise ValueError(f"Corrupt episode lengths: {path}")
-    with np.load(path, allow_pickle=False) as archive:
-        keys = archive.files
-        prefix = "state/" if schema == 2 else "obs/"
-        obs_keys = {k[len(prefix) :] for k in keys if k.startswith(prefix)}
+    # Read selected payloads once, after checking the archive field names.
+    with np.load(path if source is None else source, allow_pickle=False) as archive:
+        archive_keys = archive.files
+        observation_prefix = "state/" if schema == 2 else "obs/"
+        observation_keys = {
+            field_key[len(observation_prefix) :]
+            for field_key in archive_keys
+            if field_key.startswith(observation_prefix)
+        }
         if schema == 2:
             if any(
-                not k.startswith("state/")
-                and k not in {"action", "reward", "terminated", "truncated"}
-                for k in keys
+                not field_key.startswith("state/")
+                and field_key not in {"action", "reward", "terminated", "truncated"}
+                for field_key in archive_keys
             ):
                 raise ValueError(f"Invalid compact episode fields: {path}")
         elif options.observation_keys is not None:
-            next_keys = {k[5:] for k in keys if k.startswith("next/")}
-            if obs_keys != next_keys:
+            next_observation_keys = {
+                field_key[5:]
+                for field_key in archive_keys
+                if field_key.startswith("next/")
+            }
+            if observation_keys != next_observation_keys:
                 raise ValueError(f"Observation schema changed: {path}")
         if options.observation_keys is not None:
-            requested = _REQUIRED_OBSERVATIONS | set(options.observation_keys)
-            missing = requested - obs_keys
-            if missing:
+            requested_keys = _REQUIRED_OBSERVATIONS | set(options.observation_keys)
+            missing_keys = requested_keys - observation_keys
+            if missing_keys:
                 raise ValueError(
-                    f"Missing requested observations {sorted(missing)}: {path}"
+                    f"Missing requested observations {sorted(missing_keys)}: {path}"
                 )
-            keys = [
-                k
-                for k in keys
-                if (
-                    k in {"action", "reward", "terminated", "truncated"}
-                    or k.startswith(prefix)
-                    and k[len(prefix) :] in requested
-                    or k.startswith("next/")
-                    and k[5:] in requested
+            archive_keys = [
+                field_key
+                for field_key in archive_keys
+                if field_key in {"action", "reward", "terminated", "truncated"}
+                or (
+                    field_key.startswith(observation_prefix)
+                    and field_key[len(observation_prefix) :] in requested_keys
                 )
+                or (field_key.startswith("next/") and field_key[5:] in requested_keys)
             ]
-        data = {k: archive[k] for k in keys}
+        episode_fields = {field_key: archive[field_key] for field_key in archive_keys}
     if schema == 2:
-        states = {
-            name[6:]: value for name, value in data.items() if name.startswith("state/")
+        compact_states = {
+            field_name[6:]: field_array
+            for (field_name, field_array) in episode_fields.items()
+            if field_name.startswith("state/")
         }
-        if any(value.ndim < 1 or len(value) != n + 1 for value in states.values()):
+        if any(
+            field_array.ndim < 1 or len(field_array) != step_count + 1
+            for field_array in compact_states.values()
+        ):
             raise ValueError(f"Corrupt compact observation lengths: {path}")
-        data = {
-            name: value for name, value in data.items() if not name.startswith("state/")
+        episode_fields = {
+            field_name: field_array
+            for (field_name, field_array) in episode_fields.items()
+            if not field_name.startswith("state/")
         }
-        # Validate compact states before allocating independent public arrays.
-        for name, values in states.items():
-            data[f"obs/{name}"] = values[:-1]
-            data[f"next/{name}"] = values[1:]
-    if any(v.ndim < 1 or len(v) != n for v in data.values()):
+        for field_name, field_values in compact_states.items():
+            episode_fields[f"obs/{field_name}"] = field_values[:-1]
+            episode_fields[f"next/{field_name}"] = field_values[1:]
+    if any(
+        field_value.ndim < 1 or len(field_value) != step_count
+        for field_value in episode_fields.values()
+    ):
         raise ValueError(f"Corrupt episode lengths: {path}")
-    required = {"action", "reward", "terminated", "truncated"}
-    if not required <= data.keys():
+    required_transition_fields = {"action", "reward", "terminated", "truncated"}
+    if not required_transition_fields <= episode_fields.keys():
         raise ValueError(f"Missing transition fields: {path}")
-    observation = {k[4:]: v for k, v in data.items() if k.startswith("obs/")}
-    following = {k[5:]: v for k, v in data.items() if k.startswith("next/")}
+    observations = {
+        field_key[4:]: field_value
+        for (field_key, field_value) in episode_fields.items()
+        if field_key.startswith("obs/")
+    }
+    next_observations = {
+        field_key[5:]: field_value
+        for (field_key, field_value) in episode_fields.items()
+        if field_key.startswith("next/")
+    }
     if schema == 2:
-        _validate_observation(states, n + 1)
+        _validate_observation(compact_states, step_count + 1)
     else:
-        _validate_observation(observation, n)
-        _validate_observation(following, n)
-    if observation.keys() != following.keys():
+        _validate_observation(observations, step_count)
+        _validate_observation(next_observations, step_count)
+    if observations.keys() != next_observations.keys():
         raise ValueError(f"Observation schema changed: {path}")
-    for name in ("terminated", "truncated"):
-        if data[name].shape != (n,) or data[name].dtype != bool:
-            raise ValueError(f"Invalid {name}: {path}")
-    if (data["terminated"] & data["truncated"]).any():
+    if spec is not None and (
+        episode_fields["action"].shape != (step_count, spec["action_shape"][0])
+        or observations["proprio"].shape != (step_count, spec["proprio_shape"][0])
+        or next_observations["proprio"].shape != (step_count, spec["proprio_shape"][0])
+    ):
+        raise ValueError(
+            f"Episode action/proprio layout differs from environment spec: {path}"
+        )
+    for field_name in ("terminated", "truncated"):
+        if (
+            episode_fields[field_name].shape != (step_count,)
+            or episode_fields[field_name].dtype != bool
+        ):
+            raise ValueError(f"Invalid {field_name}: {path}")
+    if (episode_fields["terminated"] & episode_fields["truncated"]).any():
         raise ValueError(f"Conflicting terminal flags: {path}")
     if (
-        data["action"].ndim != 2
-        or not np.isfinite(data["action"]).all()
-        or data["reward"].shape != (n,)
-        or not np.isfinite(data["reward"]).all()
+        episode_fields["action"].ndim != 2
+        or episode_fields["action"].dtype.kind not in "fiu"
+        or (not _all_finite(episode_fields["action"]))
+        or (episode_fields["reward"].shape != (step_count,))
+        or (episode_fields["reward"].dtype.kind not in "fiu")
+        or (not _all_finite(episode_fields["reward"]))
     ):
         raise ValueError(f"Invalid action/reward: {path}")
-    done = data["terminated"] | data["truncated"]
-    if not done[-1] or done[:-1].any():
+    completed_steps = episode_fields["terminated"] | episode_fields["truncated"]
+    if not completed_steps[-1] or completed_steps[:-1].any():
         raise ValueError(f"Invalid episode boundary: {path}")
-    if not np.array_equal(data["obs/step_id"], np.arange(n)):
+    # Share the reference range and release it before allocating public copies.
+    expected_step_ids = np.arange(step_count + 1)
+    if not np.array_equal(episode_fields["obs/step_id"], expected_step_ids[:-1]):
         raise ValueError(f"Nonconsecutive episode: {path}")
-    if not np.array_equal(following["step_id"], np.arange(1, n + 1)):
+    if not np.array_equal(next_observations["step_id"], expected_step_ids[1:]):
         raise ValueError(f"Invalid next step IDs: {path}")
-    for name in ("env_id", "episode_id"):
+    del expected_step_ids
+    for field_name in ("env_id", "episode_id"):
         if not (
-            metadata[name] <= np.iinfo(observation[name].dtype).max
-            and metadata[name] <= np.iinfo(following[name].dtype).max
-            and (observation[name] == metadata[name]).all()
-            and (following[name] == metadata[name]).all()
+            metadata[field_name] <= np.iinfo(observations[field_name].dtype).max
+            and metadata[field_name]
+            <= np.iinfo(next_observations[field_name].dtype).max
+            and (observations[field_name] == metadata[field_name]).all()
+            and (next_observations[field_name] == metadata[field_name]).all()
         ):
             raise ValueError(f"Episode identity mismatch: {path}")
-    if not (following["time"] > observation["time"]).all():
+    if not (next_observations["time"] > observations["time"]).all():
         raise ValueError(f"Time must advance: {path}")
-    for name, value in observation.items() if schema == 1 else ():
+    for field_name, field_array in observations.items() if schema == 1 else ():
         if (
-            value.shape != following[name].shape
-            or value.dtype != following[name].dtype
-            or not _array_equal(value[1:], following[name][:-1])
+            field_array.shape != next_observations[field_name].shape
+            or field_array.dtype != next_observations[field_name].dtype
+            or (not _array_equal(field_array[1:], next_observations[field_name][:-1]))
         ):
-            raise ValueError(f"Observation continuity broken for {name}: {path}")
+            raise ValueError(f"Observation continuity broken for {field_name}: {path}")
+    # Compact state views stay private; public observations own separate arrays.
     if schema == 2 and owned:
-        for name in states:
-            data[f"obs/{name}"] = observation[name].copy()
-            data[f"next/{name}"] = following[name].copy()
-    return data
+        for field_name in tuple(compact_states):
+            episode_fields[f"obs/{field_name}"] = observations.pop(field_name).copy()
+            episode_fields[f"next/{field_name}"] = next_observations.pop(
+                field_name
+            ).copy()
+            del compact_states[field_name]
+    return episode_fields
 
 
 def action_windows(
@@ -774,7 +1044,9 @@ def _episode_windows(
     if any(type(value) is not int or value <= 0 for value in (history, horizon)):
         raise ValueError("history and horizon must be positive integers")
     manifest = _dataset_manifest(Path(directory))
-    instruction = manifest["env_spec"]["instruction"]
+    instruction = manifest.get("env_spec", {}).get("instruction")
+    if not isinstance(instruction, str) or not instruction.strip():
+        raise ValueError("Action windows require a recorded dataset instruction")
     for episode in _read_episodes(directory, options=options, owned=False):
         count = max(0, len(episode["action"]) - history - horizon + 2)
         if count:

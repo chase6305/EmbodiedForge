@@ -168,3 +168,38 @@ def test_inference_identity_rejects_invalid_state_reference(checkpoints, filenam
     )
     with pytest.raises(ValueError, match="invalid state_file"):
         inference_fingerprint(model)
+
+
+def test_changed_processor_cannot_fingerprint_different_dependencies(
+    checkpoints, monkeypatch
+):
+    model = checkpoints[1] / "pretrained_model"
+    replacement = model / "replacement.safetensors"
+    tensor_file(replacement)
+    decode = json.loads
+    changed = False
+
+    def mutate(payload, *args, **kwargs):
+        nonlocal changed
+        value = decode(payload, *args, **kwargs)
+        if not changed and isinstance(value, dict) and "steps" in value:
+            changed = True
+            (model / "policy_preprocessor.json").write_text(
+                json.dumps({"steps": [{"state_file": replacement.name}]})
+            )
+        return value
+
+    monkeypatch.setattr(json, "loads", mutate)
+    with pytest.raises(ValueError, match="Checkpoint changed while fingerprinting"):
+        inference_fingerprint(model)
+
+
+def test_linked_inference_files_keep_their_portable_identity(checkpoints, tmp_path):
+    model = checkpoints[1] / "pretrained_model"
+    expected = inference_fingerprint(model)
+    for name in ("model.safetensors", "policy_preprocessor.json", "stats.safetensors"):
+        path = model / name
+        cached = tmp_path / name
+        path.rename(cached)
+        path.symlink_to(cached)
+    assert inference_fingerprint(model) == expected
