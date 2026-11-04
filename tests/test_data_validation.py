@@ -1,6 +1,7 @@
 """Large and strided episode fields preserve NumPy validation semantics."""
 
 import tracemalloc
+import warnings
 
 import numpy as np
 import pytest
@@ -50,6 +51,67 @@ def test_small_and_empty_validation_matches_numpy(shape):
     value = np.zeros(shape, dtype=np.float32)
     assert _all_finite(value) == np.isfinite(value).all()
     assert _array_equal(value, value) == np.array_equal(value, value)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.bool_,
+        np.int8,
+        np.int64,
+        np.uint64,
+        np.float16,
+        np.float32,
+        np.float64,
+        np.longdouble,
+    ],
+)
+def test_scalar_continuity_matches_numpy_comparison(dtype):
+    values = [dtype(0), dtype(1)]
+    if np.issubdtype(dtype, np.integer):
+        values.extend([dtype(np.iinfo(dtype).min), dtype(np.iinfo(dtype).max)])
+    elif np.issubdtype(dtype, np.floating):
+        values.extend([dtype(-0.0), dtype(np.nan), dtype(np.inf), dtype(-np.inf)])
+    for first in values:
+        for second in values:
+            assert _array_equal(first, second) == np.array_equal(first, second)
+
+
+def test_scalar_continuity_retains_subclass_and_mixed_dtype_comparisons():
+    class Scalar(np.float64):
+        def __eq__(self, other):
+            return False
+
+    first, second = Scalar(1), Scalar(1)
+    assert not (first == second)
+    assert _array_equal(first, second) == np.array_equal(first, second) is True
+    for first, second in (
+        (np.uint64(2**63 + 1), np.int64(2**63 - 1)),
+        (np.uint64(2**64 - 1), np.float64(2**64)),
+        (np.int64(1), np.float32(1)),
+    ):
+        assert _array_equal(first, second) == np.array_equal(first, second)
+
+
+def test_scalar_continuity_respects_legacy_numpy_equal_override():
+    if not hasattr(np, "set_numeric_ops"):
+        pytest.skip("NumPy 2 removed legacy numeric-operation hooks")
+    calls = []
+
+    def unequal(first, second):
+        calls.append((first.shape, second.shape))
+        return np.zeros(np.broadcast_shapes(first.shape, second.shape), dtype=bool)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        previous = np.set_numeric_ops()
+        try:
+            np.set_numeric_ops(equal=unequal)
+            for dtype in (np.int64, np.float32, np.float64):
+                assert not _array_equal(dtype(1), dtype(1))
+        finally:
+            np.set_numeric_ops(**previous)
+    assert len(calls) == 3
 
 
 def test_large_validation_has_bounded_boolean_scratch():

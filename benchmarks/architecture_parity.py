@@ -76,7 +76,6 @@ def _probe(args):
             batch, _ = go1_ppo.rollout(model, env, horizon=8)
             traces.append(_digest(batch))
             go1_ppo.update(model, optimizer, batch, *go1_ppo.gae(batch))
-            model.absorb(batch["obs"].flatten(0, 1))
         result = {
             "policy": _digest(model.state_dict()),
             "optimizer": _digest(optimizer.state_dict()),

@@ -27,6 +27,8 @@ from .runtime.records import run_identity, validate_run_identity
 _REQUIRED_OBSERVATIONS = frozenset(
     {"env_id", "episode_id", "step_id", "time", "proprio"}
 )
+# NumPy 1.x can override ndarray equality globally; scalar equality bypasses it.
+_ALLOW_SCALAR_EQUALITY = not hasattr(np, "set_numeric_ops")
 LOGGER = logging.getLogger(__name__)
 
 
@@ -187,6 +189,14 @@ def _array_equal(first: Array, second: Array) -> bool:
     """Compare numeric fields without flattening or copying strided inputs."""
     if first.shape != second.shape:
         return False
+    if (
+        _ALLOW_SCALAR_EQUALITY
+        and type(first) is type(second) is first.dtype.type
+        and first.dtype.kind in "biuf"
+    ):
+        # Identity/time fields become NumPy scalars when selecting one row.
+        # Keep array and scalar subclasses on NumPy's comparison path.
+        return bool(first == second)
     if (
         type(first) is not np.ndarray
         or type(second) is not np.ndarray
@@ -360,8 +370,10 @@ class EpisodeRecorder:
         """Fixed integrity mode: validate ZIP CRCs and record its byte hash."""
         return self._verify_archive
 
-    def _prepare(self, observation: Observation, result: StepResult) -> list[tuple]:
-        """Validate and copy an entire batch without changing memory or disk state."""
+    def _validate_transition(
+        self, observation: Observation, result: StepResult
+    ) -> tuple[Array, Array]:
+        """Validate batch layouts and return executed actions and active row IDs."""
         count = self.num_envs
         _validate_observation(observation, count)
         _validate_observation(result.observation, count)
@@ -406,7 +418,12 @@ class EpisodeRecorder:
             observation["env_id"], expected_ids
         ) or not np.array_equal(result.observation["env_id"], expected_ids):
             raise ValueError("Recorder requires canonical environment row order")
-        active_ids = np.flatnonzero(result.info["active"])
+        return action, np.flatnonzero(result.info["active"])
+
+    def _prepare(self, observation: Observation, result: StepResult) -> list[tuple]:
+        """Validate and copy an entire batch without changing recorder state."""
+        action, active_ids = self._validate_transition(observation, result)
+        count = self.num_envs
         payload = (
             *observation.values(),
             *result.observation.values(),
@@ -419,8 +436,8 @@ class EpisodeRecorder:
         if self.episode_format == "compact":
             # Continuing obs_t is the already-owned next observation from t-1.
             continuing = sum(
-                (int(i), int(observation["episode_id"][i])) in self.pending
-                for i in active_ids
+                (int(env_id), int(observation["episode_id"][env_id])) in self.pending
+                for env_id in active_ids
             )
             incoming_bytes -= continuing * sum(
                 value.nbytes // count for value in observation.values()
@@ -450,10 +467,10 @@ class EpisodeRecorder:
         row_fields.update(name for name, _ in next_fields)
         compact = self.episode_format == "compact"
         prepared = []
-        for i in active_ids:
-            episode = int(observation["episode_id"][i])
-            key = (int(i), episode)
-            step = int(observation["step_id"][i])
+        for env_id in active_ids:
+            episode = int(observation["episode_id"][env_id])
+            key = (int(env_id), episode)
+            step_id = int(observation["step_id"][env_id])
             if key[0] in pending_episodes and pending_episodes[key[0]] != episode:
                 raise ValueError(
                     "An environment was reset before its recorded episode ended"
@@ -461,7 +478,7 @@ class EpisodeRecorder:
             rows = self.pending.get(key, [])
             if rows and rows[-1].keys() != row_fields:
                 raise ValueError("Observation schema changed within an episode")
-            if step != len(rows):
+            if step_id != len(rows):
                 raise ValueError(
                     "Recording must start at reset and contain consecutive transitions"
                 )
@@ -479,9 +496,9 @@ class EpisodeRecorder:
             ):
                 raise ValueError("Duplicate episode ID; do not reseed a recording run")
             if (
-                int(result.observation["episode_id"][i]) != episode
-                or int(result.observation["step_id"][i]) != step + 1
-                or result.observation["time"][i] <= observation["time"][i]
+                int(result.observation["episode_id"][env_id]) != episode
+                or int(result.observation["step_id"][env_id]) != step_id + 1
+                or result.observation["time"][env_id] <= observation["time"][env_id]
             ):
                 raise ValueError(
                     "next observation must precede reset and advance exactly one step"
@@ -491,7 +508,7 @@ class EpisodeRecorder:
                     next_name not in rows[-1]
                     or values.shape[1:] != rows[-1][next_name].shape
                     or values.dtype != rows[-1][next_name].dtype
-                    or not _array_equal(values[i], rows[-1][next_name])
+                    or not _array_equal(values[env_id], rows[-1][next_name])
                 ):
                     raise ValueError(
                         f"Observation continuity broken or layout changed for {name}"
@@ -503,19 +520,19 @@ class EpisodeRecorder:
                 raise ValueError("Action/reward layout changed within an episode")
             row = {
                 obs_name: (
-                    rows[-1][next_name] if rows and compact else values[i].copy()
+                    rows[-1][next_name] if rows and compact else values[env_id].copy()
                 )
                 for _, obs_name, next_name, values in fields
             }
-            row.update({name: values[i].copy() for name, values in next_fields})
+            row.update({name: values[env_id].copy() for name, values in next_fields})
             row.update(
-                action=action[i].copy(),
-                reward=result.reward[i].copy(),
-                terminated=result.terminated[i].copy(),
-                truncated=result.truncated[i].copy(),
+                action=action[env_id].copy(),
+                reward=result.reward[env_id].copy(),
+                terminated=result.terminated[env_id].copy(),
+                truncated=result.truncated[env_id].copy(),
             )
             prepared.append(
-                (key, row, bool(result.terminated[i] or result.truncated[i]))
+                (key, row, bool(result.terminated[env_id] or result.truncated[env_id]))
             )
         return prepared
 
@@ -989,13 +1006,17 @@ def _load_episode(
             raise ValueError(f"Episode identity mismatch: {path}")
     if not (next_observations["time"] > observations["time"]).all():
         raise ValueError(f"Time must advance: {path}")
-    for field_name, field_array in observations.items() if schema == 1 else ():
-        if (
-            field_array.shape != next_observations[field_name].shape
-            or field_array.dtype != next_observations[field_name].dtype
-            or (not _array_equal(field_array[1:], next_observations[field_name][:-1]))
-        ):
-            raise ValueError(f"Observation continuity broken for {field_name}: {path}")
+    # Compact observations already share adjacent slices of the same state array.
+    if schema == 1:
+        for field_name, field_array in observations.items():
+            if (
+                field_array.shape != next_observations[field_name].shape
+                or field_array.dtype != next_observations[field_name].dtype
+                or not _array_equal(field_array[1:], next_observations[field_name][:-1])
+            ):
+                raise ValueError(
+                    f"Observation continuity broken for {field_name}: {path}"
+                )
     # Compact state views stay private; public observations own separate arrays.
     if schema == 2 and owned:
         for field_name in tuple(compact_states):

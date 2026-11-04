@@ -52,7 +52,8 @@ def build_model():
     spec.delete(spec.light("spotlight"))
     spec.light("sun").mode = mujoco.mjtCamLight.mjCAMLIGHT_TRACKCOM
     spec.visual.global_.fovy = 38.0
-    spec.visual.global_.bvactive = 0  # on by default in MuJoCo 3.11 and 3x slower
+    # Active bounding-volume visualization is unused by this task.
+    spec.visual.global_.bvactive = 0
     spec.option.timestep = TIMESTEP
     spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICITFAST
     spec.option.cone = mujoco.mjtCone.mjCONE_PYRAMIDAL

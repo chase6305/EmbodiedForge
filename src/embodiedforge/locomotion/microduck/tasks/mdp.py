@@ -914,46 +914,25 @@ def robot_state_is_nan(
     asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
     sensor_names: tuple[str, ...] = (),
 ) -> torch.Tensor:
-    """Terminate environments where MuJoCo produced NaN joint positions.
+    """Flag rows with non-finite joint, root pose/velocity or requested forces.
 
-    MuJoCo's contact solver can overflow to NaN under extreme penetration or
-    impulse (e.g. robot landing at high velocity). A NaN simulation state
-    propagates into observations, corrupting the policy network weights.
-
-    Terminating immediately resets the environment before the cascade spreads:
-    - The observation returned to the runner is from the valid reset state.
-    - NaN rewards are avoided on subsequent steps.
-
-    Note: the reward at THIS terminal step may still be NaN from the simulation;
-    mjlab computes rewards before resetting (see manager_based_rl_env.py step()).
-    Our custom reward functions guard against NaN internally with nan_to_num,
-    but standard mjlab rewards can still be NaN here. One NaN reward is
-    tolerable because done=True prevents it propagating backward through GAE.
-
-    Couvre TOUT l'état physique, pas seulement joint_pos : la divergence du
-    contact fait souvent exploser le FREE-JOINT de base (position/orientation/
-    vitesse) ou les ROUES passives, pas les joints actionnés. Ces quantités
-    alimentent des termes d'obs critic (base_lin_vel, base_ang_vel,
-    projected_gravity, wheel_vel) ; si on ne les surveille pas, l'env ne se
-    reset pas et le NaN atteint l'obs → le check_nan de rsl_rl tue tout
-    l'entraînement. On teste la non-finitude (NaN ET inf, l'inf devenant NaN en
-    aval lors de la normalisation de projected_gravity).
+    This mask requests reset; it does not clean the current transition.
+    mjlab computes rewards before reset, so terminal rewards must still be
+    finite for the runner and PPO validation. Missing requested sensors or
+    force fields are ignored.
     """
     asset: Entity = env.scene[asset_cfg.name]
-    d = asset.data
-    bad = ~torch.isfinite(d.joint_pos).all(dim=1)
-    bad |= ~torch.isfinite(d.joint_vel).all(dim=1)
-    bad |= ~torch.isfinite(d.root_link_pos_w).all(dim=1)
-    bad |= ~torch.isfinite(d.root_link_quat_w).all(dim=1)
-    bad |= ~torch.isfinite(d.root_link_lin_vel_w).all(dim=1)
-    bad |= ~torch.isfinite(d.root_link_ang_vel_w).all(dim=1)
+    data = asset.data
+    bad = ~torch.isfinite(data.joint_pos).all(dim=1)
+    bad |= ~torch.isfinite(data.joint_vel).all(dim=1)
+    root_pose = data.root_link_pose_w
+    bad |= ~torch.isfinite(root_pose[:, :3]).all(dim=1)
+    bad |= ~torch.isfinite(root_pose[:, 3:7]).all(dim=1)
+    bad |= ~torch.isfinite(data.root_link_lin_vel_w).all(dim=1)
+    bad |= ~torch.isfinite(data.root_link_ang_vel_w).all(dim=1)
 
-    # Contact FORCES can blow up a step before qpos/qvel do: MuJoCo resolves a
-    # degenerate contact into an inf/NaN impulse while the integrated state is
-    # still finite. That force feeds the critic-only `foot_contact_forces` obs
-    # (sign(F)*log1p(|F|)), which the state checks above do NOT cover — so the
-    # env was not reset and the NaN reached the runner's check_nan, killing the
-    # whole run (crash 2026-08-21, Velocity2-Rough-Backlash with hfield slopes).
+    # Contact forces can be non-finite while joint/root state remains finite.
+    # Check requested sensors separately so those rows also request reset.
     for name in sensor_names:
         if name not in env.scene.sensors:
             continue
@@ -5219,15 +5198,9 @@ def head_pose_tracking(
 # ─────────────────────────────────────────────────────────────────────────────
 # NaN-safe wrappers for the sensor-derived critic observations.
 #
-# `robot_state_is_nan` covers joint + root state, so every obs derived from
-# those is protected by the reset it triggers. The three terms below are NOT:
-# they read sensor data (raycast heights, contact air-time, contact forces),
-# which MuJoCo can return non-finite for while the integrated robot state is
-# still clean. They are critic-only, so a single sanitized step costs the
-# policy nothing, whereas letting the value through kills the entire run via
-# rsl_rl's check_nan. Sanitizing here does not hide real physics blowups —
-# those still terminate through nan_state and show up as
-# Episode_Termination/nan_state in wandb.
+# `robot_state_is_nan` checks joint/root state and configured contact forces.
+# Derived sensor observations can still be non-finite independently, so guard
+# these critic inputs as well. These wrappers do not change the termination mask.
 # ─────────────────────────────────────────────────────────────────────────────
 
 

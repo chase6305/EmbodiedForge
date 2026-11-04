@@ -406,3 +406,81 @@ def test_pose_match_preserves_effective_positional_and_keyword_interface():
         ),
         expected,
     )
+
+
+@pytest.fixture
+def finite_robot_state():
+    root_pose = torch.zeros(4, 7)
+    root_pose[:, 3] = 1
+    data = SimpleNamespace(
+        joint_pos=torch.zeros(4, 14),
+        joint_vel=torch.zeros(4, 14),
+        root_link_pose_w=root_pose,
+        root_link_pos_w=root_pose[:, :3],
+        root_link_quat_w=root_pose[:, 3:7],
+        root_link_lin_vel_w=torch.zeros(4, 3),
+        root_link_ang_vel_w=torch.zeros(4, 3),
+    )
+    force = torch.zeros(4, 2, 3)
+
+    class Scene(dict):
+        pass
+
+    scene = Scene(robot=SimpleNamespace(data=data))
+    scene.sensors = {"feet": SimpleNamespace(data=SimpleNamespace(force=force))}
+    return SimpleNamespace(scene=scene), data, force
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "joint_pos",
+        "joint_vel",
+        "root_link_pos_w",
+        "root_link_quat_w",
+        "root_link_lin_vel_w",
+        "root_link_ang_vel_w",
+        "force",
+    ],
+)
+@pytest.mark.parametrize("nonfinite", [float("nan"), float("inf"), -float("inf")])
+def test_nonfinite_termination_flags_only_affected_rows_without_cleaning_state(
+    finite_robot_state, field, nonfinite
+):
+    env, data, force = finite_robot_state
+    target = force if field == "force" else getattr(data, field)
+    target[1].flatten()[0] = nonfinite
+    before = {name: value.clone() for name, value in vars(data).items()}
+    force_before = force.clone()
+    mask = mdp.robot_state_is_nan(env, sensor_names=("feet", "absent"))
+    torch.testing.assert_close(mask, torch.tensor([False, True, False, False]))
+    for name, expected in before.items():
+        torch.testing.assert_close(
+            getattr(data, name), expected, rtol=0, atol=0, equal_nan=True
+        )
+    torch.testing.assert_close(force, force_before, rtol=0, atol=0, equal_nan=True)
+
+
+@pytest.mark.parametrize(
+    "sensor_case", ["missing", "missing_force", "none", "unrequested", "extra"]
+)
+def test_nonfinite_termination_ignores_unavailable_or_unrequested_forces(
+    finite_robot_state, sensor_case
+):
+    env, _, force = finite_robot_state
+    sensor_names = ("feet",)
+    if sensor_case == "missing":
+        env.scene.sensors.clear()
+    elif sensor_case == "missing_force":
+        env.scene.sensors["feet"].data = SimpleNamespace()
+    elif sensor_case == "none":
+        env.scene.sensors["feet"].data.force = None
+    elif sensor_case == "unrequested":
+        force.fill_(float("nan"))
+        sensor_names = ()
+    else:
+        env.scene.sensors["other"] = SimpleNamespace(
+            data=SimpleNamespace(force=torch.full_like(force, float("nan")))
+        )
+    mask = mdp.robot_state_is_nan(env, sensor_names=sensor_names)
+    torch.testing.assert_close(mask, torch.zeros(4, dtype=torch.bool))

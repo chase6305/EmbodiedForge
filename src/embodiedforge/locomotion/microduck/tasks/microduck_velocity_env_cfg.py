@@ -88,8 +88,7 @@ ENABLE_BASE_ORIENTATION_RANDOMIZATION = (
 # Head/body pose command tracking (replaces the old neck-offset disturbance scheme).
 # Head pose: 4D deltas-from-HOME on neck/head joints; vel env tracks these as a
 # primary objective. Body pose: 6D delta in [x, y, z, roll, pitch, yaw]; vel env
-# samples small ranges + tiny reward weight so input neurons stay alive but
-# tracking isn't the priority (standup env raises the weight).
+# retains small command ranges in observations, with its tracking reward disabled.
 HEAD_POSE_CMD_RESAMPLE_S = (2.0, 5.0)
 BODY_POSE_CMD_RESAMPLE_S = (2.0, 5.0)
 
@@ -100,7 +99,7 @@ USE_PROJECTED_GRAVITY = (
 
 # Domain randomization ranges (adjust as needed)
 # Conservative ranges proven to be stable - can increase gradually if needed
-COM_RANDOMIZATION_RANGE = 0.003  # ±3mm initial, ramped to ±8mm via curriculum
+COM_RANDOMIZATION_RANGE = 0.003  # ±3 mm initial, ramped to ±15 mm via curriculum
 # Head CoM randomization: applied per-episode to every body of the head assembly
 # (neck → neck_pitch → yaw_roll_motion → head-roll body). Same non-accumulating
 # mechanism as the trunk CoM randomization above. The head-roll body is named
@@ -400,10 +399,8 @@ def make_microduck_velocity_env_cfg(
         0.7,
         1.3,
     )  # Grippier footpad — narrowed from (0.3, 1.2)
-    # Terminate environments that have gone numerically unstable (NaN physics).
-    # MuJoCo can produce NaN joint positions on extreme contact impulses.
-    # Terminating immediately resets to a valid state before NaN propagates
-    # into the observation buffer and corrupts network weights.
+    # Request resets for non-finite physics state or configured foot forces.
+    # This mask does not sanitize rewards from the current transition.
     cfg.terminations["nan_state"] = TerminationTermCfg(
         func=microduck_mdp.robot_state_is_nan,
         time_out=False,
@@ -600,12 +597,9 @@ def make_microduck_velocity_env_cfg(
     ].delay_max_lag = 1  # was 3 (=60 ms worst case); real dxl IMU path is fast — ±20 ms envelope (2026-07 audit)
     cfg.observations["actor"].terms[gravity_term_name].delay_update_period = 64
 
-    # The critic's sensor-derived terms are the one obs path `nan_state` cannot
-    # protect (it checks joint + root state; these read raycast/contact sensor
-    # data, which MuJoCo can return non-finite for while the state is still
-    # clean). A single NaN here kills the whole run via rsl_rl's check_nan —
-    # that is the 2026-08-21 Velocity2-Rough-Backlash crash. Critic-only, so
-    # sanitizing costs the policy nothing.
+    # Sensor-derived critic observations can be non-finite independently of
+    # joint/root state. nan_state checks configured forces, but not every
+    # derived/raycast field, so retain these observation-specific guards.
     for _term, _safe in (
         ("foot_contact_forces", microduck_mdp.foot_contact_forces_safe),
         ("foot_height", microduck_mdp.foot_height_safe),
@@ -632,24 +626,15 @@ def make_microduck_velocity_env_cfg(
     # observations). Applied to the ACTOR only (the policy sees a slightly rotated
     # IMU frame, like a real mounting error); the critic keeps the true values.
     if ENABLE_IMU_ORIENTATION_RANDOMIZATION:
-        av = cfg.observations["actor"].terms["base_ang_vel"]
-        av.func = microduck_mdp.base_ang_vel_imu_misaligned
-        av.params = {"max_angle_deg": IMU_ORIENTATION_RANDOMIZATION_ANGLE}
+        angular_velocity_term = cfg.observations["actor"].terms["base_ang_vel"]
+        angular_velocity_term.func = microduck_mdp.base_ang_vel_imu_misaligned
+        angular_velocity_term.params = {
+            "max_angle_deg": IMU_ORIENTATION_RANDOMIZATION_ANGLE
+        }
         if USE_PROJECTED_GRAVITY:
-            g = cfg.observations["actor"].terms[gravity_term_name]
-            g.func = microduck_mdp.projected_gravity_imu_misaligned
-            g.params = {"max_angle_deg": IMU_ORIENTATION_RANDOMIZATION_ANGLE}
-
-    # 1-ctrl-step lag on joint_vel: the Dynamixel firmware computes
-    # present_velocity via a moving-average over the previous position-sample
-    # window, so the value the policy actually reads is ~1 control period old.
-    # Matches reality and stops the policy relying on instantaneous qdot feedback.
-    cfg.observations["actor"].terms["joint_vel"] = deepcopy(
-        cfg.observations["actor"].terms["joint_vel"]
-    )
-    cfg.observations["actor"].terms["joint_vel"].delay_min_lag = 1
-    cfg.observations["actor"].terms["joint_vel"].delay_max_lag = 1
-    cfg.observations["actor"].terms["joint_vel"].delay_update_period = 0
+            gravity_term = cfg.observations["actor"].terms[gravity_term_name]
+            gravity_term.func = microduck_mdp.projected_gravity_imu_misaligned
+            gravity_term.params = {"max_angle_deg": IMU_ORIENTATION_RANDOMIZATION_ANGLE}
 
     # Exclude passive_* joints (jaw linkage) from joint_pos/vel obs so the
     # observation dim matches the action dim (14) instead of the raw articulation (16).
@@ -657,14 +642,21 @@ def make_microduck_velocity_env_cfg(
     # same term objects/params dicts from the base template, so mutating one would
     # leak into the other (e.g. the encoder-bias `biased` flag below).
     passive_excluded = SceneEntityCfg("robot", joint_names=(r"^(?!passive_).*",))
-    for grp in ("actor", "critic"):
-        for term in ("joint_pos", "joint_vel"):
-            cfg.observations[grp].terms[term] = deepcopy(
-                cfg.observations[grp].terms[term]
+    for group_name in ("actor", "critic"):
+        for term_name in ("joint_pos", "joint_vel"):
+            cfg.observations[group_name].terms[term_name] = deepcopy(
+                cfg.observations[group_name].terms[term_name]
             )
-            cfg.observations[grp].terms[term].params["asset_cfg"] = deepcopy(
-                passive_excluded
+            cfg.observations[group_name].terms[term_name].params["asset_cfg"] = (
+                deepcopy(passive_excluded)
             )
+
+    # The actor's joint velocity is one control step old, matching the firmware's
+    # moving-average estimate. Set its delay after isolating the critic's term.
+    joint_velocity_term = cfg.observations["actor"].terms["joint_vel"]
+    joint_velocity_term.delay_min_lag = 1
+    joint_velocity_term.delay_max_lag = 1
+    joint_velocity_term.delay_update_period = 0
 
     # Encoder-bias DR: the base template samples a per-env constant joint-encoder
     # offset (startup event "encoder_bias"), but joint_pos_rel ignores it unless
@@ -718,9 +710,8 @@ def make_microduck_velocity_env_cfg(
         ),
     )
     # Body pose command (6D delta from nominal standing: [x, y, z, roll, pitch, yaw]).
-    # Vel env carries this slot for runtime obs-shape parity; tracked at a tiny
-    # weight to keep the input neurons alive but not steer the policy. The
-    # standup env raises the weight + widens the ranges.
+    # Keep small command ranges for the observation layout; body-pose tracking
+    # is disabled in this walking task.
     cfg.commands["body_pose"] = microduck_mdp.UniformPoseCommandCfg(
         resampling_time_range=BODY_POSE_CMD_RESAMPLE_S,
         ranges=(

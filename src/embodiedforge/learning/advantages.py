@@ -18,9 +18,9 @@ def generalized_advantage(
     advantage = np.empty_like(reward)
     carry = np.zeros(reward.shape[1], dtype=np.float32)
     # Only the carry depends on time; batch the independent transition terms.
-    delta = reward + gamma * next_value * ~terminated - value
-    discount = gamma * gae_lambda * ~(terminated | truncated)
-    for t in reversed(range(len(reward))):
-        carry = delta[t] + discount[t] * carry
-        advantage[t] = carry
+    temporal_difference = reward + gamma * next_value * ~terminated - value
+    continuation_discount = gamma * gae_lambda * ~(terminated | truncated)
+    for step in reversed(range(len(reward))):
+        carry = temporal_difference[step] + continuation_discount[step] * carry
+        advantage[step] = carry
     return advantage, advantage + value

@@ -9,6 +9,15 @@ from embodiedforge import h1
 from embodiedforge._h1_metrics import BASIC_COMMANDS, FirstEpisodeMetrics, assess
 
 
+def test_velocity_can_borrow_the_error_accumulator():
+    metrics = FirstEpisodeMetrics(1, 1, 0.02)
+    metrics.error_sum[:] = 1
+    metrics.update(metrics.error_sum, np.zeros((1, 3)), [False], [False])
+    # Preserve sequential updates when velocity aliases the public accumulator.
+    np.testing.assert_array_equal(metrics.error_sum, [[2, 2, 2]])
+    np.testing.assert_array_equal(metrics.velocity_sum, [[2, 2, 2]])
+
+
 def test_terminal_frame_is_included_and_reset_episode_is_excluded():
     metrics = FirstEpisodeMetrics(2, 3, 0.02)
     command = np.zeros((2, 3))

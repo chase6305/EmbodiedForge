@@ -406,10 +406,11 @@ def execute(args):
             checkpoint, data = previous
             target = output / "input.pt"
             shutil.copyfile(checkpoint, target)
-            if sha256(target) != data["result"]["checkpoint_sha256"]:
+            input_sha256 = sha256(target)
+            if input_sha256 != data["result"]["checkpoint_sha256"]:
                 raise ValueError("Checkpoint changed during copy")
             request["checkpoint"] = str(target)
-            manifest["input_sha256"] = sha256(target)
+            manifest["input_sha256"] = input_sha256
             if args.task == "go1-joystick" and args.command == "train":
                 origin = output / "input-run.json"
                 write_json(origin, data)

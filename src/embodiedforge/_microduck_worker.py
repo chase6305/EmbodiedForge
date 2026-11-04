@@ -1,4 +1,4 @@
-"""Diagnostics executed only by the isolated upstream Python interpreter."""
+"""Microduck worker diagnostics and lightweight launcher helpers."""
 
 import importlib.metadata
 import json

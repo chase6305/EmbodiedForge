@@ -51,16 +51,30 @@ def test_compact_public_arrays_remain_owned_and_independent(tmp_path, verify, ke
     options = EpisodeReadOptions(observation_keys=keys, verify_archive=verify)
     first = next(read_episodes(root, options=options))
     second = next(read_episodes(root, options=options))
+    assert first.keys() == second.keys()
+    expected = {name: value.copy() for name, value in first.items()}
     for name, value in first.items():
-        assert value.flags.owndata and value.flags.c_contiguous
-        np.testing.assert_array_equal(value, second[name])
-        assert not np.shares_memory(value, second[name])
-        if name.startswith("obs/"):
-            following = first["next/" + name[4:]]
-            assert not np.shares_memory(value, following)
-            expected = following.copy()
-            value.fill(7)
-            np.testing.assert_array_equal(following, expected)
+        # NPZ payloads may be shaped views of private owning arrays. Verify
+        # independent storage and writes rather than the outer OWNDATA flag.
+        assert value.flags.c_contiguous and value.flags.writeable
+        np.testing.assert_array_equal(value, second[name], strict=True)
+        for other_name, other in first.items():
+            if other_name != name:
+                assert not np.shares_memory(value, other), (name, other_name)
+        for other in second.values():
+            assert not np.shares_memory(value, other)
+        value.fill(7)
+        for other_name, other in first.items():
+            if other_name != name:
+                np.testing.assert_array_equal(other, expected[other_name], strict=True)
+        for other_name, other in second.items():
+            np.testing.assert_array_equal(other, expected[other_name], strict=True)
+        value[...] = expected[name]
+    for value in first.values():
+        value.fill(7)
+    fresh = next(read_episodes(root, options=options))
+    for name, value in fresh.items():
+        np.testing.assert_array_equal(value, expected[name], strict=True)
 
 
 def test_partitions_cover_each_episode_once_without_opening_other_archives(

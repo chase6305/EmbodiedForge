@@ -267,12 +267,13 @@ class H1:
             * (np.linalg.norm(self.commands[:, :2], axis=1) > 0.1)
         )
         yaw = np.arctan2(self.rotation[:, 1, 0], self.rotation[:, 0, 0])
+        cos_yaw, sin_yaw = np.cos(yaw), np.sin(yaw)
         # MuJoCo root linear velocity is world-aligned; rewards use a yaw frame.
-        world_vel = self.robot.qvel[:, :3]
+        world_velocity = self.robot.qvel[:, :3]
         velocity = np.column_stack(
             (
-                np.cos(yaw) * world_vel[:, 0] + np.sin(yaw) * world_vel[:, 1],
-                -np.sin(yaw) * world_vel[:, 0] + np.cos(yaw) * world_vel[:, 1],
+                cos_yaw * world_velocity[:, 0] + sin_yaw * world_velocity[:, 1],
+                -sin_yaw * world_velocity[:, 0] + cos_yaw * world_velocity[:, 1],
             )
         )
         yaw_rate = np.einsum("nj,nj->n", self.rotation[:, 2, :], self.gyro)

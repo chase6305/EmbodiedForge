@@ -41,8 +41,8 @@ class ArticulationBatch:
     """One MJCF topology, independent simulation rows, scalar joint actuators.
 
     snapshot() returns owned arrays; internal integration buffers are live views.
-    Joint IDs index actuator order, never
-    assume qpos order. Raw state uses MuJoCo qpos/qvel conventions (wxyz quats).
+    Public joint selections follow actuator order (names, ctrl). qadr and vadr
+    map that order to MuJoCo qpos/qvel addresses. Raw qpos stores wxyz quaternions.
     """
 
     def __init__(self, model, num_envs, *, threads=4, seed=0):

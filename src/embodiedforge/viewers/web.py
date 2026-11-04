@@ -252,8 +252,8 @@ class WebViewer:
 
         return Handler
 
-    def submit(self, command):
-        """Validate completely before enqueueing; callable without any graphics SDK."""
+    def _validate_command(self, command):
+        """Validate control fields against this session without changing state."""
         if not isinstance(command, dict):
             raise ValueError("Expected a command object")
         action = command.get("action")
@@ -348,6 +348,11 @@ class WebViewer:
                 or not self._availability[name].get("supported", True)
             ):
                 raise ValueError("Renderer dependencies unavailable")
+        return action
+
+    def submit(self, command):
+        """Validate completely before enqueueing; callable without any graphics SDK."""
+        action = self._validate_command(command)
         with self._condition:
             if self.closed:
                 raise ValueError("Viewer is closed")

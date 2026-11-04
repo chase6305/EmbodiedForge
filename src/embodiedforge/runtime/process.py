@@ -143,6 +143,67 @@ def _defer_process_signals(*, preserve_error=False):
                 raise failures[0]
 
 
+def _copy_output(pipe, log, stop_reader, errors, send):
+    """Copy raw pipe bytes to disk and echo decoded text until EOF or teardown."""
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+    console_open = True
+
+    def write_console(text):
+        nonlocal console_open
+        if console_open:
+            try:
+                sys.stdout.write(text)
+                sys.stdout.flush()
+            except (OSError, ValueError):
+                # A closed terminal must not discard the durable log.
+                console_open = False
+
+    try:
+        # A detached descendant can retain stdout after the owned job exits.
+        # Read the descriptor directly: blocking on the buffered pipe would
+        # prevent teardown from joining this reader and closing the pipe.
+        descriptor = pipe.fileno()
+        os.set_blocking(descriptor, False)
+        with selectors.DefaultSelector() as readable:
+            readable.register(descriptor, selectors.EVENT_READ)
+            remaining = None
+            while True:
+                if remaining is None and stop_reader.is_set():
+                    import fcntl
+                    import termios
+                    from array import array
+
+                    # Drain only bytes already queued after the worker exits;
+                    # an escaped process may otherwise produce output forever.
+                    pending = array("i", [0])
+                    fcntl.ioctl(descriptor, termios.FIONREAD, pending)
+                    remaining = pending[0]
+                if remaining == 0:
+                    break
+                try:
+                    chunk = os.read(
+                        descriptor,
+                        65536 if remaining is None else min(65536, remaining),
+                    )
+                except BlockingIOError:
+                    if stop_reader.is_set():
+                        break
+                    readable.select(timeout=0.1)
+                    continue
+                if not chunk:
+                    break
+                if remaining is not None:
+                    remaining -= len(chunk)
+                log.write(chunk)
+                log.flush()
+                write_console(decoder.decode(chunk))
+        write_console(decoder.decode(b"", final=True))
+    except Exception as error:
+        errors.append(error)
+        # A broken log must not leave a silent training process running.
+        send(signal.SIGTERM)
+
+
 def run_process(
     command,
     *,
@@ -195,68 +256,6 @@ def run_process(
 
         errors = []
 
-        def copy_output():
-            decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-            console_open = echo
-
-            def write_console(text):
-                nonlocal console_open
-                if console_open:
-                    try:
-                        sys.stdout.write(text)
-                        sys.stdout.flush()
-                    except (OSError, ValueError):
-                        # A closed terminal must not discard the durable log.
-                        console_open = False
-
-            try:
-                # An SDK descendant can detach from our process group while
-                # retaining stdout. A blocking read would then outlive the job,
-                # and closing that buffered pipe while the reader owns its lock
-                # can hang Popen.__exit__ indefinitely. Read the descriptor
-                # directly so teardown can stop after draining available bytes.
-                descriptor = process.stdout.fileno()
-                os.set_blocking(descriptor, False)
-                with selectors.DefaultSelector() as readable:
-                    readable.register(descriptor, selectors.EVENT_READ)
-                    remaining = None
-                    while True:
-                        if remaining is None and stop_reader.is_set():
-                            import fcntl
-                            import termios
-                            from array import array
-
-                            # Bound the final drain even if an escaped process
-                            # keeps producing output. The worker has exited, so
-                            # all its remaining bytes are already in the pipe.
-                            pending = array("i", [0])
-                            fcntl.ioctl(descriptor, termios.FIONREAD, pending)
-                            remaining = pending[0]
-                        if remaining == 0:
-                            break
-                        try:
-                            chunk = os.read(
-                                descriptor,
-                                65536 if remaining is None else min(65536, remaining),
-                            )
-                        except BlockingIOError:
-                            if stop_reader.is_set():
-                                break
-                            readable.select(timeout=0.1)
-                            continue
-                        if not chunk:
-                            break
-                        if remaining is not None:
-                            remaining -= len(chunk)
-                        log.write(chunk)
-                        log.flush()
-                        write_console(decoder.decode(chunk))
-                write_console(decoder.decode(b"", final=True))
-            except Exception as exc:
-                errors.append(exc)
-                # A broken log must not leave a silent training process running.
-                send(signal.SIGTERM)
-
         reader = None
         active_error = False
         cleanup_finished = False
@@ -299,7 +298,11 @@ def run_process(
                     # bytes survive and pipe backpressure cannot block teardown.
                     # Thread startup failures still use the owned group cleanup.
                     if capture:
-                        reader = threading.Thread(target=copy_output, daemon=True)
+                        reader = threading.Thread(
+                            target=_copy_output,
+                            args=(process.stdout, log, stop_reader, errors, send),
+                            daemon=True,
+                        )
                         reader.start()
                 deadline = time.monotonic() + timeout if timeout is not None else None
                 while True:

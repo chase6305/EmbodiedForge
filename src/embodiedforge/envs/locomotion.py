@@ -77,12 +77,13 @@ class _NativeEnvironment:
         return ids.astype(np.int64)
 
     def _observe(self, ids) -> Observation:
+        step_ids = self._steps[ids]
         return {
             "env_id": ids.copy(),
             "episode_id": self._episodes[ids],
-            "step_id": self._steps[ids],
+            "step_id": step_ids,
             "state_version": self._versions[ids],
-            "time": self._steps[ids] * self._spec["control_dt"],
+            "time": step_ids * self._spec["control_dt"],
             "proprio": self._proprio[ids],
         }
 

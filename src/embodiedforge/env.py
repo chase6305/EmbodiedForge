@@ -203,7 +203,7 @@ class VectorEnv:
         }
         sensors = self.sensors.observe(state.time, env_ids=env_ids)
         features = self.task.observe(state)
-        reserved = set(metadata) | set(sensors)
+        reserved = metadata.keys() | sensors.keys()
         if features.keys() & reserved:
             raise ValueError(
                 "Task observation must not overwrite runtime/sensor fields"
