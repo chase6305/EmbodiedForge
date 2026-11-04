@@ -102,6 +102,36 @@ def test_manifest_records_failure_and_completion_time(
     assert "result" not in manifest
 
 
+@pytest.mark.parametrize("startup", [False, True])
+def test_run_publication_errors_do_not_replace_the_primary_failure(
+    tmp_path, monkeypatch, caplog, startup
+):
+    args = args_for(tmp_path)
+    monkeypatch.setattr(h1, "source_identity", lambda repo: {"revision": h1.REVISION})
+    primary = RuntimeError("preflight failed")
+    original = h1.write_json
+    calls = 0
+
+    def publish(path, record):
+        nonlocal calls
+        calls += 1
+        if startup and calls == 1:
+            raise primary
+        if record.get("status") == "failed":
+            raise OSError("disk full during final publication")
+        original(path, record)
+
+    def fail(*args, **kwargs):
+        raise primary
+
+    monkeypatch.setattr(h1, "write_json", publish)
+    monkeypatch.setattr(h1, "run_process", fail)
+    with pytest.raises(RuntimeError) as caught:
+        h1.train(args)
+    assert caught.value is primary
+    assert "preserving its original error" in caplog.text
+
+
 def test_existing_output_is_preserved(tmp_path, monkeypatch):
     args = args_for(tmp_path)
     monkeypatch.setattr(h1, "source_identity", lambda repo: {})

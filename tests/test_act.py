@@ -520,6 +520,7 @@ def test_forced_launcher_exit_preserves_checkpoint_recovery(recording, tmp_path)
     import signal
     import time
     from argparse import Namespace
+    from pathlib import Path
 
     from safetensors.torch import load_file
 
@@ -558,6 +559,7 @@ def test_forced_launcher_exit_preserves_checkpoint_recovery(recording, tmp_path)
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
+        trainer_group = None
         try:
             deadline = time.monotonic() + 45
             last_step = run / "checkpoints/last/training_state/training_step.json"
@@ -567,6 +569,17 @@ def test_forced_launcher_exit_preserves_checkpoint_recovery(recording, tmp_path)
                 ).read_text()
                 assert time.monotonic() < deadline, "Trainer did not checkpoint in time"
                 time.sleep(0.02)
+            # The process runner owns a separate session for the trainer. Save
+            # that identity before killing its launcher, so cleanup targets the
+            # actual orphan rather than the launcher's now-empty process group.
+            children = (
+                Path(f"/proc/{process.pid}/task/{process.pid}/children")
+                .read_text()
+                .split()
+            )
+            assert len(children) == 1
+            trainer_group = os.getpgid(int(children[0]))
+            assert trainer_group == int(children[0])
             # Kill only our launcher. Its upstream trainer remains alive and must
             # retain the inherited lock, even though no parent manifest is written.
             process.kill()
@@ -576,7 +589,7 @@ def test_forced_launcher_exit_preserves_checkpoint_recovery(recording, tmp_path)
             assert json.loads(startup.read_text())["status"] == "running"
             with pytest.raises(ValueError, match="still active"):
                 resume(Namespace(run=run, output=recovered, steps=100002))
-            os.killpg(process.pid, signal.SIGKILL)
+            os.killpg(trainer_group, signal.SIGKILL)
             deadline = time.monotonic() + 5
             while True:
                 try:
@@ -618,8 +631,10 @@ def test_forced_launcher_exit_preserves_checkpoint_recovery(recording, tmp_path)
             assert steps == {float(saved_step + 2)}
             assert json.loads(last_step.read_text())["step"] == saved_step
         finally:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+            for group in (trainer_group, process.pid):
+                if group is not None:
+                    try:
+                        os.killpg(group, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
             process.wait(timeout=5)

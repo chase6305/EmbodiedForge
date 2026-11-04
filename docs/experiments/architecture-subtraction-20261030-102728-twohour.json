@@ -1,0 +1,892 @@
+{
+  "status": "complete",
+  "objective": "Two-hour subtraction: preserve current work, consolidate proven duplication and verify numerical/runtime compatibility.",
+  "started_at": "2026-10-30T10:27:28+00:00",
+  "deadline": "2026-10-30T12:27:28+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261030-102728-twohour",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37915,
+  "baseline_files": 428,
+  "historical_files": 191,
+  "changed_files_this_round": [
+    "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+    "tests/test_microduck_task.py"
+  ],
+  "changes": [
+    {
+      "area": "Microduck terrain-relative height",
+      "change": "Reuse one exact existing height expression at 27 call sites; preserve NaN and infinity conversion."
+    },
+    {
+      "area": "Microduck target pose construction",
+      "change": "Reuse existing local pose-builder logic across nine override blocks and a multistage builder; retain clones, optional overrides and default pose gradients."
+    },
+    {
+      "area": "Regression coverage",
+      "change": "Nine test cases cover nonfinite heights, terrain offsets, strided defaults, absent/empty overrides, negative indices, storage independence and tensor override gradients."
+    }
+  ],
+  "validation": {
+    "structural": {
+      "status": "passed",
+      "exact_height_expression_sites": 27,
+      "old_height_lines": [
+        467,
+        544,
+        580,
+        614,
+        712,
+        749,
+        790,
+        834,
+        880,
+        1119,
+        1210,
+        2071,
+        2188,
+        2214,
+        2363,
+        2377,
+        2435,
+        2448,
+        2522,
+        2556,
+        5366,
+        6495,
+        6693,
+        7182,
+        7211,
+        7239,
+        7265
+      ],
+      "public_function_signatures_preserved": 189,
+      "height_helper_ast_equals_original_expression": true,
+      "pose_helper_ast_equals_original_local_builder": true,
+      "all_other_top_level_definitions_ast_identical_after_height_inlining": true,
+      "remaining_pose_definitions": [
+        "_multistage_target_pose",
+        "interpolated_pose_l1_penalty",
+        "interpolated_pose_target_match",
+        "phase_pose_match",
+        "pose_l1_penalty",
+        "pose_target_match",
+        "standing_composite_score",
+        "standing_success_bonus"
+      ],
+      "sitstand_command_distinct_nan_policy_preserved": true,
+      "source_modules": 141,
+      "source_lines": 37842,
+      "source_line_delta": -73,
+      "source_sha256": "5cc62163fe3b1348478e202b81aaee1334365e7cd10b323737a48a6a60c4fc77"
+    },
+    "release": {
+      "status": "passed",
+      "artifacts": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302037,
+          "sha256": "bab37a57e813e605c30a14237384686aa86a0818bd7a95c6f936c9bbdde90874"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19748934,
+          "sha256": "b2348248c7a6c8a3e7a51d0b35e2dd67d8f0e67d82f0feecbddf79494d4647f3"
+        }
+      },
+      "exact_python_modules": 141,
+      "exact_resources": 49,
+      "historical_evidence_tar_members": 0,
+      "installed_host_imports_without_site_packages": true,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/source-release/embodiedforge-0.1.0",
+      "installed_root": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/installed-wheel",
+      "target_tests": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/source-release-targets.xml"
+    },
+    "candidate_sdk_tool_exit": 0,
+    "build_tool_exit": 0,
+    "release_tool_exit": 0,
+    "candidate_task_tool_exit": 0,
+    "baseline-sdk": {
+      "tests": 379,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 379,
+      "junit_xml": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/baseline-sdk.xml",
+      "pytest_passed": 377,
+      "pytest_subtests_passed": 2
+    },
+    "candidate-task": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 17,
+      "junit_xml": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/candidate-task.xml",
+      "pytest_passed": 17,
+      "pytest_subtests_passed": 0
+    },
+    "candidate-sdk": {
+      "tests": 388,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 388,
+      "junit_xml": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/candidate-sdk.xml",
+      "pytest_passed": 386,
+      "pytest_subtests_passed": 2
+    },
+    "candidate-full": {
+      "tests": 3627,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 81,
+      "passed": 3546,
+      "junit_xml": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/candidate-full.xml",
+      "pytest_passed": 3546,
+      "pytest_subtests_passed": 0
+    },
+    "source-release-targets": {
+      "tests": 88,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 88,
+      "junit_xml": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/source-release-targets.xml",
+      "pytest_passed": 88,
+      "pytest_subtests_passed": 0
+    },
+    "candidate_full_tool_exit": 0,
+    "architecture": {
+      "modules": 141,
+      "explicit_import_edges": 389,
+      "cycles": [],
+      "existing_top_level_declarations_and_signatures_retained": true,
+      "method": "Existing architecture test graph; dynamic imports are checked by runtime tests."
+    },
+    "numerical_sustained": {
+      "summary": {
+        "status": "complete",
+        "started_at": "2026-10-30T10:39:42.826606+00:00",
+        "seconds": 6000.022408361008,
+        "requested_seconds": 6000.0,
+        "cycles": 138210,
+        "checks": 139078,
+        "counts": {
+          "_relative_root_height": 5799,
+          "standing_composite_score": 5795,
+          "standing_success_bonus": 5795,
+          "interpolated_pose_target_match": 5795,
+          "interpolated_pose_l1_penalty": 5795,
+          "_multistage_target_pose": 5795,
+          "multistage_pose_target_match": 5795,
+          "multistage_pose_l1_penalty": 5795,
+          "pose_target_match": 5795,
+          "pose_l1_penalty": 5795,
+          "phase_pose_match": 5795,
+          "height_target_gaussian": 5795,
+          "height_l1_penalty": 5795,
+          "interpolated_height_target": 5795,
+          "interpolated_height_l1_penalty": 5795,
+          "multistage_height_target": 5795,
+          "multistage_height_l1_penalty": 5795,
+          "phase_height_track": 5795,
+          "_posture_height": 5794,
+          "upright_gaussian_at_height": 5794,
+          "upright_while_tall": 5794,
+          "com_height_target": 5794,
+          "com_upward_velocity": 5794,
+          "seated_stillness": 5794
+        },
+        "precision_devices": {
+          "cpu/torch.float32": 34777,
+          "cpu/torch.float64": 34771,
+          "cuda/torch.float32": 34777,
+          "cuda/torch.float64": 34753
+        },
+        "devices": [
+          "cpu",
+          "cuda"
+        ],
+        "last_sample": {
+          "seconds": 6000.022408361008,
+          "cycles": 138210,
+          "checks": 139078,
+          "rss_kib": 1393556,
+          "fds": 45,
+          "time": "2026-10-30T12:19:42.849078+00:00"
+        },
+        "source_hashes": {
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "6286a2d82e8c5ff276ce3c8747e50fef540b1e52dcd0d04fc55bdaeaa2e092cc",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/candidate/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "5cc62163fe3b1348478e202b81aaee1334365e7cd10b323737a48a6a60c4fc77"
+        },
+        "failures": [],
+        "scope": "Old/new reward values, gradients, storage and RNG on CPU/CUDA tensor fixtures.",
+        "comparison": "Exact tensor bytes including gradients and signed zeros, default pose immutability and no global RNG advancement. Private tensor fixtures, not robot training.",
+        "torch": "2.9.1+cu128",
+        "cuda": "12.8"
+      },
+      "supervisor": {
+        "command": [
+          ".cache/microduck-native-venv/bin/python",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/numerical-soak.py",
+          "--baseline",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+          "--candidate",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/candidate/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+          "--output",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/numerical-soak",
+          "--seconds",
+          "6000"
+        ],
+        "launched_command": [
+          ".cache/microduck-native-venv/bin/python",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/numerical-soak.py",
+          "--baseline",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+          "--candidate",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/candidate/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+          "--output",
+          "/tmp/embodiedforge-subtraction-20261030-102728-twohour/numerical-soak",
+          "--seconds",
+          "6000"
+        ],
+        "supervisor_pid": 1268801,
+        "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+        "started_at": "2026-10-30T10:39:41.469435+00:00",
+        "timeout": 6120.0,
+        "grace": 30.0,
+        "trace": false,
+        "process_returncode": 0,
+        "termination_signal": null,
+        "timed_out": false,
+        "supervisor_signal": null,
+        "forced_stop": false,
+        "exit_observed": true,
+        "completed_successfully": true,
+        "pid": 1268802,
+        "seconds": 6001.966417431002,
+        "finished_at": "2026-10-30T12:19:43.435823+00:00"
+      }
+    },
+    "physics_parity": {
+      "scope": "Evaluate old/new rewards on the same real mjlab/MuJoCo-Warp robot states.",
+      "num_envs": 32,
+      "steps": 512,
+      "reward_comparisons": 10752,
+      "source_hashes": {
+        "baseline": "6286a2d82e8c5ff276ce3c8747e50fef540b1e52dcd0d04fc55bdaeaa2e092cc",
+        "candidate": "5cc62163fe3b1348478e202b81aaee1334365e7cd10b323737a48a6a60c4fc77"
+      },
+      "status": "passed",
+      "physics_transitions": 16384,
+      "reset_events": 286,
+      "seconds": 36.49957394799276,
+      "values_bitwise_identical": true,
+      "default_poses_unchanged": true,
+      "finite_qpos_and_configured_rewards": true,
+      "limitation": "Same real physics states; small random actions, no trained actor and no training-quality claim."
+    },
+    "physics_supervisor": {
+      "command": [
+        ".cache/microduck-native-venv/bin/python",
+        "/tmp/embodiedforge-subtraction-20261030-102728-twohour/physics-parity.py"
+      ],
+      "launched_command": [
+        ".cache/microduck-native-venv/bin/python",
+        "/tmp/embodiedforge-subtraction-20261030-102728-twohour/physics-parity.py"
+      ],
+      "supervisor_pid": 1286893,
+      "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+      "started_at": "2026-10-30T10:44:05.133811+00:00",
+      "timeout": 600.0,
+      "grace": 30.0,
+      "trace": false,
+      "process_returncode": 0,
+      "termination_signal": null,
+      "timed_out": false,
+      "supervisor_signal": null,
+      "forced_stop": false,
+      "exit_observed": true,
+      "completed_successfully": true,
+      "pid": 1286894,
+      "seconds": 45.87166944501223,
+      "finished_at": "2026-10-30T10:44:51.005443+00:00"
+    },
+    "physics_supervisor_tool_exit": 0,
+    "tensor_override_gradient_probe": {
+      "status": "passed",
+      "cases": 600,
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "dtypes": [
+        "float32",
+        "float64"
+      ],
+      "seeds": 30,
+      "rewards": 5,
+      "checks": [
+        "exact reward bytes",
+        "exact gradients including scalar tensor and default-pose aliases"
+      ],
+      "scope": "Check tensor-valued/aliased overrides through fixed and interpolated rewards."
+    },
+    "tensor_override_gradient_probe_tool_exit": 0,
+    "lint": {
+      "ruff_check": "passed",
+      "ruff_format_check": "passed",
+      "git_diff_check": "passed"
+    },
+    "patch_reverse_check": "passed",
+    "cpu_call_cost": {
+      "status": "measured",
+      "scope": "Paired CPU call latency: subtraction must preserve practical reward cost.",
+      "device": "cpu",
+      "dtype": "float32",
+      "batch_size": 19,
+      "torch_threads": 1,
+      "affinity_core": 31,
+      "iterations_per_sample": 1000,
+      "paired_samples": 11,
+      "torch": "2.9.1+cu128",
+      "results": [
+        {
+          "function": "_relative_root_height",
+          "microseconds_per_call": {
+            "before": [
+              6.347741,
+              6.130980999999999,
+              6.280053,
+              6.157221,
+              6.065988,
+              6.028217,
+              6.07799,
+              5.988472,
+              5.96677,
+              6.032344,
+              6.182268
+            ],
+            "after": [
+              7.603705,
+              6.233645999999999,
+              6.179713,
+              6.271667000000001,
+              6.1222449999999995,
+              6.096546,
+              6.116874,
+              6.335638,
+              6.132895,
+              6.037415,
+              6.201283999999999
+            ]
+          },
+          "median_microseconds": {
+            "before": 6.07799,
+            "after": 6.179713
+          },
+          "candidate_over_baseline": 1.0167362894641157,
+          "baseline_kind": "inline expression wrapped by the probe (not an original helper)"
+        },
+        {
+          "function": "standing_composite_score",
+          "microseconds_per_call": {
+            "before": [
+              77.630988,
+              75.47995,
+              75.241369,
+              75.318325,
+              75.17538499999999,
+              75.406041,
+              75.723411,
+              75.170607,
+              75.693715,
+              75.378459,
+              74.880247
+            ],
+            "after": [
+              76.048465,
+              75.88191,
+              75.464331,
+              74.557216,
+              75.59993700000001,
+              75.21500999999999,
+              74.74712600000001,
+              75.00465200000001,
+              74.85842600000001,
+              75.484139,
+              75.049467
+            ]
+          },
+          "median_microseconds": {
+            "before": 75.378459,
+            "after": 75.21500999999999
+          },
+          "candidate_over_baseline": 0.9978316218961174,
+          "baseline_kind": "original source function"
+        },
+        {
+          "function": "interpolated_pose_target_match",
+          "microseconds_per_call": {
+            "before": [
+              63.522254000000004,
+              63.02964299999999,
+              63.595833,
+              63.608207,
+              62.873498,
+              63.002301,
+              63.34032,
+              63.342203999999995,
+              63.340019999999996,
+              63.823665,
+              63.629767
+            ],
+            "after": [
+              63.695252,
+              63.301938,
+              63.615671,
+              63.109534,
+              63.438947,
+              63.780803,
+              63.881603999999996,
+              62.61587,
+              63.361951,
+              63.936467,
+              63.978347
+            ]
+          },
+          "median_microseconds": {
+            "before": 63.342203999999995,
+            "after": 63.615671
+          },
+          "candidate_over_baseline": 1.004317295305986,
+          "baseline_kind": "original source function"
+        },
+        {
+          "function": "_multistage_target_pose",
+          "microseconds_per_call": {
+            "before": [
+              88.581541,
+              89.211182,
+              88.848797,
+              88.63963199999999,
+              88.00017299999999,
+              88.81042500000001,
+              88.274792,
+              88.99613599999999,
+              88.430687,
+              88.29419899999999,
+              88.250196
+            ],
+            "after": [
+              88.540925,
+              87.91503200000001,
+              88.967412,
+              88.370232,
+              88.876068,
+              88.19967,
+              88.472676,
+              88.197416,
+              88.49443799999999,
+              88.02563099999999,
+              88.746594
+            ]
+          },
+          "median_microseconds": {
+            "before": 88.581541,
+            "after": 88.472676
+          },
+          "candidate_over_baseline": 0.9987710193481507,
+          "baseline_kind": "original source function"
+        },
+        {
+          "function": "pose_target_match",
+          "microseconds_per_call": {
+            "before": [
+              28.413618999999997,
+              28.374746,
+              28.355268,
+              28.205345,
+              27.969199,
+              28.44577,
+              28.338026000000003,
+              28.478683,
+              28.542232,
+              28.135813,
+              28.252394
+            ],
+            "after": [
+              28.172182,
+              28.301927,
+              28.582579000000003,
+              28.717564,
+              28.118260999999997,
+              28.333437,
+              28.160971,
+              28.397399,
+              28.237085999999998,
+              28.557942,
+              28.191509
+            ]
+          },
+          "median_microseconds": {
+            "before": 28.355268,
+            "after": 28.301927
+          },
+          "candidate_over_baseline": 0.9981188328038374,
+          "baseline_kind": "original source function"
+        },
+        {
+          "function": "phase_pose_match",
+          "microseconds_per_call": {
+            "before": [
+              34.384527999999996,
+              33.903027,
+              34.092957000000006,
+              34.032041,
+              34.178548,
+              34.566152,
+              34.45023200000001,
+              34.26874900000001,
+              34.286131999999995,
+              33.958923000000006,
+              34.087676
+            ],
+            "after": [
+              34.427129,
+              34.442598,
+              34.270381,
+              34.441265,
+              34.29005,
+              34.419754999999995,
+              33.965856,
+              34.168440000000004,
+              34.629701999999995,
+              34.489136,
+              34.199578
+            ]
+          },
+          "median_microseconds": {
+            "before": 34.178548,
+            "after": 34.419754999999995
+          },
+          "candidate_over_baseline": 1.0070572629358039,
+          "baseline_kind": "original source function"
+        },
+        {
+          "function": "interpolated_height_target",
+          "microseconds_per_call": {
+            "before": [
+              37.680479,
+              37.327591999999996,
+              37.492092,
+              37.164804,
+              37.293578000000004,
+              36.735724000000005,
+              36.644771,
+              36.810985,
+              37.03042,
+              37.461214999999996,
+              36.898421
+            ],
+            "after": [
+              36.980265,
+              36.97755,
+              37.378128,
+              36.621016000000004,
+              37.596610999999996,
+              37.363099000000005,
+              37.240277,
+              37.226742,
+              37.35473399999999,
+              37.157410000000006,
+              36.753527000000005
+            ]
+          },
+          "median_microseconds": {
+            "before": 37.164804,
+            "after": 37.226742
+          },
+          "candidate_over_baseline": 1.001666576796692,
+          "baseline_kind": "original source function"
+        },
+        {
+          "function": "multistage_height_target",
+          "microseconds_per_call": {
+            "before": [
+              75.933521,
+              75.582067,
+              75.80071099999999,
+              75.963027,
+              76.474294,
+              75.592878,
+              76.48205899999999,
+              76.290486,
+              75.39225900000001,
+              77.03389200000001,
+              75.813836
+            ],
+            "after": [
+              76.13242699999999,
+              75.74350199999999,
+              76.156062,
+              75.617083,
+              75.621641,
+              75.95880899999999,
+              75.771515,
+              76.001189,
+              76.014244,
+              75.754533,
+              75.930126
+            ]
+          },
+          "median_microseconds": {
+            "before": 75.933521,
+            "after": 75.930126
+          },
+          "candidate_over_baseline": 0.9999552898383312,
+          "baseline_kind": "original source function"
+        }
+      ],
+      "limits": "Private tensor fixtures and a shared host. CPU calls only, no training-throughput or GPU-performance claim. The height-helper row compares two wrappers around the same expression; overhead added to original callers is represented by the unchanged public reward functions."
+    },
+    "cpu_call_cost_tool_exit": 0,
+    "remaining_exact_function_body_audit": {
+      "scope": "Exact function bodies without docstrings, at least 40 AST nodes; argument lists, decorators and global namespaces are excluded, so matches are audit candidates only.",
+      "groups": []
+    },
+    "numerical_resources": {
+      "samples": 201,
+      "fds_observed": [
+        45
+      ],
+      "rss_min_kib": 1393192,
+      "rss_max_kib": 1393556,
+      "scope": "Observed resource samples during the differential process; not whole training memory."
+    },
+    "private_reference_audit": {
+      "scope": "Read-only lexical reference screen for top-level private functions across source/tests/benchmarks; does not establish external or dynamic reachability.",
+      "candidates": []
+    },
+    "statement_block_audit": {
+      "scope": "Exact consecutive three-statement windows of at least 80 AST nodes. Scope and variable binding differ across sites; candidates require manual review.",
+      "groups": []
+    },
+    "normalized_body_audit": {
+      "scope": "Read-only function-body comparison after normalizing parameter/local variable names and removing docstrings; >=40 AST nodes. Global names, attributes and constants retained. Not a proof of semantic equivalence.",
+      "groups": []
+    },
+    "numerical_supervisor_tool_exit": 0,
+    "evidence_script_syntax": {
+      "status": "passed",
+      "private_scripts_parsed": 10
+    },
+    "monitor_tool_exit": 0,
+    "monitor_evidence": {
+      "status": "complete",
+      "samples": 134,
+      "monitor_seconds": 5967.768529253997,
+      "last_sample": {
+        "time": "2026-10-30T12:27:28.000177+00:00",
+        "comparison_minutes": 100.0,
+        "checks": 139078,
+        "status": "complete",
+        "rss_kib": 1393556,
+        "fds": 45,
+        "failures": 0,
+        "source_files_verified": 142,
+        "full_preservation_check": false,
+        "supervised_exit": 0,
+        "remaining_minutes": 0.0
+      }
+    },
+    "artifact_integrity": {
+      "status": "passed",
+      "checked_at": "2026-10-30T12:23:04.068702+00:00",
+      "artifacts_unchanged": [
+        "embodiedforge-0.1.0-py3-none-any.whl",
+        "embodiedforge-0.1.0.tar.gz"
+      ]
+    }
+  },
+  "audit_decisions": [
+    "Keep SitStandCommand height reconstruction separate: its NaN fallback is stand height rather than zero.",
+    "Keep required sit_overrides handling separate: accepting None would change its error contract.",
+    "Keep named-joint pose builders separate from servo-index overrides because their indexing contracts differ.",
+    "Retain all existing task parameters, training/export/evaluation entry points and optional dependency boundaries.",
+    "Exact function-body scan across all 141 modules found no remaining duplicate bodies of at least 40 AST nodes after removing docstrings. Smaller or semantic similarities require separate contract review."
+  ],
+  "preserved_models": [
+    {
+      "path": "runs/supermimic/tasks/backflip/reference/current.json",
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+    },
+    {
+      "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+      "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+      "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+      "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+    },
+    {
+      "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+    }
+  ],
+  "preserved_data": [
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+      "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+      "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+      "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+      "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+      "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+      "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+      "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+      "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+      "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+    }
+  ],
+  "generated_build_files": [
+    "src/embodiedforge.egg-info/SOURCES.txt"
+  ],
+  "numerical_job": {
+    "requested_seconds": 6000,
+    "summary": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/numerical-soak/summary.json",
+    "supervisor": "/tmp/embodiedforge-subtraction-20261030-102728-twohour/soak-supervisor",
+    "tool_session_id": 76879,
+    "scope": "Exact old/new reward values, gradients, default pose storage and RNG preservation; private CPU/CUDA tensor fixtures."
+  },
+  "metrics": {
+    "modules_before": 141,
+    "modules_after": 141,
+    "source_lines_before": 37915,
+    "source_lines_after": 37842,
+    "production_net_lines_removed": 73
+  },
+  "preservation": {
+    "checked_at": "2026-10-30T12:27:50.001260+00:00",
+    "baseline_files_checked": 428,
+    "expected_changed_files": [
+      "src/embodiedforge.egg-info/SOURCES.txt",
+      "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+      "tests/test_microduck_task.py"
+    ],
+    "unexpected_changes": [],
+    "generated_build_files": [
+      "src/embodiedforge.egg-info/SOURCES.txt"
+    ],
+    "historical_files_unchanged": 191,
+    "models_and_registry": 6,
+    "reference_data_files": 9,
+    "frozen_production_source_matches": true
+  },
+  "limits": [
+    "The 100-minute differential compares exact tensor and gradient bytes, default pose immutability and RNG state on CPU/CUDA using private tensor environments; it does not measure learned robot skill.",
+    "The real physics probe compares old/new rewards on identical MuJoCo-Warp states under small random actions; it does not compare trained policies or training throughput.",
+    "The main test suite skips optional SDK dependencies. The real Microduck SDK suite supplies separate targeted coverage. Overlapping suites are not summed.",
+    "JUnit totals include two passing SDK subtests. Pytest summary counts are recorded separately.",
+    "No training, task parameter tuning or new dependency was introduced in this subtraction round."
+  ],
+  "elapsed_seconds": 7222.00126,
+  "last_updated_at": "2026-10-30T12:27:50.001260+00:00",
+  "probe_fixture_corrections": [
+    {
+      "probe": "override-gradient-probe",
+      "initial_error": "The private byte comparator could not view a scalar float tensor directly as uint8.",
+      "correction": "Flatten scalar/tensor values before byte conversion in this probe; preserve shapes/dtypes in a separate assertion. No production change was required.",
+      "final_cases_passed": 600,
+      "initial_log": "override-gradient-probe-initial-fixture-error.log"
+    }
+  ],
+  "environment": {
+    "full_suite": {
+      "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+      "executable": "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+      "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+      "distributions": {
+        "torch": "2.13.0",
+        "numpy": "2.2.6",
+        "mujoco": null,
+        "mjlab": null,
+        "pytest": "9.1.1",
+        "setuptools": "83.0.0"
+      }
+    },
+    "microduck_sdk": {
+      "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+      "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+      "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+      "distributions": {
+        "torch": "2.9.1",
+        "numpy": "2.4.1",
+        "mujoco": "3.10.0",
+        "mjlab": "1.3.0",
+        "pytest": "9.1.1",
+        "setuptools": "80.9.0"
+      }
+    },
+    "gpu": "NVIDIA GeForce RTX 5090 D v2, 595.99.02, 24455 MiB"
+  },
+  "reproduction": {
+    "full_suite": "env PYTHONPATH=src PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /home/ubuntu/miniconda3/envs/xvla2/bin/python -m pytest -q --tb=short",
+    "sdk_suite": "env PYTHONPATH=src PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .cache/microduck-native-venv/bin/python -m pytest -q tests/test_microduck*.py --tb=short",
+    "distribution": "uv build --no-build-isolation --out-dir <scratch>/distribution",
+    "snapshot_patch": "scratch/this-round.patch in the evidence bundle; compares only this round against its initial working tree.",
+    "sustained_command": "Exact command and supervisor outcomes are retained under scratch/soak-supervisor/",
+    "physics_command": "Exact command and supervisor outcomes are retained under scratch/physics-supervisor/",
+    "scope": "Run from the recorded repository root and matching environments; private evidence scripts retain recorded local paths."
+  },
+  "finished_at": "2026-10-30T12:27:50.001260+00:00",
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261030-102728-twohour-evidence.tar.gz",
+    "bytes": 1409556,
+    "sha256": "84bab65c4830f0faeb6cceb2d7ac8bdc6fcce2764aa78b370c80e684424ee44a",
+    "verified_members": 459,
+    "report_snapshot": "scratch/state.json",
+    "snapshot_note": "Frozen before inserting the bundle checksum, to avoid self-reference."
+  }
+}

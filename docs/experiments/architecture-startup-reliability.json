@@ -1,0 +1,147 @@
+{
+  "status": "complete_early_at_user_request",
+  "started_at_epoch": 1792549873,
+  "recorded_at_epoch": 1792550780.8673263,
+  "original_planned_seconds": 10800,
+  "actual_elapsed_seconds": 907.8673264980316,
+  "original_duration_superseded_by_user": true,
+  "checks": {
+    "python310_full": {
+      "passed": 3152,
+      "skipped": 80,
+      "warnings": 11,
+      "exit_code": 0,
+      "log": "final-tests-py310.log"
+    },
+    "python312_targeted": {
+      "passed": 163,
+      "exit_code": 0,
+      "log": "final-targeted-py312.log"
+    },
+    "ruff_check": true,
+    "ruff_format_files": 269,
+    "git_diff_check": true
+  },
+  "baseline_reproductions": {
+    "recorder": "15 failed before; related125 passed after",
+    "process": "5 failed before; related38 passed after"
+  },
+  "runtime_changes": {
+    "src/embodiedforge/data.py": {
+      "before": "72025349c19bec439d142f8dd93d7062a041523e9aa91d9a8bf6b3be3030fd60",
+      "after": "0f13b546c112d4424ef9d8d6c22c88260fa3231232999e9d4fc0f2a4cd4ab611"
+    },
+    "src/embodiedforge/runtime/process.py": {
+      "before": "663b87d188bc48027e151f08eb9cc54ebfb1c751537954cb5d6af439ce33880a",
+      "after": "78808ec5671f4d8b5e1e522696f32f35640d689390f6706aabde089bec9dac9e"
+    }
+  },
+  "legacy_manifests_checked": 964,
+  "legacy_manifests_changed": [],
+  "prior_corrupt_archive_unchanged": true,
+  "owned_supervisors_finished": true,
+  "diagnostic_process_exits": {
+    "reference-go1": {
+      "task": "go1",
+      "source_snapshot": "baseline-source",
+      "supervisor_pid": 536988,
+      "started_at_epoch": 1792550449.8904555,
+      "duration_seconds": 3600,
+      "command": [
+        "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-round-three/reference-go1/benchmark.py",
+        "--task",
+        "go1",
+        "--policy",
+        "random",
+        "--verify-archive",
+        "--duration",
+        "3600",
+        "--output",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-round-three/reference-go1/run"
+      ],
+      "benchmark_sha256": "fee611bebdbfb9a412d561423dc28f26d5a25b9d8df408df2f86f028bc762de6",
+      "returncode": 1,
+      "status": "failed",
+      "finished_at_epoch": 1792550450.4110577,
+      "seconds": 0.5206027030944824
+    },
+    "reference-h1": {
+      "task": "h1",
+      "source_snapshot": "baseline-source",
+      "supervisor_pid": 536989,
+      "started_at_epoch": 1792550449.8900325,
+      "duration_seconds": 3600,
+      "command": [
+        "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-round-three/reference-h1/benchmark.py",
+        "--task",
+        "h1",
+        "--policy",
+        "random",
+        "--verify-archive",
+        "--duration",
+        "3600",
+        "--output",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-round-three/reference-h1/run"
+      ],
+      "benchmark_sha256": "fee611bebdbfb9a412d561423dc28f26d5a25b9d8df408df2f86f028bc762de6",
+      "returncode": 1,
+      "status": "failed",
+      "finished_at_epoch": 1792550636.883661,
+      "seconds": 186.9936285018921
+    },
+    "fixed-go1": {
+      "task": "go1",
+      "source_snapshot": "startup-fixed-source",
+      "supervisor_pid": 536990,
+      "started_at_epoch": 1792550449.890456,
+      "duration_seconds": 9000,
+      "command": [
+        "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-round-three/fixed-go1/benchmark.py",
+        "--task",
+        "go1",
+        "--policy",
+        "random",
+        "--verify-archive",
+        "--duration",
+        "9000",
+        "--output",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-round-three/fixed-go1/run"
+      ],
+      "benchmark_sha256": "fee611bebdbfb9a412d561423dc28f26d5a25b9d8df408df2f86f028bc762de6",
+      "returncode": 1,
+      "status": "failed",
+      "finished_at_epoch": 1792550450.412975,
+      "seconds": 0.5225193500518799
+    },
+    "fixed-h1": {
+      "task": "h1",
+      "source_snapshot": "startup-fixed-source",
+      "supervisor_pid": 536991,
+      "started_at_epoch": 1792550449.8910382,
+      "duration_seconds": 9000,
+      "command": [
+        "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-round-three/fixed-h1/benchmark.py",
+        "--task",
+        "h1",
+        "--policy",
+        "random",
+        "--verify-archive",
+        "--duration",
+        "9000",
+        "--output",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-round-three/fixed-h1/run"
+      ],
+      "benchmark_sha256": "fee611bebdbfb9a412d561423dc28f26d5a25b9d8df408df2f86f028bc762de6",
+      "returncode": 1,
+      "status": "failed",
+      "finished_at_epoch": 1792550636.904168,
+      "seconds": 187.01312971115112
+    }
+  },
+  "diagnostic_scope": "Random-action diagnostic extension reverted. No completed sustained validation claimed; H1 stopped at user request, Go1 prototype rejected unbounded action ranges. Prior CRC cause remains unknown.",
+  "evidence_directory": "runs/architecture-round-three"
+}

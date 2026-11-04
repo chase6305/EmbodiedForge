@@ -5,7 +5,6 @@ This reads recorded simulation states; it does not run a policy or new physics.
 """
 
 import argparse
-import json
 import sys
 import time
 from dataclasses import dataclass
@@ -13,7 +12,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ._h1_motion import load_motion
+from ._h1_motion import _read_motion_arrays
+from ._h1_motion import load_motion as load_motion
 from .logging import get_logger, setup_logging
 from .viewers.frames import OrbitCamera, frame_dependencies
 from .viewers.robot import RobotSceneSpec, RobotSceneUpdate, load_robot_model
@@ -34,42 +34,42 @@ class RobotMotion:
         import mujoco
 
         path = Path(path).resolve(strict=True)
-        load_motion(path)  # Existing recording schema, time and terminal checks.
-        with np.load(path, allow_pickle=False) as data:
-            self.metadata = json.loads(str(data["metadata"]))
-            self.time, self.positions = data["time"].copy(), data["positions"].copy()
-            quaternion = data["quaternions"].astype(np.float64)
-            joints = data["joints"].copy()
-            self.terminated = bool(data["terminated"][-1])
-            self.truncated = bool(data["truncated"][-1])
+        metadata, arrays = _read_motion_arrays(path)
+        self.metadata = metadata
+        # Preserve replay snapshots' layout while releasing raw input buffers.
+        self.time = arrays.pop("time").copy()
+        self.positions = arrays.pop("positions").copy()
+        body_quaternions = arrays.pop("quaternions").astype(np.float64)
+        joint_positions = arrays.pop("joints").copy()
+        self.terminated = bool(arrays.pop("terminated")[-1])
+        self.truncated = bool(arrays.pop("truncated")[-1])
         self.path = path
-        meta = self.metadata
-        if meta.get("schema", 1) != 1:
+        if metadata.get("schema", 1) != 1:
             raise ValueError("Unsupported motion schema")
-        if meta.get("quaternion_order") != "xyzw":
+        if metadata.get("quaternion_order") != "xyzw":
             raise ValueError("Robot replay requires explicit xyzw quaternion order")
         for key in ("joint_names", "body_names"):
-            names = meta[key]
+            names = metadata[key]
             if (
                 not names
                 or not all(isinstance(n, str) and n for n in names)
                 or len(set(names)) != len(names)
             ):
                 raise ValueError(f"Motion {key} must be unique nonempty names")
-        norms = np.linalg.norm(quaternion, axis=-1)
+        norms = np.linalg.norm(body_quaternions, axis=-1)
         if not np.allclose(norms, 1, atol=1e-3, rtol=0):
             raise ValueError("Motion quaternions must have unit norm")
-        quaternion /= norms[..., None]
+        body_quaternions /= norms[..., None]
         free = np.flatnonzero(model.jnt_type == mujoco.mjtJoint.mjJNT_FREE)
         if len(free) != 1:
             raise ValueError("Replay requires exactly one floating root joint")
         root = int(model.jnt_bodyid[free[0]])
-        if model.body(root).name != meta["body_names"][0]:
+        if model.body(root).name != metadata["body_names"][0]:
             raise ValueError(
                 "Motion root body does not match the model's floating root"
             )
         ids = []
-        for name in meta["joint_names"]:
+        for name in metadata["joint_names"]:
             joint = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
             if joint < 0 or int(model.jnt_type[joint]) not in (
                 int(mujoco.mjtJoint.mjJNT_HINGE),
@@ -82,18 +82,22 @@ class RobotMotion:
         self.qpos = np.tile(model.qpos0, (len(self.time), 1))
         start = model.jnt_qposadr[free[0]]
         self.qpos[:, start : start + 3] = self.positions[:, 0]
-        self.qpos[:, start + 3 : start + 7] = np.roll(quaternion[:, 0], 1, axis=-1)
-        self.qpos[:, model.jnt_qposadr[ids]] = joints
-        point_types = meta.get("point_types", ["body"] * len(meta["body_names"]))
+        self.qpos[:, start + 3 : start + 7] = np.roll(
+            body_quaternions[:, 0], 1, axis=-1
+        )
+        self.qpos[:, model.jnt_qposadr[ids]] = joint_positions
+        point_types = metadata.get(
+            "point_types", ["body"] * len(metadata["body_names"])
+        )
         if (
-            len(point_types) != len(meta["body_names"])
+            len(point_types) != len(metadata["body_names"])
             or point_types[0] != "body"
             or any(t not in ("body", "site") for t in point_types)
         ):
             raise ValueError("Invalid recorded point types")
         body_rows, body_ids = [], []
         for i, (name, kind) in enumerate(
-            zip(meta["body_names"], point_types, strict=True)
+            zip(metadata["body_names"], point_types, strict=True)
         ):
             if kind != "body":
                 continue
@@ -112,7 +116,7 @@ class RobotMotion:
                     data.xpos[body_ids] - self.positions[i, body_rows], axis=-1
                 )
             )
-            expected = np.roll(quaternion[i, body_rows], 1, axis=-1)
+            expected = np.roll(body_quaternions[i, body_rows], 1, axis=-1)
             dots = np.abs(np.sum(data.xquat[body_ids] * expected, axis=-1))
             rotation_error = np.max(2 * np.arccos(np.clip(dots, -1, 1)))
             self.max_position_error = max(

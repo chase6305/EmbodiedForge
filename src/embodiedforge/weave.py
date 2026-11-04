@@ -3,18 +3,20 @@
 import argparse
 import json
 import os
-import shutil
 import subprocess
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
 
-from ._microduck_process import run_process, termination_signals
 from ._motion_clips import MotionClips, import_weave
-from .h1 import child_environment, sha256, write_json
-from .recipes import snapshot_implementation
+from .runtime.artifacts import write_json
+from .runtime.environment import child_environment
+from .runtime.hashing import copy_file_snapshot
+from .runtime.hashing import file_sha256 as sha256
+from .runtime.process import run_process, termination_signals
+from .runtime.provenance import snapshot_implementation
+from .runtime.records import run_identity, run_lifecycle
 
 WEAVE_REVISION = "b162a351ddabe302a7a3d50d1543eb83dfeff082"
 ISAACLAB_REVISION = "e17312889676ed229b986d56c9e0b23a01cf0ab7"
@@ -244,11 +246,41 @@ def launch(args):
         "save_interval": getattr(args, "save_interval", None),
         "checkpoint": None,
     }
-    status = {"status": "preparing", "command": args.command}
+    status = {
+        "status": "preparing",
+        "command": args.command,
+        "run_contract": run_identity("weave", args.command, TASK),
+    }
     request_path = output / "request.json"
-    try:
+
+    def finalize(record):
+        if args.command == "train":
+            # The worker publishes model_<iteration>.pt by atomic rename. Ignore
+            # unfinished .tmp files, copied input weights, and unrelated files.
+            latest = max(
+                (
+                    path
+                    for path in output.glob("model_*.pt")
+                    if path.is_file() and path.stem[6:].isdecimal()
+                ),
+                key=lambda path: int(path.stem[6:]),
+                default=None,
+            )
+            record["latest_checkpoint"] = str(latest) if latest else None
+            record["last_saved_iteration"] = int(latest.stem[6:]) if latest else None
+            record["checkpoint_validation"] = "not_performed" if latest else None
+            if record["status"] == "complete" and str(latest) == report.get(
+                "checkpoint"
+            ):
+                record["checkpoint_validation"] = "policy_and_optimizer"
+
+    with run_lifecycle(
+        status,
+        lambda record: write_json(output / "run.json", record),
+        finalize=finalize,
+        label=output / "run.json",
+    ):
         write_json(request_path, request)
-        write_json(output / "run.json", status)
         inputs = output / "inputs"
         inputs.mkdir()
         layout = json.loads(args.layout.read_text()) if args.layout else None
@@ -260,8 +292,7 @@ def launch(args):
         check_assets(repo, set(request["motions"]["objects"]))
         if args.checkpoint:
             checkpoint = inputs / "checkpoint.pt"
-            before = sha256(args.checkpoint)
-            shutil.copyfile(args.checkpoint, checkpoint)
+            before = copy_file_snapshot(args.checkpoint, checkpoint)
             copied = sha256(checkpoint)
             if copied != before or sha256(args.checkpoint) != before:
                 raise ValueError(
@@ -318,41 +349,6 @@ def launch(args):
         if report.get("status") != "complete":
             raise RuntimeError(f"Weave worker did not complete: {report.get('status')}")
         status["status"] = "complete"
-    except BaseException as exc:
-        status.update(
-            status="interrupted" if isinstance(exc, KeyboardInterrupt) else "failed",
-            error=str(exc),
-        )
-        raise
-    finally:
-        active_error = sys.exc_info()[0] is not None
-        try:
-            if args.command == "train":
-                # The worker publishes model_<iteration>.pt by atomic rename. Ignore
-                # unfinished .tmp files, copied input weights, and unrelated files.
-                latest = max(
-                    (
-                        path
-                        for path in output.glob("model_*.pt")
-                        if path.is_file() and path.stem[6:].isdecimal()
-                    ),
-                    key=lambda path: int(path.stem[6:]),
-                    default=None,
-                )
-                status["latest_checkpoint"] = str(latest) if latest else None
-                status["last_saved_iteration"] = (
-                    int(latest.stem[6:]) if latest else None
-                )
-                status["checkpoint_validation"] = "not_performed" if latest else None
-                if status["status"] == "complete" and str(latest) == report.get(
-                    "checkpoint"
-                ):
-                    status["checkpoint_validation"] = "policy_and_optimizer"
-            write_json(output / "run.json", status)
-        except Exception as exc:
-            if not active_error:
-                raise
-            print(f"Failed to finalize Weave run: {exc}", file=sys.stderr)
     return output
 
 

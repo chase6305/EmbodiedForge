@@ -1,0 +1,1605 @@
+{
+  "status": "complete",
+  "objective": "Five hours of overall subtraction: remove duplicated implementation and unnecessary internal layers while preserving existing capabilities",
+  "started_at": "2026-10-29T09:56:51+00:00",
+  "deadline": "2026-10-29T14:56:51+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour",
+  "baseline": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/baseline",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37982,
+  "baseline_files": 423,
+  "historical_files": 186,
+  "changes": [
+    "Exclude historical evidence tarballs from source distributions, with an archive-content assertion in CI.",
+    "Reuse one finite-tensor traversal for native H1 and IsaacLab H1, keeping tensor-only consumers permissive for float metadata.",
+    "Use bounded shared stream/file hashing in H1 and Microduck artifact checks; retain Microduck hashing of the loaded file descriptor.",
+    "Reuse atomic finite JSON publication for the isolated H1 verifier.",
+    "Reuse one validated archive-member iterator in MorphMimic setup and verification; source leaves use the existing regular-file snapshot reader.",
+    "Delegate the duplicate Microduck phase blend body to the existing crouch blend, preserving the public function name/signature and numerical gradients.",
+    "H1 verifier now derives metadata and optional SHA256 from one opened checkpoint; preflight keeps its original metadata-only result.",
+    "MorphMimic verifies the pinned archive checksum and parses members from one opened stream, preventing cache replacement from admitting unpinned source.",
+    "Merge contradictory source-distribution paragraphs in docs/README.md into one description matching the archive exclusion and retained report/chart contract."
+  ],
+  "validation": {
+    "phase1_cpu_training_parity": {
+      "scope": "deterministic CPU policy, optimizer and rollout equality",
+      "comparisons": [
+        {
+          "component": "core",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "58708958868e8d013b0cb4cfd374488c59e2500d7544eaa168dc83cee9a79cf3",
+            "optimizer": "cf345e579236731fd92fb91fe41073a24af00f402596fdc5ad8fb1e194c7f5b2"
+          },
+          "candidate": {
+            "policy": "58708958868e8d013b0cb4cfd374488c59e2500d7544eaa168dc83cee9a79cf3",
+            "optimizer": "cf345e579236731fd92fb91fe41073a24af00f402596fdc5ad8fb1e194c7f5b2"
+          }
+        },
+        {
+          "component": "core",
+          "seed": 1,
+          "match": true,
+          "reference": {
+            "policy": "8dfb10d27acf98b826b660774cea62f863928bb5745313655d659d0d12305765",
+            "optimizer": "11bda338b73d40beca2b7bf84cfc610afc132ba3327acaa1d64ce3ce368a56eb"
+          },
+          "candidate": {
+            "policy": "8dfb10d27acf98b826b660774cea62f863928bb5745313655d659d0d12305765",
+            "optimizer": "11bda338b73d40beca2b7bf84cfc610afc132ba3327acaa1d64ce3ce368a56eb"
+          }
+        },
+        {
+          "component": "core",
+          "seed": 2,
+          "match": true,
+          "reference": {
+            "policy": "f0ef07a5e027e4e78ce6a516e596224a0021bde8ad0dfd63cc5d3ab3f8cd4523",
+            "optimizer": "24a3117190686a090415f2feafaa06c682b81b7db47ac5b11b48a26ec90ce1c1"
+          },
+          "candidate": {
+            "policy": "f0ef07a5e027e4e78ce6a516e596224a0021bde8ad0dfd63cc5d3ab3f8cd4523",
+            "optimizer": "24a3117190686a090415f2feafaa06c682b81b7db47ac5b11b48a26ec90ce1c1"
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "741d5eeb5cbf15102ce209731ebb7b1a16ce7308e5ce7bd1f354cc0c608f55cd",
+            "optimizer": "68e09e1caa1c8a8de983458cb7eb2f14b4105c7fea74e70f35a49902c12cb607",
+            "rollouts": [
+              "b141a7f20544fcb00b7cba27c81b81adcc2ac7ee5ff2d563ce29b9a7b0f2315d",
+              "b2a5f419ff4e2520b9cd48e115f197ce0a7f388cf7a1855bf1c0d2100609567b",
+              "ecbb6a428888146bd7514922077adfbe99254f74d00986c3d1f248ae107c4c5b"
+            ]
+          },
+          "candidate": {
+            "policy": "741d5eeb5cbf15102ce209731ebb7b1a16ce7308e5ce7bd1f354cc0c608f55cd",
+            "optimizer": "68e09e1caa1c8a8de983458cb7eb2f14b4105c7fea74e70f35a49902c12cb607",
+            "rollouts": [
+              "b141a7f20544fcb00b7cba27c81b81adcc2ac7ee5ff2d563ce29b9a7b0f2315d",
+              "b2a5f419ff4e2520b9cd48e115f197ce0a7f388cf7a1855bf1c0d2100609567b",
+              "ecbb6a428888146bd7514922077adfbe99254f74d00986c3d1f248ae107c4c5b"
+            ]
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 1,
+          "match": true,
+          "reference": {
+            "policy": "bc536196da4e8dd96b63875e5e764c28749e4fa41737d1b1cd70a7ba214f0b8e",
+            "optimizer": "ab4368b038e3aaf01f7a63d54ae4cab0e372990079aa2a95b9da1fa2464ccd44",
+            "rollouts": [
+              "e2f84ab0cb01ed39ac0c1e89319bebc763d9c39248c2fbfab655f99f60bf2293",
+              "24cee2a5aec291f5db7fac88b3ade5ef908f8cd5715e04f2e8c8f6048d3a4c83",
+              "8ff1957bc3ae06bb620c380982c07760f708c0770148ac3fee9c7e2ff1dcde6b"
+            ]
+          },
+          "candidate": {
+            "policy": "bc536196da4e8dd96b63875e5e764c28749e4fa41737d1b1cd70a7ba214f0b8e",
+            "optimizer": "ab4368b038e3aaf01f7a63d54ae4cab0e372990079aa2a95b9da1fa2464ccd44",
+            "rollouts": [
+              "e2f84ab0cb01ed39ac0c1e89319bebc763d9c39248c2fbfab655f99f60bf2293",
+              "24cee2a5aec291f5db7fac88b3ade5ef908f8cd5715e04f2e8c8f6048d3a4c83",
+              "8ff1957bc3ae06bb620c380982c07760f708c0770148ac3fee9c7e2ff1dcde6b"
+            ]
+          }
+        },
+        {
+          "component": "go1",
+          "seed": 2,
+          "match": true,
+          "reference": {
+            "policy": "459286e1fc38d4d9b5f4da55852e0dab577879567b0c4abb6e9d2af239830b6a",
+            "optimizer": "ea9ad2ccdfa79949c9ec19a295cab5907abbfc91984d7385cfc039a981c6953f",
+            "rollouts": [
+              "3446edacda7813550f73f647a9e3079dc3eb05feb142a52b8b7fc4e03b1657cc",
+              "f44ea90ec03666ec5e9c43e17ebbefba9d5bd8157a3d238298bd9bac4d1261ce",
+              "ec1775547fcc7a79886872e85f5082d36d77e6950748610276a0d72215c0ec30"
+            ]
+          },
+          "candidate": {
+            "policy": "459286e1fc38d4d9b5f4da55852e0dab577879567b0c4abb6e9d2af239830b6a",
+            "optimizer": "ea9ad2ccdfa79949c9ec19a295cab5907abbfc91984d7385cfc039a981c6953f",
+            "rollouts": [
+              "3446edacda7813550f73f647a9e3079dc3eb05feb142a52b8b7fc4e03b1657cc",
+              "f44ea90ec03666ec5e9c43e17ebbefba9d5bd8157a3d238298bd9bac4d1261ce",
+              "ec1775547fcc7a79886872e85f5082d36d77e6950748610276a0d72215c0ec30"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 0,
+          "match": true,
+          "reference": {
+            "policy": "94352ce0835adade77bb12b89d6463b18d5d35a72f11d8dd7d53d65ee5d00713",
+            "optimizer": "8c24431bc3b90c143198060642defa46b71d248de390a8838b4e50737e61eefb",
+            "rollouts": [
+              "076e57a321e0f9867f917d6a80c7735c3cd83980601fd65e169fd225354e8667",
+              "549a1d788a29c16488fd418735b0a35a0336b9d876d313209fffeef148f86c0e",
+              "50ef5fd36e542774c9f9c7ec2b49e96f7b5cbfd0bf3cb1deaaac088d7693a22e"
+            ]
+          },
+          "candidate": {
+            "policy": "94352ce0835adade77bb12b89d6463b18d5d35a72f11d8dd7d53d65ee5d00713",
+            "optimizer": "8c24431bc3b90c143198060642defa46b71d248de390a8838b4e50737e61eefb",
+            "rollouts": [
+              "076e57a321e0f9867f917d6a80c7735c3cd83980601fd65e169fd225354e8667",
+              "549a1d788a29c16488fd418735b0a35a0336b9d876d313209fffeef148f86c0e",
+              "50ef5fd36e542774c9f9c7ec2b49e96f7b5cbfd0bf3cb1deaaac088d7693a22e"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 1,
+          "match": true,
+          "reference": {
+            "policy": "1e85a89db8af37ba7f3674472a2b0a3438416fddad63bcc80c96408c832371eb",
+            "optimizer": "cf67a9be155e0cf38645cb099d3950864276f07749f0fbffc4f8fa545680f0a0",
+            "rollouts": [
+              "2a92f10c27d4511e395e92e436378f82fb9c9a78b311e5a9d1ceb464ec4c9f0f",
+              "04bffff754c7047aa36f641d3fe08d1d33ba867a04b60681305c163d2413f702",
+              "d69cd9c60caf1848aecf8b4bfbf71bda4471cd4656b13d5998fe86ed5621a9d2"
+            ]
+          },
+          "candidate": {
+            "policy": "1e85a89db8af37ba7f3674472a2b0a3438416fddad63bcc80c96408c832371eb",
+            "optimizer": "cf67a9be155e0cf38645cb099d3950864276f07749f0fbffc4f8fa545680f0a0",
+            "rollouts": [
+              "2a92f10c27d4511e395e92e436378f82fb9c9a78b311e5a9d1ceb464ec4c9f0f",
+              "04bffff754c7047aa36f641d3fe08d1d33ba867a04b60681305c163d2413f702",
+              "d69cd9c60caf1848aecf8b4bfbf71bda4471cd4656b13d5998fe86ed5621a9d2"
+            ]
+          }
+        },
+        {
+          "component": "h1",
+          "seed": 2,
+          "match": true,
+          "reference": {
+            "policy": "db23672db2da6269feed0c966d94d30bab27984e3744758c2b1406c83be82d53",
+            "optimizer": "19661278a44c0174e748901ac921828a5a5e984dd8fa13b34dbb3935de126f0d",
+            "rollouts": [
+              "90fd314e00c344af17ce35348e08cdd31a6b6df815852b38c1b862a72146def2",
+              "2fd8f907e8340711eb55da320d6bb049e353df38b1c1044cc892199149b8336b",
+              "230856514684672a6f6782d88a98e41ccda1e7d1bf227775e676ea96de6cb31f"
+            ]
+          },
+          "candidate": {
+            "policy": "db23672db2da6269feed0c966d94d30bab27984e3744758c2b1406c83be82d53",
+            "optimizer": "19661278a44c0174e748901ac921828a5a5e984dd8fa13b34dbb3935de126f0d",
+            "rollouts": [
+              "90fd314e00c344af17ce35348e08cdd31a6b6df815852b38c1b862a72146def2",
+              "2fd8f907e8340711eb55da320d6bb049e353df38b1c1044cc892199149b8336b",
+              "230856514684672a6f6782d88a98e41ccda1e7d1bf227775e676ea96de6cb31f"
+            ]
+          }
+        }
+      ]
+    },
+    "fixture_initial_probe": {
+      "exit_code": 1,
+      "reason": "Fixture used EventFileWriter as a context manager; switched to explicit try/finally close before the successful probes."
+    },
+    "fixture_probe_candidate": {
+      "status": "complete",
+      "started_at": "2026-10-29T10:20:53.706934+00:00",
+      "requested_seconds": 5.0,
+      "seconds": 5.15100339699984,
+      "cycles": 3,
+      "warmup_cycles": 8,
+      "scenario_counts_including_warmup": {
+        "h1_scalar_rejection": 11,
+        "native_h1_validation": 11,
+        "isaac_h1_checkpoint": 11,
+        "microduck_checkpoint": 11,
+        "atomic_replacement_same_descriptor": 11,
+        "source_validation": 11,
+        "source_tamper_rejection": 11,
+        "archive_traversal_rejection": 11,
+        "source_fifo_rejection": 1,
+        "phase_values_and_gradients": 11,
+        "json_serialization_failure": 11,
+        "json_cleanup_primary_exception": 11,
+        "isolated_cli_pairs": 1
+      },
+      "last_sample": {
+        "time": "2026-10-29T10:20:58.857917+00:00",
+        "seconds": 5.15100339699984,
+        "cycles": 3,
+        "rss_kib": 550384,
+        "fds": 17
+      },
+      "source": "/home/ubuntu/workspace/chase/EmbodiedForge/src",
+      "source_hashes": {
+        "embodiedforge/_h1_worker.py": "9d0f654e1a097bb7a38895b761079678bf6f2ec0a6aff1436a537b47392b2eb6",
+        "embodiedforge/_microduck_worker.py": "1eb4635d529f8f52644553ac367e440a7f4108c4dbea9ca780c59828025e5e9a",
+        "embodiedforge/morphmimic.py": "986dff9f39e785744b2ee694a56c7f214f0d09afd53f0c4cee5198b5bc2c0253",
+        "embodiedforge/native_h1.py": "3216f19e0f66c6042cf2aff5491eb33ff124d42fc842f91ab4946d49f310892a",
+        "embodiedforge/locomotion/microduck/tasks/mdp.py": "fce56d9e9396f0a89400a866e324fa594b5a969ec94daa284d5a5b3d54c18ff1",
+        "embodiedforge/learning/checkpoints.py": "583323bfc8f66e089791296a1cb217cae230c8a906fab6e09fbb9c963995efa4"
+      },
+      "scope": "Sustained private CPU artifact fixtures; not robot training or a speed benchmark.",
+      "failures": [],
+      "finished_at": "2026-10-29T10:20:58.858021+00:00"
+    },
+    "fixture_probe_baseline": {
+      "status": "complete",
+      "started_at": "2026-10-29T10:20:53.744976+00:00",
+      "requested_seconds": 5.0,
+      "seconds": 5.106868634999955,
+      "cycles": 3,
+      "warmup_cycles": 8,
+      "scenario_counts_including_warmup": {
+        "h1_scalar_rejection": 11,
+        "native_h1_validation": 11,
+        "isaac_h1_checkpoint": 11,
+        "microduck_checkpoint": 11,
+        "atomic_replacement_same_descriptor": 11,
+        "source_validation": 11,
+        "source_tamper_rejection": 11,
+        "archive_traversal_rejection": 11,
+        "phase_values_and_gradients": 11,
+        "json_serialization_failure": 11,
+        "json_cleanup_primary_exception": 11,
+        "isolated_cli_pairs": 1
+      },
+      "last_sample": {
+        "time": "2026-10-29T10:20:58.851825+00:00",
+        "seconds": 5.106868634999955,
+        "cycles": 3,
+        "rss_kib": 569092,
+        "fds": 17
+      },
+      "source": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/baseline/src",
+      "source_hashes": {
+        "embodiedforge/_h1_worker.py": "5674e9b60d3a2b71ef371907b2d052223dda427fef190aba509103d44eecef89",
+        "embodiedforge/_microduck_worker.py": "4c434241331db365f3321cd08f292ea782e1ef2021a08c0d9e6880942eaac819",
+        "embodiedforge/morphmimic.py": "28b31450a722cc1a5aaa9246ecfa254d10dea94c69adf9928b2de3cffb99c031",
+        "embodiedforge/native_h1.py": "4f17b7009c9f98547e6dd360c308f8a94bec7a8e578fabde898c154a351a8c67",
+        "embodiedforge/locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+        "embodiedforge/learning/checkpoints.py": "89edf2d4efdf7bc171b18d4adc231708cd77ca085b1ff31a64a1cc4ca56ea231"
+      },
+      "scope": "Sustained private CPU artifact fixtures; not robot training or a speed benchmark.",
+      "failures": [],
+      "finished_at": "2026-10-29T10:20:58.851930+00:00"
+    },
+    "checkpoints-full-dependencies": {
+      "tests": "54",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.757"
+    },
+    "candidate-complete-dependencies": {
+      "tests": "3622",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "80",
+      "time": "91.953"
+    },
+    "candidate-native": {
+      "tests": "3733",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "63",
+      "time": "144.107"
+    },
+    "baseline-main": {
+      "tests": "3608",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "97",
+      "time": "78.215"
+    },
+    "sdk-phase1": {
+      "tests": "28",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "9.115"
+    },
+    "baseline-native": {
+      "tests": "3719",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "59",
+      "time": "135.552"
+    },
+    "morphmimic-phase2-final": {
+      "tests": "20",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.125"
+    },
+    "morphmimic-phase2": {
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.061"
+    },
+    "microduck-phase3": {
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "4.474"
+    },
+    "checkpoints-phase1": {
+      "tests": "54",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "20",
+      "time": "3.536"
+    },
+    "microduck-sdk-full": {
+      "tests": "375",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "17.315"
+    },
+    "morphmimic_episodes_exactly_equal": true,
+    "morphmimic_completed": 13,
+    "supermimic_physical_quality": {
+      "checks": {
+        "complete_reference_and_extra_hold": true,
+        "zero_initial_velocity": true,
+        "correct_initial_pose": true,
+        "shared_rotation_geometry_hold": true,
+        "shared_fixed_window_leg_pose": true,
+        "dynamic_geometry": true,
+        "inverted_while_airborne": true,
+        "at_least60msairborne": true,
+        "relative_pitch_below_minus5rad": true,
+        "native320step_tracking_return": true,
+        "solved_force_balance": true,
+        "no_contact_capacity_overflow": true,
+        "no_nonfoot_force": true,
+        "no200Hznegative_nonfoot_contact_distance": true,
+        "actual_physics_model_geometry_identity": true,
+        "complete200Hzforce_coverage": true
+      },
+      "failed_checks": [],
+      "unassessed_checks": [],
+      "ported_quality_passed": true,
+      "strict_v14_equivalence": false,
+      "physical_robot_tested": false,
+      "scope": "Reference-informed thresholds on current mjlab G1, with conservative fixed-window/200Hzgeometry/model-identity checks. One evaluation does not establish independent-training robustness or exact IsaacLab3V14 reproduction."
+    },
+    "installed_distribution": {
+      "build_returncode": 0,
+      "candidate_build_seconds": 2.9684177239996643,
+      "cached_archive_entries_replayed": 22,
+      "build_stage_root": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/release-stage2/embodiedforge-0.1.0",
+      "distribution": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302319,
+          "sha256": "cd5984740f1b60e109693a7ec326e5ae780813a5aa05c111d1519a4a7aed157b"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19723351,
+          "sha256": "9ed0804a30a117d23df565b59a86fed7dc978836a560414f8dd3c3d957a54b49"
+        }
+      },
+      "nested_evidence_archives": 0,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-release/embodiedforge-0.1.0",
+      "exact_modules": 141,
+      "preserved_resources": 49,
+      "installed_root": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/installed-wheel2",
+      "standard_library_records": true,
+      "core_plan": true,
+      "isolated_artifact_workers": true
+    },
+    "release_fixture_initial_probe": {
+      "exit_code": 1,
+      "reason": "Fixture omitted caller-owned run directory before managed_run; added directory creation and reran complete distribution verification in independent owned staging paths."
+    },
+    "h1_atomic_replacement_regression_before": {
+      "exit_code": 1,
+      "reason": "Reproduced metadata from old checkpoint combined with the SHA256 of its replacement."
+    },
+    "final_fixture_probe": {
+      "status": "complete",
+      "started_at": "2026-10-29T10:44:30.559107+00:00",
+      "requested_seconds": 5.0,
+      "seconds": 5.111902913999984,
+      "cycles": 6,
+      "warmup_cycles": 8,
+      "scenario_counts_including_warmup": {
+        "h1_scalar_rejection": 14,
+        "native_h1_validation": 14,
+        "isaac_h1_checkpoint": 14,
+        "h1_atomic_replacement_same_descriptor": 14,
+        "microduck_checkpoint": 14,
+        "atomic_replacement_same_descriptor": 14,
+        "source_validation": 14,
+        "source_tamper_rejection": 14,
+        "archive_traversal_rejection": 14,
+        "source_fifo_rejection": 1,
+        "phase_values_and_gradients": 14,
+        "json_serialization_failure": 14,
+        "json_cleanup_primary_exception": 14,
+        "isolated_cli_pairs": 1
+      },
+      "last_sample": {
+        "time": "2026-10-29T10:44:35.670988+00:00",
+        "seconds": 5.111902913999984,
+        "cycles": 6,
+        "rss_kib": 556996,
+        "fds": 17
+      },
+      "source": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-final/src",
+      "source_hashes": {
+        "embodiedforge/_h1_worker.py": "18b53de48e80601b9c34f10f3118e8cdf98e34a2428ad33b2f1e579b5593c346",
+        "embodiedforge/_microduck_worker.py": "1eb4635d529f8f52644553ac367e440a7f4108c4dbea9ca780c59828025e5e9a",
+        "embodiedforge/morphmimic.py": "986dff9f39e785744b2ee694a56c7f214f0d09afd53f0c4cee5198b5bc2c0253",
+        "embodiedforge/native_h1.py": "3216f19e0f66c6042cf2aff5491eb33ff124d42fc842f91ab4946d49f310892a",
+        "embodiedforge/locomotion/microduck/tasks/mdp.py": "fce56d9e9396f0a89400a866e324fa594b5a969ec94daa284d5a5b3d54c18ff1",
+        "embodiedforge/learning/checkpoints.py": "583323bfc8f66e089791296a1cb217cae230c8a906fab6e09fbb9c963995efa4"
+      },
+      "scope": "Sustained private CPU artifact fixtures; not robot training or a speed benchmark.",
+      "failures": [],
+      "finished_at": "2026-10-29T10:44:35.671105+00:00"
+    },
+    "installed_distribution_final": {
+      "build_returncode": 0,
+      "candidate_build_seconds": 3.0693239499996707,
+      "cached_archive_entries_replayed": 22,
+      "build_stage_root": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/release-stage5/embodiedforge-0.1.0",
+      "distribution": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302434,
+          "sha256": "e0bd517759315c744ef4d867957d8e5d85aa29d123b904b9e92aeeada5bf4bfa"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19723784,
+          "sha256": "bce71ff7862c00de1ef2ed6262e3d824a3cece1ad2d655f758b759933e969a66"
+        }
+      },
+      "nested_evidence_archives": 0,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-release5/embodiedforge-0.1.0",
+      "exact_modules": 141,
+      "preserved_resources": 49,
+      "installed_root": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/installed-wheel4",
+      "standard_library_records": true,
+      "core_plan": true,
+      "isolated_artifact_workers": true,
+      "documentation_only_rebuild": {
+        "seconds": 4.150063385000976,
+        "replayed_cached_evidence_archives": 22,
+        "source_files_changed_from_stage4": [
+          "docs/README.md"
+        ],
+        "all_other_source_archive_members_byte_identical": true,
+        "full_suite_source": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-release4/embodiedforge-0.1.0",
+        "installed_wheel": "Stage4 wheel retained: all modules and resources unchanged; documentation is not shipped in wheels.",
+        "source_documentation_tests": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-release-documentation-tests.xml"
+      }
+    },
+    "hash_allocation": {
+      "scope": "Isolated H1 file-hash expression over a 128 MiB private sparse-zero fixture; Python allocations and process RSS, not robot training.",
+      "results": [
+        {
+          "method": "read_bytes",
+          "bytes": 134217728,
+          "digest": "254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917",
+          "peak_python_bytes": 134224004,
+          "peak_rss_kib": 145408,
+          "initial_peak_rss_kib": 14848,
+          "seconds": 0.09367171899975801,
+          "repetition": 0
+        },
+        {
+          "method": "stream",
+          "bytes": 134217728,
+          "digest": "254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917",
+          "peak_python_bytes": 2103776,
+          "peak_rss_kib": 16896,
+          "initial_peak_rss_kib": 15104,
+          "seconds": 0.05921771399971476,
+          "repetition": 0
+        },
+        {
+          "method": "read_bytes",
+          "bytes": 134217728,
+          "digest": "254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917",
+          "peak_python_bytes": 134224004,
+          "peak_rss_kib": 145408,
+          "initial_peak_rss_kib": 14848,
+          "seconds": 0.08707863299969176,
+          "repetition": 1
+        },
+        {
+          "method": "stream",
+          "bytes": 134217728,
+          "digest": "254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917",
+          "peak_python_bytes": 2103776,
+          "peak_rss_kib": 16456,
+          "initial_peak_rss_kib": 14592,
+          "seconds": 0.059617451000121946,
+          "repetition": 1
+        },
+        {
+          "method": "read_bytes",
+          "bytes": 134217728,
+          "digest": "254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917",
+          "peak_python_bytes": 134224004,
+          "peak_rss_kib": 145664,
+          "initial_peak_rss_kib": 15360,
+          "seconds": 0.08978389999992942,
+          "repetition": 2
+        },
+        {
+          "method": "stream",
+          "bytes": 134217728,
+          "digest": "254bcc3fc4f27172636df4bf32de9f107f620d559b20d760197e452b97453917",
+          "peak_python_bytes": 2103776,
+          "peak_rss_kib": 16996,
+          "initial_peak_rss_kib": 15104,
+          "seconds": 0.05898866999996244,
+          "repetition": 2
+        }
+      ]
+    },
+    "h1-replacement-before": {
+      "tests": "1",
+      "failures": "1",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.659"
+    },
+    "source-release-tests": {
+      "tests": "3624",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "80",
+      "time": "81.788"
+    },
+    "h1-replacement-fixed": {
+      "tests": "18",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.886"
+    },
+    "source-release-final-tests": {
+      "tests": "3625",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "80",
+      "time": "77.849"
+    },
+    "nested_and_phase_differential": {
+      "status": "complete",
+      "scope": "Saved-source vs final-source CPU validation outcomes and pure phase tensor values/gradients; no training quality claim.",
+      "seconds": 0.7394476610006677,
+      "seeds": 5,
+      "nested_cases": 12500,
+      "counts": {
+        "finite_tensors/ok": 10748,
+        "validate_tensors/ok": 8147,
+        "validate_tensors/ValueError": 4353,
+        "finite_tensors/ValueError": 1752,
+        "phase_values_and_gradients_exact": 2000
+      },
+      "source_sha256": {
+        "before/learning/checkpoints.py": "89edf2d4efdf7bc171b18d4adc231708cd77ca085b1ff31a64a1cc4ca56ea231",
+        "before/native_h1.py": "4f17b7009c9f98547e6dd360c308f8a94bec7a8e578fabde898c154a351a8c67",
+        "before/locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+        "after/learning/checkpoints.py": "583323bfc8f66e089791296a1cb217cae230c8a906fab6e09fbb9c963995efa4",
+        "after/native_h1.py": "3216f19e0f66c6042cf2aff5491eb33ff124d42fc842f91ab4946d49f310892a",
+        "after/locomotion/microduck/tasks/mdp.py": "fce56d9e9396f0a89400a866e324fa594b5a969ec94daa284d5a5b3d54c18ff1"
+      },
+      "failures": []
+    },
+    "h1_kernel_open_count": {
+      "before": 2,
+      "after": 1,
+      "trace_lines": {
+        "before": [
+          "424227 openat(AT_FDCWD, \"/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-probe2/fixtures/h1/logs/rsl_rl/h1_flat/fixture/model_2.pt\", O_RDONLY|O_CLOEXEC) = 3",
+          "424227 openat(AT_FDCWD, \"/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-probe2/fixtures/h1/logs/rsl_rl/h1_flat/fixture/model_2.pt\", O_RDONLY|O_CLOEXEC) = 3"
+        ],
+        "after": [
+          "424230 openat(AT_FDCWD, \"/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-probe2/fixtures/h1/logs/rsl_rl/h1_flat/fixture/model_2.pt\", O_RDONLY|O_CLOEXEC) = 3"
+        ]
+      },
+      "scope": "One H1 verify call over the same private checkpoint and scalar logs."
+    },
+    "open_counter_probe_correction": "Initial Python-level counters missed pathlib cached accessors; corrected counters and independent kernel traces both show two checkpoint opens before and one after.",
+    "validation_environments": {
+      "host": {
+        "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+        "executable": "/home/ubuntu/miniconda3/envs/dp/bin/python",
+        "prefix": "/home/ubuntu/miniconda3/envs/dp",
+        "packages": {
+          "numpy": "1.26.4",
+          "torch": "2.8.0+cu128",
+          "pytest": "9.1.1",
+          "tensorboard": null,
+          "mujoco": null,
+          "mjbatch": null,
+          "mjlab": null
+        }
+      },
+      "full_dependencies": {
+        "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+        "executable": "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+        "prefix": "/home/ubuntu/miniconda3/envs/xvla2",
+        "packages": {
+          "numpy": "2.2.6",
+          "torch": "2.13.0",
+          "pytest": "9.1.1",
+          "tensorboard": "2.21.0",
+          "mujoco": null,
+          "mjbatch": null,
+          "mjlab": null
+        }
+      },
+      "native": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+        "prefix": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv",
+        "packages": {
+          "numpy": "2.5.2",
+          "torch": "2.9.0+cu128",
+          "pytest": "9.1.1",
+          "tensorboard": null,
+          "mujoco": "3.11.0",
+          "mjbatch": "0.1.0",
+          "mjlab": null
+        }
+      },
+      "microduck_sdk": {
+        "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+        "prefix": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv",
+        "packages": {
+          "numpy": "2.4.1",
+          "torch": "2.9.1",
+          "pytest": "9.1.1",
+          "tensorboard": "2.20.0",
+          "mujoco": "3.10.0",
+          "mjbatch": null,
+          "mjlab": "1.3.0"
+        }
+      },
+      "morphmimic_sdk": {
+        "python": "3.11.15 (main, Jul 23 2026, 14:43:45) [Clang 22.1.3 ]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/morphmimic-venv/bin/python",
+        "prefix": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/morphmimic-venv",
+        "packages": {
+          "numpy": "2.4.6",
+          "torch": "2.11.0+cu128",
+          "pytest": null,
+          "tensorboard": "2.21.0",
+          "mujoco": "3.11.0",
+          "mjbatch": null,
+          "mjlab": "1.6.0"
+        }
+      }
+    },
+    "module_audit": {
+      "scope": "Explicit import dependencies; dynamic dispatch remains covered by runtime/SDK checks.",
+      "modules": 141,
+      "edges": 386,
+      "cycles": []
+    },
+    "cold_import_controls": {
+      "baseline": {
+        "processes": 200,
+        "all_single_threaded": true,
+        "numpy_loaded": false,
+        "environment_loaded": false,
+        "median_launch_to_exit_seconds": {
+          "embodiedforge": 0.013226572999883501,
+          "embodiedforge.runtime.process": 0.018200846000581805,
+          "embodiedforge.runtime.records": 0.020903748499222274,
+          "runs-inspect": 0.025829399500253203,
+          "help:recipes": 0.029183725499933644,
+          "help:microduck": 0.03640927600008581,
+          "help:h1": 0.027681266000399773,
+          "help:rlinf": 0.027774286999374453,
+          "help:gmr": 0.02693531349996192,
+          "help:sonic": 0.026949971000249207
+        }
+      },
+      "candidate": {
+        "processes": 200,
+        "all_single_threaded": true,
+        "numpy_loaded": false,
+        "environment_loaded": false,
+        "median_launch_to_exit_seconds": {
+          "embodiedforge": 0.013360962000660948,
+          "embodiedforge.runtime.process": 0.017794671499359538,
+          "embodiedforge.runtime.records": 0.0205931660011629,
+          "runs-inspect": 0.02609964650037,
+          "help:recipes": 0.02869530600037251,
+          "help:microduck": 0.036541260999911174,
+          "help:h1": 0.027780112500295218,
+          "help:rlinf": 0.027466950000416546,
+          "help:gmr": 0.02694261199940229,
+          "help:sonic": 0.026914904499790282
+        }
+      }
+    },
+    "cold_import_scope": "Twenty fresh processes per entry point and revision. Timings include normal exit, and are observations rather than a startup-speed improvement claim.",
+    "archive_replacement_regression_before": {
+      "exit_code": 1,
+      "reason": "Controlled replacement after checksum allowed replacement source under the old archive pin."
+    },
+    "archive_stream_probe": {
+      "status": "complete",
+      "started_at": "2026-10-29T11:31:25.829797+00:00",
+      "requested_seconds": 5.0,
+      "seconds": 5.0063078080002015,
+      "cycles": 42,
+      "warmup_cycles": 8,
+      "scenario_counts_including_warmup": {
+        "tar_valid": 50,
+        "tar_source_tamper": 50,
+        "tar_replacement_rejects_wrong_source": 50,
+        "tar_replacement_reads_pinned_snapshot": 50,
+        "tar_traversal": 50,
+        "tar_fifo": 3,
+        "gzip_valid": 50,
+        "gzip_source_tamper": 50,
+        "gzip_replacement_rejects_wrong_source": 50,
+        "gzip_replacement_reads_pinned_snapshot": 50,
+        "gzip_traversal": 50,
+        "gzip_fifo": 3,
+        "cold_stdlib_verifier": 1
+      },
+      "last_sample": {
+        "time": "2026-10-29T11:31:30.836086+00:00",
+        "seconds": 5.0063078080002015,
+        "cycles": 42,
+        "rss_kib": 23204,
+        "fds": 4
+      },
+      "source": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-archive/src",
+      "source_hashes": {
+        "embodiedforge/morphmimic.py": "78afd6434963bc2a9ea5b71d8b149e7a0f136e6c4c790886011427083ac52a2b",
+        "embodiedforge/runtime/hashing.py": "574e1f4d085ae881828d4683e7755995d9d0aa6af0bd3a113f77acad83dea3a9"
+      },
+      "scope": "Private plain/gzip TAR and atomic-replacement fixtures; no SDK execution.",
+      "failures": [],
+      "finished_at": "2026-10-29T11:31:30.836216+00:00"
+    },
+    "source-release-archive-final-tests": {
+      "exit_code": 0,
+      "passed": 3546,
+      "skipped": 80,
+      "failed": 0,
+      "errors": 0,
+      "seconds": 82.562,
+      "source_root": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-release4/embodiedforge-0.1.0",
+      "xml": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-release-archive-final-tests.xml",
+      "log": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-release-archive-final-tests.log"
+    },
+    "duplicate_function_bodies": {
+      "method": "Exact AST bodies excluding docstrings; >=8 body lines; differing names, parameters, closures, call context and policy are not assumed interchangeable.",
+      "modules": 141,
+      "groups": []
+    },
+    "skip_audit": {
+      "candidate-complete-dependencies -> source-release-archive-final-tests": {
+        "existing_cases_became_skipped": [],
+        "added_cases_skipped": 0,
+        "skip_reasons": {
+          "collection skipped": 7,
+          "could not import 'lerobot': No module named 'lerobot'": 10,
+          "could not import 'mujoco': No module named 'mujoco'": 12,
+          "could not import 'mjbatch': No module named 'mjbatch'": 5,
+          "Optional Go1 SDK: No module named 'mujoco'": 21,
+          "requires Microduck SDK": 5,
+          "optional mjbatch unavailable": 2,
+          "could not import 'newton': No module named 'newton'": 12,
+          "could not import 'hydra': No module named 'hydra'": 1,
+          "could not import 'ray': No module named 'ray'": 1,
+          "could not import 'onnx': No module named 'onnx'": 3,
+          "Set WEAVE_ROOT and use Torch >= 2.10 for real Muon/AdamW resume": 1
+        }
+      },
+      "baseline-native -> candidate-native": {
+        "existing_cases_became_skipped": [],
+        "added_cases_skipped": 4,
+        "skip_reasons": {
+          "collection skipped": 2,
+          "could not import 'lerobot': No module named 'lerobot'": 10,
+          "EF_MJBATCH_REFERENCE is not configured": 2,
+          "could not import 'light_loco_parkour': No module named 'light_loco_parkour'": 1,
+          "could not import 'tensorboard': No module named 'tensorboard'": 21,
+          "requires Microduck SDK": 5,
+          "could not import 'newton': No module named 'newton'": 14,
+          "could not import 'hydra': No module named 'hydra'": 1,
+          "could not import 'ray': No module named 'ray'": 1,
+          "could not import 'onnx': No module named 'onnx'": 3,
+          "could not import 'viser': No module named 'viser'": 2,
+          "Set WEAVE_ROOT and use Torch >= 2.10 for real Muon/AdamW resume": 1
+        }
+      }
+    },
+    "sustained_jobs": [
+      {
+        "name": "final CPU fixture",
+        "session_id": 74604,
+        "supervisor": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-final-supervisor",
+        "summary": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-final/summary.json",
+        "seconds": 14400,
+        "summary_data": {
+          "status": "complete",
+          "started_at": "2026-10-29T10:46:28.898821+00:00",
+          "requested_seconds": 14400.0,
+          "seconds": 14400.055033374003,
+          "cycles": 54797,
+          "warmup_cycles": 8,
+          "scenario_counts_including_warmup": {
+            "h1_scalar_rejection": 54805,
+            "native_h1_validation": 54805,
+            "isaac_h1_checkpoint": 54805,
+            "h1_atomic_replacement_same_descriptor": 54805,
+            "microduck_checkpoint": 54805,
+            "atomic_replacement_same_descriptor": 54805,
+            "source_validation": 54805,
+            "source_tamper_rejection": 54805,
+            "archive_traversal_rejection": 54805,
+            "source_fifo_rejection": 2741,
+            "phase_values_and_gradients": 54805,
+            "json_serialization_failure": 54805,
+            "json_cleanup_primary_exception": 54805,
+            "isolated_cli_pairs": 229
+          },
+          "last_sample": {
+            "time": "2026-10-29T14:46:28.953827+00:00",
+            "seconds": 14400.055033374003,
+            "cycles": 54797,
+            "rss_kib": 534000,
+            "fds": 17
+          },
+          "source": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-final/src",
+          "source_hashes": {
+            "embodiedforge/_h1_worker.py": "18b53de48e80601b9c34f10f3118e8cdf98e34a2428ad33b2f1e579b5593c346",
+            "embodiedforge/_microduck_worker.py": "1eb4635d529f8f52644553ac367e440a7f4108c4dbea9ca780c59828025e5e9a",
+            "embodiedforge/morphmimic.py": "986dff9f39e785744b2ee694a56c7f214f0d09afd53f0c4cee5198b5bc2c0253",
+            "embodiedforge/native_h1.py": "3216f19e0f66c6042cf2aff5491eb33ff124d42fc842f91ab4946d49f310892a",
+            "embodiedforge/locomotion/microduck/tasks/mdp.py": "fce56d9e9396f0a89400a866e324fa594b5a969ec94daa284d5a5b3d54c18ff1",
+            "embodiedforge/learning/checkpoints.py": "583323bfc8f66e089791296a1cb217cae230c8a906fab6e09fbb9c963995efa4"
+          },
+          "scope": "Sustained private CPU artifact fixtures; not robot training or a speed benchmark.",
+          "failures": [],
+          "finished_at": "2026-10-29T14:46:28.953981+00:00",
+          "observed_rss_kib_range_after_warmup": [
+            533312,
+            560512
+          ],
+          "observed_fd_range_after_warmup": [
+            17,
+            17
+          ]
+        },
+        "observed_process": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "-I",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/checkpoint-source-soak-final.py",
+            "--source",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-final/src",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-final",
+            "--seconds",
+            "14400",
+            "--fifo",
+            "--h1-replacement"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "-I",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/checkpoint-source-soak-final.py",
+            "--source",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-final/src",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-final",
+            "--seconds",
+            "14400",
+            "--fifo",
+            "--h1-replacement"
+          ],
+          "supervisor_pid": 153905,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-29T10:46:28.088044+00:00",
+          "timeout": 14600.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 153944,
+          "seconds": 14401.990842972002,
+          "finished_at": "2026-10-29T14:46:30.078860+00:00"
+        }
+      },
+      {
+        "name": "baseline CPU fixture",
+        "session_id": 25655,
+        "supervisor": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-baseline-supervisor",
+        "summary": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-baseline/summary.json",
+        "seconds": 14400,
+        "summary_data": {
+          "status": "complete",
+          "started_at": "2026-10-29T10:22:38.438713+00:00",
+          "requested_seconds": 14400.0,
+          "seconds": 14400.248873151999,
+          "cycles": 54939,
+          "warmup_cycles": 8,
+          "scenario_counts_including_warmup": {
+            "h1_scalar_rejection": 54947,
+            "native_h1_validation": 54947,
+            "isaac_h1_checkpoint": 54947,
+            "microduck_checkpoint": 54947,
+            "atomic_replacement_same_descriptor": 54947,
+            "source_validation": 54947,
+            "source_tamper_rejection": 54947,
+            "archive_traversal_rejection": 54947,
+            "phase_values_and_gradients": 54947,
+            "json_serialization_failure": 54947,
+            "json_cleanup_primary_exception": 54947,
+            "isolated_cli_pairs": 230
+          },
+          "last_sample": {
+            "time": "2026-10-29T14:22:38.687561+00:00",
+            "seconds": 14400.248873151999,
+            "cycles": 54939,
+            "rss_kib": 541744,
+            "fds": 17
+          },
+          "source": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/baseline/src",
+          "source_hashes": {
+            "embodiedforge/_h1_worker.py": "5674e9b60d3a2b71ef371907b2d052223dda427fef190aba509103d44eecef89",
+            "embodiedforge/_microduck_worker.py": "4c434241331db365f3321cd08f292ea782e1ef2021a08c0d9e6880942eaac819",
+            "embodiedforge/morphmimic.py": "28b31450a722cc1a5aaa9246ecfa254d10dea94c69adf9928b2de3cffb99c031",
+            "embodiedforge/native_h1.py": "4f17b7009c9f98547e6dd360c308f8a94bec7a8e578fabde898c154a351a8c67",
+            "embodiedforge/locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+            "embodiedforge/learning/checkpoints.py": "89edf2d4efdf7bc171b18d4adc231708cd77ca085b1ff31a64a1cc4ca56ea231"
+          },
+          "scope": "Sustained private CPU artifact fixtures; not robot training or a speed benchmark.",
+          "failures": [],
+          "finished_at": "2026-10-29T14:22:38.687710+00:00",
+          "observed_rss_kib_range_after_warmup": [
+            541584,
+            546812
+          ],
+          "observed_fd_range_after_warmup": [
+            17,
+            17
+          ]
+        },
+        "observed_process": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "-I",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/checkpoint-source-soak.py",
+            "--source",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/baseline/src",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-baseline",
+            "--seconds",
+            "14400"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "-I",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/checkpoint-source-soak.py",
+            "--source",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/baseline/src",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-baseline",
+            "--seconds",
+            "14400"
+          ],
+          "supervisor_pid": 117676,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-29T10:22:37.677157+00:00",
+          "timeout": 14600.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 117678,
+          "seconds": 14401.634106352,
+          "finished_at": "2026-10-29T14:22:39.311225+00:00"
+        }
+      },
+      {
+        "name": "final MorphMimic archive reader",
+        "session_id": 17367,
+        "supervisor": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/archive-stream-supervisor",
+        "summary": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/archive-stream-final/summary.json",
+        "seconds": 9900,
+        "summary_data": {
+          "status": "complete",
+          "started_at": "2026-10-29T11:32:25.919961+00:00",
+          "requested_seconds": 9900.0,
+          "seconds": 9900.088576597,
+          "cycles": 96407,
+          "warmup_cycles": 8,
+          "scenario_counts_including_warmup": {
+            "tar_valid": 96415,
+            "tar_source_tamper": 96415,
+            "tar_replacement_rejects_wrong_source": 96415,
+            "tar_replacement_reads_pinned_snapshot": 96415,
+            "tar_traversal": 96415,
+            "tar_fifo": 4821,
+            "gzip_valid": 96415,
+            "gzip_source_tamper": 96415,
+            "gzip_replacement_rejects_wrong_source": 96415,
+            "gzip_replacement_reads_pinned_snapshot": 96415,
+            "gzip_traversal": 96415,
+            "gzip_fifo": 4821,
+            "cold_stdlib_verifier": 165
+          },
+          "last_sample": {
+            "time": "2026-10-29T14:17:26.008497+00:00",
+            "seconds": 9900.088576597,
+            "cycles": 96407,
+            "rss_kib": 17464,
+            "fds": 4
+          },
+          "source": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-archive/src",
+          "source_hashes": {
+            "embodiedforge/morphmimic.py": "78afd6434963bc2a9ea5b71d8b149e7a0f136e6c4c790886011427083ac52a2b",
+            "embodiedforge/runtime/hashing.py": "574e1f4d085ae881828d4683e7755995d9d0aa6af0bd3a113f77acad83dea3a9"
+          },
+          "scope": "Private plain/gzip TAR and atomic-replacement fixtures; no SDK execution.",
+          "failures": [],
+          "finished_at": "2026-10-29T14:17:26.008660+00:00"
+        },
+        "observed_process": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "-I",
+            "-S",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/archive-stream-soak.py",
+            "--source",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-archive/src",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/archive-stream-final",
+            "--seconds",
+            "9900"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "-I",
+            "-S",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/archive-stream-soak.py",
+            "--source",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-archive/src",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/archive-stream-final",
+            "--seconds",
+            "9900"
+          ],
+          "supervisor_pid": 435827,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-29T11:32:25.881614+00:00",
+          "timeout": 10100.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 435828,
+          "seconds": 9900.258107259002,
+          "finished_at": "2026-10-29T14:17:26.140066+00:00"
+        }
+      }
+    ],
+    "preservation": {
+      "checked_at": "2026-10-29T14:57:00.904580+00:00",
+      "baseline_files_checked": 423,
+      "changed_baseline_files": [
+        ".github/workflows/tests.yml",
+        "MANIFEST.in",
+        "docs/README.md",
+        "src/embodiedforge/_h1_worker.py",
+        "src/embodiedforge/_microduck_worker.py",
+        "src/embodiedforge/learning/checkpoints.py",
+        "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+        "src/embodiedforge/morphmimic.py",
+        "src/embodiedforge/native_h1.py",
+        "tests/test_h1_artifacts.py",
+        "tests/test_learning_boundaries.py",
+        "tests/test_microduck_metrics.py",
+        "tests/test_microduck_task.py",
+        "tests/test_morphmimic.py",
+        "tests/test_sdk_boundaries.py"
+      ],
+      "unexpected_changes": [],
+      "original_historical_files_unchanged": 186,
+      "baseline_packaged_resources_unchanged": 49,
+      "morphmimic_reference_checks": [
+        {
+          "robot": "g1",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+          "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+        },
+        {
+          "robot": "g1",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+          "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+        },
+        {
+          "robot": "g1",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+          "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+        },
+        {
+          "robot": "x2",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+          "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+        },
+        {
+          "robot": "x2",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+          "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+        },
+        {
+          "robot": "x2",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+          "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+        },
+        {
+          "robot": "t2",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+          "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+        },
+        {
+          "robot": "t2",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+          "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+        },
+        {
+          "robot": "t2",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+          "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+        }
+      ],
+      "model_and_registry_checks": [
+        {
+          "path": "runs/supermimic/tasks/backflip/reference/current.json",
+          "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+        },
+        {
+          "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+          "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+        },
+        {
+          "robot": "g1",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+          "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+        },
+        {
+          "robot": "x2",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+          "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+        },
+        {
+          "robot": "t2",
+          "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+          "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+        },
+        {
+          "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+          "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+        }
+      ],
+      "final_source_hashes": {
+        "src/embodiedforge/_h1_worker.py": "18b53de48e80601b9c34f10f3118e8cdf98e34a2428ad33b2f1e579b5593c346",
+        "src/embodiedforge/_microduck_worker.py": "1eb4635d529f8f52644553ac367e440a7f4108c4dbea9ca780c59828025e5e9a",
+        "src/embodiedforge/learning/checkpoints.py": "583323bfc8f66e089791296a1cb217cae230c8a906fab6e09fbb9c963995efa4",
+        "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "fce56d9e9396f0a89400a866e324fa594b5a969ec94daa284d5a5b3d54c18ff1",
+        "src/embodiedforge/morphmimic.py": "78afd6434963bc2a9ea5b71d8b149e7a0f136e6c4c790886011427083ac52a2b",
+        "src/embodiedforge/native_h1.py": "3216f19e0f66c6042cf2aff5491eb33ff124d42fc842f91ab4946d49f310892a"
+      }
+    },
+    "api_surface_audit": {
+      "scope": "Top-level functions and classes, AST arguments/return annotations and class bases. Does not establish behavioral compatibility; separately tested.",
+      "modules": 141,
+      "removed": [],
+      "added": [
+        {
+          "path": "src/embodiedforge/morphmimic.py",
+          "name": "_source_members"
+        }
+      ],
+      "signature_changes": [
+        {
+          "path": "src/embodiedforge/_h1_worker.py",
+          "name": "check_checkpoint",
+          "before": {
+            "kind": "FunctionDef",
+            "arguments": "arguments(posonlyargs=[], args=[arg(arg='path', annotation=Name(id='Path', ctx=Load()))], kwonlyargs=[], kw_defaults=[], defaults=[])",
+            "returns": "Name(id='dict', ctx=Load())"
+          },
+          "after": {
+            "kind": "FunctionDef",
+            "arguments": "arguments(posonlyargs=[], args=[arg(arg='path', annotation=Name(id='Path', ctx=Load()))], kwonlyargs=[arg(arg='include_hash')], kw_defaults=[Constant(value=False)], defaults=[])",
+            "returns": "Name(id='dict', ctx=Load())"
+          }
+        },
+        {
+          "path": "src/embodiedforge/learning/checkpoints.py",
+          "name": "finite_tensors",
+          "before": {
+            "kind": "FunctionDef",
+            "arguments": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[], kw_defaults=[], defaults=[])",
+            "returns": null
+          },
+          "after": {
+            "kind": "FunctionDef",
+            "arguments": "arguments(posonlyargs=[], args=[arg(arg='value')], kwonlyargs=[arg(arg='check_scalars')], kw_defaults=[Constant(value=False)], defaults=[])",
+            "returns": null
+          }
+        }
+      ],
+      "intentional_options": {
+        "finite_tensors": "keyword-only check_scalars=False preserves tensor-only default",
+        "check_checkpoint": "keyword-only include_hash=False preserves metadata-only default"
+      }
+    },
+    "unused_private_declarations": {
+      "method": "Private top-level declarations >=6 lines whose identifier occurs only once across source/tests/benchmarks/examples/configs/current guide text. Heuristic only; dynamic lookup must be inspected before any deletion.",
+      "candidates": []
+    },
+    "documentation-final": {
+      "passed": 64,
+      "skipped": 0,
+      "failed": 0,
+      "errors": 0,
+      "seconds": 0.105,
+      "exit_code": 0,
+      "xml": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/documentation-final.xml"
+    },
+    "source-release-documentation-tests": {
+      "passed": 64,
+      "skipped": 0,
+      "failed": 0,
+      "errors": 0,
+      "seconds": 0.099,
+      "exit_code": 0,
+      "xml": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-release-documentation-tests.xml"
+    },
+    "h1_python312_torch291": {
+      "passed": 15,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 7.966,
+      "exit_code": 0,
+      "python": "3.12.14",
+      "torch": "2.9.1",
+      "environment": ".cache/microduck-native-venv",
+      "scope": "CPU H1 artifact format/stream consistency and shared checkpoint boundary checks; not an IsaacLab simulation run.",
+      "xml": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/h1-python312-torch291.xml"
+    },
+    "training_parity_scope": {
+      "matching_policy_and_optimizer_cases": 9,
+      "matching_native_rollout_cases": 6,
+      "native_components": [
+        "go1",
+        "h1"
+      ],
+      "core_scope": "Three seeds compare final trained policy and optimizer; no separate core rollout trace hash is emitted.",
+      "script": "benchmarks/architecture_parity.py",
+      "artifact": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/parity-phase1/summary.json"
+    },
+    "whitespace_after_documentation_correction": {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "checked_at": "2026-10-29T14:05:50+00:00"
+    },
+    "supervisor_tool_exit_codes": {
+      "17367": 0,
+      "25655": 0,
+      "74604": 0
+    },
+    "resource_observations": {
+      "soak-baseline": {
+        "cycles": 54939,
+        "seconds": 14400.248873151999,
+        "cold_processes": 460,
+        "nonzero_cold_exits": 0,
+        "sample_count": 460,
+        "fd_values": [
+          17
+        ],
+        "rss_kib_range_after_600s": [
+          541584,
+          546812
+        ]
+      },
+      "soak-final": {
+        "cycles": 54797,
+        "seconds": 14400.055033374003,
+        "cold_processes": 458,
+        "nonzero_cold_exits": 0,
+        "sample_count": 459,
+        "fd_values": [
+          17
+        ],
+        "rss_kib_range_after_600s": [
+          533312,
+          560512
+        ]
+      },
+      "archive-stream-final": {
+        "cycles": 96407,
+        "seconds": 9900.088576597,
+        "cold_processes": 165,
+        "nonzero_cold_exits": 0,
+        "sample_count": 331,
+        "fd_values": [
+          4
+        ],
+        "rss_kib_range_after_600s": [
+          17428,
+          24636
+        ]
+      }
+    },
+    "final_distribution_integrity": {
+      "status": "passed",
+      "blobs": [
+        {
+          "path": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/distribution-before/embodiedforge-0.1.0.tar.gz",
+          "bytes": 716546574,
+          "sha256": "c8b09da33fefcd8feb76725213526ea4cf48efaebeec6e05c6f98736cd3203fb"
+        },
+        {
+          "path": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/distribution-candidate4/embodiedforge-0.1.0-py3-none-any.whl",
+          "bytes": 8302434,
+          "sha256": "e0bd517759315c744ef4d867957d8e5d85aa29d123b904b9e92aeeada5bf4bfa"
+        },
+        {
+          "path": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/distribution-candidate5/embodiedforge-0.1.0.tar.gz",
+          "bytes": 19723784,
+          "sha256": "bce71ff7862c00de1ef2ed6262e3d824a3cece1ad2d655f758b759933e969a66"
+        }
+      ],
+      "source_members_removed": [
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-lifecycle-20261021-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261021-fivehour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261022-fourhour-distribution-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261022-fourhour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261022-threehour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261022-twohour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261023-fivehour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261024-fivehour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261024-sevenhour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261024-tenhour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/architecture-runtime-20261025-eighthour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/humanoid-integration-study-20260928-scripts.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261016-round2-twohour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261016-round3-twohour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261016-round4-fourhour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261016-twohour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261017-round5-sevenhour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261018-round6-sevenhour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261019-round7-threehour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261019-round8-threehour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/platform-optimization-20261020-round9-twohour-evidence.tar.gz",
+        "embodiedforge-0.1.0/docs/experiments/assets/supermimic-reproduction-20261027-fourhour-evidence.tar.gz"
+      ],
+      "source_members_added": [],
+      "scope": "Retained artifacts match recorded SHA256; only 22 historical TAR member names removed from the original cached-manifest source archive."
+    }
+  },
+  "distribution_phase1": {
+    "before": {
+      "path": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/distribution-before/embodiedforge-0.1.0.tar.gz",
+      "bytes": 716546574,
+      "sha256": "c8b09da33fefcd8feb76725213526ea4cf48efaebeec6e05c6f98736cd3203fb",
+      "members": 603,
+      "nested_evidence_archives": 22,
+      "nested_evidence_bytes": 708447990
+    },
+    "phase1": {
+      "path": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/distribution-phase1/embodiedforge-0.1.0.tar.gz",
+      "bytes": 19722674,
+      "sha256": "4f7c37d6e9438934c14cc872e75720d3c76cc73ec86122340e88b489a3318d9f",
+      "members": 581,
+      "nested_evidence_archives": 0,
+      "nested_evidence_bytes": 0
+    }
+  },
+  "candidate_snapshot": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-final",
+  "owned_jobs": [
+    {
+      "name": "final CPU fixture",
+      "session_id": 74604,
+      "supervisor": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-final-supervisor",
+      "summary": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-final/summary.json",
+      "seconds": 14400
+    },
+    {
+      "name": "baseline CPU fixture",
+      "session_id": 25655,
+      "supervisor": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-baseline-supervisor",
+      "summary": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-baseline/summary.json",
+      "seconds": 14400
+    },
+    {
+      "name": "final MorphMimic archive reader",
+      "session_id": 17367,
+      "supervisor": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/archive-stream-supervisor",
+      "summary": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/archive-stream-final/summary.json",
+      "seconds": 9900
+    }
+  ],
+  "source_lines_after_phase3": 37945,
+  "preserved_models": {
+    "runs/supermimic/tasks/backflip/reference/current.json": {
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c",
+      "bytes": 426
+    },
+    "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx": {
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856",
+      "bytes": 55283599
+    }
+  },
+  "preliminary_candidate_supervisor": {
+    "command": [
+      "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+      "-I",
+      "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/checkpoint-source-soak.py",
+      "--source",
+      "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate/src",
+      "--output",
+      "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-candidate",
+      "--seconds",
+      "14400",
+      "--fifo"
+    ],
+    "launched_command": [
+      "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+      "-I",
+      "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/checkpoint-source-soak.py",
+      "--source",
+      "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate/src",
+      "--output",
+      "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/soak-candidate",
+      "--seconds",
+      "14400",
+      "--fifo"
+    ],
+    "supervisor_pid": 117677,
+    "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+    "started_at": "2026-10-29T10:22:37.679131+00:00",
+    "timeout": 14600.0,
+    "grace": 30.0,
+    "trace": false,
+    "process_returncode": -2,
+    "termination_signal": 2,
+    "timed_out": false,
+    "supervisor_signal": 2,
+    "forced_stop": false,
+    "exit_observed": true,
+    "completed_successfully": false,
+    "pid": 117679,
+    "seconds": 1312.5493990939995,
+    "finished_at": "2026-10-29T10:44:30.228502+00:00"
+  },
+  "source_lines_after_final_reader": 37949,
+  "changed_files_this_round": [
+    ".github/workflows/tests.yml",
+    "MANIFEST.in",
+    "docs/README.md",
+    "src/embodiedforge/_h1_worker.py",
+    "src/embodiedforge/_microduck_worker.py",
+    "src/embodiedforge/learning/checkpoints.py",
+    "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+    "src/embodiedforge/morphmimic.py",
+    "src/embodiedforge/native_h1.py",
+    "tests/test_h1_artifacts.py",
+    "tests/test_learning_boundaries.py",
+    "tests/test_microduck_metrics.py",
+    "tests/test_microduck_task.py",
+    "tests/test_morphmimic.py",
+    "tests/test_sdk_boundaries.py"
+  ],
+  "changed_production_files_this_round": [
+    "src/embodiedforge/_h1_worker.py",
+    "src/embodiedforge/_microduck_worker.py",
+    "src/embodiedforge/learning/checkpoints.py",
+    "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+    "src/embodiedforge/morphmimic.py",
+    "src/embodiedforge/native_h1.py"
+  ],
+  "metrics": {
+    "modules_before": 141,
+    "modules_after": 141,
+    "source_lines_before": 37982,
+    "source_lines_after": 37953,
+    "source_lines_removed_net": 29
+  },
+  "audit_decisions": [
+    "Keep public compatibility entry points and SDK-specific result/checkpoint contracts.",
+    "Keep SuperMimic source/target CRC and final snapshot rechecks: they protect separate publication and consumption boundaries.",
+    "Keep the native and external-SDK training loops separate; their reset/rollout and checkpoint contracts differ.",
+    "The archive reduction is measured with the populated cached source manifest, not asserted for every clean checkout.",
+    "Keep experimental reports/charts in source distributions: docs/README.md explicitly promises them and test_documentation.py validates the local README/guide links. Only raw historical evidence TARs are excluded."
+  ],
+  "resources_plot": "docs/experiments/assets/architecture-subtraction-20261029-095651-fivehour-overview.svg",
+  "last_updated_at": "2026-10-29T14:57:00.904580+00:00",
+  "coverage_revisions": {
+    "h1_microduck_learning_mdp": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-final/src",
+    "final_morphmimic_archive_reader": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/candidate-archive/src"
+  },
+  "elapsed_seconds": 18009.90458,
+  "limits": [
+    "Source-size reduction reproduces an already populated cached source manifest containing 22 evidence archives; not every clean checkout has that baseline size.",
+    "Allocation measurements isolate the hashing expression on a private 128 MiB fixture; they are not whole-training memory or throughput measurements.",
+    "Baseline and final CPU fixture workloads differ because the final fixture also tests newly fixed failures; their timing and RSS are not compared as a speed or memory benchmark.",
+    "The four-hour final CPU fixture freezes the H1/Microduck/learning/MDP changes with the earlier common MorphMimic reader; the final MorphMimic archive reader has its own 9900-second fixture.",
+    "MorphMimic retains 13/18 completed clips with the same detailed episode results as the prior run; five failed clips and tracking quality are not claimed solved by this refactor.",
+    "The SuperMimic acceptance is one rollout of the existing seed138 reference checkpoint with all implemented physical gates passing, not a multi-seed or exact IsaacLab V14 reproduction."
+  ],
+  "this_round_patch": {
+    "path": "/tmp/embodiedforge-subtraction-20261029-095651-fivehour/source-subtraction.patch",
+    "sha256": "5e862cc0c72fee46a9477bbedcff4d3a16f94f30d9db312c1b15d1b91adee43d",
+    "scope": "Only 15 selected files relative to the start-of-round working tree; excludes earlier work and new experiment artifacts.",
+    "reverse_apply_check": "git apply --check --reverse passed without changing the working tree"
+  },
+  "finished_at": "2026-10-29T14:57:00.904580+00:00",
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261029-095651-fivehour-evidence.tar.gz",
+    "bytes": 2969834,
+    "sha256": "a09a0f2dec34e3ba9c1962a594970853c76d07dbd5c265c5fec525d540d46f8d",
+    "verified_members": 650,
+    "manifest": "manifest.json",
+    "report_snapshot": "scratch/state.json",
+    "report_snapshot_note": "Frozen before adding this archive checksum to avoid self-reference."
+  }
+}

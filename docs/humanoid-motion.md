@@ -5,7 +5,7 @@ Weave 训练适配。三者依赖各自的固定外部仓库；没有把它们�
 复制进 EmbodiedForge。主入口仍在 `ef` 环境运行，SDK 依赖放在单独环境。
 
 模型体积、控制预设、精度存储、外力和 CPU 延迟的完整实测见
-[人形动作接入实验](humanoid-integration-study-20260928.md)。
+[人形动作接入实验](experiments/humanoid-integration-study-20260928.md)。
 
 ## 分工与版本
 
@@ -202,3 +202,5 @@ MAE 三位小数，不能当作未舍入的逐帧轨迹误差。每个片段保�
 Weave 的训练/续训命令继续以 [既有指南](weave-reference.md) 为准。2026-09-28 本机
 复查仍缺训练动作，`smalltable.usd` 仍为 LFS 指针，因此完整 HOI 训练仍未实测。
 GMR 参考动作的生成不会自动补齐这些条件。
+
+SuperMimic 的官方与独立复现采用不同的 G1 策略接口，当前提供[兼容性预检与接入规范](supermimic.md)，尚未执行策略推理。

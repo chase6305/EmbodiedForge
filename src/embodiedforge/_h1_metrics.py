@@ -26,21 +26,21 @@ class FirstEpisodeMetrics:
     def update(self, velocity, command, terminated, truncated):
         velocity, command = np.asarray(velocity), np.asarray(command)
         terminated, truncated = np.asarray(terminated), np.asarray(truncated)
-        n = len(self.active)
-        if velocity.shape != (n, 3) or command.shape != (n, 3):
+        num_envs = len(self.active)
+        if velocity.shape != (num_envs, 3) or command.shape != (num_envs, 3):
             raise ValueError("Expected velocity and command arrays of shape (N, 3)")
-        if terminated.shape != (n,) or truncated.shape != (n,):
+        if terminated.shape != (num_envs,) or truncated.shape != (num_envs,):
             raise ValueError("Expected termination arrays of shape (N,)")
         if self.steps >= self.limit:
             raise ValueError("Evaluation exceeded its step limit")
+        active_velocity = velocity[self.active]
+        active_command = command[self.active]
         if (
-            not np.isfinite(velocity[self.active]).all()
-            or not np.isfinite(command[self.active]).all()
+            not np.isfinite(active_velocity).all()
+            or not np.isfinite(active_command).all()
         ):
             raise ValueError("Non-finite evaluation state")
-        self.error_sum[self.active] += (
-            velocity[self.active] - command[self.active]
-        ) ** 2
+        self.error_sum[self.active] += (active_velocity - active_command) ** 2
         self.velocity_sum[self.active] += velocity[self.active]
         self.count[self.active] += 1
         self.terminated |= self.active & terminated.astype(bool)

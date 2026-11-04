@@ -1,0 +1,1192 @@
+{
+  "status": "complete",
+  "recorded_at": "2026-10-29T09:12:24.240994+00:00",
+  "request": "Resume core/runtime, MorphMimic and SuperMimic optimization work",
+  "core": {
+    "change": "Native H1 checkpoint publication now reuses runtime.artifacts.discard_partial, preserving the original save or manifest error if cleanup is interrupted.",
+    "regression_coverage": "Partial checkpoint writes, post-rename errors, manifest errors; cleanup PermissionError, KeyboardInterrupt and SystemExit; previously committed H1 checkpoint reload and later publication.",
+    "tests": {
+      "host": {
+        "tests": "3608",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "97",
+        "time": "76.801",
+        "path": "runs/resume-20261029-verification/embodiedforge-resume-20261029-host-tests.xml",
+        "sha256": "c7251ec0b4b90916b332c9801cf4b0ff70e880b6704eca641341aa02920eac85"
+      },
+      "native_h1_targeted": {
+        "tests": "129",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "18.379",
+        "path": "runs/resume-20261029-verification/embodiedforge-resume-20261029-h1-final-tests.xml",
+        "sha256": "c7b1a6ab94b9c66e868fac4bf96d358f13d4b2cc7914cd3102540c2c6b4baf28"
+      },
+      "native": {
+        "tests": "3719",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "59",
+        "time": "130.074",
+        "path": "runs/resume-20261029-verification/embodiedforge-resume-20261029-native-tests.xml",
+        "sha256": "c6504d8107646f56ebc6faec9523bca5bfb346146f4d282d9339b35fe0d90255",
+        "pytest_summary": "3635 passed, 59 skipped, 11 warnings, 25 subtests passed in 130.18s"
+      }
+    },
+    "lint": "ruff check passed; ruff format --check passed; git diff --check passed",
+    "documentation_boundary_tests": "71 passed",
+    "changed_files": [
+      "src/embodiedforge/native_h1.py",
+      "tests/test_native_h1.py",
+      "docs/architecture.md",
+      "docs/morphmimic.md",
+      "docs/experiments/README.md"
+    ]
+  },
+  "morphmimic": {
+    "previous_run": "runs/morphmimic-grounded-20261029",
+    "previous_last_logged_iteration": 670,
+    "resumed_from_iteration": 500,
+    "target_iteration": 1000,
+    "data": "runs/morphmimic-data-grounded-20261029",
+    "training_run": "runs/resume-20261029-morphmimic-grounded",
+    "baseline_export": "runs/resume-20261029-morphmimic-baseline-export",
+    "baseline_evaluation": "runs/resume-20261029-morphmimic-baseline-eval",
+    "baseline_completed": 0,
+    "baseline_total": 18,
+    "source_checkpoints": {
+      "g1": {
+        "path": "runs/morphmimic-grounded-20261029/training/shared/g1/latest.pt",
+        "sha256": "8f89c02a82b69d8a9aec025e79580e3a868636b5f6138b14861ed166beaff2b9"
+      },
+      "x2": {
+        "path": "runs/morphmimic-grounded-20261029/training/shared/x2/latest.pt",
+        "sha256": "7ca174b5c64cd408a8b87fd58b21387ef1328bd298edfd5ca0a0f37bd9d8cd54"
+      },
+      "t2": {
+        "path": "runs/morphmimic-grounded-20261029/training/shared/t2/latest.pt",
+        "sha256": "2e0f220dbb24b529f69c769bf475a0d263fb770380ff3134e3725ddaa07dfff1"
+      }
+    },
+    "resume_semantics": "Author Trainer.load restores networks, normalizers, five optimizers, schedule, sampler and RNG; starts new physics episodes and warms the replay buffer again.",
+    "verified_data": [
+      {
+        "robot": "g1",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+        "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+      },
+      {
+        "robot": "g1",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+        "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+      },
+      {
+        "robot": "g1",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+        "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+      },
+      {
+        "robot": "x2",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+        "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+      },
+      {
+        "robot": "x2",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+        "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+      },
+      {
+        "robot": "x2",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+        "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+      },
+      {
+        "robot": "t2",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+        "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+      },
+      {
+        "robot": "t2",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+        "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+      },
+      {
+        "robot": "t2",
+        "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+        "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+      }
+    ],
+    "training_exit_code": 0,
+    "training_record": {
+      "status": "complete",
+      "run_contract": {
+        "schema_version": 1,
+        "workflow": "morphmimic",
+        "operation": "train",
+        "task": "g1,x2,t2"
+      },
+      "workflow": "morphmimic",
+      "command": "train",
+      "output": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded",
+      "started_at": "2026-10-29T09:03:25.215480+00:00",
+      "source": {
+        "repository": "https://github.com/lzyang2000/morphmimic",
+        "revision": "aa40fe46a7fa995ba7a7354ad065a2c8ad64a302",
+        "archive_sha256": "22cda54a35f06ba675cb74f747fd1a8e17f21dd0fd7bf9307b33ec3af8f9b321",
+        "verified_files": 183
+      },
+      "adapter_sha256": {
+        "morphmimic.py": "28b31450a722cc1a5aaa9246ecfa254d10dea94c69adf9928b2de3cffb99c031",
+        "_morphmimic_worker.py": "23a6468541b31d5ea4fa9785898ea55b0c79d44737913006688285f7da725c85"
+      },
+      "worker_exit_observed": true,
+      "worker_returncode": 0,
+      "result": {
+        "robots": [
+          "g1",
+          "x2",
+          "t2"
+        ],
+        "transport": "single GPU / synchronous CPU Gloo"
+      },
+      "finished_at": "2026-10-29T09:19:25.966254+00:00",
+      "seconds": 960.7507822400003
+    },
+    "training_results": {
+      "g1": {
+        "robot": "g1",
+        "iteration": 1000,
+        "optimizer_steps": {
+          "wm": 10000.0,
+          "policy": 500.0,
+          "critic": 10000.0,
+          "kp": 500.0,
+          "critic_kp": 10000.0
+        },
+        "finite_parameters": true,
+        "morphology_dim": 125,
+        "film": true,
+        "latent_align_weight": 0.05,
+        "policy_updates": 500,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+        "last_log": {
+          "wm/nonfinite_steps": 0.0,
+          "policy/nonfinite_steps": 0.0,
+          "critic/nonfinite_steps": 0.0,
+          "kp/nonfinite_steps": 0.0,
+          "critic_kp/nonfinite_steps": 0.0,
+          "collect/env_steps": 3200.0,
+          "collect/episodes_finished": 11.0,
+          "collect/failures": 4.0,
+          "wm/state_loss": 180.05963134765625,
+          "wm/term_bce": 0.0008308666874654591,
+          "wm/pred_err_8step": 0.4720333516597748,
+          "wm/err8_pelvis_m": 0.012553921900689602,
+          "wm/err8_joint_rad": 0.027352729812264442,
+          "wm/term_acc": 0.999804675579071,
+          "policy/objective": 4.7118024826049805,
+          "policy/grad_norm": 1.7308158874511719,
+          "imag/survival_H": 0.9599940180778503,
+          "imag/reward": 0.04545953497290611,
+          "imag/rewarded_steps": 32.0,
+          "imag/value": 4.724918365478516,
+          "policy/latent_align_loss": 0.013885030522942543,
+          "policy/latent_dist": 0.20265690982341766,
+          "critic/target_clipped": 0.0,
+          "critic/loss": 0.011099088005721569,
+          "kp/objective": 4.4102253913879395,
+          "kp/align_err": 7.585361480712891,
+          "kp/grad_norm": 0.8472343683242798,
+          "imag_kp/survival_H": 0.9698905944824219,
+          "imag_kp/reward": 0.04329680651426315,
+          "critic_kp/target_clipped": 0.0,
+          "critic_kp/loss": 0.012996030040085316,
+          "lr/mult": 0.9999621261882746,
+          "collect/kp_env_frac": 0.5,
+          "collect/mean_reward": 0.04331469476222992,
+          "collect/mean_norm_return": 0.2992199415510351,
+          "collect/mean_episode_length": 178.45454545454547,
+          "sampler/G_mean": 0.26473087072372437,
+          "sampler/entropy": 0.8563947677612305,
+          "wm/hazard_k_z": 101.0152816772461,
+          "wm/hazard_k_u": 20.916505813598633,
+          "wm/hazard_thr_z": 0.25720202922821045,
+          "wm/hazard_thr_tilt": 0.8455607295036316,
+          "policy/grad_norm_max": 2.667867422103882,
+          "sampler/G_min": 0.04128580912947655,
+          "time/collect": 0.16841862030029295,
+          "time/wm": 0.8057846374511719,
+          "time/actor_critic": 0.91172314453125,
+          "perf/iter_time": 1.9041330433999974,
+          "perf/it_per_s": 0.5251733871570297,
+          "perf/env_steps_per_s": 168.0554838902495,
+          "perf/imag_steps_per_s": 4302.220387590387,
+          "perf/gpu_mem_gb": 1.9888134002685547
+        },
+        "checkpoint_sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406",
+        "checkpoint_bytes": 292678721
+      },
+      "x2": {
+        "robot": "x2",
+        "iteration": 1000,
+        "optimizer_steps": {
+          "wm": 10000.0,
+          "policy": 500.0,
+          "critic": 10000.0,
+          "kp": 500.0,
+          "critic_kp": 10000.0
+        },
+        "finite_parameters": true,
+        "morphology_dim": 125,
+        "film": true,
+        "latent_align_weight": 0.05,
+        "policy_updates": 500,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+        "last_log": {
+          "wm/nonfinite_steps": 0.0,
+          "policy/nonfinite_steps": 0.0,
+          "critic/nonfinite_steps": 0.0,
+          "kp/nonfinite_steps": 0.0,
+          "critic_kp/nonfinite_steps": 0.0,
+          "collect/env_steps": 3200.0,
+          "collect/episodes_finished": 17.0,
+          "collect/failures": 5.0,
+          "wm/state_loss": 188.36209106445312,
+          "wm/term_bce": 0.0002844382543116808,
+          "wm/pred_err_8step": 0.45165520906448364,
+          "wm/err8_pelvis_m": 0.011097947135567665,
+          "wm/err8_joint_rad": 0.030320053920149803,
+          "wm/term_acc": 0.9999120831489563,
+          "policy/objective": 3.694774627685547,
+          "policy/grad_norm": 1.7308158874511719,
+          "imag/survival_H": 0.9621919989585876,
+          "imag/reward": 0.03360433503985405,
+          "imag/rewarded_steps": 32.0,
+          "imag/value": 3.71441388130188,
+          "policy/latent_align_loss": 0.013379675336182117,
+          "policy/latent_dist": 0.20265690982341766,
+          "critic/target_clipped": 0.0,
+          "critic/loss": 0.012307179160416126,
+          "kp/objective": 3.456719160079956,
+          "kp/align_err": 10.077475547790527,
+          "kp/grad_norm": 0.8472343683242798,
+          "imag_kp/survival_H": 0.960544764995575,
+          "imag_kp/reward": 0.03289375454187393,
+          "critic_kp/target_clipped": 0.0,
+          "critic_kp/loss": 0.010196293704211712,
+          "lr/mult": 0.9999621261882746,
+          "collect/kp_env_frac": 0.5,
+          "collect/mean_reward": 0.03249606028199196,
+          "collect/mean_norm_return": 0.26187529283411365,
+          "collect/mean_episode_length": 250.8235294117647,
+          "sampler/G_mean": 0.21273595094680786,
+          "sampler/entropy": 0.8763156533241272,
+          "wm/hazard_k_z": 101.0152816772461,
+          "wm/hazard_k_u": 20.916505813598633,
+          "wm/hazard_thr_z": 0.25720202922821045,
+          "wm/hazard_thr_tilt": 0.8455607295036316,
+          "policy/grad_norm_max": 2.667867422103882,
+          "sampler/G_min": 0.026263127103447914,
+          "time/collect": 0.17766882400512696,
+          "time/wm": 0.7965209899902345,
+          "time/actor_critic": 0.911220440673828,
+          "perf/iter_time": 1.9041366752999693,
+          "perf/it_per_s": 0.5251723854551903,
+          "perf/env_steps_per_s": 168.0551633456609,
+          "perf/imag_steps_per_s": 4302.212181648919,
+          "perf/gpu_mem_gb": 1.9891796112060547
+        },
+        "checkpoint_sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8",
+        "checkpoint_bytes": 292678657
+      },
+      "t2": {
+        "robot": "t2",
+        "iteration": 1000,
+        "optimizer_steps": {
+          "wm": 10000.0,
+          "policy": 500.0,
+          "critic": 10000.0,
+          "kp": 500.0,
+          "critic_kp": 10000.0
+        },
+        "finite_parameters": true,
+        "morphology_dim": 125,
+        "film": true,
+        "latent_align_weight": 0.05,
+        "policy_updates": 500,
+        "checkpoint": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+        "last_log": {
+          "wm/nonfinite_steps": 0.0,
+          "policy/nonfinite_steps": 0.0,
+          "critic/nonfinite_steps": 0.0,
+          "kp/nonfinite_steps": 0.0,
+          "critic_kp/nonfinite_steps": 0.0,
+          "collect/env_steps": 3200.0,
+          "collect/episodes_finished": 18.0,
+          "collect/failures": 11.0,
+          "wm/state_loss": 121.96002197265625,
+          "wm/term_bce": 0.0003584366349969059,
+          "wm/pred_err_8step": 0.3220013380050659,
+          "wm/err8_pelvis_m": 0.009956891648471355,
+          "wm/err8_joint_rad": 0.02098632976412773,
+          "wm/term_acc": 0.9999022483825684,
+          "policy/objective": 4.265750408172607,
+          "policy/grad_norm": 1.7308158874511719,
+          "imag/survival_H": 0.940650463104248,
+          "imag/reward": 0.04282722994685173,
+          "imag/rewarded_steps": 32.0,
+          "imag/value": 4.279270648956299,
+          "policy/latent_align_loss": 0.03977412357926369,
+          "policy/latent_dist": 0.20265690982341766,
+          "critic/target_clipped": 0.0,
+          "critic/loss": 0.010551491752266884,
+          "kp/objective": 4.194579601287842,
+          "kp/align_err": 7.9224114418029785,
+          "kp/grad_norm": 0.8472343683242798,
+          "imag_kp/survival_H": 0.9457677006721497,
+          "imag_kp/reward": 0.042424943298101425,
+          "critic_kp/target_clipped": 0.0,
+          "critic_kp/loss": 0.0072098649106919765,
+          "lr/mult": 0.9999621261882746,
+          "collect/kp_env_frac": 0.5,
+          "collect/mean_reward": 0.039731831550598146,
+          "collect/mean_norm_return": 0.2217498380276892,
+          "collect/mean_episode_length": 141.83333333333334,
+          "sampler/G_mean": 0.25474831461906433,
+          "sampler/entropy": 0.8708636164665222,
+          "wm/hazard_k_z": 101.0152816772461,
+          "wm/hazard_k_u": 20.916505813598633,
+          "wm/hazard_thr_z": 0.25720202922821045,
+          "wm/hazard_thr_tilt": 0.8455607295036316,
+          "policy/grad_norm_max": 2.667867422103882,
+          "sampler/G_min": 0.04482865706086159,
+          "time/collect": 0.17753841094970702,
+          "time/wm": 0.7968443359374999,
+          "time/actor_critic": 0.911461572265625,
+          "perf/iter_time": 1.9041615414000261,
+          "perf/it_per_s": 0.5251655273243018,
+          "perf/env_steps_per_s": 168.05296874377657,
+          "perf/imag_steps_per_s": 4302.15599984068,
+          "perf/gpu_mem_gb": 1.9888520240783691
+        },
+        "checkpoint_sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8",
+        "checkpoint_bytes": 292678657
+      }
+    },
+    "final_export": "runs/resume-20261029-morphmimic-final-export",
+    "final_export_result": {
+      "run": "shared",
+      "share": "all",
+      "iteration": 1000,
+      "robots": [
+        "g1",
+        "t2",
+        "x2"
+      ],
+      "checks": [
+        {
+          "network": "policy",
+          "shared": true,
+          "values": 13811293,
+          "fingerprints": {
+            "g1": "e4c8f238",
+            "t2": "e4c8f238",
+            "x2": "e4c8f238"
+          },
+          "differing": []
+        },
+        {
+          "network": "critic",
+          "shared": true,
+          "values": 322305,
+          "fingerprints": {
+            "g1": "711752f1",
+            "t2": "711752f1",
+            "x2": "711752f1"
+          },
+          "differing": []
+        },
+        {
+          "network": "critic_kp",
+          "shared": true,
+          "values": 322305,
+          "fingerprints": {
+            "g1": "0533c9ea",
+            "t2": "0533c9ea",
+            "x2": "0533c9ea"
+          },
+          "differing": []
+        },
+        {
+          "network": "wm",
+          "shared": true,
+          "values": 9922865,
+          "fingerprints": {
+            "g1": "c0b1df5a",
+            "t2": "c0b1df5a",
+            "x2": "c0b1df5a"
+          },
+          "differing": []
+        }
+      ],
+      "files": {
+        "policy.onnx": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856",
+        "g1.json": "aefe565a84f62c33725b84628ec74de234e14e4a3997f4679fa7accfc4f8e132",
+        "t2.json": "c5e6f6d2539d7ee87772ee39e9b0940bbb3bfb78a7f942e9393b4b472549f40a",
+        "x2.json": "fd7a91f635432840579b0a311614c3da19434ca59a89e681f79595b07baa1df5"
+      },
+      "parity": {
+        "g1": [
+          2.6226043701171875e-06,
+          1.9073486328125e-06
+        ],
+        "t2": [
+          2.6226043701171875e-06,
+          1.9073486328125e-06
+        ],
+        "x2": [
+          2.86102294921875e-06,
+          3.337860107421875e-06
+        ]
+      }
+    },
+    "final_export_exit_code": 0,
+    "final_evaluation": "runs/resume-20261029-morphmimic-final-eval",
+    "final_evaluation_exit_code": 0,
+    "final_completed": 13,
+    "final_total": 18,
+    "tracking_passed": false,
+    "comparison": [
+      {
+        "robot": "g1",
+        "clip": "walk1_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "g1",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "failed at frame 43",
+          "joint_err_rms_rad": 0.4483601704432512,
+          "body_err_mean_m": 0.14788515319039533,
+          "end_drift_m": 0.5084310132229203,
+          "end_drift_along_m": 0.5080812605457905,
+          "end_drift_across_m": -0.01885544719930907,
+          "end_heading_err_deg": -0.512440634413039,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "g1",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.2892237809839107,
+          "body_err_mean_m": 0.06426786668384281,
+          "end_drift_m": 3.4733659028076356,
+          "end_drift_along_m": -3.472130034165066,
+          "end_drift_across_m": 0.09264837092793472,
+          "end_heading_err_deg": -10.568450712528232,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "g1",
+        "clip": "walk1_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "g1",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "failed at frame 43",
+          "joint_err_rms_rad": 0.44832028489351666,
+          "body_err_mean_m": 0.1478188074046454,
+          "end_drift_m": 0.5054837727856275,
+          "end_drift_along_m": 0.5051550631744435,
+          "end_drift_across_m": -0.018226538311370742,
+          "end_heading_err_deg": -1.6152535501158494,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "g1",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.29142989586251483,
+          "body_err_mean_m": 0.06368833410280264,
+          "end_drift_m": 3.4893274484002665,
+          "end_drift_along_m": -3.488480031177005,
+          "end_drift_across_m": 0.07689677651759484,
+          "end_heading_err_deg": -4.915822246905361,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      },
+      {
+        "robot": "g1",
+        "clip": "run2_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "g1",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 42",
+          "joint_err_rms_rad": 0.44582639332901447,
+          "body_err_mean_m": 0.1368055474994934,
+          "end_drift_m": 0.48728636880595133,
+          "end_drift_along_m": 0.48726339184413625,
+          "end_drift_across_m": -0.00473203895137575,
+          "end_heading_err_deg": -0.3919195017515399,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "g1",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.44599584482869054,
+          "body_err_mean_m": 0.09582265276012712,
+          "end_drift_m": 3.6034442719807154,
+          "end_drift_along_m": -3.1790187643074423,
+          "end_drift_across_m": -1.6966585742133886,
+          "end_heading_err_deg": -17.442354093170625,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "g1",
+        "clip": "run2_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "g1",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 42",
+          "joint_err_rms_rad": 0.44583911295122797,
+          "body_err_mean_m": 0.1367756930944617,
+          "end_drift_m": 0.4872607641671772,
+          "end_drift_along_m": 0.4872390905397388,
+          "end_drift_across_m": -0.004595753125407539,
+          "end_heading_err_deg": -0.31751390149913417,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "g1",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.4504551913888533,
+          "body_err_mean_m": 0.0984104050157119,
+          "end_drift_m": 3.2208066802427475,
+          "end_drift_along_m": -2.6636947470069243,
+          "end_drift_across_m": -1.8106148033924898,
+          "end_heading_err_deg": 3.380545858939056,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      },
+      {
+        "robot": "g1",
+        "clip": "dance1_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "g1",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "failed at frame 39",
+          "joint_err_rms_rad": 0.42752078131427373,
+          "body_err_mean_m": 0.1329236775124007,
+          "end_drift_m": 0.47613690434548106,
+          "end_drift_along_m": 0.4759455944870358,
+          "end_drift_across_m": -0.013496027863037913,
+          "end_heading_err_deg": -3.4104238270413774,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "g1",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.3650507933360985,
+          "body_err_mean_m": 0.07040769965250174,
+          "end_drift_m": 2.466281910445341,
+          "end_drift_along_m": 2.3217448251856387,
+          "end_drift_across_m": 0.8318938805602726,
+          "end_heading_err_deg": -3.934071327234298,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "g1",
+        "clip": "dance1_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "g1",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "failed at frame 39",
+          "joint_err_rms_rad": 0.4275321229132526,
+          "body_err_mean_m": 0.13290392389577502,
+          "end_drift_m": 0.47608082155038745,
+          "end_drift_along_m": 0.47589205194705947,
+          "end_drift_across_m": -0.013405354963934392,
+          "end_heading_err_deg": -3.355940879562808,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "g1",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.36585710631992746,
+          "body_err_mean_m": 0.07079578140986979,
+          "end_drift_m": 2.4652506441991346,
+          "end_drift_along_m": 2.317650657801278,
+          "end_drift_across_m": 0.8402119774899379,
+          "end_heading_err_deg": -2.3182213896134822,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      },
+      {
+        "robot": "x2",
+        "clip": "walk1_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "x2",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "failed at frame 44",
+          "joint_err_rms_rad": 0.44676090637186017,
+          "body_err_mean_m": 0.1560534580856871,
+          "end_drift_m": 0.5097980252968269,
+          "end_drift_along_m": 0.5094355250992314,
+          "end_drift_across_m": -0.01922166390858544,
+          "end_heading_err_deg": -5.653909593198187,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "x2",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "failed at frame 178",
+          "joint_err_rms_rad": 0.493909884573351,
+          "body_err_mean_m": 0.13283444877691072,
+          "end_drift_m": 0.6093882497798607,
+          "end_drift_along_m": 0.021677810104371097,
+          "end_drift_across_m": 0.6090025546078117,
+          "end_heading_err_deg": 35.04027199396832,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "x2",
+        "clip": "walk1_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "x2",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "failed at frame 44",
+          "joint_err_rms_rad": 0.4467631701612612,
+          "body_err_mean_m": 0.1560220829708885,
+          "end_drift_m": 0.5096992186581898,
+          "end_drift_along_m": 0.5093393635328922,
+          "end_drift_across_m": -0.019149575887665127,
+          "end_heading_err_deg": -5.593220593850615,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "x2",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.40477009535539005,
+          "body_err_mean_m": 0.08816680042097515,
+          "end_drift_m": 2.676843677764278,
+          "end_drift_along_m": -2.605904793859722,
+          "end_drift_across_m": 0.6121701401779599,
+          "end_heading_err_deg": -9.33063463751593,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      },
+      {
+        "robot": "x2",
+        "clip": "run2_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "x2",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 46",
+          "joint_err_rms_rad": 0.4557545506243043,
+          "body_err_mean_m": 0.14506328914909414,
+          "end_drift_m": 0.5068071171976434,
+          "end_drift_along_m": 0.5060852984536026,
+          "end_drift_across_m": -0.02703931824794668,
+          "end_heading_err_deg": -3.8863762527370804,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "x2",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 429",
+          "joint_err_rms_rad": 0.522519374103153,
+          "body_err_mean_m": 0.0998996566409663,
+          "end_drift_m": 6.237322116583848,
+          "end_drift_along_m": 0.16693541627398512,
+          "end_drift_across_m": 6.235087790305719,
+          "end_heading_err_deg": -47.441453656366036,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "x2",
+        "clip": "run2_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "x2",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 46",
+          "joint_err_rms_rad": 0.45584499272698215,
+          "body_err_mean_m": 0.14505713755611016,
+          "end_drift_m": 0.5068251946051983,
+          "end_drift_along_m": 0.5061084370300106,
+          "end_drift_across_m": -0.026944904038368144,
+          "end_heading_err_deg": -3.8021891197748277,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "x2",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 423",
+          "joint_err_rms_rad": 0.5321737120933264,
+          "body_err_mean_m": 0.10275448004180864,
+          "end_drift_m": 5.277603484796891,
+          "end_drift_along_m": -0.48480320481194417,
+          "end_drift_across_m": 5.255289182846587,
+          "end_heading_err_deg": -7.400829799870165,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      },
+      {
+        "robot": "x2",
+        "clip": "dance1_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "x2",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "failed at frame 44",
+          "joint_err_rms_rad": 0.4149930283995022,
+          "body_err_mean_m": 0.14139356283482862,
+          "end_drift_m": 0.4905662249341273,
+          "end_drift_along_m": 0.4894098463377256,
+          "end_drift_across_m": -0.03366338298217554,
+          "end_heading_err_deg": -5.844730708518303,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "x2",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "failed at frame 376",
+          "joint_err_rms_rad": 0.49582982780375684,
+          "body_err_mean_m": 0.13798433408959532,
+          "end_drift_m": 2.8260225788961737,
+          "end_drift_along_m": 2.81019240589504,
+          "end_drift_across_m": -0.29870095125530743,
+          "end_heading_err_deg": 47.83784513938482,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "x2",
+        "clip": "dance1_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "x2",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "failed at frame 44",
+          "joint_err_rms_rad": 0.4150839543989579,
+          "body_err_mean_m": 0.14136973607331907,
+          "end_drift_m": 0.4905719009273312,
+          "end_drift_along_m": 0.4894209942811142,
+          "end_drift_across_m": -0.03358392973344329,
+          "end_heading_err_deg": -5.7994218607737205,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "x2",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.4503863269327899,
+          "body_err_mean_m": 0.08660428219451946,
+          "end_drift_m": 2.6745605921365425,
+          "end_drift_along_m": 2.4906881986871463,
+          "end_drift_across_m": 0.9745494640757598,
+          "end_heading_err_deg": -11.91926155385856,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      },
+      {
+        "robot": "t2",
+        "clip": "walk1_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "t2",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "failed at frame 64",
+          "joint_err_rms_rad": 0.41685427938975156,
+          "body_err_mean_m": 0.19031941898893162,
+          "end_drift_m": 0.6552885439703316,
+          "end_drift_along_m": 0.6549783160388718,
+          "end_drift_across_m": 0.020161383326574033,
+          "end_heading_err_deg": 0.8355532087298742,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "t2",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.6791603094642132,
+          "body_err_mean_m": 0.07944433663179719,
+          "end_drift_m": 3.821384353435329,
+          "end_drift_along_m": -3.819395947922045,
+          "end_drift_across_m": -0.12325976503714615,
+          "end_heading_err_deg": -5.187007149329905,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "t2",
+        "clip": "walk1_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "t2",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "failed at frame 64",
+          "joint_err_rms_rad": 0.4168823183702643,
+          "body_err_mean_m": 0.19059082955185866,
+          "end_drift_m": 0.6561131451736236,
+          "end_drift_along_m": 0.6557707525991436,
+          "end_drift_across_m": 0.021193850645345673,
+          "end_heading_err_deg": 0.5425775461857566,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "t2",
+          "clip": "walk1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.6837340363230294,
+          "body_err_mean_m": 0.0799446775906293,
+          "end_drift_m": 3.8109295866158246,
+          "end_drift_along_m": -3.8090698322763363,
+          "end_drift_across_m": -0.11904338279040003,
+          "end_heading_err_deg": -4.042314497899766,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      },
+      {
+        "robot": "t2",
+        "clip": "run2_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "t2",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 76",
+          "joint_err_rms_rad": 0.44742163510095445,
+          "body_err_mean_m": 0.15933202846418107,
+          "end_drift_m": 0.4106595018648471,
+          "end_drift_along_m": -0.3965230956930451,
+          "end_drift_across_m": 0.10682069581260245,
+          "end_heading_err_deg": 0.9874821707946105,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "t2",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 597",
+          "joint_err_rms_rad": 0.7437863605484416,
+          "body_err_mean_m": 0.11195107507232692,
+          "end_drift_m": 1.6883036813378793,
+          "end_drift_along_m": -1.5886099777061589,
+          "end_drift_across_m": -0.5715659709530243,
+          "end_heading_err_deg": 9.999511877262808,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "t2",
+        "clip": "run2_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "t2",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "failed at frame 77",
+          "joint_err_rms_rad": 0.448135548279146,
+          "body_err_mean_m": 0.16171386995889014,
+          "end_drift_m": 0.4309392277557821,
+          "end_drift_along_m": -0.41633403989623213,
+          "end_drift_across_m": 0.11124111309418115,
+          "end_heading_err_deg": 1.3600224582449916,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "t2",
+          "clip": "run2_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.7539970032064004,
+          "body_err_mean_m": 0.11945842689597953,
+          "end_drift_m": 2.3740014730692516,
+          "end_drift_along_m": -1.9421845359314842,
+          "end_drift_across_m": -1.365211420448709,
+          "end_heading_err_deg": -10.245661812314472,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      },
+      {
+        "robot": "t2",
+        "clip": "dance1_subject1",
+        "interface": "motion",
+        "before": {
+          "robot": "t2",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "failed at frame 97",
+          "joint_err_rms_rad": 0.4572500123626262,
+          "body_err_mean_m": 0.15683793877215046,
+          "end_drift_m": 0.44834132981146135,
+          "end_drift_along_m": -0.4162781684885386,
+          "end_drift_across_m": 0.1665005539238156,
+          "end_heading_err_deg": 0.04346986737369906,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        },
+        "after": {
+          "robot": "t2",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.7263070636631557,
+          "body_err_mean_m": 0.0923682325963845,
+          "end_drift_m": 2.5946809906930945,
+          "end_drift_along_m": 2.409248487829372,
+          "end_drift_across_m": 0.963271076777448,
+          "end_heading_err_deg": -4.4467191956407115,
+          "delay_ms": 0.0,
+          "interface": "motion"
+        }
+      },
+      {
+        "robot": "t2",
+        "clip": "dance1_subject1",
+        "interface": "keypoint",
+        "before": {
+          "robot": "t2",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "failed at frame 97",
+          "joint_err_rms_rad": 0.4571735863942095,
+          "body_err_mean_m": 0.1566770056991777,
+          "end_drift_m": 0.4454322341892377,
+          "end_drift_along_m": -0.41303654145373,
+          "end_drift_across_m": 0.1667653761389249,
+          "end_heading_err_deg": 0.03261459885557809,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        },
+        "after": {
+          "robot": "t2",
+          "clip": "dance1_subject1",
+          "frames": 600,
+          "result": "completed",
+          "joint_err_rms_rad": 0.7267229600861397,
+          "body_err_mean_m": 0.09541765165291986,
+          "end_drift_m": 2.6169290163389665,
+          "end_drift_along_m": 2.4415044379419273,
+          "end_drift_across_m": 0.9420050722085862,
+          "end_heading_err_deg": -2.245631396329517,
+          "delay_ms": 0.0,
+          "interface": "keypoint"
+        }
+      }
+    ],
+    "completed_by_robot": {
+      "g1": 6,
+      "x2": 2,
+      "t2": 5
+    },
+    "remaining_failures": [
+      {
+        "robot": "x2",
+        "clip": "walk1_subject1",
+        "frames": 600,
+        "result": "failed at frame 178",
+        "joint_err_rms_rad": 0.493909884573351,
+        "body_err_mean_m": 0.13283444877691072,
+        "end_drift_m": 0.6093882497798607,
+        "end_drift_along_m": 0.021677810104371097,
+        "end_drift_across_m": 0.6090025546078117,
+        "end_heading_err_deg": 35.04027199396832,
+        "delay_ms": 0.0,
+        "interface": "motion"
+      },
+      {
+        "robot": "x2",
+        "clip": "run2_subject1",
+        "frames": 600,
+        "result": "failed at frame 429",
+        "joint_err_rms_rad": 0.522519374103153,
+        "body_err_mean_m": 0.0998996566409663,
+        "end_drift_m": 6.237322116583848,
+        "end_drift_along_m": 0.16693541627398512,
+        "end_drift_across_m": 6.235087790305719,
+        "end_heading_err_deg": -47.441453656366036,
+        "delay_ms": 0.0,
+        "interface": "motion"
+      },
+      {
+        "robot": "x2",
+        "clip": "run2_subject1",
+        "frames": 600,
+        "result": "failed at frame 423",
+        "joint_err_rms_rad": 0.5321737120933264,
+        "body_err_mean_m": 0.10275448004180864,
+        "end_drift_m": 5.277603484796891,
+        "end_drift_along_m": -0.48480320481194417,
+        "end_drift_across_m": 5.255289182846587,
+        "end_heading_err_deg": -7.400829799870165,
+        "delay_ms": 0.0,
+        "interface": "keypoint"
+      },
+      {
+        "robot": "x2",
+        "clip": "dance1_subject1",
+        "frames": 600,
+        "result": "failed at frame 376",
+        "joint_err_rms_rad": 0.49582982780375684,
+        "body_err_mean_m": 0.13798433408959532,
+        "end_drift_m": 2.8260225788961737,
+        "end_drift_along_m": 2.81019240589504,
+        "end_drift_across_m": -0.29870095125530743,
+        "end_heading_err_deg": 47.83784513938482,
+        "delay_ms": 0.0,
+        "interface": "motion"
+      },
+      {
+        "robot": "t2",
+        "clip": "run2_subject1",
+        "frames": 600,
+        "result": "failed at frame 597",
+        "joint_err_rms_rad": 0.7437863605484416,
+        "body_err_mean_m": 0.11195107507232692,
+        "end_drift_m": 1.6883036813378793,
+        "end_drift_along_m": -1.5886099777061589,
+        "end_drift_across_m": -0.5715659709530243,
+        "end_heading_err_deg": 9.999511877262808,
+        "delay_ms": 0.0,
+        "interface": "motion"
+      }
+    ]
+  },
+  "supermimic": {
+    "evaluation": "runs/resume-20261029-supermimic-backflip-eval",
+    "recipe": "reference",
+    "checkpoint_sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf",
+    "skill_success": true,
+    "physical_quality": {
+      "checks": {
+        "complete_reference_and_extra_hold": true,
+        "zero_initial_velocity": true,
+        "correct_initial_pose": true,
+        "shared_rotation_geometry_hold": true,
+        "shared_fixed_window_leg_pose": true,
+        "dynamic_geometry": true,
+        "inverted_while_airborne": true,
+        "at_least60msairborne": true,
+        "relative_pitch_below_minus5rad": true,
+        "native320step_tracking_return": true,
+        "solved_force_balance": true,
+        "no_contact_capacity_overflow": true,
+        "no_nonfoot_force": true,
+        "no200Hznegative_nonfoot_contact_distance": true,
+        "actual_physics_model_geometry_identity": true,
+        "complete200Hzforce_coverage": true
+      },
+      "failed_checks": [],
+      "unassessed_checks": [],
+      "ported_quality_passed": true,
+      "strict_v14_equivalence": false,
+      "physical_robot_tested": false,
+      "scope": "Reference-informed thresholds on current mjlab G1, with conservative fixed-window/200Hzgeometry/model-identity checks. One evaluation does not establish independent-training robustness or exact IsaacLab3V14 reproduction."
+    }
+  },
+  "limits": [
+    "MorphMimic completed 13 of 18 prepared 12-second clips under the author sim2sim termination rules; completion is not an independent tracking-accuracy threshold. Joint/body errors and root drift remain in each episode report. Five episodes still failed.",
+    "The original interrupted run remains unmodified; resumed work owns a new output directory.",
+    "SuperMimic reports one existing model rollout under the ported gates, not exact IsaacLab V14 equivalence or independent-seed robustness.",
+    "No training speed or memory improvement is claimed for the H1 cleanup refactor.",
+    "The MorphMimic comparison measures continuation after world-model warmup with 500 real policy updates. It is not an implementation-speed benchmark, paper data benchmark, independent-seed study, or held-out generalization result.",
+    "Checkpoint weights, ONNX weights, prepared motion files and the compiled physical model remain at the local paths and hashes; they are not duplicated in the compact evidence archive."
+  ],
+  "finished_at": "2026-10-29T09:24:02.929326+00:00",
+  "observed_process_exits": {
+    "morphmimic_train": 0,
+    "baseline_export": 0,
+    "baseline_eval": 0,
+    "final_export": 0,
+    "final_eval": 0,
+    "supermimic_eval": 0,
+    "host_tests": 0,
+    "native_tests": 0
+  },
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/optimization-resume-20261029-evidence.tar.gz",
+    "bytes": 1212920,
+    "sha256": "737cc5f6adf8b8cda8e25d48213f4436b889f987ed2b39698f79e4860592e563",
+    "verified_files": 115
+  }
+}

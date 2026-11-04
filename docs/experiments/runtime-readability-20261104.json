@@ -1,0 +1,55 @@
+{
+  "scope": "Runtime, recording, training and viewer simplification after the architecture split.",
+  "optimization_files": 25,
+  "runtime_files_matching_tested_snapshot": 190,
+  "new_modules": 0,
+  "new_dependencies": 0,
+  "validation": {
+    "main_suite": {
+      "passed": 3773,
+      "skipped": 93
+    },
+    "native_suite": {
+      "passed": 3942,
+      "skipped": 63,
+      "subtests_passed": 25
+    },
+    "installed_wheel": {
+      "passed": 282,
+      "skipped": 1
+    },
+    "installed_real_sdk_cpu": {
+      "passed": 105
+    },
+    "sdist_documentation_and_architecture": {
+      "passed": 70
+    },
+    "ruff_check_and_format_files": 308,
+    "all_completed_validation_exit_codes": 0
+  },
+  "compatibility": {
+    "core_and_h1_policy_adam_rollouts_metrics_rng": "Exact on three seeds per component",
+    "browser_replay_interaction_states": 88,
+    "numpy_versions": "Legacy equality hooks retained on NumPy 1.x; ownership and scalar comparison checked on 1.26/2.2/2.5."
+  },
+  "complete_core_workflow_benchmark": {
+    "pairs": 9,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "baseline_wall_median_seconds": 1.600100339,
+    "candidate_wall_median_seconds": 1.583996465,
+    "paired_candidate_over_baseline_median": 0.9887527716263795,
+    "candidate_faster_pairs": 6,
+    "candidate_slower_pairs": 3,
+    "conclusion": "Mixed timings on a shared CPU host; no confirmed stable overall training speedup."
+  },
+  "long_tests": {
+    "status": "Stopped early at user request",
+    "eight_hours_completed": false,
+    "interrupted_runs_counted_as_success": false
+  },
+  "known_existing_limit": "A cancellation between executor submission and recorder bookkeeping can leave failed-run counts inconsistent; baseline and candidate reproduce it. No new signal interception/state machine introduced."
+}

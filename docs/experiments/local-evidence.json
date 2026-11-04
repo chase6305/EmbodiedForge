@@ -1,0 +1,41 @@
+{
+  "storage": "Local raw evidence; not included in Git or source distributions.",
+  "files": [
+    {
+      "original_path": "docs/experiments/assets/architecture-runtime-20261022-threehour-evidence.tar.gz",
+      "local_reference": "runs/experiment-evidence/architecture-runtime-20261022-threehour-evidence.tar.gz",
+      "bytes": 104057404,
+      "sha256": "f483d18a5352e719d3664f95989cdf75b2ec9aa25b1aee9a399c67a4dae67dbc"
+    },
+    {
+      "original_path": "docs/experiments/assets/architecture-runtime-20261022-twohour-evidence.tar.gz",
+      "local_reference": "runs/experiment-evidence/architecture-runtime-20261022-twohour-evidence.tar.gz",
+      "bytes": 121708079,
+      "sha256": "57c0ebd6ecc74a2c8df3b505786818f918ffbfb7439541e3c1d88ed42c824458"
+    },
+    {
+      "original_path": "docs/experiments/assets/architecture-runtime-20261023-fivehour-evidence.tar.gz",
+      "local_reference": "runs/experiment-evidence/architecture-runtime-20261023-fivehour-evidence.tar.gz",
+      "bytes": 193272877,
+      "sha256": "5e08a2464c2c3095b0a7b2a47e09900aebb7e20c636dd743c28c147d67ae41d3"
+    },
+    {
+      "original_path": "docs/experiments/assets/architecture-runtime-20261024-fivehour-evidence.tar.gz",
+      "local_reference": "runs/experiment-evidence/architecture-runtime-20261024-fivehour-evidence.tar.gz",
+      "bytes": 53109632,
+      "sha256": "5d3dd110b0fe811f6fdee995e8fb16ac52ef9c02426cb7c2044bf4344bc7fd03"
+    },
+    {
+      "original_path": "docs/experiments/assets/architecture-runtime-20261024-tenhour-evidence.tar.gz",
+      "local_reference": "runs/experiment-evidence/architecture-runtime-20261024-tenhour-evidence.tar.gz",
+      "bytes": 104821317,
+      "sha256": "7d96b47e959410777065b7f0e56ee2796a291a062422e0e7a8f2d99ea45b1ae0"
+    },
+    {
+      "original_path": "docs/experiments/assets/architecture-runtime-20261025-eighthour-evidence.tar.gz",
+      "local_reference": "runs/experiment-evidence/architecture-runtime-20261025-eighthour-evidence.tar.gz",
+      "bytes": 59223687,
+      "sha256": "b09bee973fd7ea6c2bf9fecb731e420cd335975ce9e4e4cf18779e93949a71a1"
+    }
+  ]
+}

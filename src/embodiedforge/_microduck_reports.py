@@ -84,7 +84,7 @@ def validate_evaluation_report(report, manifest):
         if report["task"] != manifest["task"]:
             raise ValueError("Reported task differs from run manifest")
         if "input_snapshot" in manifest:
-            from ._microduck_inputs import verify_report_inputs
+            from ._microduck_run import verify_report_inputs
 
             verify_report_inputs(report, manifest["input_snapshot"])
     except (KeyError, TypeError, IndexError, AttributeError) as exc:

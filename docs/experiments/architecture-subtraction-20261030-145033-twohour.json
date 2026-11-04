@@ -1,0 +1,1533 @@
+{
+  "status": "complete",
+  "objective": "Two-hour subtraction across runtime, data and training boundaries; preserve behavior and existing work.",
+  "started_at": "2026-10-30T14:50:33+00:00",
+  "deadline": "2026-10-30T16:50:33+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261030-145033-twohour",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37845,
+  "baseline_files": 428,
+  "historical_files": 195,
+  "changed_files_this_round": [
+    "src/embodiedforge/data.py",
+    "tests/test_data_validation.py"
+  ],
+  "changes": [
+    {
+      "area": "recording continuity",
+      "change": "Reuse existing bounded _array_equal for large per-environment fields, retaining scalar/subclass behavior."
+    },
+    {
+      "area": "action/reward finite validation",
+      "change": "Reuse existing bounded _all_finite at four writer/reader call sites."
+    },
+    {
+      "area": "regression coverage",
+      "change": "Six cases verify large C/F/reversed inputs reject discontinuity with bounded scratch, no partial state and successful retry."
+    }
+  ],
+  "audit_decisions": [
+    "Reuse existing validators rather than add a new module or validation mode.",
+    "Keep required owned snapshot copies; scratch measurements distinguish validation from whole-recorder memory.",
+    "Retain scalar and ndarray-subclass fallback in the existing helpers; preserve masked-array behavior."
+  ],
+  "validation": {
+    "baseline-targets": {
+      "tests": 238,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 238,
+      "tool_exit": 0
+    },
+    "candidate-targets": {
+      "tests": 244,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 244,
+      "tool_exit": 0
+    },
+    "candidate-numpy126-targets": {
+      "tests": 244,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 244,
+      "tool_exit": 0
+    },
+    "candidate-full": {
+      "tests": 3647,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 81,
+      "passed": 3566,
+      "tool_exit": 0
+    },
+    "source-release-targets": {
+      "tests": 147,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 147,
+      "tool_exit": 0
+    },
+    "release": {
+      "status": "passed",
+      "artifacts": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302097,
+          "sha256": "c031f595c1eca25c037dd18c95f8a62e0e496117ff34798065e9c2827f4feeca"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19767963,
+          "sha256": "8cbe61bff99d6b104d671c6efbf32aa133ef0bea4639b344e5efe888365fd8ad"
+        }
+      },
+      "exact_python_modules": 141,
+      "exact_resources": 49,
+      "historical_evidence_tar_members": 0,
+      "installed_host_imports_without_site_packages": true,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/source-release/embodiedforge-0.1.0",
+      "installed_root": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/installed-wheel",
+      "target_tests": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/source-release-targets.xml"
+    },
+    "structural": {
+      "status": "passed",
+      "validator_call_sites_reused": {
+        "finite": 4,
+        "equal": 1
+      },
+      "entire_module_ast_identical_after_expanding_five_calls": true,
+      "new_production_modules": 0,
+      "new_production_functions": 0,
+      "existing_validator_bodies_unchanged": true,
+      "source_sha256": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f"
+    },
+    "build_tool_exit": 0,
+    "release_tool_exit": 0,
+    "patch_reverse_check": "passed",
+    "architecture": {
+      "modules": 141,
+      "explicit_import_edges": 389,
+      "cycles": [],
+      "production_declarations_and_signatures_retained": true,
+      "scope": "Explicit imports and existing declaration signatures, including methods and directly nested definitions."
+    },
+    "workflow_sustained": [
+      {
+        "name": "numpy126",
+        "summary": {
+          "status": "complete",
+          "scope": "Compare real recording, compact/transitions reads, windows and paired evaluation.",
+          "started_at": "2026-10-30T15:03:44.323852+00:00",
+          "requested_seconds": 5400.0,
+          "seconds": 5400.198634934,
+          "cycles": 19577,
+          "counts": {
+            "episodes_per_side": 76252,
+            "transitions_per_side": 227657,
+            "windows_per_side": 227657,
+            "paired_evaluations": 19577,
+            "transition_cycles": 9789,
+            "large_validation_cycles": 1031,
+            "rejected_transitions_per_side": 4124,
+            "compact_cycles": 9788,
+            "invalid_marker_rejections_per_side": 1152
+          },
+          "last_sample": {
+            "time": "2026-10-30T16:33:44.522466+00:00",
+            "seconds": 5400.198634934,
+            "cycles": 19577,
+            "rss_kib": 53268,
+            "fds": 4
+          },
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline/src/embodiedforge/data.py": "7e4d287676b4af8af04586d6608d2260701419b8cdbd8313243db298c4a409e4",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline/src/embodiedforge/rollout.py": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/candidate/src/embodiedforge/data.py": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/candidate/src/embodiedforge/rollout.py": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54"
+          },
+          "failures": [],
+          "numpy": "1.26.4",
+          "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+          "limits": "Real deterministic CPU VectorEnv and local NPZ workflows with small raster images plus periodic >4M-element continuity failures/retries; no trained robot actor or training-throughput claim. Changed baseline modules loaded alongside unchanged shared dependencies."
+        },
+        "supervisor": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-soak.py",
+            "--baseline",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline",
+            "--candidate",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/candidate",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-numpy126",
+            "--seconds",
+            "5400"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-soak.py",
+            "--baseline",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline",
+            "--candidate",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/candidate",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-numpy126",
+            "--seconds",
+            "5400"
+          ],
+          "supervisor_pid": 1877299,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-30T15:03:44.196967+00:00",
+          "timeout": 5520.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 1877303,
+          "seconds": 5400.382168263997,
+          "finished_at": "2026-10-30T16:33:44.579099+00:00"
+        },
+        "resources": {
+          "samples": 180,
+          "fds_observed": [
+            4
+          ],
+          "rss_min_kib": 37484,
+          "rss_max_kib": 65732
+        }
+      },
+      {
+        "name": "numpy22",
+        "summary": {
+          "status": "complete",
+          "scope": "Compare real recording, compact/transitions reads, windows and paired evaluation.",
+          "started_at": "2026-10-30T15:03:44.287225+00:00",
+          "requested_seconds": 5400.0,
+          "seconds": 5400.649072205997,
+          "cycles": 19571,
+          "counts": {
+            "episodes_per_side": 76228,
+            "transitions_per_side": 227585,
+            "windows_per_side": 227585,
+            "paired_evaluations": 19571,
+            "transition_cycles": 9786,
+            "large_validation_cycles": 1031,
+            "rejected_transitions_per_side": 4124,
+            "compact_cycles": 9785,
+            "invalid_marker_rejections_per_side": 1151
+          },
+          "last_sample": {
+            "time": "2026-10-30T16:33:44.936275+00:00",
+            "seconds": 5400.649072205997,
+            "cycles": 19571,
+            "rss_kib": 54756,
+            "fds": 4
+          },
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline/src/embodiedforge/data.py": "7e4d287676b4af8af04586d6608d2260701419b8cdbd8313243db298c4a409e4",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline/src/embodiedforge/rollout.py": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/candidate/src/embodiedforge/data.py": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/candidate/src/embodiedforge/rollout.py": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54"
+          },
+          "failures": [],
+          "numpy": "2.2.6",
+          "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+          "limits": "Real deterministic CPU VectorEnv and local NPZ workflows with small raster images plus periodic >4M-element continuity failures/retries; no trained robot actor or training-throughput claim. Changed baseline modules loaded alongside unchanged shared dependencies."
+        },
+        "supervisor": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-soak.py",
+            "--baseline",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline",
+            "--candidate",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/candidate",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-numpy22",
+            "--seconds",
+            "5400"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-soak.py",
+            "--baseline",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline",
+            "--candidate",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/candidate",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-numpy22",
+            "--seconds",
+            "5400"
+          ],
+          "supervisor_pid": 1877300,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-10-30T15:03:44.198288+00:00",
+          "timeout": 5520.0,
+          "grace": 30.0,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 1877304,
+          "seconds": 5400.797560635998,
+          "finished_at": "2026-10-30T16:33:44.995816+00:00"
+        },
+        "resources": {
+          "samples": 180,
+          "fds_observed": [
+            4
+          ],
+          "rss_min_kib": 38412,
+          "rss_max_kib": 67192
+        }
+      }
+    ],
+    "lint": {
+      "ruff_check": "passed",
+      "ruff_format_check": "passed",
+      "git_diff_check": "passed"
+    },
+    "artifact_integrity": {
+      "status": "passed",
+      "artifacts": [
+        {
+          "name": "embodiedforge-0.1.0-py3-none-any.whl",
+          "bytes": 8302097,
+          "sha256": "c031f595c1eca25c037dd18c95f8a62e0e496117ff34798065e9c2827f4feeca"
+        },
+        {
+          "name": "embodiedforge-0.1.0.tar.gz",
+          "bytes": 19767963,
+          "sha256": "8cbe61bff99d6b104d671c6efbf32aa133ef0bea4639b344e5efe888365fd8ad"
+        }
+      ],
+      "matches_verified_release": true
+    },
+    "workflow_tool_exits": {
+      "numpy126": 0,
+      "numpy22": 0
+    },
+    "workflow_tool_exit_observed_at": "2026-10-30T16:34:24.319807+00:00",
+    "monitor_tool_exit": 0,
+    "monitor_evidence": {
+      "status": "complete",
+      "samples": 138,
+      "seconds": 6160.961778708996,
+      "last_sample": {
+        "time": "2026-10-30T16:50:33.016622+00:00",
+        "jobs": [
+          {
+            "name": "numpy126",
+            "minutes": 90.0,
+            "cycles": 19577,
+            "episodes_per_side": 76252,
+            "status": "complete",
+            "fds": 4,
+            "rss_kib": 53268,
+            "observed_exit": 0
+          },
+          {
+            "name": "numpy22",
+            "minutes": 90.01,
+            "cycles": 19571,
+            "episodes_per_side": 76228,
+            "status": "complete",
+            "fds": 4,
+            "rss_kib": 54756,
+            "observed_exit": 0
+          }
+        ],
+        "source_files_verified": 142,
+        "full_preservation_check": false,
+        "remaining_minutes": 0.0
+      }
+    },
+    "junit_evidence_audit": {
+      "status": "passed",
+      "scope": "Independent testcase-level counts from original JUnit XML match the report; overlapping suites are separate runs.",
+      "runs": [
+        {
+          "name": "baseline-targets",
+          "tests": 238,
+          "passed": 238,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "name": "candidate-targets",
+          "tests": 244,
+          "passed": 244,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "name": "candidate-numpy126-targets",
+          "tests": 244,
+          "passed": 244,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "name": "candidate-full",
+          "tests": 3647,
+          "passed": 3566,
+          "skipped": 81,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "name": "source-release-targets",
+          "tests": 147,
+          "passed": 147,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        }
+      ]
+    }
+  },
+  "preserved_models": [
+    {
+      "path": "runs/supermimic/tasks/backflip/reference/current.json",
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+    },
+    {
+      "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+      "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+      "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+      "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+    },
+    {
+      "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+    }
+  ],
+  "preserved_data": [
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+      "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+      "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+      "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+      "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+      "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+      "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+      "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+      "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+      "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+    }
+  ],
+  "generated_build_files": [
+    "src/embodiedforge.egg-info/SOURCES.txt"
+  ],
+  "workflow_jobs": [
+    {
+      "name": "numpy126",
+      "summary": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-numpy126/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow126-supervisor",
+      "tool_session_id": 60803,
+      "requested_seconds": 5400
+    },
+    {
+      "name": "numpy22",
+      "summary": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow-numpy22/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/workflow22-supervisor",
+      "tool_session_id": 53203,
+      "requested_seconds": 5400
+    }
+  ],
+  "benchmarks": {
+    "validation_numpy126": {
+      "before": {
+        "status": "measured",
+        "scope": "Validation scratch, not retained payloads or whole-recording memory.",
+        "source": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline/src/embodiedforge/data.py",
+        "source_sha256": "7e4d287676b4af8af04586d6608d2260701419b8cdbd8313243db298c4a409e4",
+        "numpy": "1.26.4",
+        "results": [
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "first",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.016153512988239527,
+              0.015337004006141797,
+              0.010142193001229316,
+              0.01763724599732086,
+              0.010766206003609113,
+              0.013733473999309354,
+              0.015515744002186693
+            ],
+            "median_seconds": 0.015337004006141797,
+            "peak_traced_bytes": 50343835,
+            "result": "ValueError"
+          },
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "middle",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.008637278995593078,
+              0.008615297003416345,
+              0.008388357004150748,
+              0.008536367997294292,
+              0.010603307993733324,
+              0.01677289699728135,
+              0.017571290998603217
+            ],
+            "median_seconds": 0.008637278995593078,
+            "peak_traced_bytes": 50343835,
+            "result": "ValueError"
+          },
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "last",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.012622397000086494,
+              0.016285443009110168,
+              0.010847350000403821,
+              0.018687167001189664,
+              0.009877440999844112,
+              0.01620597200235352,
+              0.01313631099765189
+            ],
+            "median_seconds": 0.01313631099765189,
+            "peak_traced_bytes": 50343835,
+            "result": "ValueError"
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "action",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.005425908995675854,
+              0.007473922989447601,
+              0.008302444010041654,
+              0.011448019999079406,
+              0.006103705003624782,
+              0.006408161993022077,
+              0.007775123987812549
+            ],
+            "median_seconds": 0.007473922989447601,
+            "peak_traced_bytes": 16786290,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "action",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.011097745009465143,
+              0.004735428999993019,
+              0.005582596000749618,
+              0.011548909998964518,
+              0.012170079004135914,
+              0.006894385005580261,
+              0.009665770005085506
+            ],
+            "median_seconds": 0.009665770005085506,
+            "peak_traced_bytes": 16786290,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "result.reward",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.010483471007319167,
+              0.01110037999751512,
+              0.009434601000975817,
+              0.006725443992763758,
+              0.010370835996582173,
+              0.010952640004688874,
+              0.007781546999467537
+            ],
+            "median_seconds": 0.010370835996582173,
+            "peak_traced_bytes": 16786290,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "result.reward",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.01013268499809783,
+              0.007693589999689721,
+              0.004191098007140681,
+              0.0070777619985165074,
+              0.009380699004395865,
+              0.006379187005222775,
+              0.00492894698982127
+            ],
+            "median_seconds": 0.0070777619985165074,
+            "peak_traced_bytes": 16786290,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['action']",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.010771506000310183,
+              0.0043849159992532805,
+              0.004747694008983672,
+              0.005102807001094334,
+              0.008078550003119744,
+              0.011267296998994425,
+              0.0049597860052017495
+            ],
+            "median_seconds": 0.005102807001094334,
+            "peak_traced_bytes": 16786290,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['action']",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.007836370001314208,
+              0.009347655999590643,
+              0.007570044996100478,
+              0.005803205000120215,
+              0.00681667699245736,
+              0.007058725997922011,
+              0.006637436003074981
+            ],
+            "median_seconds": 0.007058725997922011,
+            "peak_traced_bytes": 16786290,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['reward']",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.009381711002788506,
+              0.009281610997277312,
+              0.008823142008623108,
+              0.006187713996041566,
+              0.005142501991940662,
+              0.007365297002252191,
+              0.009827375994063914
+            ],
+            "median_seconds": 0.008823142008623108,
+            "peak_traced_bytes": 16786290,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['reward']",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.004713318005087785,
+              0.004817275010282174,
+              0.00595413199334871,
+              0.010419258993351832,
+              0.009716435000882484,
+              0.0065670030016917735,
+              0.009168477001367137
+            ],
+            "median_seconds": 0.0065670030016917735,
+            "peak_traced_bytes": 16786290,
+            "result": false
+          }
+        ],
+        "limits": "Recorder rejection uses a real pending episode with a synthetic 48 MiB uint8 image. Finite-check measurements isolate the actual production expressions on 64 MiB float32 input; required snapshots and archive decode are excluded. Traced peaks are not RSS."
+      },
+      "after": {
+        "status": "measured",
+        "scope": "Validation scratch, not retained payloads or whole-recording memory.",
+        "source": "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/data.py",
+        "source_sha256": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f",
+        "numpy": "1.26.4",
+        "results": [
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "first",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.000661213998682797,
+              0.0003262090031057596,
+              0.00014930299948900938,
+              0.00011902500409632921,
+              0.00011338500189594924,
+              0.00010806499631144106,
+              9.945899364538491e-05
+            ],
+            "median_seconds": 0.00011902500409632921,
+            "peak_traced_bytes": 1053723,
+            "result": "ValueError"
+          },
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "middle",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.003969336990849115,
+              0.0037361739960033447,
+              0.003291900997282937,
+              0.0026891089946730062,
+              0.003318711998872459,
+              0.003339443006552756,
+              0.002837720006937161
+            ],
+            "median_seconds": 0.003318711998872459,
+            "peak_traced_bytes": 1053723,
+            "result": "ValueError"
+          },
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "last",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.0077253790077520534,
+              0.006298223001067527,
+              0.006816824999987148,
+              0.006088524009101093,
+              0.006844557996373624,
+              0.006469075990025885,
+              0.006006219002301805
+            ],
+            "median_seconds": 0.006469075990025885,
+            "peak_traced_bytes": 1053723,
+            "result": "ValueError"
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "action",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0043576820025919005,
+              0.004058595004607923,
+              0.003474968994851224,
+              0.0034817819978343323,
+              0.0031981939973775297,
+              0.003460893000010401,
+              0.0029819140036124736
+            ],
+            "median_seconds": 0.003474968994851224,
+            "peak_traced_bytes": 263842,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "action",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.003459710002061911,
+              0.0036619930033339188,
+              0.00457920299959369,
+              0.0039157249993877485,
+              0.0037849570071557537,
+              0.004198260998236947,
+              0.0045460800029104576
+            ],
+            "median_seconds": 0.0039157249993877485,
+            "peak_traced_bytes": 263889,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "result.reward",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0063567239994881675,
+              0.004868902004091069,
+              0.005173719997401349,
+              0.005450345008284785,
+              0.004300745000364259,
+              0.005111552003654651,
+              0.005109448989969678
+            ],
+            "median_seconds": 0.005111552003654651,
+            "peak_traced_bytes": 263842,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "result.reward",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.005791151008452289,
+              0.005300820994307287,
+              0.004940098006045446,
+              0.005723793001379818,
+              0.00488144600240048,
+              0.004160159005550668,
+              0.006994322000537068
+            ],
+            "median_seconds": 0.005300820994307287,
+            "peak_traced_bytes": 263842,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['action']",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.005973247010842897,
+              0.004623636996257119,
+              0.0037185209948802367,
+              0.004125522988033481,
+              0.004689171997597441,
+              0.0057858410000335425,
+              0.005143513000803068
+            ],
+            "median_seconds": 0.004689171997597441,
+            "peak_traced_bytes": 263842,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['action']",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.005240917002083734,
+              0.005077137000625953,
+              0.005501020990777761,
+              0.005596400995273143,
+              0.005546105996472761,
+              0.0049314110074192286,
+              0.006485367004643194
+            ],
+            "median_seconds": 0.005501020990777761,
+            "peak_traced_bytes": 263842,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['reward']",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.004686315995058976,
+              0.003724252004758455,
+              0.003551924994098954,
+              0.004313540004659444,
+              0.004798248002771288,
+              0.004195184999844059,
+              0.004230891994666308
+            ],
+            "median_seconds": 0.004230891994666308,
+            "peak_traced_bytes": 263842,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['reward']",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.003803182000410743,
+              0.0035615129891084507,
+              0.003663166004116647,
+              0.006431554997107014,
+              0.004828105011256412,
+              0.0038559909880859777,
+              0.0037436589918797836
+            ],
+            "median_seconds": 0.003803182000410743,
+            "peak_traced_bytes": 263842,
+            "result": false
+          }
+        ],
+        "limits": "Recorder rejection uses a real pending episode with a synthetic 48 MiB uint8 image. Finite-check measurements isolate the actual production expressions on 64 MiB float32 input; required snapshots and archive decode are excluded. Traced peaks are not RSS."
+      }
+    },
+    "validation_numpy22": {
+      "before": {
+        "status": "measured",
+        "scope": "Validation scratch, not retained payloads or whole-recording memory.",
+        "source": "/tmp/embodiedforge-subtraction-20261030-145033-twohour/baseline/src/embodiedforge/data.py",
+        "source_sha256": "7e4d287676b4af8af04586d6608d2260701419b8cdbd8313243db298c4a409e4",
+        "numpy": "2.2.6",
+        "results": [
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "first",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.009025713996379636,
+              0.010968036993290298,
+              0.010697824996896088,
+              0.01038408000022173,
+              0.00985941500402987,
+              0.010068331001093611,
+              0.009637994997319765
+            ],
+            "median_seconds": 0.010068331001093611,
+            "peak_traced_bytes": 50343867,
+            "result": "ValueError"
+          },
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "middle",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.00999726599548012,
+              0.01035565599158872,
+              0.009550338989356533,
+              0.010467649000929669,
+              0.013806828996166587,
+              0.012501233999500982,
+              0.011968985010753386
+            ],
+            "median_seconds": 0.010467649000929669,
+            "peak_traced_bytes": 50343867,
+            "result": "ValueError"
+          },
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "last",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.014690324998809956,
+              0.01647583099838812,
+              0.015607383989845403,
+              0.015281806990969926,
+              0.015839323998079635,
+              0.014910832993336953,
+              0.016990467003779486
+            ],
+            "median_seconds": 0.015607383989845403,
+            "peak_traced_bytes": 50343867,
+            "result": "ValueError"
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "action",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.00872331099526491,
+              0.00827688499703072,
+              0.007053263994748704,
+              0.008214736997615546,
+              0.007554014009656385,
+              0.007307256004423834,
+              0.007812654002918862
+            ],
+            "median_seconds": 0.007812654002918862,
+            "peak_traced_bytes": 16786322,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "action",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0074297080136602744,
+              0.004790764010977,
+              0.0047954530018614605,
+              0.0060408239951357245,
+              0.005480121006257832,
+              0.005299649012158625,
+              0.004769463004777208
+            ],
+            "median_seconds": 0.005299649012158625,
+            "peak_traced_bytes": 16786322,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "result.reward",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.007084402997861616,
+              0.005051097992691211,
+              0.004778019996592775,
+              0.0038912680029170588,
+              0.0028837979916715994,
+              0.0032651910005370155,
+              0.003779125996516086
+            ],
+            "median_seconds": 0.0038912680029170588,
+            "peak_traced_bytes": 16786322,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "result.reward",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.004110534995561466,
+              0.004478471993934363,
+              0.0038267659983830526,
+              0.0033121000014944,
+              0.0039044130098773167,
+              0.003409534998354502,
+              0.004919648999930359
+            ],
+            "median_seconds": 0.0039044130098773167,
+            "peak_traced_bytes": 16786322,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['action']",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.004369886009953916,
+              0.003544139995938167,
+              0.0033734160097083077,
+              0.0038004160014679655,
+              0.0030143350013531744,
+              0.003227990004234016,
+              0.003964586998336017
+            ],
+            "median_seconds": 0.003544139995938167,
+            "peak_traced_bytes": 16786322,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['action']",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.003929211001377553,
+              0.003308293002191931,
+              0.002956957003334537,
+              0.003030726991710253,
+              0.002974098999402486,
+              0.0027598329907050356,
+              0.0029269799997564405
+            ],
+            "median_seconds": 0.002974098999402486,
+            "peak_traced_bytes": 16786322,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['reward']",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.004172721994109452,
+              0.0029659440042451024,
+              0.003353948995936662,
+              0.00322028600203339,
+              0.005922951007960364,
+              0.004562381000141613,
+              0.004502687996136956
+            ],
+            "median_seconds": 0.004172721994109452,
+            "peak_traced_bytes": 16786322,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['reward']",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.004232025006785989,
+              0.004631752002751455,
+              0.0042129780049435794,
+              0.0036553109966916963,
+              0.0038694170070812106,
+              0.003579587006242946,
+              0.0041696560074342415
+            ],
+            "median_seconds": 0.0041696560074342415,
+            "peak_traced_bytes": 16786322,
+            "result": false
+          }
+        ],
+        "limits": "Recorder rejection uses a real pending episode with a synthetic 48 MiB uint8 image. Finite-check measurements isolate the actual production expressions on 64 MiB float32 input; required snapshots and archive decode are excluded. Traced peaks are not RSS."
+      },
+      "after": {
+        "status": "measured",
+        "scope": "Validation scratch, not retained payloads or whole-recording memory.",
+        "source": "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/data.py",
+        "source_sha256": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f",
+        "numpy": "2.2.6",
+        "results": [
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "first",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.0004902789951302111,
+              0.00020840500656049699,
+              9.460000728722662e-05,
+              8.774700108915567e-05,
+              8.652399992570281e-05,
+              8.548199548386037e-05,
+              8.432001050096005e-05
+            ],
+            "median_seconds": 8.774700108915567e-05,
+            "peak_traced_bytes": 1053851,
+            "result": "ValueError"
+          },
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "middle",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.002171697997255251,
+              0.0021209509868640453,
+              0.00211255501199048,
+              0.0021309199946699664,
+              0.0025331729993922636,
+              0.002185324003221467,
+              0.0021034989913459867
+            ],
+            "median_seconds": 0.0021309199946699664,
+            "peak_traced_bytes": 1053851,
+            "result": "ValueError"
+          },
+          {
+            "operation": "real recorder rejected continuity",
+            "damage": "last",
+            "image_bytes_per_env": 50331648,
+            "seconds": [
+              0.003683003000332974,
+              0.0037026299978606403,
+              0.0042026290029753,
+              0.0038251229998422787,
+              0.003633789994637482,
+              0.003731254008016549,
+              0.0038627150061074644
+            ],
+            "median_seconds": 0.003731254008016549,
+            "peak_traced_bytes": 1053851,
+            "result": "ValueError"
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "action",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.003568366009858437,
+              0.0023248179932124913,
+              0.0022300779965007678,
+              0.0021028769988333806,
+              0.0021610880066873506,
+              0.0021411300112958997,
+              0.0022189779992913827
+            ],
+            "median_seconds": 0.0022189779992913827,
+            "peak_traced_bytes": 263970,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "action",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.002431159999105148,
+              0.002183720003813505,
+              0.002175104003981687,
+              0.002057902005617507,
+              0.002146430007996969,
+              0.00218001299072057,
+              0.002168862003600225
+            ],
+            "median_seconds": 0.002175104003981687,
+            "peak_traced_bytes": 264017,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "result.reward",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0030025330052012578,
+              0.002149414998712018,
+              0.002463261000229977,
+              0.002258463006000966,
+              0.002213537009083666,
+              0.002324197004782036,
+              0.0024437030078843236
+            ],
+            "median_seconds": 0.002324197004782036,
+            "peak_traced_bytes": 263970,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_prepare",
+            "field": "result.reward",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0021247690019663423,
+              0.002235268009826541,
+              0.002162570002838038,
+              0.002782085008220747,
+              0.004877668994595297,
+              0.004046431989991106,
+              0.002991401997860521
+            ],
+            "median_seconds": 0.002782085008220747,
+            "peak_traced_bytes": 263970,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['action']",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0033620739995967597,
+              0.0024605759972473606,
+              0.002143093995982781,
+              0.002165566009352915,
+              0.0021834899962414056,
+              0.0021044199966127053,
+              0.00234350300161168
+            ],
+            "median_seconds": 0.0021834899962414056,
+            "peak_traced_bytes": 263970,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['action']",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0025718660035636276,
+              0.0021304799884092063,
+              0.002149695996195078,
+              0.002219679008703679,
+              0.002074933989206329,
+              0.0021145999926375225,
+              0.0022958530025789514
+            ],
+            "median_seconds": 0.002149695996195078,
+            "peak_traced_bytes": 263970,
+            "result": false
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['reward']",
+            "damage": "finite",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0031099170009838417,
+              0.0021010030031902716,
+              0.002239495996036567,
+              0.0021903129963902757,
+              0.002361457998631522,
+              0.0024584810016676784,
+              0.0024047399929258972
+            ],
+            "median_seconds": 0.002361457998631522,
+            "peak_traced_bytes": 263970,
+            "result": true
+          },
+          {
+            "operation": "extracted finite check",
+            "owner": "_load_episode",
+            "field": "data['reward']",
+            "damage": "last_nan",
+            "input_bytes": 67108864,
+            "seconds": [
+              0.0020259909942978993,
+              0.0020559179974952713,
+              0.002294951002113521,
+              0.0022506169916596264,
+              0.0023216819972731173,
+              0.0024395749933319166,
+              0.002246730000479147
+            ],
+            "median_seconds": 0.0022506169916596264,
+            "peak_traced_bytes": 263970,
+            "result": false
+          }
+        ],
+        "limits": "Recorder rejection uses a real pending episode with a synthetic 48 MiB uint8 image. Finite-check measurements isolate the actual production expressions on 64 MiB float32 input; required snapshots and archive decode are excluded. Traced peaks are not RSS."
+      }
+    },
+    "regular_recorder": {
+      "status": "passed",
+      "scope": "NumPy CPU, synchronous recorder validation/copies/NPZ compression; excludes physics/render time; retained bytes exclude Python objects and stacking/compression scratch",
+      "arguments": {
+        "num_envs": 8,
+        "steps": 12,
+        "image_size": 32,
+        "pairs": 3,
+        "noise": false
+      },
+      "matched_sample_pairs": 12,
+      "decoded_transition_hashes_identical": true,
+      "retained_payload_and_archive_sizes_identical": true,
+      "baseline_summary": [
+        {
+          "images": false,
+          "transitions_identical": true,
+          "medians": {
+            "transitions": {
+              "append_seconds": 0.006316682993201539,
+              "max_append_seconds": 0.0043480809981701896,
+              "peak_retained_payload_bytes": 12496,
+              "archive_bytes": 33488,
+              "read_seconds": 0.005334789995686151
+            },
+            "compact": {
+              "append_seconds": 0.005226976034464315,
+              "max_append_seconds": 0.0033194010029546916,
+              "peak_retained_payload_bytes": 7376,
+              "archive_bytes": 20889,
+              "read_seconds": 0.0038158719980856404
+            }
+          }
+        },
+        {
+          "images": true,
+          "transitions_identical": true,
+          "medians": {
+            "transitions": {
+              "append_seconds": 0.01368292301776819,
+              "max_append_seconds": 0.010071669006720185,
+              "peak_retained_payload_bytes": 1458512,
+              "archive_bytes": 61122,
+              "read_seconds": 0.012300251997658052
+            },
+            "compact": {
+              "append_seconds": 0.00972185299906414,
+              "max_append_seconds": 0.006416801988962106,
+              "peak_retained_payload_bytes": 796112,
+              "archive_bytes": 35088,
+              "read_seconds": 0.007608250001794659
+            }
+          }
+        }
+      ],
+      "candidate_summary": [
+        {
+          "images": false,
+          "transitions_identical": true,
+          "medians": {
+            "transitions": {
+              "append_seconds": 0.006431079003959894,
+              "max_append_seconds": 0.00438706400746014,
+              "peak_retained_payload_bytes": 12496,
+              "archive_bytes": 33488,
+              "read_seconds": 0.005741742003010586
+            },
+            "compact": {
+              "append_seconds": 0.005311596964020282,
+              "max_append_seconds": 0.0033513620001031086,
+              "peak_retained_payload_bytes": 7376,
+              "archive_bytes": 20889,
+              "read_seconds": 0.0038069949951022863
+            }
+          }
+        },
+        {
+          "images": true,
+          "transitions_identical": true,
+          "medians": {
+            "transitions": {
+              "append_seconds": 0.013941900950158015,
+              "max_append_seconds": 0.01022550999186933,
+              "peak_retained_payload_bytes": 1458512,
+              "archive_bytes": 61122,
+              "read_seconds": 0.012191725996672176
+            },
+            "compact": {
+              "append_seconds": 0.009773512036190368,
+              "max_append_seconds": 0.006344925001030788,
+              "peak_retained_payload_bytes": 796112,
+              "archive_bytes": 35088,
+              "read_seconds": 0.007693902007304132
+            }
+          }
+        }
+      ],
+      "limits": "Three short pairs per configuration while sustained workflows run on the same host; timings are observations, not a throughput improvement claim."
+    }
+  },
+  "audit_fixture_adjustments": [
+    {
+      "scope": "private structural audit",
+      "cause": "Initial expansion counted the pre-existing reader comparator as a changed call.",
+      "correction": "Restrict comparator expansion to the changed writer function; full module AST then matches after exactly five expansions.",
+      "production_change_required": false
+    },
+    "Recorder benchmark comparison excludes the intentionally different output destination from argument identity; all 12 decoded hashes, payloads and archive sizes match."
+  ],
+  "metrics": {
+    "modules_before": 141,
+    "modules_after": 141,
+    "source_lines_before": 37845,
+    "source_lines_after": 37845,
+    "source_lines_delta": 0,
+    "source_bytes_before": 1515327,
+    "source_bytes_after": 1515301,
+    "source_bytes_delta": -26,
+    "interpretation": "Five full-array validation calls reuse existing bounded validators; production module/function count is unchanged."
+  },
+  "preservation": {
+    "checked_at": "2026-10-30T16:50:56.125920+00:00",
+    "baseline_files_checked": 428,
+    "expected_changed_files": [
+      "src/embodiedforge.egg-info/SOURCES.txt",
+      "src/embodiedforge/data.py",
+      "tests/test_data_validation.py"
+    ],
+    "unexpected_changes": [],
+    "historical_files_unchanged": 195,
+    "models_and_registry": 6,
+    "reference_data_files": 9,
+    "frozen_production_source_matches": true
+  },
+  "limits": [
+    "Allocation measurements isolate validation scratch; they do not include already-retained input/pending payloads, output copies, whole-recorder RSS or training memory.",
+    "The actual recorder rejection benchmark uses a synthetic 48 MiB uint8 image and first/middle/last continuity errors before snapshot copying. Required owned copies are retained.",
+    "Finite-check measurements execute expressions extracted from the four production sites on 64 MiB float32 arrays, separately from archive decode or writer snapshot allocation.",
+    "Two NumPy environments each run real CPU recording, reading, window generation and paired evaluation with periodic >4M-element discontinuities and successful retries. This does not evaluate learned robot skill quality.",
+    "Only changed baseline modules are loaded alongside unchanged shared dependencies; all production code is separately frozen and checked.",
+    "Overlapping test suites are reported separately. Optional SDK dependencies are skipped by the main suite.",
+    "The private structural-audit selector was corrected to exclude an unchanged reader call; production code needed no correction.",
+    "Existing checkpoints, reference datasets, task/training parameters and dependency versions are retained."
+  ],
+  "elapsed_seconds": 7223.12592,
+  "last_updated_at": "2026-10-30T16:50:56.125920+00:00",
+  "environment": {
+    "benchmark_python": "/home/ubuntu/miniconda3/envs/dp/bin/python",
+    "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+    "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+    "benchmark_environment": {
+      "numpy": "1.26.4",
+      "torch": "2.8.0+cu128",
+      "pytest": "9.1.1",
+      "setuptools": "83.0.0"
+    },
+    "full_suite_python": "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+    "workflow_environment_details": "Recorded in each sustained summary."
+  },
+  "reproduction": {
+    "snapshot_patch": "scratch/this-round.patch in the evidence bundle, relative to the initial working tree.",
+    "validation_benchmark": "validation-bench.py imports the selected source tree; use the recorded NumPy environments and source paths.",
+    "structural_audit": "structural-audit.py proves exactly five validator-call replacements and unchanged remaining module AST.",
+    "sustained_workflows": "Exact commands and observed exits are retained under workflow126-supervisor and workflow22-supervisor.",
+    "full_suite": "env PYTHONPATH=src PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /home/ubuntu/miniconda3/envs/xvla2/bin/python -m pytest -q --tb=short",
+    "regular_recording_comparison": "recorder-baseline.json and recorder-candidate.json contain 12 matched samples; recorder-comparison.json excludes only the output destination from argument identity.",
+    "final_evidence_verification": "final-verify.py independently checks the completed report, every evidence member, frozen source, retained model/data/history hashes, release artifacts and observed workflow exits."
+  },
+  "finished_at": "2026-10-30T16:50:56.125920+00:00",
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261030-145033-twohour-evidence.tar.gz",
+    "bytes": 1348897,
+    "sha256": "d291d99ab4d1383eccd119ba7d11d0b1a48eed87dea6b1c53c4bfaddc04c4e51",
+    "verified_members": 459,
+    "report_snapshot": "scratch/state.json",
+    "snapshot_note": "Frozen before inserting the bundle checksum, to avoid self-reference."
+  }
+}

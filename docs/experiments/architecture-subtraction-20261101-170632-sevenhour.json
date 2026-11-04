@@ -1,0 +1,4076 @@
+{
+  "status": "complete",
+  "objective": "Seven-hour subtraction across training, data and runtime; preserve behavior and all existing work.",
+  "started_at": "2026-11-01T17:06:32+00:00",
+  "deadline": "2026-11-02T00:06:32+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour",
+  "previous_report": "docs/experiments/architecture-subtraction-20261101-070653-sevenhour.json",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37842,
+  "baseline_files": 428,
+  "historical_files": 202,
+  "changed_since_previous_round": [],
+  "changed_files_this_round": [
+    "src/embodiedforge/envs/locomotion.py",
+    "tests/test_environment_adapters.py"
+  ],
+  "changes": [
+    "Public native observations return their already-owned row gathers without a second copy.",
+    "Feature validation no longer copies a whole native batch during partial reset; constructor/step retain explicit owned cache copies."
+  ],
+  "audit_decisions": [
+    "Retain caller ID copies, private observation-cache ownership, action/result copies and complete native feature validation.",
+    "Public signatures, native physics/training kernels and all prior test definitions are unchanged."
+  ],
+  "validation": {
+    "tool_exit_observations": {
+      "observations": {
+        "baseline-adapters": {
+          "exit_code": 0,
+          "session_id": 6536
+        },
+        "candidate-adapters": {
+          "exit_code": 0,
+          "observed_by": "exec_command normal completion after final patch"
+        },
+        "candidate-full": {
+          "exit_code": 0,
+          "session_id": 95286
+        },
+        "go1-smoke": {
+          "exit_code": 0,
+          "session_id": 26071
+        },
+        "benchmark226": {
+          "exit_code": 0,
+          "session_id": 30563
+        },
+        "benchmark126": {
+          "exit_code": 0,
+          "session_id": 58719
+        },
+        "benchmark252": {
+          "exit_code": 0,
+          "session_id": 6046
+        },
+        "build": {
+          "exit_code": 0,
+          "session_id": 84911
+        },
+        "h1-smoke": {
+          "exit_code": 0,
+          "session_id": 11143
+        },
+        "fixture-smoke": {
+          "exit_code": 0,
+          "session_id": 66716
+        },
+        "fixture-matrix-smoke": {
+          "exit_code": 0,
+          "observed_by": "exec_command normal completion"
+        },
+        "release-verification": {
+          "exit_code": 0,
+          "session_id": 44176
+        },
+        "release-adapters": {
+          "exit_code": 0,
+          "observed_by": "verify-release.py subprocess.run(check=True), confirmed by outer tool exit 0"
+        },
+        "release-readers": {
+          "exit_code": 0,
+          "observed_by": "verify-release.py subprocess.run(check=True), confirmed by outer tool exit 0"
+        },
+        "release-content-check": {
+          "exit_code": 0,
+          "session_id": 27742,
+          "observed_at": "2026-11-01T17:36:07.607104+00:00",
+          "observed_by": "root write_stdin after process completion"
+        },
+        "go1": {
+          "session_id": 16835,
+          "observed_at": "2026-11-01 23:29:34 UTC",
+          "chunk_id": "e77469",
+          "wall_time_seconds": 5.29e-06,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "h1": {
+          "session_id": 19194,
+          "observed_at": "2026-11-01 23:29:34 UTC",
+          "chunk_id": "9756eb",
+          "wall_time_seconds": 4.048e-06,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        },
+        "fixture": {
+          "session_id": 24739,
+          "observed_at": "2026-11-01 23:29:34 UTC",
+          "chunk_id": "ebea57",
+          "wall_time_seconds": 9.498e-06,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        }
+      }
+    },
+    "tests": {
+      "baseline-adapters": {
+        "tests": 66,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 66
+      },
+      "candidate-adapters": {
+        "tests": 82,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 82
+      },
+      "candidate-full": {
+        "tests": 3681,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 81,
+        "passed": 3600
+      },
+      "release-adapters": {
+        "tests": 82,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 82
+      },
+      "release-readers": {
+        "tests": 187,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 187
+      }
+    },
+    "structural-audit": {
+      "status": "passed",
+      "changed_files": [
+        "src/embodiedforge/envs/locomotion.py",
+        "tests/test_environment_adapters.py"
+      ],
+      "production_modules": 141,
+      "unchanged_production_modules": 140,
+      "semantic_expression_replacements": 7,
+      "added_private_helper_docstrings": 1,
+      "new_production_functions": 0,
+      "new_production_modules": 0,
+      "original_test_definitions_unchanged": 18,
+      "added_test_functions": [
+        "test_cache_and_results_detach_reused_native_features",
+        "test_partial_reset_validates_unselected_native_features_before_publication",
+        "test_public_observations_own_all_fields_and_leave_caller_ids_untouched"
+      ],
+      "frozen_files": 191,
+      "scope": "The seven specified expression replacements and one private-helper docstring explain the complete production AST difference; all 18 pre-existing test definitions are structurally unchanged."
+    },
+    "release-verification": {
+      "status": "passed",
+      "artifacts": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302222,
+          "sha256": "01ed7de918d9b33fc4cd212170a9426f107c590db1432533f7d1e4d28fa03509"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19810122,
+          "sha256": "abf40ce267409598e8063ad31fc10e45a9f553a103faa6085b98b8712bc83d67"
+        }
+      },
+      "exact_python_modules": 141,
+      "exact_resources": 49,
+      "historical_evidence_tar_members": 0,
+      "installed_host_imports_without_site_packages": true,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/source-release/embodiedforge-0.1.0",
+      "installed_root": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/installed-wheel",
+      "target_tests": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/release-readers.xml",
+      "adapter_tests": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/release-adapters.xml",
+      "adapter_returncode": 0
+    },
+    "sustained": [
+      {
+        "name": "go1",
+        "summary": {
+          "status": "complete",
+          "scope": "Before/after adapters on independent real native physics and verified recordings.",
+          "kind": "go1",
+          "started_at": "2026-11-01T17:25:29.640815+00:00",
+          "requested_seconds": 21600.0,
+          "seconds": 21600.020585021004,
+          "num_envs": 16,
+          "numpy": "2.5.2",
+          "torch": "2.9.0+cu128",
+          "counts": {
+            "direct_steps": 885995,
+            "paired_direct_transitions": 14175920,
+            "recording_segments": 1771,
+            "recorded_episodes_per_mode": 56672,
+            "recorded_transitions_per_mode": 1756832,
+            "reset_rows": 481952,
+            "retained_observation_checks": 1771988,
+            "ownership_checks": 11517935,
+            "rng_checks": 916119,
+            "policy_inferences": 885995
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/baseline/src/embodiedforge/envs/locomotion.py": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/candidate/src/embodiedforge/envs/locomotion.py": "49e66a4a4a897f7b05b1c6d85e28b4a783f5719a4c67464e5e85dc55bc9e0909",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/data.py": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/envs/evaluation.py": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/locomotion/go1.py": "fb4567b2f4512858b89b5114224d69b2fc8c56cc0b87fab0b5316b62f1c3094d",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/locomotion/h1_native.py": "2469d9d6615ed83da5e81cc2fee492154344363a0a77fbacfcbfdca11b115ab2",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/locomotion/articulation.py": "9d939816b55510e40c93f67e1d40304582c98f8f6a861be42038ad553f57ebc7"
+          },
+          "last_sample": {
+            "time": "2026-11-01T23:25:29.661377+00:00",
+            "seconds": 21600.020585021004,
+            "counts": {
+              "direct_steps": 885995,
+              "paired_direct_transitions": 14175920,
+              "recording_segments": 1771,
+              "recorded_episodes_per_mode": 56672,
+              "recorded_transitions_per_mode": 1756832,
+              "reset_rows": 481952,
+              "retained_observation_checks": 1771988,
+              "ownership_checks": 11517935,
+              "rng_checks": 916119,
+              "policy_inferences": 885995
+            },
+            "resources": {
+              "rss_bytes": 935063552,
+              "threads": 3,
+              "file_descriptors": 5
+            }
+          },
+          "limits": "Both adapters run separate actual native environments with identical seeds/actions. Policies are freshly initialized deterministic probes, not learned-skill improvements. Recording compares baseline synchronous transitions with candidate asynchronous compact storage through verified public readers. Counts denote paired trajectories or per-mode data, not their sum. Resource usage combines both environments and native allocators."
+        },
+        "observed_process_exit": {
+          "command": [
+            ".cache/light-loco-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/native-adapter-soak.py",
+            "--kind",
+            "go1",
+            "--seconds",
+            "21600",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/go1-soak"
+          ],
+          "launched_command": [
+            ".cache/light-loco-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/native-adapter-soak.py",
+            "--kind",
+            "go1",
+            "--seconds",
+            "21600",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/go1-soak"
+          ],
+          "supervisor_pid": 3421474,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-01T17:25:28.629235+00:00",
+          "timeout": 22200.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3421476,
+          "seconds": 21601.56343297701,
+          "finished_at": "2026-11-01T23:25:30.192641+00:00"
+        }
+      },
+      {
+        "name": "h1",
+        "summary": {
+          "status": "complete",
+          "scope": "Before/after adapters on independent real native physics and verified recordings.",
+          "kind": "h1",
+          "started_at": "2026-11-01T17:26:59.371892+00:00",
+          "requested_seconds": 21600.0,
+          "seconds": 21600.006373437005,
+          "num_envs": 16,
+          "numpy": "2.5.2",
+          "torch": "2.9.0+cu128",
+          "counts": {
+            "direct_steps": 845921,
+            "paired_direct_transitions": 13534736,
+            "recording_segments": 1691,
+            "recorded_episodes_per_mode": 54112,
+            "recorded_transitions_per_mode": 1677472,
+            "reset_rows": 460160,
+            "retained_observation_checks": 1691840,
+            "ownership_checks": 10996973,
+            "rng_checks": 1749366,
+            "policy_inferences": 845921
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/baseline/src/embodiedforge/envs/locomotion.py": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/candidate/src/embodiedforge/envs/locomotion.py": "49e66a4a4a897f7b05b1c6d85e28b4a783f5719a4c67464e5e85dc55bc9e0909",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/data.py": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/envs/evaluation.py": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/locomotion/go1.py": "fb4567b2f4512858b89b5114224d69b2fc8c56cc0b87fab0b5316b62f1c3094d",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/locomotion/h1_native.py": "2469d9d6615ed83da5e81cc2fee492154344363a0a77fbacfcbfdca11b115ab2",
+            "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/locomotion/articulation.py": "9d939816b55510e40c93f67e1d40304582c98f8f6a861be42038ad553f57ebc7"
+          },
+          "last_sample": {
+            "time": "2026-11-01T23:26:59.378245+00:00",
+            "seconds": 21600.006373437005,
+            "counts": {
+              "direct_steps": 845921,
+              "paired_direct_transitions": 13534736,
+              "recording_segments": 1691,
+              "recorded_episodes_per_mode": 54112,
+              "recorded_transitions_per_mode": 1677472,
+              "reset_rows": 460160,
+              "retained_observation_checks": 1691840,
+              "ownership_checks": 10996973,
+              "rng_checks": 1749366,
+              "policy_inferences": 845921
+            },
+            "resources": {
+              "rss_bytes": 1130999808,
+              "threads": 3,
+              "file_descriptors": 5
+            }
+          },
+          "limits": "Both adapters run separate actual native environments with identical seeds/actions. Policies are freshly initialized deterministic probes, not learned-skill improvements. Recording compares baseline synchronous transitions with candidate asynchronous compact storage through verified public readers. Counts denote paired trajectories or per-mode data, not their sum. Resource usage combines both environments and native allocators."
+        },
+        "observed_process_exit": {
+          "command": [
+            ".cache/light-loco-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/native-adapter-soak.py",
+            "--kind",
+            "h1",
+            "--seconds",
+            "21600",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/h1-soak"
+          ],
+          "launched_command": [
+            ".cache/light-loco-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/native-adapter-soak.py",
+            "--kind",
+            "h1",
+            "--seconds",
+            "21600",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/h1-soak"
+          ],
+          "supervisor_pid": 3424579,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-01T17:26:58.198878+00:00",
+          "timeout": 22200.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3424580,
+          "seconds": 21601.50122241903,
+          "finished_at": "2026-11-01T23:26:59.700063+00:00"
+        }
+      },
+      {
+        "name": "fixture",
+        "summary": {
+          "status": "complete",
+          "scope": "Before/after adapter contracts on varied borrowed NumPy buffers; no physics.",
+          "numpy": "1.26.4",
+          "requested_seconds": 21600.0,
+          "seconds": 21600.007320976,
+          "started_at": "2026-11-01T17:28:17.597729+00:00",
+          "counts": {
+            "cycles": 3235615,
+            "step_comparisons": 12942460,
+            "observation_comparisons": 3235615,
+            "reset_comparisons": 9059722,
+            "ownership_checks": 209020729,
+            "invalid_input_checks": 3235615,
+            "poisoned_adapter_checks": 462231
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/baseline/src/embodiedforge/envs/locomotion.py": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/candidate/src/embodiedforge/envs/locomotion.py": "49e66a4a4a897f7b05b1c6d85e28b4a783f5719a4c67464e5e85dc55bc9e0909"
+          },
+          "last_sample": {
+            "time": "2026-11-01T23:28:17.605031+00:00",
+            "seconds": 21600.007320976,
+            "counts": {
+              "cycles": 3235615,
+              "step_comparisons": 12942460,
+              "observation_comparisons": 3235615,
+              "reset_comparisons": 9059722,
+              "ownership_checks": 209020729,
+              "invalid_input_checks": 3235615,
+              "poisoned_adapter_checks": 462231
+            }
+          },
+          "limits": "Synthetic native-shaped fixtures exercise C/F/strided/read-only feature storage, owned outputs, selective reset, invalid inputs and poison semantics. Does not execute MuJoCo or train a policy."
+        },
+        "observed_process_exit": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/fixture-soak.py",
+            "--seconds",
+            "21600",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/fixture-soak"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/fixture-soak.py",
+            "--seconds",
+            "21600",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/fixture-soak"
+          ],
+          "supervisor_pid": 3428826,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-01T17:28:17.487523+00:00",
+          "timeout": 22200.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3428827,
+          "seconds": 21600.133467201027,
+          "finished_at": "2026-11-01T23:28:17.620950+00:00"
+        }
+      }
+    ],
+    "worker_script_identities": {
+      "recorded_at": "2026-11-01T17:33:19.411824+00:00",
+      "sha256": {
+        "native-adapter-soak.py": "9db1cb7ab0e5ecfa4f9a33f94c952d37e8e26b51fd5daf7eba797cc7abdd592e",
+        "fixture-soak.py": "3a84c58f537ba31c244655076d2a23d16e0a14eedb48a66147c1b2752fa7f22e"
+      },
+      "scope": "Worker script identities recorded after startup and protected during the remaining monitoring window."
+    },
+    "release-content-check": {
+      "status": "passed",
+      "scope": "Check that all frozen code/resources and the final test are in the release.",
+      "frozen_sha256": {
+        "src/embodiedforge/_act_bundle.py": "ac4db52202c51ebe8e65a7ede6558807900a537ced74492ba3a186b6dae33f96",
+        "src/embodiedforge/_act_dataset.py": "801fdb4b3b825a1daa63e530ee93ebe330419bf0a9ca5a05dd1a9dd1d73169ab",
+        "src/embodiedforge/_h1_motion.py": "f647ac363aeb00d2a3ccfdf131dcec396d699a3d58a76afce085a07ef638ec52",
+        "src/embodiedforge/h1.py": "50836e8d92a3b5840c2b031e6b45c100f251e74c0b42a8208c7319f9ce4ab4a4",
+        "src/embodiedforge/_go1_recovery.py": "742d5f9d4607abdc6de2c5535d05dca0b6fb6118938273226822e7f388834718",
+        "src/embodiedforge/_rlinf_export.py": "0607652b06fc15a0fa71e51cbaf065de65e6bf93258106840b6dc9bf572118e1",
+        "src/embodiedforge/_core_run.py": "c3268e9cd4f71c13f9fb2d8eace6a70989306c545d8c748d14758e3fe3296788",
+        "src/embodiedforge/_act_compare.py": "653414ed69604f9802f54b0b9d5b7bcc4feaa3121db1f08254a878785caf944a",
+        "src/embodiedforge/_microduck_native_worker.py": "4b70966a42da1be74ed6078d0e8bec2d339a30b442bb7f5a69f0c50c024484d4",
+        "src/embodiedforge/_rlinf_onnx.py": "6f8280525f64e9934bcd2034cf9b27eab47e571713c472f6576a7ed158b4af8b",
+        "src/embodiedforge/_act_checkpoints.py": "7336b7552fdcf302ecc211e41690b2e71e85332a878edd2dc28eb891be5bdeb8",
+        "src/embodiedforge/native_h1.py": "3216f19e0f66c6042cf2aff5491eb33ff124d42fc842f91ab4946d49f310892a",
+        "src/embodiedforge/sonic.py": "926423c99437256fc00147363eebf05d37eb167471ab84cd565391f3a3282e87",
+        "src/embodiedforge/_rlinf_worker.py": "2dea8bd3fe64993ebaa18dfc607f3be5fe900deeb178da2b16d3f50a61323558",
+        "src/embodiedforge/diagnostics.py": "982d60b6d88a0c857b996bcefe2d032d6f3efd0d5a22ee085b3ad8fd316d7877",
+        "src/embodiedforge/supermimic_run.py": "91f243761f0474ef0b1985b548446e794ccb2eadeca92a5cee8ddb9d6d2176f4",
+        "src/embodiedforge/morphmimic.py": "78afd6434963bc2a9ea5b71d8b149e7a0f136e6c4c790886011427083ac52a2b",
+        "src/embodiedforge/batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+        "src/embodiedforge/tasks.py": "3084c5f8c4019a5443c9796523f7b366a46b1adb9821d1d6733fe902ff1643b9",
+        "src/embodiedforge/_h1_worker.py": "18b53de48e80601b9c34f10f3118e8cdf98e34a2428ad33b2f1e579b5593c346",
+        "src/embodiedforge/_microduck_run.py": "52974af3d576d1c50ace43ebc0dcabbb169b9f1ddfbdafe1b2ac9abe04c1641d",
+        "src/embodiedforge/_go1_resume.py": "c1be5aba21c461552178374d60fceeda028b45fba48899a9f608d95f3a3cfe8b",
+        "src/embodiedforge/robot_replay.py": "dd13bd3fcf8045ea093bcf09daf5a50b09a7595517be05c7065b941cb7853440",
+        "src/embodiedforge/env.py": "1a4126796e12df4d4f1b082f3fa92df03b0248384bca083c414bbc196841c95c",
+        "src/embodiedforge/_go1_assets.py": "5fff5b621c6069549190dc8a50f396ccffa43e396c37428e1f5e4c3a513f4d70",
+        "src/embodiedforge/core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+        "src/embodiedforge/_weave_evaluation.py": "7bfcd64c31750c952b8a4ad94ed2b4441709742f6042506ef396487aed4ca924",
+        "src/embodiedforge/policies.py": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+        "src/embodiedforge/_motion_clips.py": "c8f1a35140359de6cf8c474a7932172d6dd092cde3f3cdfca847425525b7ec96",
+        "src/embodiedforge/supermimic.py": "64891d7f04994362b526cf8dc6fcd25f0c2e1de70f025e7a61edbec71b0ddb41",
+        "src/embodiedforge/_wuji_recipe.py": "31076a7a39e219dd5b7ebc8bd545ec6c8d7aa4b079d67020f62f9ea739e332c4",
+        "src/embodiedforge/motion.py": "9319696b86a02f011127be9d81141b798361cce603cea10a115c6e5cec4d65ea",
+        "src/embodiedforge/training.py": "772d4e25afaf73c60abc5916569393228f17153abf0a6886a9dd6f7bb618f930",
+        "src/embodiedforge/microduck.py": "247d80ec8593bb51b1995c8f39fab7dd8228b8d465e82f76c46787ec6653a7df",
+        "src/embodiedforge/graphics.py": "4e0fe21c13a433cc2552fa4024fb4f03effc6619d0ccaf45e5f91cdef6624107",
+        "src/embodiedforge/__init__.py": "d391fb624b9e35f78448d62574facf4113fb74921d6f56af1c8b7d8a6b97a058",
+        "src/embodiedforge/_go1_metrics.py": "344b5658747add044dd4931eaa94eff7e7b9e52fc28075dfe62bd6af36a3a8b1",
+        "src/embodiedforge/_sonic_worker.py": "d58a4657e4d49e3ec1784e7281fad3b3c430867814a4bf42a565407bf63c86e5",
+        "src/embodiedforge/gmr.py": "488a5437edfe57c2d69d1dad11f64ea3cfed35d72887c0fae6ada5893433586e",
+        "src/embodiedforge/_go1_live_worker.py": "2684446a771c8617a9cb9e44ae05044836e74cba10bcbb1dd26738902c92dc7b",
+        "src/embodiedforge/weave.py": "d0805bd6a23ec3b0d528ec10bc3666e203973915617cbfae72752afe01565304",
+        "src/embodiedforge/_go1_implementation.py": "68a5da0c92c945bafe39d67921629914a6a03d39fe2c1b69a2ec97828dd2eef9",
+        "src/embodiedforge/sensors.py": "89ce41ca3366655380b7029ca8fd7df6a36ecd01b2344ca6e2fe9a65277088f4",
+        "src/embodiedforge/rlinf.py": "8a0faf418871d6e3f0379e826e92113da5b189eea762b5c4e50850096415780c",
+        "src/embodiedforge/_microduck_export.py": "f1924ecb09fe67adc9dad4d4b4fb7856f74638e8a705cfb5c15c2e313114bfe2",
+        "src/embodiedforge/_go1_checkpoint.py": "bfed7eb088fef76df7c339256367a811aa4552e04b3e56a7bd3b252ad59fd24e",
+        "src/embodiedforge/_go1_training_viewer.py": "d92a43fb4783a1b872bd2375c84cdb44bb1ef77ae741f1545858c6fd0d145e9c",
+        "src/embodiedforge/_weave_worker.py": "42a8aba555d467b854496e544a4566a537415e9092a3b60c2218710d7bb78bca",
+        "src/embodiedforge/_mjbatch_recipe.py": "e515c8a40ed3de2e79a988ea4f3b9f0b01e35cac0da148a99218ce884b6fb357",
+        "src/embodiedforge/_morphmimic_worker.py": "23a6468541b31d5ea4fa9785898ea55b0c79d44737913006688285f7da725c85",
+        "src/embodiedforge/__main__.py": "a2b6d2c663999e08203c72c9206a9bdd32acf47b8303ea123a4e7ee5727a2d41",
+        "src/embodiedforge/visualization.py": "67e1c40009f25ee033461883fb308c3937a719f50c313b3abfaa8c0185454e18",
+        "src/embodiedforge/go1_live.py": "a6402bbeae668ce0692a89388fb9518f48cb456763dd659754be6e95738aea96",
+        "src/embodiedforge/_wuji_diagnostics.py": "99ed83e5a3b8cd5bd6092771e83ff5de02664c7d90776d22f3b138433aa73c8b",
+        "src/embodiedforge/rollout.py": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54",
+        "src/embodiedforge/logging.py": "afe275a1536239248212b8bce7ff5ad4bc5cf0c9104fad9222cb3b0bd2194f8e",
+        "src/embodiedforge/_microduck_native.py": "2164a0af5aa997edfd7184b681f27901e60fca80e9e09ed3a429febfb4855ffd",
+        "src/embodiedforge/_wuji_training_viewer.py": "495c9941c0f96935217485d93c97b91385de78668ad607a5932e9dabc906af9d",
+        "src/embodiedforge/_live_channel.py": "508f6b50564f3a9381e641c788da605b10bcea345c0b89af6c6a762db0ecb37b",
+        "src/embodiedforge/_h1_metrics.py": "0c0c5dcf61ad931fa658a5c1520667b0f9f68a2723a75e5b0220f2ff10e4a145",
+        "src/embodiedforge/_recipe_worker.py": "f86fbd0465015fa5c9c867a17a076d3229cb1ed9bee89a19e1ae462aedcebff8",
+        "src/embodiedforge/recipes.py": "58ac1ca16a71a68fd6643b8edcda64d0de9a5f715a271633fc0548b4fb87f64e",
+        "src/embodiedforge/cli.py": "7341a92733704318376c01ce9abe88f8b11f5062adfa4f37cb4c52e44bde71db",
+        "src/embodiedforge/_h1_evaluate.py": "ec33235d2745f556491eaae2f9b3e5bfb2161727ba7fa12c99ae9fb34373c373",
+        "src/embodiedforge/data.py": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f",
+        "src/embodiedforge/_microduck_worker.py": "1eb4635d529f8f52644553ac367e440a7f4108c4dbea9ca780c59828025e5e9a",
+        "src/embodiedforge/_motion_sdk.py": "de62f9566b2e6991d3905e800248a3964cf497411b812e793e50718e759b4aa6",
+        "src/embodiedforge/_gmr_worker.py": "28dc6add27f3173baddcddb7364f4ca3c7adda4320f0e4fe0f7a6d2bdb097a7a",
+        "src/embodiedforge/_microduck_reports.py": "1bc1f2b673891eb6b3cf0417d7387dacc0fdbfa1d45c4669d616197ba4d0850b",
+        "src/embodiedforge/act.py": "c1d859378dab9ff0e7b89f96c1147e796a164dba0446e038dbc1a484f792b303",
+        "src/embodiedforge/runtime/process.py": "ff49ede188573070f7225a59e15887248de4172f40cdd33f334f6f347112337c",
+        "src/embodiedforge/runtime/implementation.py": "0361211bdf0feff9b360e6a39b836047405d896a97344164245005fbd5b0e805",
+        "src/embodiedforge/runtime/__init__.py": "54183b39a8671d49bf1a6fad5a13275216c57c0a6e0da0f069d189e34d5179a7",
+        "src/embodiedforge/runtime/hashing.py": "574e1f4d085ae881828d4683e7755995d9d0aa6af0bd3a113f77acad83dea3a9",
+        "src/embodiedforge/runtime/environment.py": "660ce71471f340e0031a1bc61da1881ca6b962e92f7b9667b10fa194c8655b1f",
+        "src/embodiedforge/runtime/artifacts.py": "e6ead6420905a7cb5e9864f7e0aae067a48d43b1c36d8fd03ff321c3a5cdc258",
+        "src/embodiedforge/runtime/provenance.py": "caaeeb5720d8d67c9fd8040a8316848eafc45392e82d9962ed2d5132ee6eb0df",
+        "src/embodiedforge/runtime/records.py": "096f56388d6d7510337197399860caebe032a218b5fa5d322d66a04aeb9cd2af",
+        "src/embodiedforge/backends/physics.py": "83890aca7e1bb5c169051419d5626e1a775eadba8cca7f527cb6c01e5787c7cb",
+        "src/embodiedforge/backends/newton.py": "9cd3860f3ed2db508006d6d2242a7f6c5dd2d8e016b5d8dd668bae11b93561f0",
+        "src/embodiedforge/backends/__init__.py": "7c3caf1568fe29afb073e8d8eff670ea3d15259f7db7895758212aa4238450dd",
+        "src/embodiedforge/backends/render.py": "0a1c5f8de49ac1ba37869bc3101c99cc0bf825253fbc785c2229cd04bca5514f",
+        "src/embodiedforge/backends/mjbatch.py": "5127cb1828f7441c1735755919c46e131b1e69a4074b5e59483604c1b6f0269f",
+        "src/embodiedforge/envs/specs.py": "7e51421ef5adde171cba638ed2269af6460e54a655262e6b54edbe07b4a84f9b",
+        "src/embodiedforge/envs/__init__.py": "e3b2bb542e23907ed5189c785bb03a01f5548d76cddca57338dccab04d3fe6a7",
+        "src/embodiedforge/envs/evaluation.py": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc",
+        "src/embodiedforge/envs/observations.py": "275a09fab837307f9977d6ec01a3967054a6ce33adec95320d53bb50494e3e0f",
+        "src/embodiedforge/envs/locomotion.py": "49e66a4a4a897f7b05b1c6d85e28b4a783f5719a4c67464e5e85dc55bc9e0909",
+        "src/embodiedforge/envs/base.py": "05fd6dfac9049d94ebbd316c570356806298614d528fb88c475dd1f0f7fc95c6",
+        "src/embodiedforge/workflows/supermimic_reference_play.py": "bbc1d2cf0a97627169e4f53d3b6bf0371b8a3aa370749ef6b3b6fe2a1ad13a2a",
+        "src/embodiedforge/workflows/recipe_progress.py": "cc9c7076d303284cdceedeccb5709459446be38661a0d45cf1a9d0ad4eeb292e",
+        "src/embodiedforge/workflows/supermimic_inputs.py": "e248f7b77ff1cdb7f6bc749b1cf36d5e827ac4fb561b9749a605bede8db04cac",
+        "src/embodiedforge/workflows/rlinf_catalog.py": "248ca931bc7b53bb9b57f3e6b7f273c0b61e61574039522e059e2187a05cf722",
+        "src/embodiedforge/workflows/supermimic_reference_mjlab.py": "cebc9cf87731c2c15f08d0031c5e29476541155a5e2b35e0c2d62f7b27b2342f",
+        "src/embodiedforge/workflows/supermimic_backflip.py": "49a812dac43bede1262639427ecafbe2a9870cd59b40dc76bb14f4e8d425214a",
+        "src/embodiedforge/workflows/supermimic_reference_evaluate.py": "6bd58b1970d34151f3102922be3d2fa83fe01ca48f03963d7e57124408389f98",
+        "src/embodiedforge/workflows/recipe_validation.py": "56b692dac40b445173aab67dd7746c51fd2d21d23370a87be144afbe02222030",
+        "src/embodiedforge/workflows/__init__.py": "60fb3d9f7d42647a215f2be0bf621f6eb07938a68e40697e4e14e992019781b1",
+        "src/embodiedforge/workflows/supermimic_backflip_quality.py": "003b56d39c9eddf51d376bbd3cc14f5d3cccfe3bbdd175f42e165ca55b1df9f2",
+        "src/embodiedforge/workflows/rlinf_artifacts.py": "80914298f80d9b8eebc1d553d69df4503e9032129ac8201d45075bacc7e67623",
+        "src/embodiedforge/workflows/recipe_catalog.py": "458890b4a75c4e57bc00e61ce1227e02096caff7c7a1209eb5080e2afec430ca",
+        "src/embodiedforge/workflows/supermimic_catalog.py": "5f5aff9ec0ea36f8b01c5c8b2e1b624aa96c68b863e43d938e7ad054758a8d6f",
+        "src/embodiedforge/workflows/go1_settings.py": "20773588df42f7049e7305ac8d2e6b67b79750fa2db47be96d31762e12ae9c16",
+        "src/embodiedforge/workflows/supermimic_reference.py": "c1f97138a2f11d8102954710d1b997c339068b277e3a0664eef774c050dab35b",
+        "src/embodiedforge/workflows/supermimic_reference_worker.py": "701a7abb1766612e427c51827963610f2f8c1b731199e6309a766ca9466a6960",
+        "src/embodiedforge/workflows/supermimic_contacts.py": "1a00324f3c9e25c4cd298c0b8e687375308d65e7040bcb2750e1ea60e23e71f9",
+        "src/embodiedforge/workflows/recipe_artifacts.py": "beaeec23c86757884a69c0de4cf824449c12f0edbec2be95f59b8e832f271ae1",
+        "src/embodiedforge/workflows/LICENSE.supermimic-backflip": "a0ddc0cc40bd93e92f9bcc7b03a6778b6b27f76f70f9dd44c8d504c3b0445c37",
+        "src/embodiedforge/viewers/web.html": "7d5a8c6727dc4e18c9da38169c8ae5b241c799cb7022775fd882cba4f752baea",
+        "src/embodiedforge/viewers/frames.py": "c3982a32ef06ae813106ed46fa9dbc44271d6437378034f9f095694d9896972e",
+        "src/embodiedforge/viewers/web.js": "454fabf7d98c8914f5aff7901c5b9e01de3e50e6e7aceeecfb0bc26cdfafd172",
+        "src/embodiedforge/viewers/newton.py": "d55e2514f06be3702e9e5f1ce55c724308afcf30b4756026c65735843ccfb259",
+        "src/embodiedforge/viewers/__init__.py": "5df57a38fcc577cfe5fb3bfefc41a4cd57441b0b0c2d136afb8d7616e0543383",
+        "src/embodiedforge/viewers/rtx.py": "4d0108d9f997429a46620995c4de810f335c749dcad04d61bd1129e03252e49c",
+        "src/embodiedforge/viewers/web.py": "c087cd064425ab6cb72e11fcc0d306995cfacb979b1c534b4d0c0bb439a7511f",
+        "src/embodiedforge/viewers/viser.py": "6e253b29bf3ca21dbd14eebf6ec0226cfc6499d859e7f9f95a39c75b16348f13",
+        "src/embodiedforge/viewers/robot.py": "c3b83ca63c5da31718b7976c8897ec9501c7dd3a30fd634098fd539182d9c4a9",
+        "src/embodiedforge/viewers/style.py": "a42c5a4114214a6934857818bb2bf745755da40f80fc7e36d8f6732435f4ba60",
+        "src/embodiedforge/viewers/dependencies.py": "68cfe76e444e624791e0cde332a8e0280a36bfb33b97841c8b10ce8d68ef5460",
+        "src/embodiedforge/viewers/timing.py": "53765d3b3dd7f3352415793dd63a60fcb1dd44bdb65b62de0a946af659a63416",
+        "src/embodiedforge/learning/__init__.py": "fc42e81d53edb034ce1130bdc217ecfa08f5f469062576ed9649570cbb9d7bb9",
+        "src/embodiedforge/learning/checkpoints.py": "583323bfc8f66e089791296a1cb217cae230c8a906fab6e09fbb9c963995efa4",
+        "src/embodiedforge/learning/advantages.py": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+        "src/embodiedforge/learning/parameters.py": "5947b5c682b98cfa533e4a3cc2a70a461aa7a20c2a62d98fdac330a27f14c46f",
+        "src/embodiedforge/locomotion/h1_native.py": "2469d9d6615ed83da5e81cc2fee492154344363a0a77fbacfcbfdca11b115ab2",
+        "src/embodiedforge/locomotion/go1_config.py": "8e0e6636ed0f8c88da31ad1091b1e4b8c779f71f761eb2d795bd1ee203c93549",
+        "src/embodiedforge/locomotion/articulation.py": "9d939816b55510e40c93f67e1d40304582c98f8f6a861be42038ad553f57ebc7",
+        "src/embodiedforge/locomotion/go1_ppo.py": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce",
+        "src/embodiedforge/locomotion/h1_ppo.py": "ef0d691633658e3d01474e28a8c68933df87f7557a2724073a89d64a0ae20c15",
+        "src/embodiedforge/locomotion/__init__.py": "67e07baec885bd1353838c537f8c2df43fb405ebf341b6e9e60cc8f56ee37428",
+        "src/embodiedforge/locomotion/go1_light_loco.py": "ff71b15acee7f877cecbfc9f56f5e47b045730345459cc0fd40964fda1cfa77c",
+        "src/embodiedforge/locomotion/h1_config.py": "5e6be344733fa1792d8977b43a699f3385dfc77218a73f68f64453565c052bcf",
+        "src/embodiedforge/locomotion/LICENSE.mjbatch": "6dc9071a1ff8d5cd17702ebd6bd623c8271c4785333e014e184546adf855b891",
+        "src/embodiedforge/locomotion/go1_scene.xml": "6d4bf363f5694516d8f13098967a751317e27d6faf1890d62cc673b9ff2ae517",
+        "src/embodiedforge/locomotion/LICENSE.IsaacLab": "df351ebfa8af317bf5a9ad83df63a8b68e4f5c04b71f30767cdb27aa434eac62",
+        "src/embodiedforge/locomotion/go1.py": "fb4567b2f4512858b89b5114224d69b2fc8c56cc0b87fab0b5316b62f1c3094d",
+        "src/embodiedforge/locomotion/microduck/__init__.py": "7c93bc82c7bd846e18b67c918e136a2721d41e17737ffca2012dccb5c38c399c",
+        "src/embodiedforge/locomotion/microduck/checkpoint.py": "80a9555f5f96bb4d07da519346daa6c892c393cf7aa42a72adef44da31cbfeec",
+        "src/embodiedforge/locomotion/microduck/export.py": "3bac4b1626abd2b02e060decaabbd313e74ca507fe4e876a10ae536d7a90e7fe",
+        "src/embodiedforge/locomotion/microduck/UPSTREAM.json": "ed30ca75d1b5df8875f9e69973001e806c20eca86368fec6a8d548e8a5007349",
+        "src/embodiedforge/locomotion/microduck/NOTICE": "16bea5820eb8bb8454e84f4096d3f9c93d7848d8ad0f442c78692fafeb081917",
+        "src/embodiedforge/locomotion/microduck/LICENSE": "2d3fd9ffffa70a4307498ec630b14a6b4731e010f8ddda92686eaf65733c2dfe",
+        "src/embodiedforge/locomotion/microduck/requirements.txt": "d3204824d54a23156368cfc440b82b9140a48f31cc488a6e2de2eddd8156178a",
+        "src/embodiedforge/locomotion/microduck/actuator/friction_dr_bam.py": "03d0461caf973419bbd3f746f2cba73fe9464d00ae59ff3e8f8cd158d8f2e832",
+        "src/embodiedforge/locomotion/microduck/actuator/__init__.py": "b8a82f30822166f14e0bcd7730d67153908097c2353c4d0cdbf3c51d9ad475cc",
+        "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "ff19aeb7ef5e4ea7d8bf7d6b32e913372454f4f00d0e1e177e606adddcbe3d06",
+        "src/embodiedforge/locomotion/microduck/tasks/symmetry.py": "f84f19cc1f93afa7cb1d6e98152a70dcf7f38d6df0720d8675ed8ea93c663941",
+        "src/embodiedforge/locomotion/microduck/tasks/microduck_velocity_env_cfg.py": "02ef1c12bef07fd591b8a9cdd85e46bd0de8fd674b82569528bb1c29de42945c",
+        "src/embodiedforge/locomotion/microduck/tasks/__init__.py": "0e8069547a5ad8b20307adc16a77825660cf3acc3cecf118b7293d5c88a1234d",
+        "src/embodiedforge/locomotion/microduck/robot/__init__.py": "26782f5a79ab0206de698956d9c4ca3879d99b3bbd8080654e773a2530f08181",
+        "src/embodiedforge/locomotion/microduck/robot/microduck_constants.py": "cbd2a8ed29a42b3eb7184ddab51df77f2bb0c8239e2450e1373465ff92f050e0",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/robot_walk.xml": "80fc4424ed71e430ec4919110dfdb5c714dc1c4e1138e1832a16865cf31eb8c8",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/ankle_left.stl": "2ec1bd89205b407efebaa9a8898ad9fea741389d87b80ecc5c96b21d1668119e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/sole_left.stl": "e028c8b09fecd4cb354d042bf7fd95a1a1bc2d524d760d62137fa8d74093fc23",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/yaw2roll.stl": "6c8f193ec7cb40be0f48eeb5fba81bce2c87f12e1aab3f77f1bc4981386e1495",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/top_head_shell.stl": "6d01f396f514c9d2185cf6b8250b1d8382ac3fa0702eb525bcb284f706196291",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/np_f970.stl": "0e55a48281331b3b7b1a363d2e93b6012f37c52045b6dc922a149ca7c1b38388",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/trunk_base.stl": "aa4f853ae555a8b765e585ce4519c0bbff325ce298ec15a1437792c52a0beac1",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/upper_leg_rigidity_plate.stl": "231b3e5f1e24d146d735dc158cbcfec0c95a0d0ca8c500f61f04d15d0b665652",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/seeed_bearing__configuration__22x16x4.stl": "295ee68ed9766c91fe06d3a2a49d39f7c2f56cc943395d293afdeb013123435e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/power_support.stl": "ee45e397d3f3422f34940a4b61156c3c11c7e8c2b240451ce5f9ddd1622a130e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/noenoeil.stl": "e1167b3d5ad7fbbe6e63296bcd0c6b61556611e6bc1367b15ecfd27e3abb72f5",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/bearing_roll.stl": "b5603a64b2d965ad75ea847767b5798130852e12a658fde7b5068fc457e2adcc",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/bottom_head_shell.stl": "1820f7cf96646b0fc0c431f07da87b91b13111bfa9857ab1bf2b1fc3388f8da2",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/lens.stl": "b1c717432ff7666398de58adec6a1b7e03a7e45aa155dbfe27a6152ef19663e5",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/jaw_soft.stl": "2d2ade4e86df4b37ce313bb9b96023109dd04bab39dba08b154e76d332fbce2e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/upper_leg_right.stl": "5caf996cc3e151b01f393cdc6a6a6a940c1d86179d8b7c7f5f85cf1f1ac2fb63",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/yaw_roll_motion.stl": "b0c9902dee19f06cdb7fa930292e0e1c91e2dc59baa971211495b58ff76c3c60",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/right_shell.stl": "3efba3e193cc6aa49d49a9c92cdded0504917397c9e2c5b8fe002a958e2f2d2b",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/elec_rpi_robot_hat_pcb.stl": "1a61582759d82b5b4df9b7d11099bf1bb3944fc77e6b74d3237adf24dd5d03d7",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/seeed_bearing__configuration_default.stl": "e815f3483a2e7b80844f3c0938a47e53db38b12faed9b2d364414c19e4322da4",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/foot_left.stl": "a1f5d43456d0f522bd60870153795f1e8112c1adf9b8b4373b59608d9545c044",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/neck.stl": "b6e86b886153be8a8a776c1cb219c074ee9e89c8bd431117662a2d9e504d7cb5",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/neck_pitch.stl": "a685ce65348ae4d0d49417c69a7a8871f8bbd54a6e3419362be9c334abd5d2ae",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/sole_right.stl": "3f5068872f3add10eb967327651445bdfca635f5a8a01befa0ef05e462b72b4c",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/upper_leg_left.stl": "8cb1c12dfa6d366a318bb1ec16f585427b9a185afeb7738d0a6f41f5db46a07d",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/ankle_right.stl": "f83f388ae00787415e76b8ecaab769f08f25b8c4e90c1937ff0fc4d68d81722e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/jaw.stl": "45cdbd319a4583095d8daa0db07dee726522a743d59acb82d27d82ded500a1cf",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/banana_pcb_locker.stl": "42ddde9d01bf5d91f88b99847017f14d97d2537ee27383c6d41dd8bf30a51134",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/foot_right.stl": "54f97fa1f0e0e611d31329df9f3c3b17ffcca2d695c579d1d32cbe99e8a6c7ef",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/xl330.stl": "96238ed0d020ce0009cf1a5aa4b6926176c800840318ee65e4375be2298d2744",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/left_shell.stl": "2abde8e2b79c9b011cdb11957c67ab4287b45d7301affd4235ab81141118e331",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/pcb__raspberry_pi_zero_2_w.stl": "802cc66fc5447c67fc642d1339e55160df10f2ad04a65efd130e35fb7b2d3c90",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/leg.stl": "9a91cc1ae31ecd9e0c1ba93f3bb2ad8a12e29bff24ec27d1ac66c0c3037d9fcf",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/hip_l.stl": "e175896932d76dc7648cf939aa39cb7b1d188b783d91745adb9a4cec65e9052c",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/face_part.stl": "d0e89a173e7bdc8038c4d413f458140d8f42f1a2f098f67a887c2388eff31718",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/motor_support.stl": "ce0aa5bef82c7474512d302568c341b9769b3005e0bdb91a19c2eaaba6dad480",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/speaker.stl": "75a35f9bcf94cd8e52f99b3fd6ae667b48f52503f9075ee2f699eebe8e7b3ddf",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/soft_mouth_top.stl": "3c2b52b0b6e2ce944a1e1b5a0838e1216be1ad3a34c8cdf91be186e634aec57b",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/m12_lens_holder.stl": "031d5ffaf6247328cf6d020f6b6695ffb3f8d3f22cf923b85811351d89ecfd7c",
+        "tests/test_environment_adapters.py": "3097e5e9dd9dd126bfaa65dea0581659283fdc513c7a4f9acc52dfcccfefb258"
+      },
+      "sdist_sha256": "abf40ce267409598e8063ad31fc10e45a9f553a103faa6085b98b8712bc83d67",
+      "wheel_sha256": "01ed7de918d9b33fc4cd212170a9426f107c590db1432533f7d1e4d28fa03509"
+    },
+    "worker_resources": {
+      "scope": "Combined validation-process resources over time, not separate old/new memory or training RSS.",
+      "samples": 520,
+      "workers": {
+        "go1": {
+          "live_samples": 465,
+          "rss_first_kib": 913004,
+          "rss_last_live_kib": 913148,
+          "rss_min_kib": 913004,
+          "rss_max_kib": 913148,
+          "file_descriptor_values": [
+            4,
+            5,
+            6
+          ],
+          "thread_values": [
+            3,
+            5
+          ]
+        },
+        "h1": {
+          "live_samples": 467,
+          "rss_first_kib": 1104260,
+          "rss_last_live_kib": 1104492,
+          "rss_min_kib": 1104260,
+          "rss_max_kib": 1104492,
+          "file_descriptor_values": [
+            4,
+            5,
+            6
+          ],
+          "thread_values": [
+            3,
+            5
+          ]
+        },
+        "fixture": {
+          "live_samples": 468,
+          "rss_first_kib": 43592,
+          "rss_last_live_kib": 47468,
+          "rss_min_kib": 43128,
+          "rss_max_kib": 53712,
+          "file_descriptor_values": [
+            3
+          ],
+          "thread_values": [
+            32
+          ]
+        }
+      }
+    }
+  },
+  "preserved_models": [
+    {
+      "path": "runs/supermimic/tasks/backflip/reference/current.json",
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+    },
+    {
+      "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+      "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+      "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+      "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+    },
+    {
+      "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+    }
+  ],
+  "preserved_data": [
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+      "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+      "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+      "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+      "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+      "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+      "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+      "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+      "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+      "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+    }
+  ],
+  "phase": "validation",
+  "source_frozen": true,
+  "frozen_at": "2026-11-01T17:20:22.449297+00:00",
+  "manifest_revision": 1,
+  "structural_audit": {
+    "status": "passed",
+    "changed_files": [
+      "src/embodiedforge/envs/locomotion.py",
+      "tests/test_environment_adapters.py"
+    ],
+    "production_modules": 141,
+    "unchanged_production_modules": 140,
+    "semantic_expression_replacements": 7,
+    "added_private_helper_docstrings": 1,
+    "new_production_functions": 0,
+    "new_production_modules": 0,
+    "original_test_definitions_unchanged": 18,
+    "added_test_functions": [
+      "test_cache_and_results_detach_reused_native_features",
+      "test_partial_reset_validates_unselected_native_features_before_publication",
+      "test_public_observations_own_all_fields_and_leave_caller_ids_untouched"
+    ],
+    "frozen_files": 191,
+    "scope": "The seven specified expression replacements and one private-helper docstring explain the complete production AST difference; all 18 pre-existing test definitions are structurally unchanged."
+  },
+  "workflow_jobs": [
+    {
+      "name": "go1",
+      "summary": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/go1-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/go1-supervisor",
+      "requested_seconds": 21600
+    },
+    {
+      "name": "h1",
+      "summary": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/h1-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/h1-supervisor",
+      "requested_seconds": 21600
+    },
+    {
+      "name": "fixture",
+      "summary": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/fixture-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261101-170632-sevenhour/fixture-supervisor",
+      "requested_seconds": 21600
+    }
+  ],
+  "required_tests": {
+    "baseline-adapters": 66,
+    "candidate-adapters": 82,
+    "candidate-full": 3600,
+    "release-adapters": 82,
+    "release-readers": 187
+  },
+  "required_tool_exits": [
+    "baseline-adapters",
+    "candidate-adapters",
+    "candidate-full",
+    "build",
+    "release-verification",
+    "release-content-check",
+    "go1",
+    "h1",
+    "fixture"
+  ],
+  "generated_build_files": [
+    "src/embodiedforge.egg-info/SOURCES.txt"
+  ],
+  "generated_build_hashes": {
+    "src/embodiedforge.egg-info/SOURCES.txt": "e3c073889030c65fa6a1f5eee0cdd0116863e80d2c91db0f1d0c047da31f97f5"
+  },
+  "metrics": {
+    "production_modules_before": 141,
+    "production_modules_after": 141,
+    "production_lines_before": 37842,
+    "production_lines_after": 37843,
+    "production_bytes_before": 1515303,
+    "production_bytes_after": 1515360,
+    "new_production_functions": 0,
+    "new_production_modules": 0,
+    "unchanged_production_modules": 140,
+    "semantic_expression_replacements": 7
+  },
+  "benchmarks": {
+    "adapter-numpy226.json": {
+      "status": "passed",
+      "numpy": "2.2.6",
+      "source_sha256": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+      "scope": "Measure actual adapter methods before editing; native calls are deterministic fixtures.",
+      "limits": "Measures adapter NumPy work only, with reused deterministic native observation storage; excludes physical integration, training RSS and end-to-end throughput.",
+      "replacements": [
+        [
+          "self._episodes[ids].copy()",
+          "self._episodes[ids]"
+        ],
+        [
+          "self._steps[ids].copy()",
+          "self._steps[ids]"
+        ],
+        [
+          "self._versions[ids].copy()",
+          "self._versions[ids]"
+        ],
+        [
+          "self._proprio[ids].copy()",
+          "self._proprio[ids]"
+        ],
+        [
+          "return value.copy()",
+          "return value"
+        ],
+        [
+          "self._proprio = self._features(native.obs())",
+          "self._proprio = self._features(native.obs()).copy()"
+        ],
+        [
+          "self._proprio = self._features(observation)",
+          "self._proprio = self._features(observation).copy()"
+        ]
+      ],
+      "results": [
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 4136,
+            "samples_us": [
+              2.5898994257052737,
+              2.512101006383697,
+              2.5244662538170815,
+              2.674733210975925,
+              2.5037346252550683,
+              2.497065967569749,
+              2.505766072620948
+            ],
+            "median_us": 2.512101006383697
+          },
+          "candidate": {
+            "peak_traced_bytes": 4104,
+            "samples_us": [
+              2.22890133348604,
+              2.1200336050242186,
+              2.0879670046269894,
+              2.1069989694903293,
+              2.0809335789332786,
+              2.09829886443913,
+              2.1043000742793083
+            ],
+            "median_us": 2.1043000742793083
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 5008,
+            "samples_us": [
+              15.52206619332234,
+              13.460500243430337,
+              13.461499474942684,
+              13.502233196049929,
+              13.397067474822203,
+              13.429099150622884,
+              13.52896603445212
+            ],
+            "median_us": 13.461499474942684
+          },
+          "candidate": {
+            "peak_traced_bytes": 4712,
+            "samples_us": [
+              13.411400141194463,
+              12.995634460821748,
+              12.868066551163793,
+              12.890100091074904,
+              12.917467392981052,
+              12.867034335310262,
+              13.14923477669557
+            ],
+            "median_us": 12.917467392981052
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 4440,
+            "samples_us": [
+              8.348133026932677,
+              8.216566250969965,
+              8.226601251711447,
+              8.11869977042079,
+              8.2055339589715,
+              8.140733310331902,
+              8.2055339589715
+            ],
+            "median_us": 8.2055339589715
+          },
+          "candidate": {
+            "peak_traced_bytes": 4144,
+            "samples_us": [
+              7.672865952675542,
+              7.548967065910498,
+              7.4377671505014105,
+              7.530598668381572,
+              7.428399597605069,
+              7.469800766557455,
+              7.40770095338424
+            ],
+            "median_us": 7.469800766557455
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 29536,
+            "samples_us": [
+              3.4482004897048073,
+              3.3964325363437338,
+              3.315298818051815,
+              3.3096002880483866,
+              3.3383005453894534,
+              3.342000612368186,
+              4.801066825166345
+            ],
+            "median_us": 3.342000612368186
+          },
+          "candidate": {
+            "peak_traced_bytes": 19664,
+            "samples_us": [
+              2.928198470423619,
+              2.80433256799976,
+              2.799299545586109,
+              2.786967282493909,
+              2.851067498947183,
+              2.8036340760687986,
+              3.885000478476286
+            ],
+            "median_us": 2.80433256799976
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 17856,
+            "samples_us": [
+              18.65899927603702,
+              18.451966267699994,
+              18.814632979532085,
+              18.565166586389147,
+              18.32403359003365,
+              18.322700634598732,
+              18.10696752121051
+            ],
+            "median_us": 18.451966267699994
+          },
+          "candidate": {
+            "peak_traced_bytes": 8178,
+            "samples_us": [
+              17.84576646362742,
+              17.478099713722866,
+              17.458066577091813,
+              17.565933133785926,
+              17.425666252772015,
+              17.198898907129962,
+              17.289400178318225
+            ],
+            "median_us": 17.458066577091813
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 42536,
+            "samples_us": [
+              14.956999802961946,
+              14.50113292473058,
+              14.508133366083106,
+              14.80336650274694,
+              14.921931627516946,
+              14.929968165233731,
+              14.7939989498506
+            ],
+            "median_us": 14.80336650274694
+          },
+          "candidate": {
+            "peak_traced_bytes": 19768,
+            "samples_us": [
+              13.63013288937509,
+              13.351933254549902,
+              13.423398680364093,
+              13.770399770389,
+              14.231266686692834,
+              13.86560034006834,
+              13.720333420981962
+            ],
+            "median_us": 13.720333420981962
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 230240,
+            "samples_us": [
+              13.676567080741128,
+              12.613200427343449,
+              12.108266431217391,
+              11.706833417216936,
+              11.607998749241233,
+              11.620032213007411,
+              11.60529985403021
+            ],
+            "median_us": 11.706833417216936
+          },
+          "candidate": {
+            "peak_traced_bytes": 130768,
+            "samples_us": [
+              10.943067415306967,
+              10.725634638220072,
+              10.660833989580473,
+              9.886031815161308,
+              9.912101086229086,
+              9.894731920212507,
+              9.79853211902082
+            ],
+            "median_us": 9.912101086229086
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 107456,
+            "samples_us": [
+              20.940332130218547,
+              20.75196631873647,
+              20.751634535069265,
+              20.278732214743894,
+              20.495833208163578,
+              20.77000099234283,
+              20.834799700727068
+            ],
+            "median_us": 20.75196631873647
+          },
+          "candidate": {
+            "peak_traced_bytes": 35570,
+            "samples_us": [
+              19.4839007842044,
+              19.016667890052,
+              19.318267004564404,
+              18.54109965885679,
+              18.58586717086534,
+              19.18599979641537,
+              18.643300669888657
+            ],
+            "median_us": 19.016667890052
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 332840,
+            "samples_us": [
+              46.470999950543046,
+              42.67580031106869,
+              42.75296620714168,
+              43.08293185507257,
+              43.266600308318935,
+              42.424333514645696,
+              44.62416594227155
+            ],
+            "median_us": 43.08293185507257
+          },
+          "candidate": {
+            "peak_traced_bytes": 130872,
+            "samples_us": [
+              41.40276578254998,
+              39.64906791225076,
+              39.40763223605851,
+              41.48923326283693,
+              41.275498612473406,
+              39.79166698021193,
+              40.9749336540699
+            ],
+            "median_us": 40.9749336540699
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 1835872,
+            "samples_us": [
+              61.62636758138736,
+              53.61619987525046,
+              57.155233419810735,
+              54.08209981396794,
+              57.484867284074426,
+              53.79556678235531,
+              57.580366653079786
+            ],
+            "median_us": 57.155233419810735
+          },
+          "candidate": {
+            "peak_traced_bytes": 1019600,
+            "samples_us": [
+              42.65443227874736,
+              44.33996703786155,
+              40.33873362156252,
+              43.380832842861615,
+              41.716668056324124,
+              43.23790005097786,
+              40.175399044528604
+            ],
+            "median_us": 42.65443227874736
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 824256,
+            "samples_us": [
+              42.21929896933337,
+              37.94216512081524,
+              37.358064825336136,
+              37.604867247864604,
+              37.20009893489381,
+              37.54543334556122,
+              38.104834190259375
+            ],
+            "median_us": 37.604867247864604
+          },
+          "candidate": {
+            "peak_traced_bytes": 214770,
+            "samples_us": [
+              24.281333511074386,
+              23.130467161536217,
+              23.17723313656946,
+              23.145833984017372,
+              23.19759999712308,
+              22.992532467469573,
+              23.41336803510785
+            ],
+            "median_us": 23.17723313656946
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 2655272,
+            "samples_us": [
+              200.72846673429012,
+              189.60406693319482,
+              201.11353369429708,
+              191.106233978644,
+              204.2841981165111,
+              192.15123223451275,
+              205.81613255975148
+            ],
+            "median_us": 200.72846673429012
+          },
+          "candidate": {
+            "peak_traced_bytes": 1019704,
+            "samples_us": [
+              168.75489964149892,
+              169.62423299749693,
+              164.96476794903478,
+              170.16826701971394,
+              167.00493288226426,
+              172.6646674796939,
+              168.88183308765292
+            ],
+            "median_us": 168.88183308765292
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 7340880,
+            "samples_us": [
+              324.78039890217286,
+              315.1818993501365,
+              382.4696332837145,
+              407.96359923357767,
+              359.9773995423069,
+              378.29443269098795,
+              379.5871996165564
+            ],
+            "median_us": 378.29443269098795
+          },
+          "candidate": {
+            "peak_traced_bytes": 4067008,
+            "samples_us": [
+              161.69186565093696,
+              191.2147660429279,
+              164.69823312945664,
+              210.82060023521385,
+              168.13206796844798,
+              226.0804680796961,
+              170.35093430119255
+            ],
+            "median_us": 170.35093430119255
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 3281856,
+            "samples_us": [
+              254.99393426192304,
+              208.6297667119652,
+              237.91090158435205,
+              250.02449983730912,
+              201.76243463841578,
+              272.1113346827527,
+              238.68199981128174
+            ],
+            "median_us": 238.68199981128174
+          },
+          "candidate": {
+            "peak_traced_bytes": 829170,
+            "samples_us": [
+              65.97926646160583,
+              66.1465999049445,
+              55.9606666987141,
+              63.15863380829493,
+              55.43833443274101,
+              82.84656796604395,
+              65.15806696067254
+            ],
+            "median_us": 65.15806696067254
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 10617880,
+            "samples_us": [
+              1166.6494344050686,
+              1317.9425984465827,
+              1640.0272007255503,
+              1074.9196672501662,
+              1257.3385009697326,
+              1387.2261333744973,
+              1461.6487683573116
+            ],
+            "median_us": 1317.9425984465827
+          },
+          "candidate": {
+            "peak_traced_bytes": 4067112,
+            "samples_us": [
+              743.1376997071008,
+              895.7647330438098,
+              839.2022670401881,
+              711.8624654443314,
+              665.9037666395307,
+              903.3931981927404,
+              919.9331669757763
+            ],
+            "median_us": 839.2022670401881
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 4116,
+            "samples_us": [
+              2.4890682349602384,
+              2.416566712781787,
+              2.403200293580691,
+              2.4035670018444457,
+              2.4028995539993048,
+              2.4142655699203415,
+              2.4289339004705353
+            ],
+            "median_us": 2.4142655699203415
+          },
+          "candidate": {
+            "peak_traced_bytes": 4116,
+            "samples_us": [
+              2.1159998141229153,
+              1.9643999015291531,
+              1.9493668029705684,
+              1.9670677526543539,
+              1.9607328188916047,
+              1.9653680889556808,
+              2.41156667470932
+            ],
+            "median_us": 1.9653680889556808
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 5160,
+            "samples_us": [
+              13.518601190298796,
+              12.969231465831399,
+              13.22070020250976,
+              13.119867071509361,
+              13.151565023387471,
+              13.1775993698587,
+              13.253767974674702
+            ],
+            "median_us": 13.1775993698587
+          },
+          "candidate": {
+            "peak_traced_bytes": 4788,
+            "samples_us": [
+              13.116167004530627,
+              12.498333429296812,
+              12.42420015235742,
+              12.374098878353834,
+              12.792868074029684,
+              12.634566519409418,
+              12.596865417435765
+            ],
+            "median_us": 12.596865417435765
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 4592,
+            "samples_us": [
+              8.137066227694353,
+              7.98746671838065,
+              8.379532179484764,
+              8.555199019610882,
+              8.002466832598051,
+              7.860899980490407,
+              7.947031796599428
+            ],
+            "median_us": 8.002466832598051
+          },
+          "candidate": {
+            "peak_traced_bytes": 4220,
+            "samples_us": [
+              7.569333926464121,
+              7.388333324342966,
+              7.361967194204529,
+              8.338800398632884,
+              7.473134125272432,
+              7.730966899544001,
+              7.334867647538583
+            ],
+            "median_us": 7.473134125272432
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 39264,
+            "samples_us": [
+              3.5794335417449474,
+              3.3887336030602455,
+              3.4024337461839123,
+              3.375400168200334,
+              3.682300060366591,
+              3.3954333048313856,
+              3.3817680863042674
+            ],
+            "median_us": 3.3954333048313856
+          },
+          "candidate": {
+            "peak_traced_bytes": 24528,
+            "samples_us": [
+              2.981999811405937,
+              2.90983395340542,
+              2.9539340175688267,
+              2.8056674636900425,
+              2.7658999897539616,
+              2.7833001998563605,
+              2.7675666691114507
+            ],
+            "median_us": 2.8056674636900425
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 22872,
+            "samples_us": [
+              13.495566478619974,
+              13.854568048069874,
+              13.439465935031572,
+              13.200001558288932,
+              13.050400108719865,
+              13.562031866361696,
+              13.692267627144853
+            ],
+            "median_us": 13.495566478619974
+          },
+          "candidate": {
+            "peak_traced_bytes": 10610,
+            "samples_us": [
+              13.144533537949124,
+              12.443899565065902,
+              12.32736782791714,
+              13.063731603324413,
+              12.317332827175656,
+              12.288599585493404,
+              12.310966849327087
+            ],
+            "median_us": 12.32736782791714
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 57128,
+            "samples_us": [
+              11.551201653977236,
+              10.936699497203033,
+              10.928366100415587,
+              10.891299461945891,
+              11.006831967582304,
+              10.931033951540789,
+              11.516133478532234
+            ],
+            "median_us": 10.936699497203033
+          },
+          "candidate": {
+            "peak_traced_bytes": 24632,
+            "samples_us": [
+              10.321200049171845,
+              9.985268115997314,
+              9.91709918404619,
+              9.946499873573583,
+              9.92913458806773,
+              9.960531800364455,
+              10.250099391366044
+            ],
+            "median_us": 9.960531800364455
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 308064,
+            "samples_us": [
+              11.413932467500368,
+              9.782532773291072,
+              10.003933372596899,
+              10.089098941534758,
+              9.683998844896754,
+              10.131200542673469,
+              9.641266660764813
+            ],
+            "median_us": 10.003933372596899
+          },
+          "candidate": {
+            "peak_traced_bytes": 169680,
+            "samples_us": [
+              8.987334634487828,
+              8.686133272325,
+              7.883932751913864,
+              7.937033660709859,
+              7.90363410487771,
+              7.915000120798746,
+              7.897966618960102
+            ],
+            "median_us": 7.915000120798746
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 146520,
+            "samples_us": [
+              16.241433331742883,
+              16.313899929324787,
+              16.108500616004072,
+              16.29350008442998,
+              15.786899408946432,
+              16.226033524920545,
+              15.995965804904698
+            ],
+            "median_us": 16.226033524920545
+          },
+          "candidate": {
+            "peak_traced_bytes": 45298,
+            "samples_us": [
+              15.112965290124217,
+              14.010533535232147,
+              14.150466692323485,
+              13.917667092755437,
+              14.43633227609098,
+              13.887965663646657,
+              13.834201187516252
+            ],
+            "median_us": 14.010533535232147
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 449576,
+            "samples_us": [
+              36.333800138284765,
+              35.490532172843814,
+              35.687233321368694,
+              35.199334767336644,
+              35.7286655344069,
+              35.25243179562191,
+              35.73899933447441
+            ],
+            "median_us": 35.687233321368694
+          },
+          "candidate": {
+            "peak_traced_bytes": 169784,
+            "samples_us": [
+              31.064501187453665,
+              31.334334441150233,
+              30.635332223027945,
+              31.265199262027938,
+              30.991999665275216,
+              31.424500048160557,
+              30.713466306527458
+            ],
+            "median_us": 31.064501187453665
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 2458464,
+            "samples_us": [
+              107.95376729220152,
+              100.0157673843205,
+              100.90846723566452,
+              99.27733335644007,
+              100.13096616603434,
+              100.42216551179688,
+              100.99390055984259
+            ],
+            "median_us": 100.42216551179688
+          },
+          "candidate": {
+            "peak_traced_bytes": 1330896,
+            "samples_us": [
+              52.16346665595969,
+              52.20320114555458,
+              50.512299640104175,
+              51.77873341987531,
+              50.1743343193084,
+              53.43986752753457,
+              50.49896620524426
+            ],
+            "median_us": 51.77873341987531
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 1135704,
+            "samples_us": [
+              83.53420028773446,
+              77.87380018271506,
+              81.46663312800229,
+              82.92703229623537,
+              80.65873407758772,
+              81.07086759991944,
+              100.05016811192036
+            ],
+            "median_us": 81.46663312800229
+          },
+          "candidate": {
+            "peak_traced_bytes": 292594,
+            "samples_us": [
+              28.778831862534084,
+              28.13963413548966,
+              27.759233489632607,
+              31.76746734728416,
+              27.568566535289087,
+              29.067033513759572,
+              28.558768099173903
+            ],
+            "median_us": 28.558768099173903
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 3589160,
+            "samples_us": [
+              362.5879995524883,
+              329.3430316261947,
+              346.7667343405386,
+              323.7801662180573,
+              379.26726702911157,
+              331.2225996827086,
+              378.59066505916417
+            ],
+            "median_us": 346.7667343405386
+          },
+          "candidate": {
+            "peak_traced_bytes": 1331000,
+            "samples_us": [
+              203.48699957442778,
+              209.13170107329884,
+              207.71506630505124,
+              194.7591663338244,
+              202.3732658320417,
+              194.30699952257177,
+              201.44616719335318
+            ],
+            "median_us": 202.3732658320417
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 9831248,
+            "samples_us": [
+              958.4658003101746,
+              838.6599326816698,
+              1023.4628998053571,
+              988.8022672384978,
+              790.6860671937466,
+              790.1360339019448,
+              771.6553673769038
+            ],
+            "median_us": 838.6599326816698
+          },
+          "candidate": {
+            "peak_traced_bytes": 5312192,
+            "samples_us": [
+              210.84529968599477,
+              239.19130132223168,
+              251.2174328633895,
+              224.4203332035492,
+              187.41360011820993,
+              211.4434338485201,
+              185.47826718228558
+            ],
+            "median_us": 211.4434338485201
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 4527192,
+            "samples_us": [
+              268.83813164507353,
+              262.5338655586044,
+              263.9825999115904,
+              267.53366691991687,
+              261.68523278708255,
+              264.39336749414605,
+              268.1384658596168
+            ],
+            "median_us": 264.39336749414605
+          },
+          "candidate": {
+            "peak_traced_bytes": 1140466,
+            "samples_us": [
+              77.71419865700105,
+              78.79889841812351,
+              73.98243372639021,
+              77.238300582394,
+              74.24530146333079,
+              77.10969851662716,
+              73.78773298114538
+            ],
+            "median_us": 77.10969851662716
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 14353432,
+            "samples_us": [
+              1286.5965681460998,
+              1217.4689676612616,
+              1827.8752996896706,
+              1776.7014001340915,
+              1827.2598332259804,
+              1766.0549007511388,
+              1872.6200660845884
+            ],
+            "median_us": 1776.7014001340915
+          },
+          "candidate": {
+            "peak_traced_bytes": 5312296,
+            "samples_us": [
+              854.1055004267644,
+              827.553899337848,
+              1054.6436009462923,
+              1316.0052651073784,
+              1303.194333255912,
+              1376.7593326823167,
+              1293.6522679713867
+            ],
+            "median_us": 1293.6522679713867
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        }
+      ]
+    },
+    "adapter-numpy252.json": {
+      "status": "passed",
+      "numpy": "2.5.2",
+      "source_sha256": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+      "scope": "Measure actual adapter methods before editing; native calls are deterministic fixtures.",
+      "limits": "Measures adapter NumPy work only, with reused deterministic native observation storage; excludes physical integration, training RSS and end-to-end throughput.",
+      "replacements": [
+        [
+          "self._episodes[ids].copy()",
+          "self._episodes[ids]"
+        ],
+        [
+          "self._steps[ids].copy()",
+          "self._steps[ids]"
+        ],
+        [
+          "self._versions[ids].copy()",
+          "self._versions[ids]"
+        ],
+        [
+          "self._proprio[ids].copy()",
+          "self._proprio[ids]"
+        ],
+        [
+          "return value.copy()",
+          "return value"
+        ],
+        [
+          "self._proprio = self._features(native.obs())",
+          "self._proprio = self._features(native.obs()).copy()"
+        ],
+        [
+          "self._proprio = self._features(observation)",
+          "self._proprio = self._features(observation).copy()"
+        ]
+      ],
+      "results": [
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 4296,
+            "samples_us": [
+              2.525432500988245,
+              2.4623334563026824,
+              2.5588339970757565,
+              2.4600012693554163,
+              2.4543318431824446,
+              2.4386332370340824,
+              2.4432995511839786
+            ],
+            "median_us": 2.4600012693554163
+          },
+          "candidate": {
+            "peak_traced_bytes": 4264,
+            "samples_us": [
+              2.1180002174029746,
+              1.9634006700168054,
+              1.9467008921007314,
+              1.9630339617530503,
+              1.9419996533542874,
+              1.9587013715257244,
+              1.9714003428816795
+            ],
+            "median_us": 1.9630339617530503
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 5120,
+            "samples_us": [
+              11.22526591643691,
+              10.936033989613255,
+              10.886299423873425,
+              10.868899213771025,
+              10.87160004923741,
+              10.934033586333195,
+              10.947766713798046
+            ],
+            "median_us": 10.934033586333195
+          },
+          "candidate": {
+            "peak_traced_bytes": 4824,
+            "samples_us": [
+              11.085666483268142,
+              10.343266573424142,
+              10.50723367370665,
+              10.345598760371406,
+              10.25876651207606,
+              10.28413341070215,
+              10.232031733418506
+            ],
+            "median_us": 10.343266573424142
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 4600,
+            "samples_us": [
+              7.694565768664082,
+              7.626765485232075,
+              7.6471342860410605,
+              7.630768232047558,
+              7.6501649649192895,
+              7.630766291792195,
+              7.661499936754506
+            ],
+            "median_us": 7.6471342860410605
+          },
+          "candidate": {
+            "peak_traced_bytes": 4304,
+            "samples_us": [
+              7.238700830688079,
+              7.084766790891687,
+              7.009300558517377,
+              7.068034028634429,
+              6.997899617999792,
+              7.020965373764435,
+              7.05840066075325
+            ],
+            "median_us": 7.05840066075325
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 29536,
+            "samples_us": [
+              3.979865383977691,
+              3.4071000603338084,
+              3.4161319490522146,
+              3.4104664033899708,
+              3.4104664033899708,
+              3.4071000603338084,
+              3.422499867156148
+            ],
+            "median_us": 3.4104664033899708
+          },
+          "candidate": {
+            "peak_traced_bytes": 19824,
+            "samples_us": [
+              2.934234604860346,
+              2.79763286622862,
+              2.7959661868711314,
+              2.798965821663539,
+              2.7979665901511908,
+              2.8056655234346786,
+              2.869433956220746
+            ],
+            "median_us": 2.798965821663539
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 17968,
+            "samples_us": [
+              11.156800125415126,
+              11.17516658268869,
+              10.985799599438906,
+              11.058268137276173,
+              11.020200327038765,
+              11.000500914330283,
+              10.980132113521298
+            ],
+            "median_us": 11.020200327038765
+          },
+          "candidate": {
+            "peak_traced_bytes": 5072,
+            "samples_us": [
+              10.800132683167854,
+              10.347265439728895,
+              10.326233071585497,
+              10.30220106864969,
+              10.292499791830778,
+              10.284465194369355,
+              10.348600335419178
+            ],
+            "median_us": 10.326233071585497
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 42536,
+            "samples_us": [
+              10.686233872547746,
+              10.294500195110837,
+              10.468467371538281,
+              10.511899987856548,
+              10.587699944153428,
+              10.604399722069502,
+              10.807133124520382
+            ],
+            "median_us": 10.587699944153428
+          },
+          "candidate": {
+            "peak_traced_bytes": 19928,
+            "samples_us": [
+              9.79123287834227,
+              9.631901048123837,
+              9.51936817727983,
+              9.699734315897027,
+              9.723401550824443,
+              9.81223420239985,
+              9.863701416179538
+            ],
+            "median_us": 9.723401550824443
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 230240,
+            "samples_us": [
+              10.639834605778258,
+              9.611200463647643,
+              9.695366801073154,
+              9.567133383825421,
+              9.705033153295517,
+              9.782534713546434,
+              9.591501050939163
+            ],
+            "median_us": 9.695366801073154
+          },
+          "candidate": {
+            "peak_traced_bytes": 130928,
+            "samples_us": [
+              8.280699451764425,
+              8.023200401415426,
+              8.036566820616523,
+              7.957734245186051,
+              7.999800921728213,
+              7.952699282517036,
+              7.973432851334413
+            ],
+            "median_us": 7.999800921728213
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 107568,
+            "samples_us": [
+              13.347266940400004,
+              12.867699842900038,
+              13.11516777301828,
+              12.9097665194422,
+              12.904467682043713,
+              12.892100494354963,
+              12.900433891142407
+            ],
+            "median_us": 12.904467682043713
+          },
+          "candidate": {
+            "peak_traced_bytes": 26609,
+            "samples_us": [
+              12.11829949170351,
+              11.551533437644443,
+              11.483399430289865,
+              11.447999471177658,
+              11.483733154212434,
+              11.485066109647352,
+              11.42096589319408
+            ],
+            "median_us": 11.483733154212434
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 332840,
+            "samples_us": [
+              32.41806601484616,
+              31.203766896699864,
+              31.2922658243527,
+              31.60953444118301,
+              31.20076726190746,
+              31.044134326900043,
+              31.161333511893947
+            ],
+            "median_us": 31.203766896699864
+          },
+          "candidate": {
+            "peak_traced_bytes": 131032,
+            "samples_us": [
+              28.59716575282315,
+              28.38543344599505,
+              28.22680010770758,
+              28.28356809914112,
+              28.132598769540586,
+              28.268533060327172,
+              28.155666465560596
+            ],
+            "median_us": 28.268533060327172
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 1835872,
+            "samples_us": [
+              65.68339886143804,
+              59.054200149451695,
+              64.35959949158132,
+              58.897900938366845,
+              62.64799934191009,
+              58.463733876124024,
+              62.25326602968076
+            ],
+            "median_us": 62.25326602968076
+          },
+          "candidate": {
+            "peak_traced_bytes": 1019760,
+            "samples_us": [
+              44.78446595991652,
+              48.883932565028466,
+              43.93556543315451,
+              48.6862341252466,
+              43.31706635033091,
+              48.07773317831258,
+              43.26160027024646
+            ],
+            "median_us": 44.78446595991652
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 824368,
+            "samples_us": [
+              39.4637657639881,
+              34.78156674342851,
+              34.680033180241786,
+              34.8012331717958,
+              34.605899903302394,
+              34.77886784821749,
+              34.844999512036644
+            ],
+            "median_us": 34.78156674342851
+          },
+          "candidate": {
+            "peak_traced_bytes": 205809,
+            "samples_us": [
+              21.32239945543309,
+              20.712233769396942,
+              20.660132092113294,
+              20.807399414479733,
+              20.58933217388888,
+              21.113333059474826,
+              20.539265824481845
+            ],
+            "median_us": 20.712233769396942
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 2655272,
+            "samples_us": [
+              213.7752657290548,
+              200.11369876253107,
+              226.32769929865995,
+              204.27826675586402,
+              213.4957331387947,
+              200.9910337316493,
+              215.43706728455922
+            ],
+            "median_us": 213.4957331387947
+          },
+          "candidate": {
+            "peak_traced_bytes": 1019864,
+            "samples_us": [
+              182.31933354400098,
+              187.6520982477814,
+              179.48930035345256,
+              183.77943391290805,
+              175.08329862418273,
+              185.88510186721882,
+              175.47503230161965
+            ],
+            "median_us": 182.31933354400098
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 7340880,
+            "samples_us": [
+              341.6855334459494,
+              320.92353406672675,
+              337.9187333242347,
+              316.55996572226286,
+              337.5904673400024,
+              323.06193218876916,
+              341.743667377159
+            ],
+            "median_us": 337.5904673400024
+          },
+          "candidate": {
+            "peak_traced_bytes": 4067168,
+            "samples_us": [
+              172.23056638613343,
+              189.6435336675495,
+              168.9934346359223,
+              192.48023357552788,
+              168.92263277744254,
+              192.14263302274048,
+              169.4372680503875
+            ],
+            "median_us": 172.23056638613343
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 3281968,
+            "samples_us": [
+              216.48103332457444,
+              193.72926714519662,
+              199.47883362571397,
+              196.3278666759531,
+              193.95839966212708,
+              194.23423412566385,
+              195.53503370843828
+            ],
+            "median_us": 195.53503370843828
+          },
+          "candidate": {
+            "peak_traced_bytes": 820209,
+            "samples_us": [
+              53.61286651653548,
+              55.49080087803304,
+              52.75559960864484,
+              55.273701824868716,
+              52.377533089990415,
+              54.87293431845804,
+              52.21223303427299
+            ],
+            "median_us": 53.61286651653548
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 10617880,
+            "samples_us": [
+              1041.4068994577974,
+              995.5196660788108,
+              1047.1230333981416,
+              991.2749344948679,
+              1043.714633366714,
+              1041.3491341751069,
+              1092.2004662764568
+            ],
+            "median_us": 1041.4068994577974
+          },
+          "candidate": {
+            "peak_traced_bytes": 4067272,
+            "samples_us": [
+              684.7029338435581,
+              713.8130681899686,
+              725.6184335953246,
+              766.3008000236005,
+              706.8618996224055,
+              726.5965997551879,
+              716.1959016229957
+            ],
+            "median_us": 716.1959016229957
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 4276,
+            "samples_us": [
+              2.5394993523756666,
+              2.444267738610506,
+              2.468334666142861,
+              2.46766721829772,
+              2.5658674227694673,
+              2.4813673614213863,
+              2.467032754793763
+            ],
+            "median_us": 2.468334666142861
+          },
+          "candidate": {
+            "peak_traced_bytes": 4276,
+            "samples_us": [
+              2.1500668178002043,
+              1.9974327490975459,
+              1.97173406680425,
+              2.013800743346413,
+              2.0361680071800947,
+              1.9907679719229538,
+              1.9810666951040428
+            ],
+            "median_us": 1.9974327490975459
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 5272,
+            "samples_us": [
+              11.222600005567074,
+              11.066634518404802,
+              11.110034150381882,
+              11.115699696044127,
+              11.172166947896281,
+              11.032901238650084,
+              11.026566304887336
+            ],
+            "median_us": 11.110034150381882
+          },
+          "candidate": {
+            "peak_traced_bytes": 4900,
+            "samples_us": [
+              11.267666316901643,
+              10.584733293702206,
+              10.451800577963393,
+              10.39166624347369,
+              10.412066088368494,
+              10.410032700747252,
+              10.496201381708184
+            ],
+            "median_us": 10.451800577963393
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 4752,
+            "samples_us": [
+              8.70280006589989,
+              7.698599559565384,
+              7.554999319836497,
+              7.615098729729652,
+              7.595399317021171,
+              7.60173425078392,
+              7.600065631171067
+            ],
+            "median_us": 7.60173425078392
+          },
+          "candidate": {
+            "peak_traced_bytes": 4380,
+            "samples_us": [
+              7.091767232244213,
+              6.979566145067414,
+              6.934798633058866,
+              6.969533084581296,
+              6.9592012247691555,
+              7.030967390164733,
+              6.936166513090332
+            ],
+            "median_us": 6.969533084581296
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 39264,
+            "samples_us": [
+              3.8653340501089892,
+              3.5280012525618076,
+              3.6034985290219383,
+              3.5317013195405402,
+              3.53266562645634,
+              3.534367230410377,
+              3.543366134787599
+            ],
+            "median_us": 3.534367230410377
+          },
+          "candidate": {
+            "peak_traced_bytes": 24688,
+            "samples_us": [
+              2.9482335473100347,
+              2.828366511190931,
+              2.825033152475953,
+              2.85139928261439,
+              2.8316998699059086,
+              2.8477341402322054,
+              2.8303669144709906
+            ],
+            "median_us": 2.8316998699059086
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 22984,
+            "samples_us": [
+              11.34450042930742,
+              11.037565612544615,
+              11.054599114383262,
+              10.998465586453676,
+              11.051267695923647,
+              11.079667213683328,
+              11.024899625529846
+            ],
+            "median_us": 11.051267695923647
+          },
+          "candidate": {
+            "peak_traced_bytes": 5425,
+            "samples_us": [
+              10.589735272030035,
+              10.188632101441423,
+              10.23973454721272,
+              10.214332723990083,
+              10.14019944705069,
+              10.17293349529306,
+              10.107133615141114
+            ],
+            "median_us": 10.188632101441423
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 57128,
+            "samples_us": [
+              11.064298450946808,
+              10.856566950678825,
+              10.785101524864634,
+              10.748700393984715,
+              10.827833708996573,
+              10.731666892146071,
+              10.749699625497062
+            ],
+            "median_us": 10.785101524864634
+          },
+          "candidate": {
+            "peak_traced_bytes": 24792,
+            "samples_us": [
+              9.979934354002278,
+              9.798233319694797,
+              9.739798648903768,
+              9.764166316017509,
+              9.757132890323797,
+              9.763799607753754,
+              9.787199087440968
+            ],
+            "median_us": 9.764166316017509
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 308064,
+            "samples_us": [
+              11.517499418308338,
+              10.03166544251144,
+              10.117832183217008,
+              10.043332198013863,
+              10.094766427452365,
+              10.040666287144026,
+              10.067065401623646
+            ],
+            "median_us": 10.067065401623646
+          },
+          "candidate": {
+            "peak_traced_bytes": 169840,
+            "samples_us": [
+              8.529133629053831,
+              8.435667647669712,
+              8.392566815018654,
+              8.27233501089116,
+              8.368166163563728,
+              8.336132547507683,
+              8.278700988739729
+            ],
+            "median_us": 8.368166163563728
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 146632,
+            "samples_us": [
+              14.588632620871067,
+              13.737700646743178,
+              13.419766522323092,
+              13.469867796326678,
+              13.3693334646523,
+              13.34726500014464,
+              13.418099842965603
+            ],
+            "median_us": 13.419766522323092
+          },
+          "candidate": {
+            "peak_traced_bytes": 36337,
+            "samples_us": [
+              12.137667120744783,
+              11.757598258554935,
+              11.612333279723922,
+              11.635366051147383,
+              11.649399918193618,
+              11.680799070745707,
+              11.578266276046634
+            ],
+            "median_us": 11.649399918193618
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 449576,
+            "samples_us": [
+              36.24800010584295,
+              35.71700071915984,
+              35.87093475895623,
+              35.70429980754852,
+              37.379799565921225,
+              35.81383304360012,
+              35.780099763845406
+            ],
+            "median_us": 35.81383304360012
+          },
+          "candidate": {
+            "peak_traced_bytes": 169944,
+            "samples_us": [
+              31.387101626023654,
+              31.27190090405444,
+              30.992065633957584,
+              31.15666525748869,
+              31.08753395887713,
+              31.18069920067986,
+              31.012065786247447
+            ],
+            "median_us": 31.15666525748869
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 2458464,
+            "samples_us": [
+              108.86853366779785,
+              101.2414344586432,
+              101.01800047171614,
+              99.98240081282954,
+              100.15570054141183,
+              99.27903302013874,
+              99.94363257040581
+            ],
+            "median_us": 100.15570054141183
+          },
+          "candidate": {
+            "peak_traced_bytes": 1331056,
+            "samples_us": [
+              51.10380006954074,
+              50.4405334747086,
+              49.52713303888837,
+              50.468932992468275,
+              49.37920020893216,
+              50.466934529443584,
+              49.421299869815506
+            ],
+            "median_us": 50.4405334747086
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 1135816,
+            "samples_us": [
+              80.73360077105463,
+              74.74926727203031,
+              74.6076344512403,
+              74.69616636323433,
+              78.45729899903138,
+              81.00809839864573,
+              76.35326667999227
+            ],
+            "median_us": 76.35326667999227
+          },
+          "candidate": {
+            "peak_traced_bytes": 283633,
+            "samples_us": [
+              25.175998841101922,
+              24.518432716528576,
+              24.37950073120495,
+              24.29133358721932,
+              32.48386589499811,
+              25.353033561259508,
+              25.719699139396347
+            ],
+            "median_us": 25.175998841101922
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 3589160,
+            "samples_us": [
+              340.5563669123997,
+              332.5011328949283,
+              317.13636708445847,
+              325.3305660715947,
+              338.3325335259239,
+              330.670333156983,
+              319.2830986032883
+            ],
+            "median_us": 330.670333156983
+          },
+          "candidate": {
+            "peak_traced_bytes": 1331160,
+            "samples_us": [
+              208.21069871696335,
+              202.09380115071934,
+              197.53916809956235,
+              206.8444329779595,
+              206.16749922434488,
+              208.23073379384974,
+              198.12926572437087
+            ],
+            "median_us": 206.16749922434488
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 9831248,
+            "samples_us": [
+              811.7011670644085,
+              828.7885323322067,
+              727.7183991391212,
+              776.1284340328226,
+              781.5924317886431,
+              815.8586996917923,
+              721.7180333100259
+            ],
+            "median_us": 781.5924317886431
+          },
+          "candidate": {
+            "peak_traced_bytes": 5312352,
+            "samples_us": [
+              236.2491349534442,
+              231.9670321109394,
+              202.21036587220928,
+              223.6032004778584,
+              196.34959947628278,
+              220.25150052892667,
+              201.06450150099894
+            ],
+            "median_us": 220.25150052892667
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 4527304,
+            "samples_us": [
+              262.46480022867524,
+              273.61593286817276,
+              270.83400054834783,
+              279.3518011458218,
+              275.7326331144819,
+              267.65896667105454,
+              264.6432665642351
+            ],
+            "median_us": 270.83400054834783
+          },
+          "candidate": {
+            "peak_traced_bytes": 1131505,
+            "samples_us": [
+              74.11903352476656,
+              78.04046617820859,
+              72.8306321737667,
+              77.48176576569676,
+              72.08956715961297,
+              71.86279981397092,
+              66.97853289855023
+            ],
+            "median_us": 72.8306321737667
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 14353432,
+            "samples_us": [
+              1355.699566192925,
+              1307.7216669141005,
+              1381.8230324735243,
+              1328.6456659746668,
+              1309.1473665554076,
+              1242.082699900493,
+              1335.0293991000701
+            ],
+            "median_us": 1328.6456659746668
+          },
+          "candidate": {
+            "peak_traced_bytes": 5312456,
+            "samples_us": [
+              953.9963347682108,
+              930.6774998549372,
+              823.9139337092638,
+              887.9445667844266,
+              836.7399005995443,
+              848.6561341366421,
+              810.8639003088076
+            ],
+            "median_us": 848.6561341366421
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        }
+      ]
+    },
+    "adapter-numpy126.json": {
+      "status": "passed",
+      "numpy": "1.26.4",
+      "source_sha256": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+      "scope": "Measure actual adapter methods before editing; native calls are deterministic fixtures.",
+      "limits": "Measures adapter NumPy work only, with reused deterministic native observation storage; excludes physical integration, training RSS and end-to-end throughput.",
+      "replacements": [
+        [
+          "self._episodes[ids].copy()",
+          "self._episodes[ids]"
+        ],
+        [
+          "self._steps[ids].copy()",
+          "self._steps[ids]"
+        ],
+        [
+          "self._versions[ids].copy()",
+          "self._versions[ids]"
+        ],
+        [
+          "self._proprio[ids].copy()",
+          "self._proprio[ids]"
+        ],
+        [
+          "return value.copy()",
+          "return value"
+        ],
+        [
+          "self._proprio = self._features(native.obs())",
+          "self._proprio = self._features(native.obs()).copy()"
+        ],
+        [
+          "self._proprio = self._features(observation)",
+          "self._proprio = self._features(observation).copy()"
+        ]
+      ],
+      "results": [
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 3608,
+            "samples_us": [
+              4.536598377550642,
+              4.360266029834747,
+              4.030998873834809,
+              4.38096661431094,
+              3.950132910783092,
+              3.8326000018666186,
+              4.334534363200268
+            ],
+            "median_us": 4.334534363200268
+          },
+          "candidate": {
+            "peak_traced_bytes": 3400,
+            "samples_us": [
+              3.5630655474960804,
+              3.181000162536899,
+              3.3553670315692825,
+              3.433167391146223,
+              3.318300393099586,
+              3.1296008576949434,
+              3.3406346725920835
+            ],
+            "median_us": 3.3406346725920835
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 4256,
+            "samples_us": [
+              21.198801308249436,
+              21.77090112430354,
+              21.558499429374933,
+              21.246234731127817,
+              21.409200659642618,
+              21.35043226492902,
+              21.39716719587644
+            ],
+            "median_us": 21.39716719587644
+          },
+          "candidate": {
+            "peak_traced_bytes": 3960,
+            "samples_us": [
+              21.366466535255313,
+              19.9421017896384,
+              20.225000722954668,
+              20.03860039015611,
+              20.55426787895461,
+              19.998865900561213,
+              19.707666554798685
+            ],
+            "median_us": 20.03860039015611
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 1,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 3848,
+            "samples_us": [
+              13.21200009745856,
+              12.535766776030263,
+              12.553801449636618,
+              13.065066499014696,
+              12.790233207245667,
+              13.022334314882755,
+              13.063766527920961
+            ],
+            "median_us": 13.022334314882755
+          },
+          "candidate": {
+            "peak_traced_bytes": 3552,
+            "samples_us": [
+              12.20880076289177,
+              10.743333647648495,
+              11.621999631946284,
+              11.554232332855463,
+              11.390565972154338,
+              10.06439949075381,
+              11.530165405323109
+            ],
+            "median_us": 11.530165405323109
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 29536,
+            "samples_us": [
+              5.926900000000994,
+              5.362801797067126,
+              5.727168172597885,
+              5.414232145994902,
+              5.761900683864951,
+              5.735200829803944,
+              5.7418675472339
+            ],
+            "median_us": 5.735200829803944
+          },
+          "candidate": {
+            "peak_traced_bytes": 18960,
+            "samples_us": [
+              4.724298681442936,
+              4.54693411787351,
+              4.547933349385858,
+              4.085066029801965,
+              4.651133591930072,
+              4.5542993272344265,
+              4.528934368863702
+            ],
+            "median_us": 4.547933349385858
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 17104,
+            "samples_us": [
+              19.36966630940636,
+              19.17796519895395,
+              19.093833786124982,
+              18.826967182879645,
+              21.733500761911273,
+              21.612933293605842,
+              20.57629947861036
+            ],
+            "median_us": 19.36966630940636
+          },
+          "candidate": {
+            "peak_traced_bytes": 8098,
+            "samples_us": [
+              18.906467206155263,
+              17.91126754445334,
+              17.802366831650335,
+              17.587332210193075,
+              17.49546693948408,
+              20.372933552910883,
+              19.73603308821718
+            ],
+            "median_us": 17.91126754445334
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 64,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 42648,
+            "samples_us": [
+              17.51483262826999,
+              17.480767564848065,
+              15.032799759258825,
+              15.944199791798988,
+              17.23096550752719,
+              17.202567930022873,
+              15.895767137408257
+            ],
+            "median_us": 17.202567930022873
+          },
+          "candidate": {
+            "peak_traced_bytes": 19176,
+            "samples_us": [
+              16.15959918126464,
+              15.687366249039771,
+              14.321799001966914,
+              15.62793234673639,
+              15.646966251855094,
+              15.504365243638556,
+              15.300665594016513
+            ],
+            "median_us": 15.62793234673639
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 230240,
+            "samples_us": [
+              15.839332869897287,
+              14.487100997939706,
+              14.617666602134705,
+              14.861133725692829,
+              14.518833874414364,
+              14.798700188597044,
+              14.817066645870606
+            ],
+            "median_us": 14.798700188597044
+          },
+          "candidate": {
+            "peak_traced_bytes": 130064,
+            "samples_us": [
+              11.966334811101358,
+              12.158033981298406,
+              11.977334118758638,
+              12.140333031614622,
+              11.75863241466383,
+              12.055832970266541,
+              11.677432727689544
+            ],
+            "median_us": 11.977334118758638
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 106704,
+            "samples_us": [
+              22.502633510157466,
+              25.639533608530957,
+              24.926866171881557,
+              25.010999524965882,
+              24.724167694027226,
+              24.98333342373371,
+              24.562166072428226
+            ],
+            "median_us": 24.926866171881557
+          },
+          "candidate": {
+            "peak_traced_bytes": 35490,
+            "samples_us": [
+              20.044634584337473,
+              22.234765735144414,
+              22.5537340156734,
+              21.699433758233987,
+              22.136932238936424,
+              21.92519993210832,
+              22.059434559196234
+            ],
+            "median_us": 22.059434559196234
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 512,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 332952,
+            "samples_us": [
+              31.741433000812926,
+              30.034200365965567,
+              30.444998992606997,
+              30.233932193368673,
+              30.07763298228383,
+              30.037200000757974,
+              30.194832167277735
+            ],
+            "median_us": 30.194832167277735
+          },
+          "candidate": {
+            "peak_traced_bytes": 130280,
+            "samples_us": [
+              27.793966000899673,
+              40.31200078316033,
+              27.757566810275115,
+              27.31440084365507,
+              27.091300580650568,
+              27.953932294622064,
+              27.492066146805882
+            ],
+            "median_us": 27.757566810275115
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 1835872,
+            "samples_us": [
+              61.95366731844842,
+              57.069400403027736,
+              60.883666931961976,
+              56.91243374409775,
+              60.140566589931645,
+              56.397466687485576,
+              61.20289908722043
+            ],
+            "median_us": 60.140566589931645
+          },
+          "candidate": {
+            "peak_traced_bytes": 1018896,
+            "samples_us": [
+              45.17453295799593,
+              46.66470146427552,
+              41.77980008535087,
+              45.80306704156101,
+              41.378000363086656,
+              45.00889917835593,
+              40.55713264582057
+            ],
+            "median_us": 45.00889917835593
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 823504,
+            "samples_us": [
+              44.224100808302566,
+              39.50483320901792,
+              40.095600221926965,
+              38.77243337531885,
+              38.82953315041959,
+              39.143466468279556,
+              38.77140115946531
+            ],
+            "median_us": 39.143466468279556
+          },
+          "candidate": {
+            "peak_traced_bytes": 214690,
+            "samples_us": [
+              24.563499027863145,
+              24.216199138512216,
+              24.274633809303243,
+              24.137065823500357,
+              23.766998977710806,
+              23.966067237779498,
+              24.0020997201403
+            ],
+            "median_us": 24.137065823500357
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 4096,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 2655384,
+            "samples_us": [
+              207.3844332092752,
+              198.728001366059,
+              212.18716671379903,
+              200.0394995169093,
+              214.41506687551737,
+              198.75073339790106,
+              229.5734341411541
+            ],
+            "median_us": 207.3844332092752
+          },
+          "candidate": {
+            "peak_traced_bytes": 1019112,
+            "samples_us": [
+              172.4279000579069,
+              177.76596747959655,
+              173.50226601896188,
+              179.91840140894055,
+              174.76896561371785,
+              182.59413385142884,
+              182.13759952535233
+            ],
+            "median_us": 177.76596747959655
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 7340880,
+            "samples_us": [
+              435.7014666311443,
+              359.92093423071003,
+              407.76356666659314,
+              351.4980004789929,
+              379.8433657114704,
+              342.0708002522588,
+              438.5608675268789
+            ],
+            "median_us": 379.8433657114704
+          },
+          "candidate": {
+            "peak_traced_bytes": 4066304,
+            "samples_us": [
+              185.52099936641753,
+              191.65663397870958,
+              172.0518320022772,
+              200.28396781223515,
+              173.72333289434513,
+              228.0164995075514,
+              223.69629975097874
+            ],
+            "median_us": 191.65663397870958
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 3281104,
+            "samples_us": [
+              305.6274668779224,
+              236.71463325930137,
+              247.0021000287185,
+              237.09369900946817,
+              207.7985341505458,
+              203.44763179309666,
+              204.83956517030794
+            ],
+            "median_us": 236.71463325930137
+          },
+          "candidate": {
+            "peak_traced_bytes": 829090,
+            "samples_us": [
+              77.89686593847969,
+              85.07479991142948,
+              67.45843371997277,
+              65.13933379513523,
+              60.516599720964834,
+              63.83823347277939,
+              60.5095992796123
+            ],
+            "median_us": 65.13933379513523
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 50,
+          "num_envs": 16384,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 10617992,
+            "samples_us": [
+              1404.8719002554813,
+              1279.9159002800784,
+              1175.7954004375886,
+              1123.1801006942987,
+              1269.2814343608916,
+              1283.6736995571605,
+              1086.2985684070736
+            ],
+            "median_us": 1269.2814343608916
+          },
+          "candidate": {
+            "peak_traced_bytes": 4066520,
+            "samples_us": [
+              913.2234651284913,
+              1542.630799425145,
+              732.268433785066,
+              1056.128431810066,
+              1054.5734665356576,
+              1059.398934012279,
+              688.4688336867839
+            ],
+            "median_us": 1054.5734665356576
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 3412,
+            "samples_us": [
+              2.5010667741298676,
+              2.401900322486957,
+              2.401900322486957,
+              2.3932002174357576,
+              2.4048999572793646,
+              2.3922009859234095,
+              2.3865005156646175
+            ],
+            "median_us": 2.401900322486957
+          },
+          "candidate": {
+            "peak_traced_bytes": 3412,
+            "samples_us": [
+              2.0719346745560565,
+              1.9320015174647172,
+              1.9159653068830569,
+              1.918966881930828,
+              1.9230006728321314,
+              1.922300240645806,
+              1.9109672090659537
+            ],
+            "median_us": 1.922300240645806
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 4408,
+            "samples_us": [
+              12.957865449910361,
+              13.150565791875124,
+              12.946866142253082,
+              12.78923397573332,
+              14.228965543831388,
+              13.389333616942167,
+              13.502233196049929
+            ],
+            "median_us": 13.150565791875124
+          },
+          "candidate": {
+            "peak_traced_bytes": 4036,
+            "samples_us": [
+              13.083101172621053,
+              12.246866632873814,
+              12.263566410789888,
+              12.197766530637939,
+              12.451266714682182,
+              12.273898270602029,
+              12.230832362547517
+            ],
+            "median_us": 12.263566410789888
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 1,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 4000,
+            "samples_us": [
+              7.828165932248036,
+              7.75666752209266,
+              7.753332223122319,
+              7.6982347915569935,
+              7.756034998844067,
+              7.688199790815512,
+              7.722600518415371
+            ],
+            "median_us": 7.753332223122319
+          },
+          "candidate": {
+            "peak_traced_bytes": 3628,
+            "samples_us": [
+              7.384666241705418,
+              7.401333035280307,
+              7.111800368875265,
+              7.099468105783065,
+              7.091433508321643,
+              7.090401292468111,
+              7.088765657196443
+            ],
+            "median_us": 7.099468105783065
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 39264,
+            "samples_us": [
+              3.7240659973273673,
+              3.530366423850258,
+              3.413466038182378,
+              3.377734295402964,
+              3.40343297769626,
+              3.3860657519350448,
+              3.397433708111445
+            ],
+            "median_us": 3.40343297769626
+          },
+          "candidate": {
+            "peak_traced_bytes": 23824,
+            "samples_us": [
+              2.8827673910806575,
+              2.971299303074678,
+              2.91653365517656,
+              2.786301774904132,
+              2.787599805742502,
+              2.782933491592606,
+              2.7672659295300646
+            ],
+            "median_us": 2.787599805742502
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 22120,
+            "samples_us": [
+              13.17163308461507,
+              13.048065981517237,
+              13.343599857762456,
+              13.003965917353828,
+              13.008300447836518,
+              12.967566726729274,
+              13.076768179113666
+            ],
+            "median_us": 13.048065981517237
+          },
+          "candidate": {
+            "peak_traced_bytes": 10530,
+            "samples_us": [
+              13.079432149728138,
+              14.150466692323485,
+              12.909133996193608,
+              12.365433697899181,
+              12.38343344690899,
+              12.397834022218982,
+              12.317998334765434
+            ],
+            "median_us": 12.397834022218982
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 64,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 57240,
+            "samples_us": [
+              11.278366825232903,
+              11.077666810403267,
+              10.915700113400817,
+              11.490099132061005,
+              10.822499947001537,
+              10.850199032574892,
+              10.896965007608134
+            ],
+            "median_us": 10.915700113400817
+          },
+          "candidate": {
+            "peak_traced_bytes": 24040,
+            "samples_us": [
+              10.582065442577004,
+              10.8321662992239,
+              10.507567397629222,
+              10.161567479372025,
+              10.102799084658423,
+              10.063733983164033,
+              10.064067707086602
+            ],
+            "median_us": 10.161567479372025
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 308064,
+            "samples_us": [
+              11.315433463702599,
+              9.557434047261875,
+              9.80789967191716,
+              9.661598596721888,
+              9.946499873573583,
+              9.724767490600547,
+              9.794866976638634
+            ],
+            "median_us": 9.794866976638634
+          },
+          "candidate": {
+            "peak_traced_bytes": 168976,
+            "samples_us": [
+              8.658399262155095,
+              7.989133397738138,
+              7.909633374462525,
+              8.08896729722619,
+              7.888599066063762,
+              8.115700135628382,
+              7.922999793663621
+            ],
+            "median_us": 7.989133397738138
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 145768,
+            "samples_us": [
+              16.946766603117187,
+              16.301899449899793,
+              16.36400120332837,
+              15.909133556609351,
+              16.211698918292917,
+              15.909467280531922,
+              16.352299523229398
+            ],
+            "median_us": 16.301899449899793
+          },
+          "candidate": {
+            "peak_traced_bytes": 45218,
+            "samples_us": [
+              15.891098883002996,
+              14.273366347576182,
+              14.444033149629831,
+              14.272367116063833,
+              14.119065599516034,
+              14.322466449812055,
+              14.368200208991766
+            ],
+            "median_us": 14.322466449812055
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 512,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 449688,
+            "samples_us": [
+              36.78699916539093,
+              36.320099995161094,
+              36.42933443188667,
+              35.82819869431357,
+              39.27103243768215,
+              38.57370077942808,
+              39.9960670620203
+            ],
+            "median_us": 36.78699916539093
+          },
+          "candidate": {
+            "peak_traced_bytes": 169192,
+            "samples_us": [
+              33.41796691529453,
+              33.150799572467804,
+              32.29483457592627,
+              33.146098333721355,
+              32.9203651441882,
+              34.77119995901982,
+              32.60143372851114
+            ],
+            "median_us": 33.146098333721355
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 2458464,
+            "samples_us": [
+              129.4702000450343,
+              104.03736766117315,
+              102.5729327617834,
+              98.10046758502722,
+              112.25926573388278,
+              116.48793200341363,
+              116.75476756257315
+            ],
+            "median_us": 112.25926573388278
+          },
+          "candidate": {
+            "peak_traced_bytes": 1330192,
+            "samples_us": [
+              53.7972334617128,
+              49.39453210681677,
+              48.7526316040506,
+              48.498498896757766,
+              47.33229870907962,
+              51.52223166078329,
+              49.46666692073147
+            ],
+            "median_us": 49.39453210681677
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 1134952,
+            "samples_us": [
+              86.93896622086565,
+              80.23096791779003,
+              79.13183265676102,
+              78.4686339708666,
+              90.06289959264298,
+              93.7274657189846,
+              92.59303333237767
+            ],
+            "median_us": 86.93896622086565
+          },
+          "candidate": {
+            "peak_traced_bytes": 292514,
+            "samples_us": [
+              29.55163363367319,
+              29.51989881694317,
+              29.072066536173224,
+              30.981332141285137,
+              30.62866550559799,
+              30.915200477465987,
+              30.7479000184685
+            ],
+            "median_us": 30.62866550559799
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 4096,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 3589272,
+            "samples_us": [
+              348.2358006294817,
+              377.1228657569736,
+              339.60346675788367,
+              358.9681330292175,
+              346.8131336073081,
+              388.1059994455427,
+              350.8340994206568
+            ],
+            "median_us": 350.8340994206568
+          },
+          "candidate": {
+            "peak_traced_bytes": 1330408,
+            "samples_us": [
+              204.7821665958812,
+              212.55186681325236,
+              202.40333396941423,
+              208.01160135306418,
+              204.92339972406626,
+              209.9709992762655,
+              206.9382326832662
+            ],
+            "median_us": 206.9382326832662
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "observe",
+          "baseline": {
+            "peak_traced_bytes": 9831248,
+            "samples_us": [
+              1063.5785680885117,
+              1413.7610676698387,
+              880.3218001654993,
+              810.7978346136708,
+              822.6626339213302,
+              819.3821005988866,
+              845.2828003404042
+            ],
+            "median_us": 845.2828003404042
+          },
+          "candidate": {
+            "peak_traced_bytes": 5311488,
+            "samples_us": [
+              256.15509948693216,
+              243.55490071078142,
+              199.73826711066067,
+              220.0560663671543,
+              192.04669903653362,
+              226.45786715050536,
+              191.035100336497
+            ],
+            "median_us": 220.0560663671543
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "reset_sparse",
+          "baseline": {
+            "peak_traced_bytes": 4526440,
+            "samples_us": [
+              291.9178339652717,
+              274.64043426637846,
+              288.1103001224498,
+              275.1567653225114,
+              284.5939656253904,
+              281.8811665444324,
+              279.2217652313411
+            ],
+            "median_us": 281.8811665444324
+          },
+          "candidate": {
+            "peak_traced_bytes": 1140386,
+            "samples_us": [
+              87.4937007514139,
+              85.77010012231767,
+              81.71410105812053,
+              86.77266693363588,
+              82.01063416587809,
+              89.00523340950409,
+              83.0145669169724
+            ],
+            "median_us": 85.77010012231767
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        },
+        {
+          "width": 69,
+          "num_envs": 16384,
+          "operation": "reset_all",
+          "baseline": {
+            "peak_traced_bytes": 14353544,
+            "samples_us": [
+              1938.2586993742734,
+              1825.7362651638687,
+              2129.3679349279655,
+              1859.7573332954198,
+              1973.828700526307,
+              1273.0308672568449,
+              1336.727834617098
+            ],
+            "median_us": 1859.7573332954198
+          },
+          "candidate": {
+            "peak_traced_bytes": 5311704,
+            "samples_us": [
+              901.8332328802595,
+              1609.0268676634878,
+              1548.869232647121,
+              1582.2498011402786,
+              1555.363234365359,
+              909.7018007499477,
+              867.1678990746537
+            ],
+            "median_us": 1548.869232647121
+          },
+          "bitwise_output_equal": true,
+          "owned_contiguous_results": true
+        }
+      ]
+    }
+  },
+  "measured_allocation_examples": [
+    {
+      "operation": "observe",
+      "num_envs": 4096,
+      "proprio_width": 69,
+      "numpy": "2.5.2",
+      "peak_traced_bytes_before": 2458464,
+      "peak_traced_bytes_after": 1331056,
+      "median_us_before": 100.15570054141183,
+      "median_us_after": 50.4405334747086
+    },
+    {
+      "operation": "reset_sparse",
+      "num_envs": 4096,
+      "proprio_width": 69,
+      "numpy": "2.5.2",
+      "peak_traced_bytes_before": 1135816,
+      "peak_traced_bytes_after": 283633,
+      "median_us_before": 76.35326667999227,
+      "median_us_after": 25.175998841101922
+    },
+    {
+      "operation": "reset_all",
+      "num_envs": 4096,
+      "proprio_width": 69,
+      "numpy": "2.5.2",
+      "peak_traced_bytes_before": 3589160,
+      "peak_traced_bytes_after": 1331160,
+      "median_us_before": 330.670333156983,
+      "median_us_after": 206.16749922434488
+    }
+  ],
+  "integrity": {
+    "baseline_files_checked": 428,
+    "baseline_snapshot_files_checked": 428,
+    "frozen_files_checked": 191,
+    "historical_files_checked": 202,
+    "model_and_registry_files_checked": 6,
+    "reference_data_files_checked": 9,
+    "all_preserved": true
+  },
+  "elapsed_seconds": 25202.149856090546,
+  "last_updated_at": "2026-11-02T00:06:34.149856+00:00",
+  "requested_window_seconds": 25200,
+  "limits": [
+    "Allocation and timing measurements isolate adapter NumPy work with native-shaped fixtures. They exclude physical integration, training RSS and whole-pipeline throughput.",
+    "Native Go1/H1 jobs run separate actual environments; recording compares baseline synchronous transitions with candidate asynchronous compact data through verified public readers. Counts are paired trajectories or per-mode data, not their sum.",
+    "Fresh fixed policies are inference probes, not model-quality or learning improvements. Existing training kernels and model/checkpoint/reference data are unchanged.",
+    "The NumPy 1.26 job uses borrowed-buffer fixtures and does not execute physical simulation.",
+    "Main/native/source-release suites overlap and are separate runs. The main environment skips unavailable optional dependencies.",
+    "The seven-hour window includes investigation, implementation, measurement, packaging and three concurrent six-hour workflows; integrity monitoring begins after the reviewed candidate is frozen."
+  ],
+  "monitor": {
+    "status": "complete",
+    "started_at": "2026-11-01T17:36:09.041206+00:00",
+    "finished_at": "2026-11-02T00:06:33.110180+00:00",
+    "seconds": 23424.068978845025,
+    "samples": 520,
+    "last_sample": {
+      "time": "2026-11-02T00:06:33.110030+00:00",
+      "jobs": [
+        {
+          "name": "go1",
+          "minutes": 360.0,
+          "units": 885995,
+          "status": "complete",
+          "observed_exit": 0
+        },
+        {
+          "name": "h1",
+          "minutes": 360.0,
+          "units": 845921,
+          "status": "complete",
+          "observed_exit": 0
+        },
+        {
+          "name": "fixture",
+          "minutes": 360.0,
+          "units": 3235615,
+          "status": "complete",
+          "observed_exit": 0
+        }
+      ],
+      "frozen_files_checked": 191,
+      "manifest_revision": 1,
+      "full_preservation_check": true,
+      "remaining_minutes": 0.0
+    }
+  },
+  "observed_window_processes": {
+    "started_at": "2026-11-01T17:36:09.023450+00:00",
+    "monitor_returncode": 0,
+    "finalization": [],
+    "monitor_exit_observed_at": "2026-11-02T00:06:33.114136+00:00"
+  },
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261101-170632-sevenhour-evidence.tar.gz",
+    "bytes": 2430257,
+    "sha256": "9d56266950affbf673ab2527977cf551f7c13bfd40926f9f4aad88cde88192e6",
+    "verified_members": 638,
+    "report_snapshot": "scratch/state.json",
+    "snapshot_note": "Report snapshot precedes insertion of the archive identity, avoiding self-reference."
+  }
+}

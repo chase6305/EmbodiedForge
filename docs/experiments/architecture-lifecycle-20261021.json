@@ -1,0 +1,1155 @@
+{
+  "schema_version": 1,
+  "kind": "architecture-validation",
+  "validation_status": "captured_stress_interpreter_exit_failure_unresolved",
+  "completed_utc": "2026-10-21T14:44:34.231999+00:00",
+  "request": {
+    "resumed_utc": "2026-10-21T12:49:38Z",
+    "budget_hours": 2
+  },
+  "baseline": "Workspace snapshot before this optimization, including pre-existing uncommitted changes; not a clean Git revision",
+  "scope": "Workflow lifecycle, environment layout versions, real SDK compatibility, CPU deterministic training and sustained recording integrity; zero policies do not assess walking quality",
+  "changes": [
+    "Shared run_lifecycle and failure classification across host workflows; terminal metadata and publication failures preserve original errors",
+    "ACT process-group ownership and inherited run locks, including forced-launcher recovery",
+    "Version 1 CPU environment specifications with explicit done handling and legacy compatibility",
+    "Native adapter reward conversion and terminal-flag validation",
+    "Native H1 model I/O included in run startup tracking",
+    "Export rollback and motion SDK partial-result cleanup preserve primary failures"
+  ],
+  "platform": {
+    "system": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+    "machine": "x86_64"
+  },
+  "environments": {
+    "core": {
+      "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+      "executable": "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+      "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+      "packages": {
+        "numpy": "2.2.6",
+        "torch": "2.13.0",
+        "pytest": "9.1.1"
+      }
+    },
+    "native": {
+      "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+      "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+      "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+      "packages": {
+        "numpy": "2.5.2",
+        "torch": "2.9.0+cu128",
+        "mujoco": "3.11.0",
+        "mjbatch": "0.1.0",
+        "mujoco-menagerie": "2026.9.0",
+        "pytest": "9.1.1"
+      }
+    },
+    "microduck": {
+      "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+      "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+      "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+      "packages": {
+        "numpy": "2.4.1",
+        "torch": "2.9.1",
+        "mujoco": "3.10.0",
+        "mjlab": "1.3.0",
+        "rsl-rl-lib": "5.0.1",
+        "onnx": "1.22.0",
+        "onnxruntime": "1.24.4",
+        "pytest": "9.1.1"
+      }
+    },
+    "act": {
+      "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+      "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/act-venv/bin/python",
+      "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.35",
+      "packages": {
+        "numpy": "2.2.6",
+        "torch": "2.9.0+cpu",
+        "lerobot": "0.6.2",
+        "pytest": "9.1.1"
+      }
+    }
+  },
+  "source_modules": {
+    "__init__.py": "b398f568b4528c2eb0deab750f0c18f2d5ed33a1737d5a39d8d1201911a1ba78",
+    "__main__.py": "a2b6d2c663999e08203c72c9206a9bdd32acf47b8303ea123a4e7ee5727a2d41",
+    "_act_bundle.py": "ac4db52202c51ebe8e65a7ede6558807900a537ced74492ba3a186b6dae33f96",
+    "_act_checkpoints.py": "2c1104ca5f501885b7359ac87c23540d13bcb5aaf8e6d11bbc54fd536f6fee80",
+    "_act_compare.py": "653414ed69604f9802f54b0b9d5b7bcc4feaa3121db1f08254a878785caf944a",
+    "_act_dataset.py": "b56ed1bd023f5b910fbf0508cc49d105883fce8c99f255fb6bba487f5d9b6f17",
+    "_adam_checkpoint.py": "47e13a0278a38debc5c27dfac5924af1b79658f7e5fda91c4c50c0104208e8f9",
+    "_core_run.py": "ad3b23a57a7f8665dd832016a29bf5ebfacce667a9d84caed473a6fc8e90aef9",
+    "_gmr_worker.py": "28dc6add27f3173baddcddb7364f4ca3c7adda4320f0e4fe0f7a6d2bdb097a7a",
+    "_go1_assets.py": "5fff5b621c6069549190dc8a50f396ccffa43e396c37428e1f5e4c3a513f4d70",
+    "_go1_checkpoint.py": "f3c77adccaf059a65afa9af3275f913e94bc949c17a814ff861012802d6abbc5",
+    "_go1_implementation.py": "54c870d858f0bdf022adc37cbefb8213c837a00579dcab847c88d6b7c03f2e91",
+    "_go1_live_worker.py": "2684446a771c8617a9cb9e44ae05044836e74cba10bcbb1dd26738902c92dc7b",
+    "_go1_metrics.py": "1df410bbe1063aae082114fe1a496343adeecd8b4a3bf474ff8bc3763dac96f7",
+    "_go1_recovery.py": "1175af625a624c483cea23251b86c109fab5d7bca2774cea416b8f3e2ed5ecbf",
+    "_go1_resume.py": "c1be5aba21c461552178374d60fceeda028b45fba48899a9f608d95f3a3cfe8b",
+    "_go1_training_viewer.py": "d92a43fb4783a1b872bd2375c84cdb44bb1ef77ae741f1545858c6fd0d145e9c",
+    "_h1_evaluate.py": "ec33235d2745f556491eaae2f9b3e5bfb2161727ba7fa12c99ae9fb34373c373",
+    "_h1_metrics.py": "0c0c5dcf61ad931fa658a5c1520667b0f9f68a2723a75e5b0220f2ff10e4a145",
+    "_h1_motion.py": "f647ac363aeb00d2a3ccfdf131dcec396d699a3d58a76afce085a07ef638ec52",
+    "_h1_worker.py": "5674e9b60d3a2b71ef371907b2d052223dda427fef190aba509103d44eecef89",
+    "_hashing.py": "a769db9586d8e400abe43c1cd60a89e76bbcb73c30ab337c340ad69d448cc7c2",
+    "_live_channel.py": "508f6b50564f3a9381e641c788da605b10bcea345c0b89af6c6a762db0ecb37b",
+    "_microduck_export.py": "c37f6fca760fe5d788847600f14b7008826c76ce32ca25c70953d6affed0447a",
+    "_microduck_inputs.py": "1bfe9afe0ad282d638d720bf93254baf92bb8dbea458adcda16e7d9879d56f6e",
+    "_microduck_native.py": "e3987b472ca8ce3bfa49afde467e633d595215636d126f78e37d1011c547b3e3",
+    "_microduck_native_worker.py": "4b70966a42da1be74ed6078d0e8bec2d339a30b442bb7f5a69f0c50c024484d4",
+    "_microduck_process.py": "eb4c2a848e8d58a4455d4e65529181686b48c18763cc9a81b96c4832a30a222f",
+    "_microduck_reports.py": "5d6753a553dc959b29e1967800ce85bc1c0be81433181fcbf1852f33708db3ee",
+    "_microduck_run.py": "85e7c0a34e8268cc83b60db76a9dd67e97699cd27a3723d8d36064f5ea92ea76",
+    "_microduck_worker.py": "4c434241331db365f3321cd08f292ea782e1ef2021a08c0d9e6880942eaac819",
+    "_mjbatch_recipe.py": "a1fc6b431476e844e9f1c413888b21aaad09a66782d951d26379a06247c1f215",
+    "_motion_clips.py": "426515cdfadb024efa98f19c3f6113d65b5ba007c977fb9ecf2f5511ecfcc730",
+    "_motion_sdk.py": "e89910098fdec6917db874e871d07d401e7760eba53de4839766c3a322108ceb",
+    "_ppo_parameters.py": "21b6d6bf3b69f31efea9ee56d60ea0aa6c4f981b22628c6616ba8ae22f62802f",
+    "_recipe_worker.py": "f86fbd0465015fa5c9c867a17a076d3229cb1ed9bee89a19e1ae462aedcebff8",
+    "_rlinf_export.py": "0607652b06fc15a0fa71e51cbaf065de65e6bf93258106840b6dc9bf572118e1",
+    "_rlinf_onnx.py": "6f8280525f64e9934bcd2034cf9b27eab47e571713c472f6576a7ed158b4af8b",
+    "_rlinf_worker.py": "2dea8bd3fe64993ebaa18dfc607f3be5fe900deeb178da2b16d3f50a61323558",
+    "_sonic_worker.py": "d58a4657e4d49e3ec1784e7281fad3b3c430867814a4bf42a565407bf63c86e5",
+    "_training_runtime.py": "8f65ce811678846171b8e4c7816f8fb379493ecf09d323fe5d3477a6401f20c3",
+    "_weave_evaluation.py": "7bfcd64c31750c952b8a4ad94ed2b4441709742f6042506ef396487aed4ca924",
+    "_weave_worker.py": "42a8aba555d467b854496e544a4566a537415e9092a3b60c2218710d7bb78bca",
+    "_wuji_diagnostics.py": "99ed83e5a3b8cd5bd6092771e83ff5de02664c7d90776d22f3b138433aa73c8b",
+    "_wuji_recipe.py": "f181d8f6816051642e466fe06a7ca2169877dea53bf43e4463d77873d1d4c53b",
+    "_wuji_training_viewer.py": "495c9941c0f96935217485d93c97b91385de78668ad607a5932e9dabc906af9d",
+    "act.py": "c1d859378dab9ff0e7b89f96c1147e796a164dba0446e038dbc1a484f792b303",
+    "backends/__init__.py": "7c3caf1568fe29afb073e8d8eff670ea3d15259f7db7895758212aa4238450dd",
+    "backends/mjbatch.py": "5127cb1828f7441c1735755919c46e131b1e69a4074b5e59483604c1b6f0269f",
+    "backends/newton.py": "9cd3860f3ed2db508006d6d2242a7f6c5dd2d8e016b5d8dd668bae11b93561f0",
+    "backends/physics.py": "83890aca7e1bb5c169051419d5626e1a775eadba8cca7f527cb6c01e5787c7cb",
+    "backends/render.py": "0a1c5f8de49ac1ba37869bc3101c99cc0bf825253fbc785c2229cd04bca5514f",
+    "batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+    "cli.py": "5343d3a7eb2ba3c990fe31a79ac2cd1cc59a118417ebd2cd6574730276f66116",
+    "core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+    "data.py": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a",
+    "diagnostics.py": "982d60b6d88a0c857b996bcefe2d032d6f3efd0d5a22ee085b3ad8fd316d7877",
+    "env.py": "1a4126796e12df4d4f1b082f3fa92df03b0248384bca083c414bbc196841c95c",
+    "envs/__init__.py": "e3b2bb542e23907ed5189c785bb03a01f5548d76cddca57338dccab04d3fe6a7",
+    "envs/base.py": "05fd6dfac9049d94ebbd316c570356806298614d528fb88c475dd1f0f7fc95c6",
+    "envs/evaluation.py": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc",
+    "envs/locomotion.py": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8",
+    "envs/observations.py": "275a09fab837307f9977d6ec01a3967054a6ce33adec95320d53bb50494e3e0f",
+    "envs/specs.py": "7e51421ef5adde171cba638ed2269af6460e54a655262e6b54edbe07b4a84f9b",
+    "gmr.py": "488a5437edfe57c2d69d1dad11f64ea3cfed35d72887c0fae6ada5893433586e",
+    "go1_live.py": "a6402bbeae668ce0692a89388fb9518f48cb456763dd659754be6e95738aea96",
+    "graphics.py": "4e0fe21c13a433cc2552fa4024fb4f03effc6619d0ccaf45e5f91cdef6624107",
+    "h1.py": "50836e8d92a3b5840c2b031e6b45c100f251e74c0b42a8208c7319f9ce4ab4a4",
+    "learning/__init__.py": "fc42e81d53edb034ce1130bdc217ecfa08f5f469062576ed9649570cbb9d7bb9",
+    "learning/advantages.py": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+    "learning/checkpoints.py": "e6635c3aba8ddbe90652d31be6ae9b7a8a18c73b7144935ac39037a15ad2f9e4",
+    "learning/parameters.py": "a1417de3bda65982d1dc6cc639560dbbf80cee3fcbf42b8e96079674408e64d2",
+    "locomotion/__init__.py": "67e07baec885bd1353838c537f8c2df43fb405ebf341b6e9e60cc8f56ee37428",
+    "locomotion/articulation.py": "58a0abde71ebee6db3dfd11edd994f0673ce355c1ea98357ba0ad59c03be1f6c",
+    "locomotion/go1.py": "fb4567b2f4512858b89b5114224d69b2fc8c56cc0b87fab0b5316b62f1c3094d",
+    "locomotion/go1_config.py": "8e0e6636ed0f8c88da31ad1091b1e4b8c779f71f761eb2d795bd1ee203c93549",
+    "locomotion/go1_light_loco.py": "99cac844466dd804bad88cbcfc82e14176e3b93ccf125736c2309ffc64aa4b54",
+    "locomotion/go1_ppo.py": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce",
+    "locomotion/h1_config.py": "5e6be344733fa1792d8977b43a699f3385dfc77218a73f68f64453565c052bcf",
+    "locomotion/h1_native.py": "58651c65fc15fb14a5305c99dd8572c1df9df1258f5d0f393fff92f7968f724c",
+    "locomotion/h1_ppo.py": "f88a1cda6fe969c4d95b7716cbe813f701c1a24820c38feb03f3c66acd1bc170",
+    "locomotion/microduck/__init__.py": "7c93bc82c7bd846e18b67c918e136a2721d41e17737ffca2012dccb5c38c399c",
+    "locomotion/microduck/actuator/__init__.py": "b8a82f30822166f14e0bcd7730d67153908097c2353c4d0cdbf3c51d9ad475cc",
+    "locomotion/microduck/actuator/friction_dr_bam.py": "03d0461caf973419bbd3f746f2cba73fe9464d00ae59ff3e8f8cd158d8f2e832",
+    "locomotion/microduck/checkpoint.py": "82fdc32abdab1f5beb7dabbe7061d89f0efe1d121b664661dc12ec894e721105",
+    "locomotion/microduck/export.py": "3bac4b1626abd2b02e060decaabbd313e74ca507fe4e876a10ae536d7a90e7fe",
+    "locomotion/microduck/robot/__init__.py": "26782f5a79ab0206de698956d9c4ca3879d99b3bbd8080654e773a2530f08181",
+    "locomotion/microduck/robot/microduck_constants.py": "cbd2a8ed29a42b3eb7184ddab51df77f2bb0c8239e2450e1373465ff92f050e0",
+    "locomotion/microduck/tasks/__init__.py": "0e8069547a5ad8b20307adc16a77825660cf3acc3cecf118b7293d5c88a1234d",
+    "locomotion/microduck/tasks/mdp.py": "84fb1ffa7acf98e73e306385a11aa733f397dbb2fea9040cf7182ae2e27e8730",
+    "locomotion/microduck/tasks/microduck_velocity_env_cfg.py": "02ef1c12bef07fd591b8a9cdd85e46bd0de8fd674b82569528bb1c29de42945c",
+    "locomotion/microduck/tasks/symmetry.py": "f84f19cc1f93afa7cb1d6e98152a70dcf7f38d6df0720d8675ed8ea93c663941",
+    "logging.py": "afe275a1536239248212b8bce7ff5ad4bc5cf0c9104fad9222cb3b0bd2194f8e",
+    "microduck.py": "b94f872ee1f99a7ca01fdc3021dc923c8b7a839df5147f0fa39994b685d1b3ff",
+    "motion.py": "9319696b86a02f011127be9d81141b798361cce603cea10a115c6e5cec4d65ea",
+    "native_h1.py": "e197795d32572f2454b57279201713866885f4929782ac5c5798998f0580b3f9",
+    "policies.py": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+    "recipes.py": "d90bc26026795f77baccd3d72389108cf7678c4c6904bda8d274a108a6268f8a",
+    "rlinf.py": "8a0faf418871d6e3f0379e826e92113da5b189eea762b5c4e50850096415780c",
+    "robot_replay.py": "dd13bd3fcf8045ea093bcf09daf5a50b09a7595517be05c7065b941cb7853440",
+    "rollout.py": "c5a9fe02142c74951fceb4821defe6f9135425b87056f25ea1fc66e201cd1197",
+    "runtime/__init__.py": "54183b39a8671d49bf1a6fad5a13275216c57c0a6e0da0f069d189e34d5179a7",
+    "runtime/artifacts.py": "e378358f73aa2a442760a7298b533f3f2186da697cee2d20e30744a7f4e94d2a",
+    "runtime/environment.py": "660ce71471f340e0031a1bc61da1881ca6b962e92f7b9667b10fa194c8655b1f",
+    "runtime/hashing.py": "d38691a91e524f71e276fd249e14f937270ea0d2834d6bd69e58925fb1b756ac",
+    "runtime/implementation.py": "21abf68d58c7088b11e77b24f9fd1d3370043a81ed17c25fc1b20badcae15a9b",
+    "runtime/process.py": "4618c4d0048b9b0009c59b71840ccbc96cbaf1cae250e5ce3a56b766ac25d46f",
+    "runtime/provenance.py": "baa700a66e7120f490a1a08ff1247590566a0b8803114abc6acf96a6a9c02aa3",
+    "runtime/records.py": "0981654c63eec99a046adb934f334f2fa7aa3befec4f51217249de6bf267c217",
+    "sensors.py": "89ce41ca3366655380b7029ca8fd7df6a36ecd01b2344ca6e2fe9a65277088f4",
+    "sonic.py": "926423c99437256fc00147363eebf05d37eb167471ab84cd565391f3a3282e87",
+    "tasks.py": "3084c5f8c4019a5443c9796523f7b366a46b1adb9821d1d6733fe902ff1643b9",
+    "training.py": "c967aec79e5e9686883f4e3d6318aae6ca7eec4c9cf4db01c422acf9e052264e",
+    "viewers/__init__.py": "5df57a38fcc577cfe5fb3bfefc41a4cd57441b0b0c2d136afb8d7616e0543383",
+    "viewers/dependencies.py": "68cfe76e444e624791e0cde332a8e0280a36bfb33b97841c8b10ce8d68ef5460",
+    "viewers/frames.py": "c3982a32ef06ae813106ed46fa9dbc44271d6437378034f9f095694d9896972e",
+    "viewers/newton.py": "d55e2514f06be3702e9e5f1ce55c724308afcf30b4756026c65735843ccfb259",
+    "viewers/robot.py": "c3b83ca63c5da31718b7976c8897ec9501c7dd3a30fd634098fd539182d9c4a9",
+    "viewers/rtx.py": "4d0108d9f997429a46620995c4de810f335c749dcad04d61bd1129e03252e49c",
+    "viewers/style.py": "a42c5a4114214a6934857818bb2bf745755da40f80fc7e36d8f6732435f4ba60",
+    "viewers/timing.py": "53765d3b3dd7f3352415793dd63a60fcb1dd44bdb65b62de0a946af659a63416",
+    "viewers/viser.py": "6e253b29bf3ca21dbd14eebf6ec0226cfc6499d859e7f9f95a39c75b16348f13",
+    "viewers/web.py": "c087cd064425ab6cb72e11fcc0d306995cfacb979b1c534b4d0c0bb439a7511f",
+    "visualization.py": "67e1c40009f25ee033461883fb308c3937a719f50c313b3abfaa8c0185454e18",
+    "weave.py": "9a3f178d542c38c08aaec43b4b17711ef56b61430ceb3b64ddd5a999851da04f",
+    "workflows/__init__.py": "60fb3d9f7d42647a215f2be0bf621f6eb07938a68e40697e4e14e992019781b1",
+    "workflows/go1_settings.py": "20773588df42f7049e7305ac8d2e6b67b79750fa2db47be96d31762e12ae9c16",
+    "workflows/recipe_artifacts.py": "beaeec23c86757884a69c0de4cf824449c12f0edbec2be95f59b8e832f271ae1",
+    "workflows/recipe_catalog.py": "373846fbf07af648909b638e712bf7dac229fa6bc1a1de42b2ce7759d11e5ab9",
+    "workflows/recipe_progress.py": "cc9c7076d303284cdceedeccb5709459446be38661a0d45cf1a9d0ad4eeb292e",
+    "workflows/recipe_validation.py": "a829c65d0f8f6299c3341fd19bfb839e8711633760d2960d84a057d4ebd98bb3",
+    "workflows/rlinf_artifacts.py": "80914298f80d9b8eebc1d553d69df4503e9032129ac8201d45075bacc7e67623",
+    "workflows/rlinf_catalog.py": "248ca931bc7b53bb9b57f3e6b7f273c0b61e61574039522e059e2187a05cf722"
+  },
+  "test_suites": {
+    "main": {
+      "passed": 3207,
+      "cases": 3287,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 80,
+      "file": "final-main-suite.xml",
+      "sha256": "4e326dad94fa7b345239738679b25078e8d41731deba60fb2cc8dc4fc709fac7"
+    },
+    "act_sdk": {
+      "passed": 82,
+      "cases": 82,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "file": "final-act-sdk.xml",
+      "sha256": "59ef5b1850e7f14e7ef95f5555314905c9f654d668f0abc902080e440012253b"
+    },
+    "microduck_sdk": {
+      "passed": 89,
+      "cases": 89,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "file": "microduck-sdk.xml",
+      "sha256": "78b7e8b0d41c027654fc273bef633d19e24c7b20d8b1dded0bb49ccba6b4bb76"
+    },
+    "native_contracts": {
+      "passed": 157,
+      "cases": 157,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "file": "native-contracts.xml",
+      "sha256": "7beabb7b01a1ff1aeee3c65ccb68bed9403171a24111866f9fd6964e3b9fbfd1"
+    },
+    "sdist": {
+      "passed": 112,
+      "cases": 112,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "file": "sdist-validation.xml",
+      "sha256": "2ead1217861346960008871092f943461cb044c652cebf120e7f57762909db47"
+    }
+  },
+  "native_startup_check": {
+    "passed": 52,
+    "log_sha256": "fcf56216dc2982f1c2d4a0b5e1aca1838619d0ce865f4ea51b9b3f071922d347"
+  },
+  "installed_wheel": {
+    "package": "/tmp/embodiedforge-architecture-20261021/wheel-env/lib/python3.10/site-packages/embodiedforge/__init__.py",
+    "python": "/tmp/embodiedforge-architecture-20261021/wheel-env/bin/python",
+    "evaluation": {
+      "transitions": 16,
+      "completed_episodes": 4,
+      "terminated_episodes": 0,
+      "truncated_episodes": 4,
+      "mean_step_reward": -0.01231109444051981,
+      "mean_episode_return": -0.04924437776207924,
+      "success_rate": 0.0
+    },
+    "resumed_updates": 2,
+    "resources_verified": true,
+    "core_imports_without_sdks": true
+  },
+  "distribution_integrity": {
+    "python_modules_equal_to_source": 133,
+    "wheel_sha256": "cf24567ff7a5b2dd374f20deb6a1df9ebeec1ebb79750baa77e53f8bbb0e8968",
+    "sdist_sha256": "1338bb4fdf8cfd615d2d27075b9e14101c43f392e72f1c615aabb15c190506a9"
+  },
+  "training_parity": {
+    "scope": "deterministic CPU policy, optimizer and rollout equality",
+    "comparisons": [
+      {
+        "component": "core",
+        "seed": 0,
+        "match": true,
+        "reference": {
+          "policy": "58708958868e8d013b0cb4cfd374488c59e2500d7544eaa168dc83cee9a79cf3",
+          "optimizer": "cf345e579236731fd92fb91fe41073a24af00f402596fdc5ad8fb1e194c7f5b2"
+        },
+        "candidate": {
+          "policy": "58708958868e8d013b0cb4cfd374488c59e2500d7544eaa168dc83cee9a79cf3",
+          "optimizer": "cf345e579236731fd92fb91fe41073a24af00f402596fdc5ad8fb1e194c7f5b2"
+        }
+      },
+      {
+        "component": "core",
+        "seed": 1,
+        "match": true,
+        "reference": {
+          "policy": "8dfb10d27acf98b826b660774cea62f863928bb5745313655d659d0d12305765",
+          "optimizer": "11bda338b73d40beca2b7bf84cfc610afc132ba3327acaa1d64ce3ce368a56eb"
+        },
+        "candidate": {
+          "policy": "8dfb10d27acf98b826b660774cea62f863928bb5745313655d659d0d12305765",
+          "optimizer": "11bda338b73d40beca2b7bf84cfc610afc132ba3327acaa1d64ce3ce368a56eb"
+        }
+      },
+      {
+        "component": "core",
+        "seed": 2,
+        "match": true,
+        "reference": {
+          "policy": "f0ef07a5e027e4e78ce6a516e596224a0021bde8ad0dfd63cc5d3ab3f8cd4523",
+          "optimizer": "24a3117190686a090415f2feafaa06c682b81b7db47ac5b11b48a26ec90ce1c1"
+        },
+        "candidate": {
+          "policy": "f0ef07a5e027e4e78ce6a516e596224a0021bde8ad0dfd63cc5d3ab3f8cd4523",
+          "optimizer": "24a3117190686a090415f2feafaa06c682b81b7db47ac5b11b48a26ec90ce1c1"
+        }
+      },
+      {
+        "component": "core",
+        "seed": 17,
+        "match": true,
+        "reference": {
+          "policy": "3b8fc57f3304fcd19bcf5e9054dd1983211f7d117e86ebcd1e31e9a454343f12",
+          "optimizer": "1611881bdd45cecedb161ab5d6bd0fb339772ad4bb8d65f5ef329d84e13822ef"
+        },
+        "candidate": {
+          "policy": "3b8fc57f3304fcd19bcf5e9054dd1983211f7d117e86ebcd1e31e9a454343f12",
+          "optimizer": "1611881bdd45cecedb161ab5d6bd0fb339772ad4bb8d65f5ef329d84e13822ef"
+        }
+      },
+      {
+        "component": "core",
+        "seed": 1001,
+        "match": true,
+        "reference": {
+          "policy": "fa7f559abd67e79aa4fc881f0fed38611a2d5026db703c387a2706c89a2c0efc",
+          "optimizer": "3ffaa099e035fc4a83962ad8efd150192a782ba20bdea36ad48f97ea320c7d28"
+        },
+        "candidate": {
+          "policy": "fa7f559abd67e79aa4fc881f0fed38611a2d5026db703c387a2706c89a2c0efc",
+          "optimizer": "3ffaa099e035fc4a83962ad8efd150192a782ba20bdea36ad48f97ea320c7d28"
+        }
+      },
+      {
+        "component": "go1",
+        "seed": 0,
+        "match": true,
+        "reference": {
+          "policy": "741d5eeb5cbf15102ce209731ebb7b1a16ce7308e5ce7bd1f354cc0c608f55cd",
+          "optimizer": "68e09e1caa1c8a8de983458cb7eb2f14b4105c7fea74e70f35a49902c12cb607",
+          "rollouts": [
+            "b141a7f20544fcb00b7cba27c81b81adcc2ac7ee5ff2d563ce29b9a7b0f2315d",
+            "b2a5f419ff4e2520b9cd48e115f197ce0a7f388cf7a1855bf1c0d2100609567b",
+            "ecbb6a428888146bd7514922077adfbe99254f74d00986c3d1f248ae107c4c5b"
+          ]
+        },
+        "candidate": {
+          "policy": "741d5eeb5cbf15102ce209731ebb7b1a16ce7308e5ce7bd1f354cc0c608f55cd",
+          "optimizer": "68e09e1caa1c8a8de983458cb7eb2f14b4105c7fea74e70f35a49902c12cb607",
+          "rollouts": [
+            "b141a7f20544fcb00b7cba27c81b81adcc2ac7ee5ff2d563ce29b9a7b0f2315d",
+            "b2a5f419ff4e2520b9cd48e115f197ce0a7f388cf7a1855bf1c0d2100609567b",
+            "ecbb6a428888146bd7514922077adfbe99254f74d00986c3d1f248ae107c4c5b"
+          ]
+        }
+      },
+      {
+        "component": "go1",
+        "seed": 1,
+        "match": true,
+        "reference": {
+          "policy": "bc536196da4e8dd96b63875e5e764c28749e4fa41737d1b1cd70a7ba214f0b8e",
+          "optimizer": "ab4368b038e3aaf01f7a63d54ae4cab0e372990079aa2a95b9da1fa2464ccd44",
+          "rollouts": [
+            "e2f84ab0cb01ed39ac0c1e89319bebc763d9c39248c2fbfab655f99f60bf2293",
+            "24cee2a5aec291f5db7fac88b3ade5ef908f8cd5715e04f2e8c8f6048d3a4c83",
+            "8ff1957bc3ae06bb620c380982c07760f708c0770148ac3fee9c7e2ff1dcde6b"
+          ]
+        },
+        "candidate": {
+          "policy": "bc536196da4e8dd96b63875e5e764c28749e4fa41737d1b1cd70a7ba214f0b8e",
+          "optimizer": "ab4368b038e3aaf01f7a63d54ae4cab0e372990079aa2a95b9da1fa2464ccd44",
+          "rollouts": [
+            "e2f84ab0cb01ed39ac0c1e89319bebc763d9c39248c2fbfab655f99f60bf2293",
+            "24cee2a5aec291f5db7fac88b3ade5ef908f8cd5715e04f2e8c8f6048d3a4c83",
+            "8ff1957bc3ae06bb620c380982c07760f708c0770148ac3fee9c7e2ff1dcde6b"
+          ]
+        }
+      },
+      {
+        "component": "go1",
+        "seed": 2,
+        "match": true,
+        "reference": {
+          "policy": "459286e1fc38d4d9b5f4da55852e0dab577879567b0c4abb6e9d2af239830b6a",
+          "optimizer": "ea9ad2ccdfa79949c9ec19a295cab5907abbfc91984d7385cfc039a981c6953f",
+          "rollouts": [
+            "3446edacda7813550f73f647a9e3079dc3eb05feb142a52b8b7fc4e03b1657cc",
+            "f44ea90ec03666ec5e9c43e17ebbefba9d5bd8157a3d238298bd9bac4d1261ce",
+            "ec1775547fcc7a79886872e85f5082d36d77e6950748610276a0d72215c0ec30"
+          ]
+        },
+        "candidate": {
+          "policy": "459286e1fc38d4d9b5f4da55852e0dab577879567b0c4abb6e9d2af239830b6a",
+          "optimizer": "ea9ad2ccdfa79949c9ec19a295cab5907abbfc91984d7385cfc039a981c6953f",
+          "rollouts": [
+            "3446edacda7813550f73f647a9e3079dc3eb05feb142a52b8b7fc4e03b1657cc",
+            "f44ea90ec03666ec5e9c43e17ebbefba9d5bd8157a3d238298bd9bac4d1261ce",
+            "ec1775547fcc7a79886872e85f5082d36d77e6950748610276a0d72215c0ec30"
+          ]
+        }
+      },
+      {
+        "component": "go1",
+        "seed": 17,
+        "match": true,
+        "reference": {
+          "policy": "323f680f39cf4438e5f3d08cebab07e32ad67dc86447ae50e3eb9f5a8e5b5783",
+          "optimizer": "d3762ce26e8f06efca8e150cde9927c9bcd72a5e5d5ea751df11bd588fc47091",
+          "rollouts": [
+            "88926629e44406ad6d76798ed34f370607f1cc1414fb650017f21a67d2a38288",
+            "6dc15605f21a78ebe6571eafdc45a11f6ef0c9ce34b29ceed3db077011445367",
+            "5bfe8432da5d996b98dd2d2791c0cf718f83e4963971fefd014235c734ca66cb"
+          ]
+        },
+        "candidate": {
+          "policy": "323f680f39cf4438e5f3d08cebab07e32ad67dc86447ae50e3eb9f5a8e5b5783",
+          "optimizer": "d3762ce26e8f06efca8e150cde9927c9bcd72a5e5d5ea751df11bd588fc47091",
+          "rollouts": [
+            "88926629e44406ad6d76798ed34f370607f1cc1414fb650017f21a67d2a38288",
+            "6dc15605f21a78ebe6571eafdc45a11f6ef0c9ce34b29ceed3db077011445367",
+            "5bfe8432da5d996b98dd2d2791c0cf718f83e4963971fefd014235c734ca66cb"
+          ]
+        }
+      },
+      {
+        "component": "go1",
+        "seed": 1001,
+        "match": true,
+        "reference": {
+          "policy": "e79dc2823c7fb47ef51946e47685321eaa5801b54302fe2e423499417de1d215",
+          "optimizer": "224e35509a0a58829497682f2176d0f3ce98b8c8efc23d3faa7d0fc12a070e6a",
+          "rollouts": [
+            "db3c8615a10fb706cb38972ea1677984c1b6891a69a7aef5ba8f151c53c858f9",
+            "ad09e697590fa8cec13cefacbd076c4c33f3107aee18cd0ebdbdffd7a7e62e92",
+            "d3f50e7cbc5954addadaef173db8b3e6f68119ea31ba48f8cd0e4918cfa9c9aa"
+          ]
+        },
+        "candidate": {
+          "policy": "e79dc2823c7fb47ef51946e47685321eaa5801b54302fe2e423499417de1d215",
+          "optimizer": "224e35509a0a58829497682f2176d0f3ce98b8c8efc23d3faa7d0fc12a070e6a",
+          "rollouts": [
+            "db3c8615a10fb706cb38972ea1677984c1b6891a69a7aef5ba8f151c53c858f9",
+            "ad09e697590fa8cec13cefacbd076c4c33f3107aee18cd0ebdbdffd7a7e62e92",
+            "d3f50e7cbc5954addadaef173db8b3e6f68119ea31ba48f8cd0e4918cfa9c9aa"
+          ]
+        }
+      },
+      {
+        "component": "h1",
+        "seed": 0,
+        "match": true,
+        "reference": {
+          "policy": "94352ce0835adade77bb12b89d6463b18d5d35a72f11d8dd7d53d65ee5d00713",
+          "optimizer": "8c24431bc3b90c143198060642defa46b71d248de390a8838b4e50737e61eefb",
+          "rollouts": [
+            "076e57a321e0f9867f917d6a80c7735c3cd83980601fd65e169fd225354e8667",
+            "549a1d788a29c16488fd418735b0a35a0336b9d876d313209fffeef148f86c0e",
+            "50ef5fd36e542774c9f9c7ec2b49e96f7b5cbfd0bf3cb1deaaac088d7693a22e"
+          ]
+        },
+        "candidate": {
+          "policy": "94352ce0835adade77bb12b89d6463b18d5d35a72f11d8dd7d53d65ee5d00713",
+          "optimizer": "8c24431bc3b90c143198060642defa46b71d248de390a8838b4e50737e61eefb",
+          "rollouts": [
+            "076e57a321e0f9867f917d6a80c7735c3cd83980601fd65e169fd225354e8667",
+            "549a1d788a29c16488fd418735b0a35a0336b9d876d313209fffeef148f86c0e",
+            "50ef5fd36e542774c9f9c7ec2b49e96f7b5cbfd0bf3cb1deaaac088d7693a22e"
+          ]
+        }
+      },
+      {
+        "component": "h1",
+        "seed": 1,
+        "match": true,
+        "reference": {
+          "policy": "1e85a89db8af37ba7f3674472a2b0a3438416fddad63bcc80c96408c832371eb",
+          "optimizer": "cf67a9be155e0cf38645cb099d3950864276f07749f0fbffc4f8fa545680f0a0",
+          "rollouts": [
+            "2a92f10c27d4511e395e92e436378f82fb9c9a78b311e5a9d1ceb464ec4c9f0f",
+            "04bffff754c7047aa36f641d3fe08d1d33ba867a04b60681305c163d2413f702",
+            "d69cd9c60caf1848aecf8b4bfbf71bda4471cd4656b13d5998fe86ed5621a9d2"
+          ]
+        },
+        "candidate": {
+          "policy": "1e85a89db8af37ba7f3674472a2b0a3438416fddad63bcc80c96408c832371eb",
+          "optimizer": "cf67a9be155e0cf38645cb099d3950864276f07749f0fbffc4f8fa545680f0a0",
+          "rollouts": [
+            "2a92f10c27d4511e395e92e436378f82fb9c9a78b311e5a9d1ceb464ec4c9f0f",
+            "04bffff754c7047aa36f641d3fe08d1d33ba867a04b60681305c163d2413f702",
+            "d69cd9c60caf1848aecf8b4bfbf71bda4471cd4656b13d5998fe86ed5621a9d2"
+          ]
+        }
+      },
+      {
+        "component": "h1",
+        "seed": 2,
+        "match": true,
+        "reference": {
+          "policy": "db23672db2da6269feed0c966d94d30bab27984e3744758c2b1406c83be82d53",
+          "optimizer": "19661278a44c0174e748901ac921828a5a5e984dd8fa13b34dbb3935de126f0d",
+          "rollouts": [
+            "90fd314e00c344af17ce35348e08cdd31a6b6df815852b38c1b862a72146def2",
+            "2fd8f907e8340711eb55da320d6bb049e353df38b1c1044cc892199149b8336b",
+            "230856514684672a6f6782d88a98e41ccda1e7d1bf227775e676ea96de6cb31f"
+          ]
+        },
+        "candidate": {
+          "policy": "db23672db2da6269feed0c966d94d30bab27984e3744758c2b1406c83be82d53",
+          "optimizer": "19661278a44c0174e748901ac921828a5a5e984dd8fa13b34dbb3935de126f0d",
+          "rollouts": [
+            "90fd314e00c344af17ce35348e08cdd31a6b6df815852b38c1b862a72146def2",
+            "2fd8f907e8340711eb55da320d6bb049e353df38b1c1044cc892199149b8336b",
+            "230856514684672a6f6782d88a98e41ccda1e7d1bf227775e676ea96de6cb31f"
+          ]
+        }
+      },
+      {
+        "component": "h1",
+        "seed": 17,
+        "match": true,
+        "reference": {
+          "policy": "946c19a133f0f0291986e82f36a4a848218b123cc658b133ecc4561e7d947b5a",
+          "optimizer": "80822ccadd34550dcaff12caa2efe355a953ff7d515f4e65f924fddd9434bcc3",
+          "rollouts": [
+            "c469aa6e460c135b07f8b9c630baa19ea96314aec747991176acc04bbd6d96d6",
+            "198e09c3b5c6ff7534f04cfe863d32545d6406a526ddcaee2a1fd7c0847814f1",
+            "a840cf5f84715ad3714e4e543478d38f70e0b3f8af07e81330edfb11db038d1c"
+          ]
+        },
+        "candidate": {
+          "policy": "946c19a133f0f0291986e82f36a4a848218b123cc658b133ecc4561e7d947b5a",
+          "optimizer": "80822ccadd34550dcaff12caa2efe355a953ff7d515f4e65f924fddd9434bcc3",
+          "rollouts": [
+            "c469aa6e460c135b07f8b9c630baa19ea96314aec747991176acc04bbd6d96d6",
+            "198e09c3b5c6ff7534f04cfe863d32545d6406a526ddcaee2a1fd7c0847814f1",
+            "a840cf5f84715ad3714e4e543478d38f70e0b3f8af07e81330edfb11db038d1c"
+          ]
+        }
+      },
+      {
+        "component": "h1",
+        "seed": 1001,
+        "match": true,
+        "reference": {
+          "policy": "209f9a4efaf46f2f2db96468b76818366aa741f7c63fb49531ecbb1cb486ae89",
+          "optimizer": "67648a85e5c1bf7be70310c0bb66b4e7b47c99ab99a0b2c4c36ebb53c1b86d9d",
+          "rollouts": [
+            "92cd5c725bfc00b1ed229fef2db5cb38abeed7634ffb50d9e6e3d094e9df5064",
+            "6ace17ce3a0f93a80a7ca3eeedd7293e4bd8eb45b48c39b0f775ce9f73f1ffb6",
+            "c878c9a001d994704aeaeb604889de0881c71281eae79f7ff173a561708ca570"
+          ]
+        },
+        "candidate": {
+          "policy": "209f9a4efaf46f2f2db96468b76818366aa741f7c63fb49531ecbb1cb486ae89",
+          "optimizer": "67648a85e5c1bf7be70310c0bb66b4e7b47c99ab99a0b2c4c36ebb53c1b86d9d",
+          "rollouts": [
+            "92cd5c725bfc00b1ed229fef2db5cb38abeed7634ffb50d9e6e3d094e9df5064",
+            "6ace17ce3a0f93a80a7ca3eeedd7293e4bd8eb45b48c39b0f775ce9f73f1ffb6",
+            "c878c9a001d994704aeaeb604889de0881c71281eae79f7ff173a561708ca570"
+          ]
+        }
+      }
+    ]
+  },
+  "existing_runs": {
+    "scope": "Read-only inspection of existing top-level runs; unsupported or incomplete records are reported, not rewritten",
+    "candidates": 964,
+    "recognized": 964,
+    "workflows": {
+      "microduck": 193,
+      "act": 6,
+      "core-data": 2,
+      "recipes": 650,
+      "h1-isaaclab": 12,
+      "rlinf": 101
+    },
+    "statuses": {
+      "complete": 802,
+      "rejected": 142,
+      "failed": 15,
+      "interrupted": 5
+    },
+    "errors": [],
+    "sdk_imports": false,
+    "existing_records_unchanged": true
+  },
+  "legacy_datasets": {
+    "scope": "Read-only legacy dataset validation with optional image fields projected out",
+    "datasets": [
+      {
+        "directory": "runs/act-reach-demos-20260916",
+        "episodes": 189,
+        "transitions": 15371,
+        "proprio_shapes": [
+          [
+            6
+          ]
+        ],
+        "legacy_environment_spec": true
+      },
+      {
+        "directory": "runs/act-smoke-demos-20260916",
+        "episodes": 16,
+        "transitions": 1373,
+        "proprio_shapes": [
+          [
+            6
+          ]
+        ],
+        "legacy_environment_spec": true
+      }
+    ],
+    "existing_manifests_unchanged": true
+  },
+  "probe_process_exit_codes": {
+    "core-recording": 0,
+    "go1-recording": 0,
+    "h1-recording": 0,
+    "process-lifecycle": 0,
+    "process-lifecycle-captured": 139
+  },
+  "open_issue": {
+    "probe": "process-lifecycle-captured",
+    "stage": "interpreter exit after complete record and all 7088 scenarios passed",
+    "exit_code": 139,
+    "diagnosis": "Linux kernel confirms CPython 3.12.0 segmentation fault after workflow completion; local addr2line resolves _PyGCHead_SET_PREV at Include/internal/pycore_gc.h:74; root cause not established",
+    "follow_up_diagnostics": {
+      "probe_exit_code": 139,
+      "kernel_process": 402576,
+      "symbol": "_PyGCHead_SET_PREV",
+      "location": "Include/internal/pycore_gc.h:74",
+      "stage": "after complete record, all 7088 scenarios passed",
+      "root_cause": "unresolved",
+      "short_rechecks": {
+        "same_environment_30s": 0,
+        "single_thread_blas_60s": 0,
+        "python310_60s": 0
+      },
+      "rapid_launch_rechecks": {
+        "current_3000": 0,
+        "baseline_3000": 0,
+        "bare_subprocess_3000": 0
+      }
+    }
+  },
+  "sustained": {
+    "core-recording": {
+      "duration_seconds": 5400.134736513995,
+      "samples": 3005,
+      "resources_after_300s_warmup": {
+        "rss_bytes": {
+          "minimum": 59981824,
+          "maximum": 64516096,
+          "first_after_warmup": 61906944,
+          "last": 62590976
+        },
+        "threads": {
+          "minimum": 32,
+          "maximum": 32,
+          "first_after_warmup": 32,
+          "last": 32
+        },
+        "file_descriptors": {
+          "minimum": 5,
+          "maximum": 5,
+          "first_after_warmup": 5,
+          "last": 5
+        },
+        "python_traced_bytes": {
+          "minimum": 1257093,
+          "maximum": 1406829,
+          "first_after_warmup": 1257093,
+          "last": 1405375
+        }
+      },
+      "last_300s_rss_median_bytes": 64307200,
+      "summary_sha256": "b6e8e78d5019b2986811abff14e480431306a5643a95b972f939ad88dba66a8e",
+      "samples_sha256": "020d62b2c1e3884283ea1550e738699eb937598c00624e9814fd4ffebf63727d",
+      "recorded_run": {
+        "arguments": {
+          "task": "core",
+          "duration": 5400.0,
+          "segments": null,
+          "num_envs": 8,
+          "episode_steps": 32,
+          "steps": 128,
+          "budget_mib": 16,
+          "seed": 17,
+          "image_size": 32,
+          "trace_allocations": true,
+          "verify_archive": true,
+          "h1_model": "/home/ubuntu/workspace/3rdparty/mink/examples/unitree_h1/h1.xml",
+          "output": "runs/architecture-optimization-20261021/final/core-recording"
+        },
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+        "benchmark_sha256": "94dac86087c3274a2d6498982e60db5345078e65ce25c53a8ae43a0f02469f53",
+        "run_contract": {
+          "schema_version": 1,
+          "workflow": "benchmark",
+          "operation": "validate",
+          "task": "core"
+        },
+        "status": "complete",
+        "started_at": "2026-10-21T13:10:07.680291+00:00",
+        "components": {
+          "environment": {
+            "module": "embodiedforge.env",
+            "symbol": "VectorEnv",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/env.py",
+            "python_source_sha256": "1a4126796e12df4d4f1b082f3fa92df03b0248384bca083c414bbc196841c95c"
+          },
+          "adapter": {
+            "module": "embodiedforge.env",
+            "symbol": "VectorEnv",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/env.py",
+            "python_source_sha256": "1a4126796e12df4d4f1b082f3fa92df03b0248384bca083c414bbc196841c95c"
+          },
+          "evaluator": {
+            "module": "embodiedforge.envs.evaluation",
+            "symbol": "evaluate_policy",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/envs/evaluation.py",
+            "python_source_sha256": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc"
+          },
+          "recorder": {
+            "module": "embodiedforge.data",
+            "symbol": "EpisodeRecorder",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/data.py",
+            "python_source_sha256": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a"
+          },
+          "reader": {
+            "module": "embodiedforge.data",
+            "symbol": "read_episodes",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/data.py",
+            "python_source_sha256": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a"
+          }
+        },
+        "segments": 3005,
+        "episodes_per_mode": 96175,
+        "transitions_per_mode": 3054505,
+        "finished_at": "2026-10-21T14:40:07.847071+00:00",
+        "seconds": 5400.166773338999
+      },
+      "segments": 3005,
+      "episodes_per_mode": 96175,
+      "transitions_per_mode": 3054505,
+      "all_segments_equal": true,
+      "observed_retained_payload_peak_bytes": [
+        4110352,
+        7049536
+      ],
+      "payload_budget_bytes": 16777216
+    },
+    "go1-recording": {
+      "duration_seconds": 5400.603283941004,
+      "samples": 4211,
+      "resources_after_300s_warmup": {
+        "rss_bytes": {
+          "minimum": 438161408,
+          "maximum": 438878208,
+          "first_after_warmup": 438161408,
+          "last": 438878208
+        },
+        "threads": {
+          "minimum": 3,
+          "maximum": 3,
+          "first_after_warmup": 3,
+          "last": 3
+        },
+        "file_descriptors": {
+          "minimum": 6,
+          "maximum": 6,
+          "first_after_warmup": 6,
+          "last": 6
+        },
+        "python_traced_bytes": {
+          "minimum": 210037,
+          "maximum": 362532,
+          "first_after_warmup": 211050,
+          "last": 361661
+        }
+      },
+      "last_300s_rss_median_bytes": 438878208.0,
+      "summary_sha256": "d43adf9b1ddae05845d3741e8f3f7c994735a073846171623e032dae8380956f",
+      "samples_sha256": "368f57b638b8b9905cc2441d30988644a85caad30f0969e4fe638ddfec25b708",
+      "recorded_run": {
+        "arguments": {
+          "task": "go1",
+          "duration": 5400.0,
+          "segments": null,
+          "num_envs": 8,
+          "episode_steps": 32,
+          "steps": 128,
+          "budget_mib": 16,
+          "seed": 17,
+          "image_size": 0,
+          "trace_allocations": true,
+          "verify_archive": true,
+          "h1_model": "/home/ubuntu/workspace/3rdparty/mink/examples/unitree_h1/h1.xml",
+          "output": "runs/architecture-optimization-20261021/final/go1-recording"
+        },
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+        "benchmark_sha256": "94dac86087c3274a2d6498982e60db5345078e65ce25c53a8ae43a0f02469f53",
+        "run_contract": {
+          "schema_version": 1,
+          "workflow": "benchmark",
+          "operation": "validate",
+          "task": "go1"
+        },
+        "status": "complete",
+        "started_at": "2026-10-21T13:10:07.678945+00:00",
+        "components": {
+          "environment": {
+            "module": "embodiedforge.locomotion.go1",
+            "symbol": "Go1",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/locomotion/go1.py",
+            "python_source_sha256": "fb4567b2f4512858b89b5114224d69b2fc8c56cc0b87fab0b5316b62f1c3094d"
+          },
+          "adapter": {
+            "module": "embodiedforge.envs.locomotion",
+            "symbol": "Go1Environment",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/envs/locomotion.py",
+            "python_source_sha256": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8"
+          },
+          "evaluator": {
+            "module": "embodiedforge.envs.evaluation",
+            "symbol": "evaluate_policy",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/envs/evaluation.py",
+            "python_source_sha256": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc"
+          },
+          "recorder": {
+            "module": "embodiedforge.data",
+            "symbol": "EpisodeRecorder",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/data.py",
+            "python_source_sha256": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a"
+          },
+          "reader": {
+            "module": "embodiedforge.data",
+            "symbol": "read_episodes",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/data.py",
+            "python_source_sha256": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a"
+          }
+        },
+        "segments": 4211,
+        "episodes_per_mode": 134752,
+        "transitions_per_mode": 4312064,
+        "finished_at": "2026-10-21T14:40:08.592832+00:00",
+        "seconds": 5400.913878125
+      },
+      "segments": 4211,
+      "episodes_per_mode": 134752,
+      "transitions_per_mode": 4312064,
+      "all_segments_equal": true,
+      "observed_retained_payload_peak_bytes": [
+        132432,
+        202608
+      ],
+      "payload_budget_bytes": 16777216
+    },
+    "h1-recording": {
+      "duration_seconds": 5400.362690752998,
+      "samples": 3851,
+      "resources_after_300s_warmup": {
+        "rss_bytes": {
+          "minimum": 637095936,
+          "maximum": 637206528,
+          "first_after_warmup": 637095936,
+          "last": 637206528
+        },
+        "threads": {
+          "minimum": 3,
+          "maximum": 3,
+          "first_after_warmup": 3,
+          "last": 3
+        },
+        "file_descriptors": {
+          "minimum": 6,
+          "maximum": 6,
+          "first_after_warmup": 6,
+          "last": 6
+        },
+        "python_traced_bytes": {
+          "minimum": 306848,
+          "maximum": 458883,
+          "first_after_warmup": 307092,
+          "last": 458000
+        }
+      },
+      "last_300s_rss_median_bytes": 637206528.0,
+      "summary_sha256": "8699be6ba6881546fc8dc81ddb23e3eab46679869ab7ad99786310c58ea43df3",
+      "samples_sha256": "b5d33f206c6ba5bf7e77c5cc2a092458690433f6a5be5d01f553ce6c4cc29b53",
+      "recorded_run": {
+        "arguments": {
+          "task": "h1",
+          "duration": 5400.0,
+          "segments": null,
+          "num_envs": 8,
+          "episode_steps": 32,
+          "steps": 128,
+          "budget_mib": 16,
+          "seed": 17,
+          "image_size": 0,
+          "trace_allocations": true,
+          "verify_archive": true,
+          "h1_model": "/home/ubuntu/workspace/3rdparty/mink/examples/unitree_h1/h1.xml",
+          "output": "runs/architecture-optimization-20261021/final/h1-recording"
+        },
+        "python": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/external/mjbatch/.venv/bin/python",
+        "benchmark_sha256": "94dac86087c3274a2d6498982e60db5345078e65ce25c53a8ae43a0f02469f53",
+        "run_contract": {
+          "schema_version": 1,
+          "workflow": "benchmark",
+          "operation": "validate",
+          "task": "h1"
+        },
+        "status": "complete",
+        "started_at": "2026-10-21T13:10:07.682449+00:00",
+        "components": {
+          "environment": {
+            "module": "embodiedforge.locomotion.h1_native",
+            "symbol": "H1",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/locomotion/h1_native.py",
+            "python_source_sha256": "58651c65fc15fb14a5305c99dd8572c1df9df1258f5d0f393fff92f7968f724c"
+          },
+          "adapter": {
+            "module": "embodiedforge.envs.locomotion",
+            "symbol": "H1Environment",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/envs/locomotion.py",
+            "python_source_sha256": "5742eccd44c375cb4db1881007e66845aebdceefd0567aaa4239ad5cd802b0d8"
+          },
+          "evaluator": {
+            "module": "embodiedforge.envs.evaluation",
+            "symbol": "evaluate_policy",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/envs/evaluation.py",
+            "python_source_sha256": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc"
+          },
+          "recorder": {
+            "module": "embodiedforge.data",
+            "symbol": "EpisodeRecorder",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/data.py",
+            "python_source_sha256": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a"
+          },
+          "reader": {
+            "module": "embodiedforge.data",
+            "symbol": "read_episodes",
+            "project_namespace": true,
+            "file": "/tmp/embodiedforge-architecture-20261021/final-soak/src/embodiedforge/data.py",
+            "python_source_sha256": "10a13f8c9cce6f9d7ef441e31c0e71f242b57a52dfe5db4ab0d21353ea4c1c3a"
+          }
+        },
+        "segments": 3851,
+        "episodes_per_mode": 123232,
+        "transitions_per_mode": 3943424,
+        "finished_at": "2026-10-21T14:40:08.323728+00:00",
+        "seconds": 5400.641274002999
+      },
+      "segments": 3851,
+      "episodes_per_mode": 123232,
+      "transitions_per_mode": 3943424,
+      "all_segments_equal": true,
+      "observed_retained_payload_peak_bytes": [
+        177072,
+        138152
+      ],
+      "payload_budget_bytes": 16777216
+    },
+    "process-lifecycle": {
+      "duration_seconds": 3601.817605519005,
+      "samples": 1731,
+      "resources_after_300s_warmup": {
+        "rss_bytes": {
+          "minimum": 39882752,
+          "maximum": 39890944,
+          "first_after_warmup": 39882752,
+          "last": 39890944
+        },
+        "threads": {
+          "minimum": 1,
+          "maximum": 1,
+          "first_after_warmup": 1,
+          "last": 1
+        },
+        "fds": {
+          "minimum": 5,
+          "maximum": 5,
+          "first_after_warmup": 5,
+          "last": 5
+        }
+      },
+      "last_300s_rss_median_bytes": 39890944.0,
+      "summary_sha256": "d3d7015bd750a94a235138cbd2abab0d05771977f00f81c9f28ad0100d483f81",
+      "samples_sha256": "9b1eda83bcf13aebcd5819fdaa4f5f95a6215fde3edad5e20b35cf797b8c51e8",
+      "recorded_run": {
+        "run_contract": {
+          "schema_version": 1,
+          "workflow": "benchmark",
+          "operation": "validate",
+          "task": "process-lifecycle"
+        },
+        "status": "complete",
+        "started_at": "2026-10-21T13:20:55.382318+00:00",
+        "cycles": 1731,
+        "verified_scenarios": 6924,
+        "finished_at": "2026-10-21T14:20:57.200861+00:00",
+        "seconds": 3601.8185397210036
+      },
+      "cycles": 1731,
+      "verified_scenarios": 6924,
+      "all_scenarios_passed": true
+    },
+    "process-lifecycle-captured": {
+      "duration_seconds": 3600.633015483996,
+      "samples": 1772,
+      "resources_after_300s_warmup": {
+        "rss_bytes": {
+          "minimum": 39870464,
+          "maximum": 39878656,
+          "first_after_warmup": 39870464,
+          "last": 39878656
+        },
+        "threads": {
+          "minimum": 1,
+          "maximum": 1,
+          "first_after_warmup": 1,
+          "last": 1
+        },
+        "fds": {
+          "minimum": 5,
+          "maximum": 5,
+          "first_after_warmup": 5,
+          "last": 5
+        }
+      },
+      "last_300s_rss_median_bytes": 39878656,
+      "summary_sha256": "e4a93bfc4361275b4b34c24d27c34e4215cc704c6243952c9f2c2286b0b62c05",
+      "samples_sha256": "46a0de005362345f1e199a56bbcfd8fdce72c4204bfc17d3b60e7d82f42a0239",
+      "recorded_run": {
+        "run_contract": {
+          "schema_version": 1,
+          "workflow": "benchmark",
+          "operation": "validate",
+          "task": "process-lifecycle"
+        },
+        "status": "complete",
+        "started_at": "2026-10-21T13:28:45.196367+00:00",
+        "cycles": 1772,
+        "verified_scenarios": 7088,
+        "finished_at": "2026-10-21T14:28:45.830313+00:00",
+        "seconds": 3600.6339409549983
+      },
+      "cycles": 1772,
+      "verified_scenarios": 7088,
+      "all_scenarios_passed": true
+    }
+  },
+  "changed_python_modules": [
+    "_microduck_export.py",
+    "_motion_sdk.py",
+    "act.py",
+    "data.py",
+    "env.py",
+    "envs/__init__.py",
+    "envs/base.py",
+    "envs/evaluation.py",
+    "envs/locomotion.py",
+    "envs/specs.py",
+    "h1.py",
+    "microduck.py",
+    "native_h1.py",
+    "recipes.py",
+    "rlinf.py",
+    "runtime/process.py",
+    "runtime/records.py",
+    "training.py",
+    "weave.py"
+  ],
+  "changed_files": [
+    "src/embodiedforge/_microduck_export.py",
+    "src/embodiedforge/_motion_sdk.py",
+    "src/embodiedforge/act.py",
+    "src/embodiedforge/data.py",
+    "src/embodiedforge/env.py",
+    "src/embodiedforge/envs/__init__.py",
+    "src/embodiedforge/envs/base.py",
+    "src/embodiedforge/envs/evaluation.py",
+    "src/embodiedforge/envs/locomotion.py",
+    "src/embodiedforge/envs/specs.py",
+    "src/embodiedforge/h1.py",
+    "src/embodiedforge/microduck.py",
+    "src/embodiedforge/native_h1.py",
+    "src/embodiedforge/recipes.py",
+    "src/embodiedforge/rlinf.py",
+    "src/embodiedforge/runtime/process.py",
+    "src/embodiedforge/runtime/records.py",
+    "src/embodiedforge/training.py",
+    "src/embodiedforge/weave.py",
+    "tests/test_act.py",
+    "tests/test_act_lifecycle.py",
+    "tests/test_environment_adapters.py",
+    "tests/test_environment_specs.py",
+    "tests/test_h1.py",
+    "tests/test_microduck.py",
+    "tests/test_microduck_export.py",
+    "tests/test_microduck_lifecycle.py",
+    "tests/test_motion_sdk.py",
+    "tests/test_native_h1.py",
+    "tests/test_process_startup.py",
+    "tests/test_run_lifecycle.py",
+    "tests/test_weave.py",
+    "docs/current-architecture.md",
+    "docs/environment-adapters.md",
+    "docs/experiments/README.md",
+    "docs/interfaces.md",
+    "docs/run-records.md"
+  ],
+  "evidence": {
+    "path": "assets/architecture-lifecycle-20261021-evidence.tar.gz",
+    "sha256": "e53ed8b045fd813c6af654dda455ca1bd64ac4dceba37a400f062c3a31dd21ba",
+    "bytes": 1701332
+  },
+  "resource_chart": {
+    "path": "assets/architecture-lifecycle-20261021-resources.svg",
+    "sha256": "a1ee1d654656f8d414cfeff1b41ea59de23148461d31304deeebfaca5752345f"
+  }
+}

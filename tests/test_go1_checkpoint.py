@@ -1,5 +1,6 @@
 """Invalid Go1 checkpoints must fail consistently before simulation starts."""
 
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -32,6 +33,14 @@ def test_legacy_defaults_and_zero_variance_remain_valid(saved):
     loaded = load_go1_checkpoint(path, sha256=sha256(path), contract=contract)
     assert loaded["iteration"] == 0
     assert torch.equal(loaded["model_state_dict"]["var"], torch.zeros(50))
+
+
+def test_checkpoint_loading_does_not_depend_on_another_robot_recipe(saved, monkeypatch):
+    path, checkpoint, contract = saved
+    torch.save(checkpoint, path)
+    monkeypatch.setitem(sys.modules, "embodiedforge._wuji_recipe", None)
+    loaded = load_go1_checkpoint(path, sha256=sha256(path), contract=contract)
+    assert torch.equal(loaded["model_state_dict"]["mean"], torch.zeros(50))
 
 
 def test_mismatched_hash_never_deserializes(saved, monkeypatch):

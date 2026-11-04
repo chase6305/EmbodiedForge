@@ -1,25 +1,16 @@
 """Publish and inspect committed Go1 checkpoints independently of run completion."""
 
 import json
-import logging
+import os
 import re
 import shutil
 import tempfile
 from pathlib import Path
 
-from .recipes import sha256, write_json
+from .runtime.artifacts import discard_partial, write_json
+from .runtime.hashing import file_sha256 as sha256
 
 STOPPED = {"interrupted", "timed_out", "failed"}
-
-
-def _remove_partial(path):
-    """Cleanup must not hide a save failure or change an interruption into failure."""
-    try:
-        path.unlink(missing_ok=True)
-    except OSError as exc:
-        logging.getLogger(__name__).warning(
-            "Could not remove partial Go1 publication %s: %s", path, exc
-        )
 
 
 def publish_training_checkpoint(checkpoint, *, optimizer, request):
@@ -28,12 +19,15 @@ def publish_training_checkpoint(checkpoint, *, optimizer, request):
     iteration = checkpoint["iteration"]
     directory = Path("checkpoints")
     directory.mkdir(exist_ok=True)
-    path = directory / f"model-{iteration:09d}.pt"
+    # Keep unique checkpoint names as strings: CPython3.12.0 retains parsed
+    # pathlib components after retired checkpoints have been deleted.
+    name = f"model-{iteration:09d}.pt"
+    path = os.path.join(directory, name)
     save_go1_checkpoint(path, checkpoint, optimizer=optimizer)
     completed = iteration - request["start_iteration"] + 1
     result = {
         "learner_backend": checkpoint.get("learner_backend", "native"),
-        "checkpoint": path.as_posix(),
+        "checkpoint": f"checkpoints/{name}",
         "checkpoint_sha256": sha256(path),
         "checkpoint_iteration": iteration,
         "completed_updates": completed,
@@ -55,13 +49,7 @@ def publish_training_checkpoint(checkpoint, *, optimizer, request):
         "request_sha256": sha256(Path("request.json")),
         "result": result,
     }
-    temporary = Path("recovery.json.tmp")
-    try:
-        write_json(temporary, receipt)
-        temporary.replace("recovery.json")
-    except BaseException:
-        _remove_partial(temporary)
-        raise
+    write_json(Path("recovery.json"), receipt)
     # Preserve the completed-run interface. The receipt already points to a
     # separate immutable file if interruption occurs while updating model.pt.
     temporary = Path("model.pt.tmp")
@@ -69,16 +57,21 @@ def publish_training_checkpoint(checkpoint, *, optimizer, request):
         shutil.copyfile(path, temporary)
         temporary.replace("model.pt")
     except BaseException:
-        _remove_partial(temporary)
+        discard_partial(temporary, label="Go1 publication")
         raise
     # Keep the newest two snapshots; unpublished files are never recovery input.
-    snapshots = sorted(
-        (p for p in directory.iterdir() if re.fullmatch(r"model-\d+\.pt", p.name)),
-        key=lambda p: int(p.stem.split("-")[-1]),
-        reverse=True,
-    )
+    with os.scandir(directory) as entries:
+        snapshots = sorted(
+            (
+                entry.path
+                for entry in entries
+                if re.fullmatch(r"model-\d+\.pt", entry.name)
+            ),
+            key=lambda path: int(os.path.basename(path)[6:-3]),
+            reverse=True,
+        )
     for old in snapshots[2:]:
-        old.unlink()
+        os.unlink(old)
 
 
 def recovery_result(run, manifest):

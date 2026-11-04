@@ -1,6 +1,8 @@
 # 接口设计准则与模块阅读指南
 
-本文描述当前实现的公共接口。长期扩展目标见 [architecture.md](architecture.md)，未实现的部分见 [implementation.md](implementation.md)。源代码使用英文类型与 docstring，本文提供中文职责和调用约定。
+本文描述当前实现的公共接口。模块边界和扩展约束见 [架构说明](architecture.md)，未实现的部分见 [implementation.md](implementation.md)。源代码使用英文类型与 docstring，本文提供中文职责和调用约定。
+
+三条执行路径见 [架构说明](architecture.md)；公共状态见 [运行记录](run-records.md)，Go1/H1 的借用式环境与采集接口见 [环境适配](environment-adapters.md)。下文物理、场景与核心任务协议仍以 CPU 参考运行时为范围。
 
 ## 1. 必须遵守的设计准则
 
@@ -43,11 +45,16 @@
 | [sensors.py](../src/embodiedforge/sensors.py) | `SensorPipeline` | 相机调度、输出校验、帧缓存和帧龄；不推进物理 |
 | [env.py](../src/embodiedforge/env.py) | `VectorEnv` | 创建和组合各模块、维护 episode 时钟、执行 reset/step、释放资源 |
 | [policies.py](../src/embodiedforge/policies.py) | `ActionExecutor` | 每环境 chunk 缓存与消费；不管理模型内部历史 |
-| [rollout.py](../src/embodiedforge/rollout.py) | `TransitionWriter` | 同步接收 transition 的最小协议；运行器不依赖具体存储 |
+| [envs/base.py](../src/embodiedforge/envs/base.py) | `BatchEnvironment` / `TransitionWriter` | 共用 CPU 环境与 transition 消费协议；`rollout.TransitionWriter` 保留兼容导出 |
+| [envs/specs.py](../src/embodiedforge/envs/specs.py) | `validate_environment_spec` | 环境规格版本、CPU 布局与 done 处理声明；评估、记录和读取共用 |
+| [envs/locomotion.py](../src/embodiedforge/envs/locomotion.py) | `Go1Environment` / `H1Environment` | 原生环境适配、缓存与显式 reset，借用底层资源 |
 | rollout | `DemonstrationPolicy` | 将单步示范动作适配为 `[B,1,A]` 策略输出 |
 | rollout | `RolloutSummary` | 本次运行的完成 episode 数、终态成功率与平均步奖励 |
 | [data.py](../src/embodiedforge/data.py) | `EpisodeReadOptions` | 不可变读取配置：观测字段选择与确定性 episode 分片 |
 | data | `EpisodeRecorder` | 有界记录，可选后台写入，原子发布完整 episode，标记未完成数据 |
+| data | `RecordingMetadata` | 自定义环境显式提供配置、场景、种子与来源，构造时复制与校验 |
+| [runtime/records.py](../src/embodiedforge/runtime/records.py) | `run_identity` / `read_run` / `managed_run` / `run_lifecycle` | 版本化身份、兼容状态查询、新运行与既有工作流的公共生命周期 |
+| [learning/advantages.py](../src/embodiedforge/learning/advantages.py) | `generalized_advantage` | 核心/H1 共用的 NumPy GAE；训练入口保留旧导出 |
 | [batching.py](../src/embodiedforge/batching.py) | `BatchOptions` | 不可变批次大小、打乱容量、seed/epoch 和尾批配置 |
 | batching | `WindowBatch` | 拥有数组的观测/动作批次与逐样本语言指令 |
 | [training.py](../src/embodiedforge/training.py) | `PPOConfig` | PPO 超参数及基本校验 |
@@ -273,11 +280,11 @@ embodiedforge rollout --render raster --num-envs 4 \
 
 每个记录目录由一个记录器独占。已发布身份在 episode 首条转换时检查，发布文件前再次检查；正在缓存的 episode 不再每步访问文件系统。若缓冲期间意外出现同名文件，发布失败并保留原文件。
 
-录制追加与动作执行的[专项测量和验证记录](platform-optimization-20261016-twohour.json)及[性能图](platform-optimization-20261016-twohour-performance.svg)包含基线、原始样本、关闭回归和复现方式；专项收益不代表整体训练吞吐。
+录制追加与动作执行的[专项测量和验证记录](experiments/platform-optimization-20261016-twohour.json)及[性能图](experiments/platform-optimization-20261016-twohour-performance.svg)包含基线、原始样本、关闭回归和复现方式；专项收益不代表整体训练吞吐。
 
-第二轮[测量与验证记录](platform-optimization-20261016-round2-twohour.json)及[性能图](platform-optimization-20261016-round2-twohour-performance.svg)补充深度渲染、稀疏重置和回收中断的结果，并保留完整采集流程的正负样本。
+第二轮[测量与验证记录](experiments/platform-optimization-20261016-round2-twohour.json)及[性能图](experiments/platform-optimization-20261016-round2-twohour-performance.svg)补充深度渲染、稀疏重置和回收中断的结果，并保留完整采集流程的正负样本。
 
-第三轮[测量与验证记录](platform-optimization-20261016-round3-twohour.json)及[性能图](platform-optimization-20261016-round3-twohour-performance.svg)记录深度校验的布局与 NumPy 版本差异，并对照完整环境步进和录制流程。
+第三轮[测量与验证记录](experiments/platform-optimization-20261016-round3-twohour.json)及[性能图](experiments/platform-optimization-20261016-round3-twohour-performance.svg)记录深度校验的布局与 NumPy 版本差异，并对照完整环境步进和录制流程。
 
 ## 10. 离线读取与 worker 分片
 
@@ -332,7 +339,7 @@ for epoch in range(3):
 
 有序模式直接从 episode 内部的只读窗口视图复制完整批次，避免逐窗口复制后再拼接；跨 episode 的尾部只复制实际需要的行，不保留前一段完整图像，也不按大 batch_size 预分配不足的尾批。跨段拼接直接校验动作与观测的 shape/dtype，避免为每个片段构造临时字典和字段名前缀；校验在字节序归一化之前完成。打乱模式继续缓存拥有数组的独立窗口；两条路径均保留原来的样本顺序/打乱规则、批次边界、字节序归一化和输入 shape/dtype 检查。
 
-`python benchmarks/ordered_batches.py --output /tmp/ordered-batches.json` 单独测量解码后的有序拼批，耗时、分配追踪和输出校验和分别采集；包含 NPZ 解压和校验的整体读取请使用 `benchmarks/dataset_reads.py`。[2026-10-16 测量记录](ordered-batches-optimization-20261016.json) 同时记录了最终校验优化和未采用的中间拷贝消除试验。拼批专项结果不能直接代表整体读取、训练吞吐或进程 RSS。
+`python benchmarks/ordered_batches.py --output /tmp/ordered-batches.json` 单独测量解码后的有序拼批，耗时、分配追踪和输出校验和分别采集；包含 NPZ 解压和校验的整体读取请使用 `benchmarks/dataset_reads.py`。[2026-10-16 测量记录](experiments/ordered-batches-optimization-20261016.json) 同时记录了最终校验优化和未采用的中间拷贝消除试验。拼批专项结果不能直接代表整体读取、训练吞吐或进程 RSS。
 
 默认保留不足 batch_size 的尾批；`drop_last=True` 在每个分片独立丢弃尾批。空输入不产生批次。分片间 episode 长度不同时，不保证训练步数一致，分布式训练器需要另行协调。相同批次内字段集合、shape 或 dtype 不一致会明确报错，不进行隐式类型提升。拼接输出拥有独立数组，调用者可以修改。
 

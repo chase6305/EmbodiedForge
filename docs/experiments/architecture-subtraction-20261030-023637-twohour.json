@@ -1,0 +1,507 @@
+{
+  "status": "complete",
+  "objective": "Two-hour overall subtraction and compatibility verification, preserving prior work.",
+  "started_at": "2026-10-30T02:36:37+00:00",
+  "deadline": "2026-10-30T04:36:37+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261030-023637-twohour",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37953,
+  "baseline_files": 428,
+  "historical_files": 189,
+  "changed_files_this_round": [
+    "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+    "src/embodiedforge/workflows/supermimic_contacts.py",
+    "src/embodiedforge/microduck.py",
+    "src/embodiedforge/locomotion/go1_light_loco.py",
+    "tests/test_microduck_task.py",
+    "tests/test_supermimic_contacts.py"
+  ],
+  "changes": [
+    "Reuse crouch pose error for generic phase pose tracking while retaining empty-target rejection.",
+    "Share the exact existing quaternion formula across four reset events, retaining cached half-yaw terms and arithmetic/RNG order.",
+    "Use existing bounded file hashing for the compiled SuperMimic geometry model, upstream Microduck lockfile and pinned Light Loco source."
+  ],
+  "validation": {
+    "fixture_corrections": [
+      {
+        "artifact": "target-phase1.xml",
+        "reason": "New test environment omitted required device; fixed fixture, subsequent 15 target tests passed."
+      },
+      {
+        "artifact": "numerical-probe/summary.json",
+        "reason": "FP64 fake reset state used default FP32 random tensors; baseline itself rejected this mixed-dtype fixture. Matched Torch default dtype to each fixture precision."
+      }
+    ],
+    "numerical_probe": {
+      "status": "complete",
+      "started_at": "2026-10-30T02:57:35.327822+00:00",
+      "seconds": 5.006022735993611,
+      "requested_seconds": 5.0,
+      "cycles": 82,
+      "counts": {
+        "phase_cases": 86,
+        "reset_cases": 154
+      },
+      "devices": [
+        "cpu",
+        "cuda"
+      ],
+      "last_sample": {
+        "seconds": 5.006022735993611,
+        "cycles": 82,
+        "rss_kib": 1342972,
+        "fds": 45,
+        "time": "2026-10-30T02:57:40.333894+00:00"
+      },
+      "source_hashes": {
+        "/tmp/embodiedforge-subtraction-20261030-023637-twohour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "fce56d9e9396f0a89400a866e324fa594b5a969ec94daa284d5a5b3d54c18ff1",
+        "/home/ubuntu/workspace/chase/EmbodiedForge/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "6286a2d82e8c5ff276ce3c8747e50fef540b1e52dcd0d04fc55bdaeaa2e092cc"
+      },
+      "failures": [],
+      "scope": "Compare old/new task tensors, gradients, reset state and RNG; CPU/CUDA fixtures.",
+      "comparison": "Exact tensor bytes, including gradient tensors and CPU/CUDA RNG state. Private tensor environments; not robot training."
+    },
+    "baseline-targets": {
+      "tests_including_subtests": 381,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 17.062,
+      "xml": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/baseline-targets.xml",
+      "log": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/baseline-targets.log"
+    },
+    "target-phase1": {
+      "tests_including_subtests": 15,
+      "skipped": 0,
+      "failures": 2,
+      "errors": 0,
+      "seconds": 4.242,
+      "xml": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/target-phase1.xml",
+      "log": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/target-phase1.log"
+    },
+    "target-final": {
+      "tests_including_subtests": 15,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 3.935,
+      "xml": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/target-final.xml",
+      "log": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/target-final.log"
+    },
+    "candidate-sdk": {
+      "tests_including_subtests": 386,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 18.385,
+      "xml": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/candidate-sdk.xml",
+      "log": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/candidate-sdk.log"
+    },
+    "candidate-full": {
+      "tests_including_subtests": 3627,
+      "skipped": 81,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 89.983,
+      "xml": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/candidate-full.xml",
+      "log": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/candidate-full.log"
+    },
+    "light-loco-baseline": {
+      "tests_including_subtests": 6,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 2.976,
+      "xml": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/light-loco-baseline.xml",
+      "log": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/light-loco-baseline.log"
+    },
+    "light-loco-final": {
+      "tests_including_subtests": 6,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 2.968,
+      "xml": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/light-loco-final.xml",
+      "log": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/light-loco-final.log"
+    },
+    "hash_allocation": {
+      "scope": "Only the original/candidate hash expression, over the existing 71 MB compiled geometry model. Python allocation peaks are not whole-training memory or a throughput benchmark.",
+      "model": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/architecture-subtraction-20261029-095651-fivehour/backflip-acceptance/physics-model.mjb",
+      "results": [
+        {
+          "method": "baseline",
+          "sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64",
+          "file_bytes": 71159933,
+          "python_peak_bytes": 71167338,
+          "rss_peak_kib": 89344,
+          "seconds": 0.0790718540083617,
+          "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+          "repetition": 0,
+          "returncode": 0
+        },
+        {
+          "method": "candidate",
+          "sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64",
+          "file_bytes": 71159933,
+          "python_peak_bytes": 2105169,
+          "rss_peak_kib": 21760,
+          "seconds": 0.03888623199600261,
+          "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+          "repetition": 0,
+          "returncode": 0
+        },
+        {
+          "method": "baseline",
+          "sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64",
+          "file_bytes": 71159933,
+          "python_peak_bytes": 71167338,
+          "rss_peak_kib": 89084,
+          "seconds": 0.057626798006822355,
+          "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+          "repetition": 1,
+          "returncode": 0
+        },
+        {
+          "method": "candidate",
+          "sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64",
+          "file_bytes": 71159933,
+          "python_peak_bytes": 2105169,
+          "rss_peak_kib": 22156,
+          "seconds": 0.04209520100266673,
+          "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+          "repetition": 1,
+          "returncode": 0
+        },
+        {
+          "method": "baseline",
+          "sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64",
+          "file_bytes": 71159933,
+          "python_peak_bytes": 71167338,
+          "rss_peak_kib": 88976,
+          "seconds": 0.05863412200415041,
+          "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+          "repetition": 2,
+          "returncode": 0
+        },
+        {
+          "method": "candidate",
+          "sha256": "2fac2cee3b82bf12bf681ffe23f48baa656384ca9fd1a7cef14b5b4d553cff64",
+          "file_bytes": 71159933,
+          "python_peak_bytes": 2105169,
+          "rss_peak_kib": 22160,
+          "seconds": 0.04282226299983449,
+          "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+          "repetition": 2,
+          "returncode": 0
+        }
+      ]
+    },
+    "release": {
+      "status": "passed",
+      "artifacts": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302112,
+          "sha256": "489fe73adb2922423e4079b87212fa6ae5c64d279aba4c8a9378e7fe411e8ea9"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19747511,
+          "sha256": "f1c1c34ff7913e649e272d8f503745cea9c4af8af3ee33a706ccf39a7c7cd75c"
+        }
+      },
+      "exact_python_modules": 141,
+      "exact_resources": 49,
+      "historical_evidence_tar_members": 0,
+      "installed_host_imports_without_site_packages": true,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/source-release/embodiedforge-0.1.0",
+      "installed_root": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/installed-wheel",
+      "target_tests": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/source-release-targets.xml"
+    },
+    "source_release_targets": {
+      "tests": 79,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 6.453,
+      "exit_code": 0
+    },
+    "model_data_preservation_initial": {
+      "models_and_registry": 6,
+      "data_files": 9,
+      "matched_prior_recorded_hashes": true
+    },
+    "architecture": {
+      "modules": 141,
+      "explicit_import_edges": 389,
+      "cycles": [],
+      "existing_top_level_declarations_and_signatures_retained": true,
+      "method": "Existing architecture test graph; dynamic imports are checked by runtime tests."
+    },
+    "numerical_sustained": {
+      "summary": {
+        "status": "complete",
+        "started_at": "2026-10-30T03:00:46.004537+00:00",
+        "seconds": 5400.042117241988,
+        "requested_seconds": 5400.0,
+        "cycles": 98214,
+        "counts": {
+          "phase_cases": 98218,
+          "reset_cases": 98286
+        },
+        "devices": [
+          "cpu",
+          "cuda"
+        ],
+        "last_sample": {
+          "seconds": 5400.042117241988,
+          "cycles": 98214,
+          "rss_kib": 1076156,
+          "fds": 45,
+          "time": "2026-10-30T04:30:46.046695+00:00"
+        },
+        "source_hashes": {
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "fce56d9e9396f0a89400a866e324fa594b5a969ec94daa284d5a5b3d54c18ff1",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/candidate/src/embodiedforge/locomotion/microduck/tasks/mdp.py": "6286a2d82e8c5ff276ce3c8747e50fef540b1e52dcd0d04fc55bdaeaa2e092cc"
+        },
+        "failures": [],
+        "scope": "Compare old/new task tensors, gradients, reset state and RNG; CPU/CUDA fixtures.",
+        "comparison": "Exact tensor bytes, including gradient tensors and CPU/CUDA RNG state. Private tensor environments; not robot training."
+      },
+      "supervisor": {
+        "command": [
+          "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+          "-I",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/numerical-soak.py",
+          "--baseline",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+          "--candidate",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/candidate/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+          "--output",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/numerical-final",
+          "--seconds",
+          "5400"
+        ],
+        "launched_command": [
+          "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+          "-I",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/numerical-soak.py",
+          "--baseline",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/baseline/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+          "--candidate",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/candidate/src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+          "--output",
+          "/tmp/embodiedforge-subtraction-20261030-023637-twohour/numerical-final",
+          "--seconds",
+          "5400"
+        ],
+        "supervisor_pid": 913194,
+        "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+        "started_at": "2026-10-30T03:00:44.871930+00:00",
+        "timeout": 5500.0,
+        "grace": 30.0,
+        "trace": false,
+        "process_returncode": 0,
+        "termination_signal": null,
+        "timed_out": false,
+        "supervisor_signal": null,
+        "forced_stop": false,
+        "exit_observed": true,
+        "completed_successfully": true,
+        "pid": 913195,
+        "seconds": 5401.528093066008,
+        "finished_at": "2026-10-30T04:30:46.399996+00:00"
+      }
+    },
+    "environments": {
+      "full_suite": {
+        "python": "3.10.0 (default, Mar  3 2022, 09:58:08) [GCC 7.5.0]",
+        "executable": "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+        "packages": {
+          "torch": "2.13.0",
+          "numpy": "2.2.6"
+        }
+      },
+      "microduck_and_numerical": {
+        "python": "3.12.14 (main, Aug 14 2026, 15:34:45) [Clang 22.1.3 ]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/microduck-native-venv/bin/python",
+        "packages": {
+          "torch": "2.9.1",
+          "numpy": "2.4.1",
+          "mujoco": "3.10.0",
+          "mjlab": "1.3.0"
+        },
+        "cuda_compiled": "12.8",
+        "cuda_available": true,
+        "cuda_device": "NVIDIA GeForce RTX 5090 D v2"
+      },
+      "light_loco": {
+        "python": "3.12.0 | packaged by Anaconda, Inc. | (main, Oct  2 2023, 17:29:18) [GCC 11.2.0]",
+        "executable": "/home/ubuntu/workspace/chase/EmbodiedForge/.cache/light-loco-venv/bin/python",
+        "packages": {
+          "torch": "2.9.0+cu128",
+          "numpy": "2.5.2",
+          "mujoco": "3.11.0",
+          "mjbatch": "0.1.0",
+          "light-loco-parkour": "0.0.29"
+        }
+      }
+    },
+    "numerical_supervisor_tool_exit": 0,
+    "numerical_resources": {
+      "sample_count": 182,
+      "fd_values": [
+        45
+      ],
+      "rss_kib_after_5min": [
+        1074940,
+        1076156
+      ],
+      "scope": "One process runs both reference and candidate; resource ranges are not before/after performance comparisons."
+    },
+    "style": {
+      "ruff_check_exit": 0,
+      "ruff_format_check_exit": 0,
+      "git_diff_check_exit": 0,
+      "reverse_patch_check_exit": 0,
+      "code_unchanged_since_checks": true
+    }
+  },
+  "audit_decisions": [
+    "Keep immutable byte payloads where their exact bytes must feed both checksum and deserialization.",
+    "Keep existing public reward/reset entry points and empty-target rejection.",
+    "Retain the original quaternion multiplication order and reuse existing half-yaw cosine/sine; do not substitute a differently ordered SDK formula.",
+    "Keep Gaussian/L1 reward formulas separate; only demonstrably identical pose construction is delegated.",
+    "No optional SDK installation or model retraining was required for this refactor."
+  ],
+  "candidate_source": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/candidate/src",
+  "numerical_job": {
+    "session_id": 91389,
+    "supervisor": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/numerical-supervisor",
+    "summary": "/tmp/embodiedforge-subtraction-20261030-023637-twohour/numerical-final/summary.json",
+    "requested_seconds": 5400
+  },
+  "preserved_models": [
+    {
+      "path": "runs/supermimic/tasks/backflip/reference/current.json",
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+    },
+    {
+      "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+      "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+      "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+      "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+    },
+    {
+      "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+    }
+  ],
+  "preserved_data": [
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+      "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+      "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+      "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+      "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+      "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+      "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+      "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+      "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+      "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+    }
+  ],
+  "generated_build_files": [
+    "src/embodiedforge.egg-info/SOURCES.txt"
+  ],
+  "metrics": {
+    "modules_before": 141,
+    "modules_after": 141,
+    "source_lines_before": 37953,
+    "source_lines_after": 37915,
+    "production_net_lines_removed": 38
+  },
+  "preservation": {
+    "checked_at": "2026-10-30T04:36:57.528830+00:00",
+    "baseline_files_checked": 428,
+    "expected_changed_files": [
+      "src/embodiedforge.egg-info/SOURCES.txt",
+      "src/embodiedforge/locomotion/go1_light_loco.py",
+      "src/embodiedforge/locomotion/microduck/tasks/mdp.py",
+      "src/embodiedforge/microduck.py",
+      "src/embodiedforge/workflows/supermimic_contacts.py",
+      "tests/test_microduck_task.py",
+      "tests/test_supermimic_contacts.py"
+    ],
+    "unexpected_changes": [],
+    "generated_build_files": [
+      "src/embodiedforge.egg-info/SOURCES.txt"
+    ],
+    "historical_files_unchanged": 189,
+    "models_and_registry": 6,
+    "reference_data_files": 9,
+    "frozen_production_source_matches": true
+  },
+  "limits": [
+    "The 90-minute differential uses private tensor environments and extracted source functions; it compares exact tensor/gradient/reset/RNG bytes on CPU and CUDA, not learned walking or robot skill quality.",
+    "Hash allocation measurements isolate the actual old/new hash expression over one existing 71 MB compiled geometry model, not whole-training memory or throughput.",
+    "The main suite skips optional SDK dependencies; the real Microduck and Light Loco environments supply separate targeted coverage. Counts are not summed across overlapping test suites.",
+    "Initial test/probe fixture failures are retained separately with their corrections; they are not counted as final passes.",
+    "No model training or default task parameter tuning was performed in this subtraction round."
+  ],
+  "elapsed_seconds": 7220.52883,
+  "last_updated_at": "2026-10-30T04:36:57.528830+00:00",
+  "finished_at": "2026-10-30T04:36:57.528830+00:00",
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261030-023637-twohour-evidence.tar.gz",
+    "bytes": 1406598,
+    "sha256": "b231234d88d9e8ae4f5a9375142827ff7c69e369aa9aa9e590f12c8c49c2a093",
+    "verified_members": 449,
+    "report_snapshot": "scratch/state.json",
+    "snapshot_note": "Frozen before inserting the bundle checksum, to avoid self-reference."
+  }
+}

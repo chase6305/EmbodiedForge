@@ -41,8 +41,8 @@ class ArticulationBatch:
     """One MJCF topology, independent simulation rows, scalar joint actuators.
 
     snapshot() returns owned arrays; internal integration buffers are live views.
-    Joint IDs index actuator order, never
-    assume qpos order. Raw state uses MuJoCo qpos/qvel conventions (wxyz quats).
+    Public joint selections follow actuator order (names, ctrl). qadr and vadr
+    map that order to MuJoCo qpos/qvel addresses. Raw qpos stores wxyz quaternions.
     """
 
     def __init__(self, model, num_envs, *, threads=4, seed=0):
@@ -116,15 +116,14 @@ class ArticulationBatch:
     def reset(self, env_ids=None, *, qpos=None, qvel=None):
         """Validate all inputs before resetting; selected row order is respected."""
         ids = selected_ids(env_ids, self.num_envs)
+        # One owned template row broadcasts; an empty selection keeps zero rows.
         position = (
-            np.tile(self.model.qpos0, (len(ids), 1))
+            self.model.qpos0[None][: len(ids)].copy()
             if qpos is None
             else finite_array(qpos, (len(ids), self.model.nq), "qpos")
         )
         velocity = (
-            np.zeros((len(ids), self.model.nv))
-            if qvel is None
-            else finite_array(qvel, (len(ids), self.model.nv), "qvel")
+            0 if qvel is None else finite_array(qvel, (len(ids), self.model.nv), "qvel")
         )
         for j in range(self.model.njnt):
             kind, adr = self.model.jnt_type[j], self.model.jnt_qposadr[j]
@@ -191,8 +190,8 @@ class ArticulationBatch:
             "joint_names": self.names,
             "qpos": self.qpos.copy(),
             "qvel": self.qvel.copy(),
-            "joint_position": self.qpos[:, self.qadr].copy(),
-            "joint_velocity": self.qvel[:, self.vadr].copy(),
+            "joint_position": np.take(self.qpos, self.qadr, axis=1),
+            "joint_velocity": np.take(self.qvel, self.vadr, axis=1),
             "position_target": self.ctrl.copy(),
             "actuator_force": self.actuator_force.copy(),
             "joint_torque": self.joint_force.copy(),

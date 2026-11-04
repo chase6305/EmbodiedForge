@@ -1,6 +1,7 @@
 """Native articulation contracts and H1 training without IsaacLab."""
 
 import json
+import os
 import signal
 import subprocess
 import sys
@@ -64,6 +65,154 @@ def test_torques_and_state_match_direct_mujoco_and_snapshots_are_owned(model):
     assert not robot.joint_force[0].any()
 
 
+@pytest.mark.parametrize("count", [1, 4, 17])
+@pytest.mark.parametrize("layout", ["C", "F", "reverse"])
+def test_joint_snapshots_keep_actuator_order_owned_contiguous_storage(
+    model, count, layout
+):
+    from embodiedforge.locomotion.articulation import ArticulationBatch
+
+    robot = ArticulationBatch(model, count, threads=1)
+    position = np.arange(count * 2, dtype=np.float64).reshape(count, 2) / 100
+    velocity = position + 0.125
+    robot.reset(qpos=position, qvel=velocity)
+    if layout == "F":
+        robot.qpos, robot.qvel = map(np.asfortranarray, (robot.qpos, robot.qvel))
+    elif layout == "reverse":
+        robot.qpos, robot.qvel = robot.qpos[:, ::-1], robot.qvel[:, ::-1]
+    snapshot = robot.snapshot()
+    assert snapshot["joint_names"] == ("right", "left")
+    np.testing.assert_array_equal(snapshot["joint_position"], robot.qpos[:, [1, 0]])
+    np.testing.assert_array_equal(snapshot["joint_velocity"], robot.qvel[:, [1, 0]])
+    arrays = {
+        name: value for name, value in snapshot.items() if isinstance(value, np.ndarray)
+    }
+    for value in arrays.values():
+        assert (
+            value.flags.owndata and value.flags.writeable and value.flags.c_contiguous
+        )
+    for first_name, first in arrays.items():
+        for second_name, second in arrays.items():
+            if first_name != second_name:
+                assert not np.shares_memory(first, second)
+    original_position = robot.qpos.copy()
+    snapshot["joint_position"].fill(7)
+    np.testing.assert_array_equal(robot.qpos, original_position)
+    np.testing.assert_array_equal(snapshot["qpos"], original_position)
+    frozen = {name: value.copy() for name, value in arrays.items()}
+    robot.qpos.fill(99)
+    robot.qvel.fill(99)
+    for name, value in frozen.items():
+        np.testing.assert_array_equal(snapshot[name], value)
+
+
+@pytest.mark.parametrize("ids", [None, [3, 1], [2], []])
+@pytest.mark.parametrize("custom_position", [False, True])
+@pytest.mark.parametrize("custom_velocity", [False, True])
+def test_default_and_custom_reset_rows_preserve_order_and_unselected_state(
+    model, ids, custom_position, custom_velocity
+):
+    from embodiedforge.locomotion.articulation import ArticulationBatch
+
+    robot = ArticulationBatch(model, 4, threads=1)
+    robot.reset(
+        qpos=np.arange(8, dtype=np.float64).reshape(4, 2) / 100,
+        qvel=np.arange(8, dtype=np.float64).reshape(4, 2) / 100 + 0.5,
+    )
+    robot.actuator_force.fill(2)
+    robot.joint_force.fill(3)
+    chosen = np.arange(4) if ids is None else np.asarray(ids, dtype=np.int64)
+    untouched = np.setdiff1d(np.arange(4), chosen)
+    before = {
+        name: getattr(robot, name).copy()
+        for name in ("qpos", "qvel", "ctrl", "actuator_force", "joint_force")
+    }
+    qpos = (
+        np.arange(len(chosen) * 2, dtype=np.float64).reshape(-1, 2) / 100 + 0.25
+        if custom_position
+        else None
+    )
+    qvel = (
+        np.arange(len(chosen) * 2, dtype=np.float64).reshape(-1, 2) / 100 - 0.25
+        if custom_velocity
+        else None
+    )
+    expected_position = (
+        qpos.copy() if qpos is not None else np.tile(model.qpos0, (len(chosen), 1))
+    )
+    expected_velocity = (
+        qvel.copy() if qvel is not None else np.zeros((len(chosen), model.nv))
+    )
+    robot.reset(ids, qpos=qpos, qvel=qvel)
+    np.testing.assert_array_equal(robot.qpos[chosen], expected_position)
+    np.testing.assert_array_equal(robot.qvel[chosen], expected_velocity)
+    np.testing.assert_array_equal(robot.ctrl[chosen], expected_position[:, [1, 0]])
+    for name, original in before.items():
+        np.testing.assert_array_equal(
+            getattr(robot, name)[untouched], original[untouched]
+        )
+    np.testing.assert_array_equal(
+        robot.actuator_force[chosen], np.zeros((len(chosen), 2))
+    )
+    np.testing.assert_array_equal(robot.joint_force[chosen], np.zeros((len(chosen), 2)))
+    if qpos is not None:
+        qpos.fill(99)
+        np.testing.assert_array_equal(robot.qpos[chosen], expected_position)
+    if qvel is not None:
+        qvel.fill(99)
+        np.testing.assert_array_equal(robot.qvel[chosen], expected_velocity)
+
+
+def test_reset_copies_borrowed_state_before_backend_reset(model):
+    from embodiedforge.locomotion.articulation import ArticulationBatch
+
+    robot = ArticulationBatch(model, 4, threads=1)
+    robot.reset(qpos=np.arange(8).reshape(4, 2) / 100, qvel=np.ones((4, 2)))
+    position, velocity = robot.qpos[1::2], robot.qvel[1::2]
+    expected_position, expected_velocity = position.copy(), velocity.copy()
+    robot.reset([3, 1], qpos=position, qvel=velocity)
+    np.testing.assert_array_equal(robot.qpos[[3, 1]], expected_position)
+    np.testing.assert_array_equal(robot.qvel[[3, 1]], expected_velocity)
+
+
+def test_default_reset_snapshots_template_before_backend_can_change_it(model):
+    from types import SimpleNamespace
+
+    from embodiedforge.locomotion.articulation import ArticulationBatch
+
+    robot = ArticulationBatch(model, 4, threads=1)
+    expected = model.qpos0.copy()
+    backend = robot.batch
+
+    def reset(ids):
+        backend.reset(ids)
+        model.qpos0[:] = expected + 0.25
+
+    robot.batch = SimpleNamespace(reset=reset, forward=backend.forward)
+    robot.reset([3, 1])
+    np.testing.assert_array_equal(robot.qpos[[3, 1]], np.tile(expected, (2, 1)))
+    np.testing.assert_array_equal(robot.ctrl[[3, 1]], np.tile(expected[[1, 0]], (2, 1)))
+
+
+def test_empty_reset_keeps_quaternion_validation_and_no_mutation_semantics():
+    from embodiedforge.locomotion.articulation import ArticulationBatch
+
+    model = mujoco.MjModel.from_xml_string("""<mujoco><worldbody><body pos="0 0 1"><freejoint/>
+      <geom size=".1" mass="1"/><body><joint name="joint"/><geom size=".1" mass="1"/></body>
+      </body></worldbody><actuator><position joint="joint" kp="10"/></actuator></mujoco>""")
+    robot = ArticulationBatch(model, 2, threads=1)
+    before = robot.snapshot()
+    model.qpos0[3:7] = 0
+    robot.reset([])
+    with pytest.raises(ValueError, match="quaternions"):
+        robot.reset([0])
+    with pytest.raises(ValueError, match="qvel"):
+        robot.reset([], qvel=[])
+    for name, value in before.items():
+        if isinstance(value, np.ndarray):
+            np.testing.assert_array_equal(robot.snapshot()[name], value)
+
+
 def test_selective_randomization_recomputes_constants_and_reset_is_isolated(model):
     from embodiedforge.locomotion.articulation import ArticulationBatch
 
@@ -109,6 +258,115 @@ def h1_path():
     if not path.exists():
         pytest.skip("Set EF_H1_MODEL to run real H1 asset integration checks")
     return path
+
+
+@pytest.mark.parametrize("count", [2, 17, 64])
+def test_h1_acceleration_reward_keeps_contiguous_reduction_rounding(h1_path, count):
+    from embodiedforge.locomotion.h1_native import CTRL_DT, H1, build_model
+
+    env = H1(build_model(h1_path), count, threads=1, training=False, seed=412)
+    rng = np.random.default_rng(412 + count)
+    env.robot.reset(
+        qpos=env.robot.qpos,
+        qvel=rng.normal(0, 0.02, env.robot.qvel.shape),
+    )
+    previous = env.robot.qvel[:, env.robot.vadr].copy(order="C")
+    _, _, _, _, terms = env.step(rng.normal(0, 0.01, (count, 19)))
+    expected = -1.25e-7 * np.sum(
+        ((env.robot.qvel[:, env.robot.vadr] - previous) / CTRL_DT) ** 2, axis=1
+    )
+    np.testing.assert_array_equal(terms["acceleration"], expected)
+
+
+@pytest.mark.parametrize("count", [1, 17])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("layout", ["C", "F", "strided", "broadcast"])
+def test_h1_action_clipping_preserves_caller_storage(h1_path, count, dtype, layout):
+    from embodiedforge.locomotion.h1_native import ACTION_LIMIT, H1, build_model
+
+    env = H1(build_model(h1_path), count, threads=1, training=False, seed=414)
+    actions = np.linspace(
+        -2 * ACTION_LIMIT, 2 * ACTION_LIMIT, count * 19, dtype=dtype
+    ).reshape(count, 19)
+    if layout == "F":
+        actions = np.asfortranarray(actions)
+    elif layout == "strided":
+        padded = np.zeros((count, 38), dtype=dtype)
+        padded[:, ::2] = actions
+        actions = padded[:, ::2]
+    elif layout == "broadcast":
+        actions = np.broadcast_to(actions[0], (count, 19))
+    original = actions.copy()
+    expected = np.clip(original.astype(np.float64), -ACTION_LIMIT, ACTION_LIMIT)
+    env.step(actions)
+    np.testing.assert_array_equal(actions, original)
+    np.testing.assert_array_equal(env.action, expected)
+
+
+@pytest.mark.parametrize("outcome", ["complete", "rejected", "failed", "interrupted"])
+def test_native_evaluation_records_lifecycle_and_retains_primary_failures(
+    h1_path, tmp_path, monkeypatch, outcome
+):
+    from types import SimpleNamespace
+
+    pytest.importorskip("torch")
+    from embodiedforge import native_h1
+    from embodiedforge.locomotion.h1_config import VERSION
+    from embodiedforge.locomotion.h1_native import build_model
+    from embodiedforge.locomotion.h1_ppo import Policy
+    from embodiedforge.runtime.records import read_run
+
+    model, policy = build_model(h1_path), Policy()
+    metadata = {
+        "task": VERSION,
+        "checkpoint_sha256": "a" * 64,
+        "model_sha256": "b" * 64,
+    }
+    monkeypatch.setattr(
+        native_h1, "load_run", lambda run: (model, policy, {}, metadata)
+    )
+    failure = (
+        KeyboardInterrupt()
+        if outcome == "interrupted"
+        else RuntimeError("evaluation failed")
+    )
+
+    def evaluate(args, *unused):
+        if outcome in ("failed", "interrupted"):
+            raise failure
+        native_h1.write_json(
+            args.output / "evaluation.json", {"accepted": outcome == "complete"}
+        )
+        return 2 if outcome == "rejected" else 0
+
+    monkeypatch.setattr(native_h1, "_evaluate_native", evaluate)
+    args = SimpleNamespace(
+        threads=1,
+        run=tmp_path / "source",
+        num_envs=2,
+        seed=0,
+        randomized_reset=False,
+        steps=2,
+        velocity=[0.2, 0, 0],
+        output=tmp_path / "evaluation",
+    )
+    if outcome in ("failed", "interrupted"):
+        with pytest.raises(type(failure)) as caught:
+            native_h1.evaluate(args)
+        assert caught.value is failure
+    else:
+        assert native_h1.evaluate(args) == (2 if outcome == "rejected" else 0)
+    summary = read_run(args.output)
+    assert summary["workflow"] == "h1-native"
+    assert summary["operation"] == "evaluate"
+    assert summary["status"] == outcome
+    saved = json.loads((args.output / "run.json").read_text())
+    if outcome in ("complete", "rejected"):
+        assert saved["result"]["sha256"] == native_h1.digest(
+            args.output / "evaluation.json"
+        )
+    else:
+        assert "result" not in saved
 
 
 @pytest.mark.parametrize("randomized_reset", [False, True])
@@ -430,11 +688,13 @@ def test_training_final_record_failure_preserves_primary_error(
             ]
         )
     assert caught.value is expected
-    assert len(final_records) == 1
     if failure is None:
+        assert len(final_records) == 2
         assert final_records[0]["status"] == "complete"
+        assert final_records[1]["status"] == "failed"
         assert (output / final_records[0]["checkpoint"]).is_file()
     else:
+        assert len(final_records) == 1
         status = "interrupted" if isinstance(failure, KeyboardInterrupt) else "failed"
         assert final_records[0]["status"] == status
         assert "disk full" in caplog.text
@@ -444,16 +704,61 @@ def test_training_final_record_failure_preserves_primary_error(
     assert saved["learning_rate"] == 3e-4
 
 
+@pytest.mark.parametrize("interrupt", [False, True])
+def test_model_publication_failure_leaves_an_inspectable_startup_record(
+    h1_path, tmp_path, monkeypatch, interrupt
+):
+    pytest.importorskip("torch")
+    import mujoco
+
+    from embodiedforge import native_h1
+    from embodiedforge.runtime.records import read_run
+
+    failure = KeyboardInterrupt() if interrupt else OSError("model write failed")
+
+    def fail(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr(mujoco, "mj_saveModel", fail)
+    output = tmp_path / "train"
+    with pytest.raises(type(failure)) as caught:
+        native_h1.main(
+            [
+                "train",
+                "--model",
+                str(h1_path),
+                "--output",
+                str(output),
+                "--updates",
+                "1",
+                "--num-envs",
+                "2",
+                "--threads",
+                "1",
+            ]
+        )
+    assert caught.value is failure
+    assert read_run(output)["status"] == ("interrupted" if interrupt else "failed")
+    record = json.loads((output / "run.json").read_text())
+    assert record["model_sha256"] is None
+    assert "checkpoint" not in record
+
+
+@pytest.mark.parametrize(
+    "cleanup_error", [None, PermissionError, KeyboardInterrupt, SystemExit]
+)
 @pytest.mark.parametrize(
     "boundary,error",
     [
+        ("write", OSError("checkpoint write failed")),
+        ("write", KeyboardInterrupt()),
         ("checkpoint", OSError("checkpoint publication failed")),
         ("checkpoint", KeyboardInterrupt()),
         ("run.json", OSError("manifest publication failed")),
     ],
 )
 def test_checkpoint_publication_keeps_committed_state_recoverable(
-    h1_path, tmp_path, monkeypatch, boundary, error
+    h1_path, tmp_path, monkeypatch, boundary, error, cleanup_error, caplog
 ):
     torch = pytest.importorskip("torch")
     from embodiedforge import native_h1
@@ -492,7 +797,7 @@ def test_checkpoint_publication_keeps_committed_state_recoverable(
     save(50)
     save(100)
     committed = dict(metadata)
-    replace = Path.replace
+    replace = os.replace
 
     def fail_after_replace(path, target):
         result = replace(path, target)
@@ -504,10 +809,25 @@ def test_checkpoint_publication_keeps_committed_state_recoverable(
         return result
 
     with monkeypatch.context() as patch:
-        patch.setattr(Path, "replace", fail_after_replace)
+        patch.setattr(os, "replace", fail_after_replace)
+        if boundary == "write":
+
+            def partial_save(checkpoint, path):
+                Path(path).write_bytes(b"partial H1 checkpoint")
+                raise error
+
+            patch.setattr(torch, "save", partial_save)
+        if cleanup_error:
+
+            def fail_cleanup(path, **kwargs):
+                raise cleanup_error("H1 temporary cleanup interrupted")
+
+            patch.setattr(os, "unlink", fail_cleanup)
         with pytest.raises(type(error)) as caught:
             save(150)
     assert caught.value is error
+    if cleanup_error:
+        assert "H1 temporary cleanup interrupted" in caplog.text
     assert metadata == committed
     # Model the trainer's error finalization, then load through the real consumer.
     native_h1.write_json(tmp_path / "run.json", {**metadata, "status": "failed"})
@@ -517,7 +837,12 @@ def test_checkpoint_publication_keeps_committed_state_recoverable(
         native_h1.digest(tmp_path / committed["checkpoint"])
         == committed["checkpoint_sha256"]
     )
-    assert not list(tmp_path.glob("*.tmp"))
+    partials = list(tmp_path.glob("*.tmp"))
+    if boundary == "write" and cleanup_error:
+        assert partials == [tmp_path / "checkpoint-000000150.pt.tmp"]
+        assert partials[0].read_bytes() == b"partial H1 checkpoint"
+    else:
+        assert not partials
     save(200)
     assert sorted(p.name for p in tmp_path.glob("checkpoint-*.pt")) == [
         "checkpoint-000000100.pt",

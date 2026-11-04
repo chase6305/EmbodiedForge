@@ -1,5 +1,9 @@
 """Validate actual TensorBoard event streams, including resumed runs."""
 
+import json
+import subprocess
+import sys
+
 import pytest
 
 from embodiedforge._microduck_worker import checkpoint_metadata, validate_metrics
@@ -86,6 +90,33 @@ def test_resumed_metrics_use_checkpoint_iteration(events, checkpoint_state):
     with pytest.raises(RuntimeError, match="final checkpoint filename"):
         validate_metrics(checkpoint.with_name("model_42.pt"), 2, start_iteration=42)
     assert report["checkpoint_metadata"] == expected_metadata
+
+
+def test_checkpoint_worker_runs_isolated_and_hashes_the_loaded_version(
+    tmp_path, checkpoint_state
+):
+    import torch
+
+    from embodiedforge import _microduck_worker
+
+    checkpoint = tmp_path / "model.pt"
+    output = tmp_path / "metadata.json"
+    torch.save(checkpoint_state, checkpoint)
+    subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            _microduck_worker.__file__,
+            "checkpoint",
+            str(checkpoint),
+            str(output),
+        ],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        timeout=30,
+    )
+    assert json.loads(output.read_text()) == checkpoint_metadata(checkpoint)
 
 
 @pytest.mark.parametrize("steps", [[42], [42, 44], list(range(1000))])

@@ -2,12 +2,12 @@
 
 import importlib
 import importlib.util
-import shutil
 import sys
 import uuid
 from pathlib import Path, PurePosixPath
 
-from .recipes import sha256
+from .runtime.hashing import copy_file_snapshot
+from .runtime.hashing import file_sha256 as sha256
 
 _REQUIRED = {
     "locomotion/__init__.py",
@@ -53,7 +53,7 @@ def _files(record):
 
 
 def copy_go1_implementation(run, manifest, destination):
-    """Copy only manifest-listed files; never import a run's extra files/pyc."""
+    """Copy listed files to new private paths, never importing extra files/pyc."""
     if "implementation" not in manifest:
         return None  # Legacy runs explicitly report that source is unavailable.
     record = manifest["implementation"]
@@ -65,12 +65,11 @@ def copy_go1_implementation(run, manifest, destination):
         target = _contained(destination, name)
         if path.suffix not in (".py", ".xml") and not path.name.startswith("LICENSE"):
             raise ValueError(f"Unsupported implementation snapshot file: {name}")
-        if not path.is_file() or sha256(path) != digest:
+        if not path.is_file():
             raise ValueError(f"Implementation snapshot differs: {path}")
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(path, target)
-        if sha256(target) != digest:
-            raise ValueError(f"Implementation snapshot changed during copy: {path}")
+        if copy_file_snapshot(path, target) != digest or sha256(target) != digest:
+            raise ValueError(f"Implementation snapshot differs during copy: {path}")
     return {"path": str(destination), "files": files}
 
 

@@ -17,7 +17,7 @@ from embodiedforge.microduck import run
 
 
 def test_sdk_module_does_not_import_host_site_packages(tmp_path, monkeypatch):
-    from embodiedforge import _microduck_process as process
+    from embodiedforge.runtime import process
 
     host = tmp_path / "host site-packages"
     package = host / "embodiedforge"
@@ -36,7 +36,7 @@ def test_sdk_module_does_not_import_host_site_packages(tmp_path, monkeypatch):
         "    assert child.exitcode == 0\n"
         "    report()\n"
     )
-    monkeypatch.setattr(process, "__file__", str(package / "_microduck_process.py"))
+    monkeypatch.setattr(process, "__file__", str(package / "runtime/process.py"))
     environment = os.environ.copy()
     environment["PYTHONPATH"] = str(process.sdk_package_path(tmp_path))
     result = subprocess.run(
@@ -136,6 +136,10 @@ def test_stalled_render_thread_is_reported():
         ("recipes", True, False, None, 7),
         ("microduck", True, False, None, 0),
         ("microduck", True, True, None, 0),
+        ("act", False, True, signal.SIGTERM, 0),
+        ("act", False, True, signal.SIGINT, 0),
+        ("act", False, True, None, 7),
+        ("act", False, True, None, 0),
     ],
 )
 def test_process_exit_and_interrupt_clean_owned_process_group(
@@ -174,7 +178,7 @@ def test_process_exit_and_interrupt_clean_owned_process_group(
         import os, signal, subprocess, sys, threading, time
         from pathlib import Path
         sys.path.insert(0, {str(Path(__file__).resolve().parents[1] / "src")!r})
-        from embodiedforge import microduck, h1, recipes
+        from embodiedforge import act, microduck, h1, recipes
         if sys.platform == 'linux':
             import ctypes
             # Reap the fixture's orphaned descendant instead of leaving zombies.
@@ -195,6 +199,13 @@ def test_process_exit_and_interrupt_clean_owned_process_group(
                 h1.run_process(command, cwd=output, env=os.environ.copy(), timeout=None)
             elif {frontend!r} == 'recipes':
                 recipes.run_process(command, output, os.environ.copy(), None)
+            elif {frontend!r} == 'act':
+                from types import SimpleNamespace
+                act._require_lerobot = lambda: None
+                act.runtime_report = lambda: {{'implementation': 'fixture'}}
+                act.version = lambda name: 'fixture'
+                sys.modules['lerobot.policies.act.modeling_act'] = SimpleNamespace(ACTPolicy=object)
+                act._execute_training(output / 'training', {{}}, command)
             else:
                 microduck.run(command, cwd=output, env=os.environ.copy(), log_path=output / 'interrupt.log' if {capture_log!r} else None, echo={echo!r})
         except subprocess.CalledProcessError as exc:
@@ -298,7 +309,7 @@ def test_closed_console_does_not_discard_worker_log(tmp_path, monkeypatch):
 
 
 def test_termination_handlers_restore_and_preserve_nohup():
-    from embodiedforge._microduck_process import termination_signals
+    from embodiedforge.runtime.process import termination_signals
 
     original_term = signal.getsignal(signal.SIGTERM)
     original_hup = signal.getsignal(signal.SIGHUP)
@@ -314,7 +325,7 @@ def test_termination_handlers_restore_and_preserve_nohup():
 
 
 def test_quiet_keeps_complete_log_without_console_echo(tmp_path, capsys):
-    from embodiedforge._microduck_process import run_process
+    from embodiedforge.runtime.process import run_process
 
     log = tmp_path / "quiet.log"
     run_process(

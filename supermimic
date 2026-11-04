@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""Workspace shortcut: ./supermimic play, eval, train, or doctor."""
+
+import sys
+from pathlib import Path
+
+
+def main():
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+    from embodiedforge.supermimic_run import main as run
+
+    return run()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

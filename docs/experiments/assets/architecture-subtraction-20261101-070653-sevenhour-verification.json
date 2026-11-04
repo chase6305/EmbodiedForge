@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "report": "/home/ubuntu/workspace/chase/EmbodiedForge/docs/experiments/architecture-subtraction-20261101-070653-sevenhour.json",
+  "report_sha256": "42a2f754afbba4893a930fd76ace245814ec0bc1d86b6d965407d65188f10e26",
+  "archive_sha256": "ae9776f44a47d1b7bc829fb6957be78364bd0aa2f26f59d34f2924e363a6ed8c",
+  "archive_members": 681,
+  "elapsed_seconds": 25202.04940199852,
+  "preserved_historical_files": 199,
+  "supervised_workflows": 3
+}

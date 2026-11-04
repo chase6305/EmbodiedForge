@@ -3,13 +3,7 @@
 import numpy as np
 
 from ._h1_metrics import BASIC_COMMANDS, FirstEpisodeMetrics
-
-SWITCHING_SUITES = (
-    "switching",
-    "lateral-switching",
-    "maneuver-switching",
-    "maneuver-switching-mirrored",
-)
+from .workflows.recipe_catalog import SWITCHING_SUITES as SWITCHING_SUITES
 
 TRACKING_PROTOCOL = {
     "version": 1,
@@ -222,9 +216,7 @@ def validate_switching(case, steps, suite="switching"):
         if any(segment.get(key) != value for key, value in expected.items()):
             raise ValueError("Switching segment identity mismatch")
         observed = np.asarray(segment["per_env"]["observed_steps"])
-        remaining = np.maximum(
-            np.asarray(case["per_env"]["observed_steps"]) - expected["start_step"], 0
-        )
+        remaining = np.maximum(final_counts - expected["start_step"], 0)
         wanted = np.minimum(remaining, expected["end_step"] - expected["start_step"])
         if observed.shape != counts.shape or not np.array_equal(observed, wanted):
             raise ValueError("Switching segment frame accounting mismatch")

@@ -200,8 +200,9 @@ def test_training_still_registers_local_task_before_dispatch(monkeypatch):
     assert calls == ["register", "mjlab.scripts.train"]
 
 
+@pytest.mark.parametrize("linked", [False, True])
 def test_implementation_snapshot_copies_verified_bytes_and_survives_edits(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, linked
 ):
     package = tmp_path / "source/embodiedforge"
     task = package / "locomotion/microduck"
@@ -211,7 +212,12 @@ def test_implementation_snapshot_copies_verified_bytes_and_survives_edits(
         "locomotion/microduck/task.py": b"value=1\n",
     }
     for name, content in data.items():
-        (package / name).write_bytes(content)
+        if linked and name == "_microduck_native_worker.py":
+            referent = tmp_path / "linked-worker.py"
+            referent.write_bytes(content)
+            (package / name).symlink_to(referent)
+        else:
+            (package / name).write_bytes(content)
     monkeypatch.setattr(native, "ROOT", task)
     identity = {
         "kind": "repository_owned",

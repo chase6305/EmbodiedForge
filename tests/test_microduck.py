@@ -115,7 +115,8 @@ def test_failed_run_preserves_status_and_checkpoints(
         KeyboardInterrupt if interrupt else subprocess.CalledProcessError
     ):
         microduck.train_run(args, Path("/isolated/bin/python"), {}, {})
-    assert "Could not finalize run record" in caplog.text
+    assert "preserving its original error" in caplog.text
+    assert str(args.output / "run.json") in caplog.text
     assert "disk full" in caplog.text
 
 

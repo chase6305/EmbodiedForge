@@ -5,11 +5,11 @@
 
 直接开始正式训练、续训和部署，见 [机械鸭快捷命令](microduck-quickstart.md)。
 
-模型参数量、权重体积、预训练与后训练流程，以及已有结果和消融实验设计，见 [机械鸭模型与实验详解](microduck-model-training-ablation.md)。
+模型参数量、权重体积、预训练与后训练流程，以及已有结果和消融实验设计，见 [机械鸭模型与实验详解](experiments/microduck-model-training-ablation.md)。
 
-4000 次更新的动作惩罚对照、续训消融及 ONNX 轨迹一致性结果，见 [2026-09-26 实验](rl-training-study-20260926.md)。
+4000 次更新的动作惩罚对照、续训消融及 ONNX 轨迹一致性结果，见 [2026-09-26 实验](experiments/rl-training-study-20260926.md)。
 
-相同初始模型上的两个后训练种子、四类固定指令和推力扰动对照，见 [速度跟踪奖励后训练](rl-posttraining-study-20260926.md)。候选改善了部分跟踪与扰动指标，默认配方保持不变。
+相同初始模型上的两个后训练种子、四类固定指令和推力扰动对照，见 [速度跟踪奖励后训练](experiments/rl-posttraining-study-20260926.md)。候选改善了部分跟踪与扰动指标，默认配方保持不变。
 
 按步骤执行安装、训练、续训、评估和运行，见 [训练与部署命令](training-deployment.md)（[English](training-deployment.en.md)）。
 
@@ -52,7 +52,7 @@ python -m embodiedforge.microduck train --headless --quiet --seed 0 \
 
 训练结束时，现有的指标检查阶段还会在 CPU 上读取最终 checkpoint，检查 actor、critic 和优化器状态的有限性，并核对文件名与内部迭代编号均为 `start_iteration + iterations - 1`。例如，从零训练 4000 次更新应产生 `model_3999.pt`；原生实现追加 1000 次更新时，从 4000 开始，最终为 `model_4999.pt`。`run.json.start_iteration` 记录本次起点。`metrics.validation.json.checkpoint_metadata` 保存校验后的迭代编号、课程计数、学习率与 SHA-256，启动器核对散列后将其写入 `run.json.checkpoint_metadata`，再将状态设为 `complete`。日志完整但模型缺失、轮次错误、含 NaN/Inf 或散列不一致时，运行仍标记为失败，并保留已保存的模型；`failed_phase` 记录实际失败阶段。
 
-本地 TensorBoard 训练保存 checkpoint 时，先写同目录临时文件，成功后原子替换正式 `model_*.pt`。写入失败或中断会尝试清理临时文件，旧完整模型保留；若删除失败，日志单独记录残留路径和原因，不覆盖原始保存异常或中断。SIGKILL 可能留下 `.tmp`，进度查询和模型选择不会读取它们。这不是断电持久性保证。
+本地 TensorBoard 训练保存 checkpoint 时，先写同目录临时文件，成功后原子替换正式 `model_*.pt`。写入失败或中断会尝试清理临时文件，旧完整模型保留；若删除失败，日志单独记录残留路径和原因，不覆盖原始保存异常或中断。SIGKILL 可能留下 `.tmp`，进度查询和模型选择不会读取它们。这不是断电持久性保证。 清理复用运行时工具，删除时再次收到取消也保留首次保存错误。
 
 本地训练和评估启动前会将当前 EmbodiedForge 包的源代码与资产复制到 `implementation/embodiedforge/`，并逐文件核对启动时记录的散列；复制期间源文件变化会立即失败。后续工作进程从这份快照加载任务，因此开发期间修改工作区不会改变正在运行的任务或后续导出。多种子评估只保存一份快照；独立 SDK 依赖仍使用固定环境，不复制到运行目录。显式 `--repo` 的历史模式仍使用原先的固定检出检查。
 
@@ -109,7 +109,7 @@ python -m embodiedforge.microduck export \
 
 本地导出与对照在同一进程完成，日志为 `00-export.log`，无需再次启动 ONNX 检查进程。显式 `--repo` 的历史上游导出仍使用独立的尺寸和有限值检查，不提供这项 actor 对照。三个固定输入只能检查导出一致性；实际轨迹上的对照继续使用 `evaluate --onnx`。
 
-关节元数据由本地 exporter 按动作管理器的实际目标顺序生成，仅包含受控关节；默认角和逐关节缩放保留完整浮点精度。任务加载不再全局替换 SDK 的元数据函数。动作转换与硬件接口边界见 [模型与实验详解](microduck-model-training-ablation.md#66-从网络动作到关节目标)。
+关节元数据由本地 exporter 按动作管理器的实际目标顺序生成，仅包含受控关节；默认角和逐关节缩放保留完整浮点精度。任务加载不再全局替换 SDK 的元数据函数。动作转换与硬件接口边界见 [模型与实验详解](experiments/microduck-model-training-ablation.md#66-从网络动作到关节目标)。
 
 只有验证成功后才发布 ONNX 和同名 `.validation.json`；已有模型或验证报告均拒绝覆盖，包括并发导出的同名输出。导出或验证失败、正常处理的中断不会留下最终模型，可用同一条命令重试。每次尝试在输出旁保留独立的 `.<文件名>.export-<随机串>/` 目录，内含 `run.json`、代码/模型快照、阶段日志和临时产物；启动日志打印其路径。成功报告记录模型及 checkpoint 的 SHA256，并指向这次导出记录。发布通过同一文件系统上的硬链接完成，输出目录所在文件系统需支持硬链接；强制断电或 SIGKILL 不保证回滚。
 
@@ -312,15 +312,15 @@ python -m embodiedforge.microduck compare \
 
 ## 验证记录
 
-2026-09-25 完成 512 环境、1000 次追加更新，验证新的续训编号及课程计数；同条件三种子评估未显示步态改善，见 [续训与模型大小记录](rl-training-study-20260925.md#microduck续训修复与行为结果)。
+2026-09-25 完成 512 环境、1000 次追加更新，验证新的续训编号及课程计数；同条件三种子评估未显示步态改善，见 [续训与模型大小记录](experiments/rl-training-study-20260925.md#microduck续训修复与行为结果)。
 
-续训首次 reset 的课程恢复修复与 64 环境实测见 [续训初始化验证](microduck-resume-initialization-20260912.md)。
+续训首次 reset 的课程恢复修复与 64 环境实测见 [续训初始化验证](experiments/microduck-resume-initialization-20260912.md)。
 
-中间与最终 checkpoint 的同条件对比、15 秒录像和逐环境停步诊断见 [保存阶段对比](microduck-checkpoint-analysis-20260912.md)。
+中间与最终 checkpoint 的同条件对比、15 秒录像和逐环境停步诊断见 [保存阶段对比](experiments/microduck-checkpoint-analysis-20260912.md)。
 
-本轮 2,000 次追加训练、同条件模型对比、录像及未达标原因见 [2026-09-12 优化结果](microduck-optimization-20260912.md)。
+本轮 2,000 次追加训练、同条件模型对比、录像及未达标原因见 [2026-09-12 优化结果](experiments/microduck-optimization-20260912.md)。
 
-早期验证、续训、固定指令与多种子验收记录见 [2026-09-11 验证记录](microduck-validation-20260911.md)。
+早期验证、续训、固定指令与多种子验收记录见 [2026-09-11 验证记录](experiments/microduck-validation-20260911.md)。
 
 ## 迁移兼容模式
 
@@ -328,10 +328,10 @@ python -m embodiedforge.microduck compare \
 
 同一基线任务的历史 checkpoint 可直接用于本地 `--run` / `--resume-run`。这些检查核对任务与依赖基线，不要求历史 manifest 已经含有本地实现散列；新运行记录保存当前实现的实际文件散列。源码修改后无需重装依赖；修改依赖清单后必须重新 `setup`。
 
-迁移验证记录见 [本地移植验证](microduck-port-20260916.md)。
+迁移验证记录见 [本地移植验证](experiments/microduck-port-20260916.md)。
 
-本轮工程改进与续训对照见 [一小时优化记录](microduck-hour-optimization-20260916.md)。
+本轮工程改进与续训对照见 [一小时优化记录](experiments/microduck-hour-optimization-20260916.md)。
 
-后续的 [四组合奖励消融与部署资源实测](rl-factorial-study-20260927.md) 分开比较线速度和角速度奖励，并补充 ONNX 文件大小、CPU 推理资源与 RLinf actor 导出结果。
+后续的 [四组合奖励消融与部署资源实测](experiments/rl-factorial-study-20260927.md) 分开比较线速度和角速度奖励，并补充 ONNX 文件大小、CPU 推理资源与 RLinf actor 导出结果。
 
-[运行与恢复校验记录](rl-runtime-validation-20260928.md#机械鸭撤回没有稳定收益的改动) 记录评估循环计时及一次未保留的同步合并尝试，包含 32/128 环境、两种指令的实际对照。
+[运行与恢复校验记录](experiments/rl-runtime-validation-20260928.md#机械鸭撤回没有稳定收益的改动) 记录评估循环计时及一次未保留的同步合并尝试，包含 32/128 环境、两种指令的实际对照。

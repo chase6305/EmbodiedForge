@@ -1,0 +1,1563 @@
+{
+  "status": "complete",
+  "objective": "Three-hour subtraction across training, data and runtime; preserve behavior and all existing work.",
+  "started_at": "2026-11-02T01:51:30+00:00",
+  "deadline": "2026-11-02T04:51:30+00:00",
+  "scratch": "/tmp/embodiedforge-subtraction-20261102-015130-threehour",
+  "previous_report": "docs/experiments/architecture-subtraction-20261101-170632-sevenhour.json",
+  "baseline_modules": 141,
+  "baseline_source_lines": 37843,
+  "baseline_files": 428,
+  "historical_files": 205,
+  "changed_since_previous_round": [],
+  "changed_files_this_round": [
+    "src/embodiedforge/learning/advantages.py",
+    "src/embodiedforge/locomotion/go1_ppo.py",
+    "tests/test_advantage_buffers.py"
+  ],
+  "changes": [
+    "Replace zero-filled GAE output scratch with empty storage; the reverse-time loops overwrite every output element before returning.",
+    "Preserve initial zero carry, all input/episode semantics, dtype/layout behavior and all original validation/arithmetic."
+  ],
+  "audit_decisions": [
+    "Retain recurrence carry initialization and all arithmetic order/dtype promotion; no in-place recurrence or algebraic reordering.",
+    "GAE peak allocation and whole-training RSS are not reduced or claimed; the measured subtraction is an unused full-buffer zero-fill."
+  ],
+  "validation": {
+    "tool_exit_observations": {
+      "observations": {
+        "baseline-learning": {
+          "session_id": 5863,
+          "exit_code": 0
+        },
+        "candidate-learning": {
+          "session_id": 5412,
+          "exit_code": 0
+        },
+        "candidate-native": {
+          "session_id": 6264,
+          "exit_code": 0
+        },
+        "candidate-full": {
+          "session_id": 65432,
+          "exit_code": 0
+        },
+        "benchmark-main": {
+          "session_id": 15032,
+          "exit_code": 0
+        },
+        "benchmark-native": {
+          "session_id": 31360,
+          "exit_code": 0
+        },
+        "training-smoke": {
+          "session_id": 62427,
+          "exit_code": 0
+        },
+        "build": {
+          "session_id": 84967,
+          "exit_code": 0
+        },
+        "release-verification": {
+          "session_id": 55244,
+          "exit_code": 0
+        },
+        "release-content-check": {
+          "exit_code": 0,
+          "observation": "exec_command completed with exit_code 0"
+        },
+        "release-native": {
+          "exit_code": 0,
+          "observation": "verify-release.py observed subprocess.run(check=True) success and returned exit_code 0; child JUnit XML and log retained"
+        },
+        "release-readers": {
+          "exit_code": 0,
+          "observation": "verify-release.py observed subprocess.run(check=True) success and returned exit_code 0; child JUnit XML and log retained"
+        },
+        "numerical-soak-supervisor": {
+          "session_id": 59876,
+          "exit_code": 0
+        },
+        "numpy126-soak-supervisor": {
+          "session_id": 9917,
+          "exit_code": 0
+        }
+      }
+    },
+    "worker_script_identities": {
+      "recorded_at": "2026-11-02T02:19:24.371441+00:00",
+      "scope": "Recorded after worker startup; startup source identities are retained in worker summaries and supervisor records. These script identities protect the rest of the window.",
+      "sha256": {
+        "training-parity-soak.py": "7f324a29fe7006c3c8dbec3921788d1b32b7b09ee11e7d8cab71a9076d211552",
+        "numerical-soak.py": "bf445ed3e0babca14fe1726d5e8a33b1802838ac11afc22e8d208ef3de45afa9"
+      }
+    },
+    "tests": {
+      "baseline-learning": {
+        "tests": 23,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2,
+        "subtests_passed": 0,
+        "passed": 21
+      },
+      "candidate-learning": {
+        "tests": 71,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2,
+        "subtests_passed": 0,
+        "passed": 69
+      },
+      "candidate-native": {
+        "tests": 94,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2,
+        "subtests_passed": 25,
+        "passed": 67
+      },
+      "candidate-full": {
+        "tests": 3729,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 81,
+        "subtests_passed": 0,
+        "passed": 3648
+      },
+      "release-native": {
+        "tests": 94,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2,
+        "subtests_passed": 25,
+        "passed": 67
+      },
+      "release-readers": {
+        "tests": 187,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "subtests_passed": 0,
+        "passed": 187
+      }
+    },
+    "structural-audit": {
+      "status": "passed",
+      "production_modules": 141,
+      "unchanged_production_modules": 139,
+      "semantic_expression_replacements": 2,
+      "new_production_functions": 0,
+      "new_production_modules": 0,
+      "all_original_tests_unchanged": true,
+      "added_test_cases": 48,
+      "scope": "Only two output-scratch initialization calls change; all other production AST nodes, validation, arithmetic order, loop assignments and original test files are unchanged.",
+      "frozen_files": 191
+    },
+    "release-verification": {
+      "status": "passed",
+      "artifacts": {
+        "embodiedforge-0.1.0-py3-none-any.whl": {
+          "bytes": 8302226,
+          "sha256": "526bd889a123f9e2147aba2b6d6e7f2d02b8b818ff9812982a05250662e5b446"
+        },
+        "embodiedforge-0.1.0.tar.gz": {
+          "bytes": 19848808,
+          "sha256": "22ad0682576ee8f823eda0cf27002beb2c42304af0b9e0c502c80cdb6fc9d6b6"
+        }
+      },
+      "exact_python_modules": 141,
+      "exact_resources": 49,
+      "historical_evidence_tar_members": 0,
+      "installed_host_imports_without_site_packages": true,
+      "source_release_root": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/source-release/embodiedforge-0.1.0",
+      "installed_root": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/installed-wheel",
+      "target_tests": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/release-readers.xml",
+      "adapter_tests": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/release-native.xml",
+      "adapter_returncode": 0
+    },
+    "release-content-check": {
+      "status": "passed",
+      "frozen_sha256": {
+        "src/embodiedforge/_act_bundle.py": "ac4db52202c51ebe8e65a7ede6558807900a537ced74492ba3a186b6dae33f96",
+        "src/embodiedforge/_act_dataset.py": "801fdb4b3b825a1daa63e530ee93ebe330419bf0a9ca5a05dd1a9dd1d73169ab",
+        "src/embodiedforge/_h1_motion.py": "f647ac363aeb00d2a3ccfdf131dcec396d699a3d58a76afce085a07ef638ec52",
+        "src/embodiedforge/h1.py": "50836e8d92a3b5840c2b031e6b45c100f251e74c0b42a8208c7319f9ce4ab4a4",
+        "src/embodiedforge/_go1_recovery.py": "742d5f9d4607abdc6de2c5535d05dca0b6fb6118938273226822e7f388834718",
+        "src/embodiedforge/_rlinf_export.py": "0607652b06fc15a0fa71e51cbaf065de65e6bf93258106840b6dc9bf572118e1",
+        "src/embodiedforge/_core_run.py": "c3268e9cd4f71c13f9fb2d8eace6a70989306c545d8c748d14758e3fe3296788",
+        "src/embodiedforge/_act_compare.py": "653414ed69604f9802f54b0b9d5b7bcc4feaa3121db1f08254a878785caf944a",
+        "src/embodiedforge/_microduck_native_worker.py": "4b70966a42da1be74ed6078d0e8bec2d339a30b442bb7f5a69f0c50c024484d4",
+        "src/embodiedforge/_rlinf_onnx.py": "6f8280525f64e9934bcd2034cf9b27eab47e571713c472f6576a7ed158b4af8b",
+        "src/embodiedforge/_act_checkpoints.py": "7336b7552fdcf302ecc211e41690b2e71e85332a878edd2dc28eb891be5bdeb8",
+        "src/embodiedforge/native_h1.py": "3216f19e0f66c6042cf2aff5491eb33ff124d42fc842f91ab4946d49f310892a",
+        "src/embodiedforge/sonic.py": "926423c99437256fc00147363eebf05d37eb167471ab84cd565391f3a3282e87",
+        "src/embodiedforge/_rlinf_worker.py": "2dea8bd3fe64993ebaa18dfc607f3be5fe900deeb178da2b16d3f50a61323558",
+        "src/embodiedforge/diagnostics.py": "982d60b6d88a0c857b996bcefe2d032d6f3efd0d5a22ee085b3ad8fd316d7877",
+        "src/embodiedforge/supermimic_run.py": "91f243761f0474ef0b1985b548446e794ccb2eadeca92a5cee8ddb9d6d2176f4",
+        "src/embodiedforge/morphmimic.py": "78afd6434963bc2a9ea5b71d8b149e7a0f136e6c4c790886011427083ac52a2b",
+        "src/embodiedforge/batching.py": "13d08ea2bac9e997660f08a677aa27dcf45c8ed1b53f59b2800e5b836e32c3ae",
+        "src/embodiedforge/tasks.py": "3084c5f8c4019a5443c9796523f7b366a46b1adb9821d1d6733fe902ff1643b9",
+        "src/embodiedforge/_h1_worker.py": "18b53de48e80601b9c34f10f3118e8cdf98e34a2428ad33b2f1e579b5593c346",
+        "src/embodiedforge/_microduck_run.py": "52974af3d576d1c50ace43ebc0dcabbb169b9f1ddfbdafe1b2ac9abe04c1641d",
+        "src/embodiedforge/_go1_resume.py": "c1be5aba21c461552178374d60fceeda028b45fba48899a9f608d95f3a3cfe8b",
+        "src/embodiedforge/robot_replay.py": "dd13bd3fcf8045ea093bcf09daf5a50b09a7595517be05c7065b941cb7853440",
+        "src/embodiedforge/env.py": "1a4126796e12df4d4f1b082f3fa92df03b0248384bca083c414bbc196841c95c",
+        "src/embodiedforge/_go1_assets.py": "5fff5b621c6069549190dc8a50f396ccffa43e396c37428e1f5e4c3a513f4d70",
+        "src/embodiedforge/core.py": "8599163c0fb5c5737da28e3610170495353b84872809db81ef1eac8613768cfd",
+        "src/embodiedforge/_weave_evaluation.py": "7bfcd64c31750c952b8a4ad94ed2b4441709742f6042506ef396487aed4ca924",
+        "src/embodiedforge/policies.py": "711d3a8a2567fd65ef4b06039569731b5e316c7d9add57dd1e41eea468acb974",
+        "src/embodiedforge/_motion_clips.py": "c8f1a35140359de6cf8c474a7932172d6dd092cde3f3cdfca847425525b7ec96",
+        "src/embodiedforge/supermimic.py": "64891d7f04994362b526cf8dc6fcd25f0c2e1de70f025e7a61edbec71b0ddb41",
+        "src/embodiedforge/_wuji_recipe.py": "31076a7a39e219dd5b7ebc8bd545ec6c8d7aa4b079d67020f62f9ea739e332c4",
+        "src/embodiedforge/motion.py": "9319696b86a02f011127be9d81141b798361cce603cea10a115c6e5cec4d65ea",
+        "src/embodiedforge/training.py": "772d4e25afaf73c60abc5916569393228f17153abf0a6886a9dd6f7bb618f930",
+        "src/embodiedforge/microduck.py": "247d80ec8593bb51b1995c8f39fab7dd8228b8d465e82f76c46787ec6653a7df",
+        "src/embodiedforge/graphics.py": "4e0fe21c13a433cc2552fa4024fb4f03effc6619d0ccaf45e5f91cdef6624107",
+        "src/embodiedforge/__init__.py": "d391fb624b9e35f78448d62574facf4113fb74921d6f56af1c8b7d8a6b97a058",
+        "src/embodiedforge/_go1_metrics.py": "344b5658747add044dd4931eaa94eff7e7b9e52fc28075dfe62bd6af36a3a8b1",
+        "src/embodiedforge/_sonic_worker.py": "d58a4657e4d49e3ec1784e7281fad3b3c430867814a4bf42a565407bf63c86e5",
+        "src/embodiedforge/gmr.py": "488a5437edfe57c2d69d1dad11f64ea3cfed35d72887c0fae6ada5893433586e",
+        "src/embodiedforge/_go1_live_worker.py": "2684446a771c8617a9cb9e44ae05044836e74cba10bcbb1dd26738902c92dc7b",
+        "src/embodiedforge/weave.py": "d0805bd6a23ec3b0d528ec10bc3666e203973915617cbfae72752afe01565304",
+        "src/embodiedforge/_go1_implementation.py": "68a5da0c92c945bafe39d67921629914a6a03d39fe2c1b69a2ec97828dd2eef9",
+        "src/embodiedforge/sensors.py": "89ce41ca3366655380b7029ca8fd7df6a36ecd01b2344ca6e2fe9a65277088f4",
+        "src/embodiedforge/rlinf.py": "8a0faf418871d6e3f0379e826e92113da5b189eea762b5c4e50850096415780c",
+        "src/embodiedforge/_microduck_export.py": "f1924ecb09fe67adc9dad4d4b4fb7856f74638e8a705cfb5c15c2e313114bfe2",
+        "src/embodiedforge/_go1_checkpoint.py": "bfed7eb088fef76df7c339256367a811aa4552e04b3e56a7bd3b252ad59fd24e",
+        "src/embodiedforge/_go1_training_viewer.py": "d92a43fb4783a1b872bd2375c84cdb44bb1ef77ae741f1545858c6fd0d145e9c",
+        "src/embodiedforge/_weave_worker.py": "42a8aba555d467b854496e544a4566a537415e9092a3b60c2218710d7bb78bca",
+        "src/embodiedforge/_mjbatch_recipe.py": "e515c8a40ed3de2e79a988ea4f3b9f0b01e35cac0da148a99218ce884b6fb357",
+        "src/embodiedforge/_morphmimic_worker.py": "23a6468541b31d5ea4fa9785898ea55b0c79d44737913006688285f7da725c85",
+        "src/embodiedforge/__main__.py": "a2b6d2c663999e08203c72c9206a9bdd32acf47b8303ea123a4e7ee5727a2d41",
+        "src/embodiedforge/visualization.py": "67e1c40009f25ee033461883fb308c3937a719f50c313b3abfaa8c0185454e18",
+        "src/embodiedforge/go1_live.py": "a6402bbeae668ce0692a89388fb9518f48cb456763dd659754be6e95738aea96",
+        "src/embodiedforge/_wuji_diagnostics.py": "99ed83e5a3b8cd5bd6092771e83ff5de02664c7d90776d22f3b138433aa73c8b",
+        "src/embodiedforge/rollout.py": "b46a6e48383fd80824b9e390daeb1cdf27819c623af01186c9efb9853d851b54",
+        "src/embodiedforge/logging.py": "afe275a1536239248212b8bce7ff5ad4bc5cf0c9104fad9222cb3b0bd2194f8e",
+        "src/embodiedforge/_microduck_native.py": "2164a0af5aa997edfd7184b681f27901e60fca80e9e09ed3a429febfb4855ffd",
+        "src/embodiedforge/_wuji_training_viewer.py": "495c9941c0f96935217485d93c97b91385de78668ad607a5932e9dabc906af9d",
+        "src/embodiedforge/_live_channel.py": "508f6b50564f3a9381e641c788da605b10bcea345c0b89af6c6a762db0ecb37b",
+        "src/embodiedforge/_h1_metrics.py": "0c0c5dcf61ad931fa658a5c1520667b0f9f68a2723a75e5b0220f2ff10e4a145",
+        "src/embodiedforge/_recipe_worker.py": "f86fbd0465015fa5c9c867a17a076d3229cb1ed9bee89a19e1ae462aedcebff8",
+        "src/embodiedforge/recipes.py": "58ac1ca16a71a68fd6643b8edcda64d0de9a5f715a271633fc0548b4fb87f64e",
+        "src/embodiedforge/cli.py": "7341a92733704318376c01ce9abe88f8b11f5062adfa4f37cb4c52e44bde71db",
+        "src/embodiedforge/_h1_evaluate.py": "ec33235d2745f556491eaae2f9b3e5bfb2161727ba7fa12c99ae9fb34373c373",
+        "src/embodiedforge/data.py": "d52003d51017ab18445ec927d4ac31370d99b12d6b2f2f14dd417e31302e7f5f",
+        "src/embodiedforge/_microduck_worker.py": "1eb4635d529f8f52644553ac367e440a7f4108c4dbea9ca780c59828025e5e9a",
+        "src/embodiedforge/_motion_sdk.py": "de62f9566b2e6991d3905e800248a3964cf497411b812e793e50718e759b4aa6",
+        "src/embodiedforge/_gmr_worker.py": "28dc6add27f3173baddcddb7364f4ca3c7adda4320f0e4fe0f7a6d2bdb097a7a",
+        "src/embodiedforge/_microduck_reports.py": "1bc1f2b673891eb6b3cf0417d7387dacc0fdbfa1d45c4669d616197ba4d0850b",
+        "src/embodiedforge/act.py": "c1d859378dab9ff0e7b89f96c1147e796a164dba0446e038dbc1a484f792b303",
+        "src/embodiedforge/runtime/process.py": "ff49ede188573070f7225a59e15887248de4172f40cdd33f334f6f347112337c",
+        "src/embodiedforge/runtime/implementation.py": "0361211bdf0feff9b360e6a39b836047405d896a97344164245005fbd5b0e805",
+        "src/embodiedforge/runtime/__init__.py": "54183b39a8671d49bf1a6fad5a13275216c57c0a6e0da0f069d189e34d5179a7",
+        "src/embodiedforge/runtime/hashing.py": "574e1f4d085ae881828d4683e7755995d9d0aa6af0bd3a113f77acad83dea3a9",
+        "src/embodiedforge/runtime/environment.py": "660ce71471f340e0031a1bc61da1881ca6b962e92f7b9667b10fa194c8655b1f",
+        "src/embodiedforge/runtime/artifacts.py": "e6ead6420905a7cb5e9864f7e0aae067a48d43b1c36d8fd03ff321c3a5cdc258",
+        "src/embodiedforge/runtime/provenance.py": "caaeeb5720d8d67c9fd8040a8316848eafc45392e82d9962ed2d5132ee6eb0df",
+        "src/embodiedforge/runtime/records.py": "096f56388d6d7510337197399860caebe032a218b5fa5d322d66a04aeb9cd2af",
+        "src/embodiedforge/backends/physics.py": "83890aca7e1bb5c169051419d5626e1a775eadba8cca7f527cb6c01e5787c7cb",
+        "src/embodiedforge/backends/newton.py": "9cd3860f3ed2db508006d6d2242a7f6c5dd2d8e016b5d8dd668bae11b93561f0",
+        "src/embodiedforge/backends/__init__.py": "7c3caf1568fe29afb073e8d8eff670ea3d15259f7db7895758212aa4238450dd",
+        "src/embodiedforge/backends/render.py": "0a1c5f8de49ac1ba37869bc3101c99cc0bf825253fbc785c2229cd04bca5514f",
+        "src/embodiedforge/backends/mjbatch.py": "5127cb1828f7441c1735755919c46e131b1e69a4074b5e59483604c1b6f0269f",
+        "src/embodiedforge/envs/specs.py": "7e51421ef5adde171cba638ed2269af6460e54a655262e6b54edbe07b4a84f9b",
+        "src/embodiedforge/envs/__init__.py": "e3b2bb542e23907ed5189c785bb03a01f5548d76cddca57338dccab04d3fe6a7",
+        "src/embodiedforge/envs/evaluation.py": "f17978d51eaad8ebdcd30f55a97eee22dee76ad679274894d944543fe65f43dc",
+        "src/embodiedforge/envs/observations.py": "275a09fab837307f9977d6ec01a3967054a6ce33adec95320d53bb50494e3e0f",
+        "src/embodiedforge/envs/locomotion.py": "49e66a4a4a897f7b05b1c6d85e28b4a783f5719a4c67464e5e85dc55bc9e0909",
+        "src/embodiedforge/envs/base.py": "05fd6dfac9049d94ebbd316c570356806298614d528fb88c475dd1f0f7fc95c6",
+        "src/embodiedforge/workflows/supermimic_reference_play.py": "bbc1d2cf0a97627169e4f53d3b6bf0371b8a3aa370749ef6b3b6fe2a1ad13a2a",
+        "src/embodiedforge/workflows/recipe_progress.py": "cc9c7076d303284cdceedeccb5709459446be38661a0d45cf1a9d0ad4eeb292e",
+        "src/embodiedforge/workflows/supermimic_inputs.py": "e248f7b77ff1cdb7f6bc749b1cf36d5e827ac4fb561b9749a605bede8db04cac",
+        "src/embodiedforge/workflows/rlinf_catalog.py": "248ca931bc7b53bb9b57f3e6b7f273c0b61e61574039522e059e2187a05cf722",
+        "src/embodiedforge/workflows/supermimic_reference_mjlab.py": "cebc9cf87731c2c15f08d0031c5e29476541155a5e2b35e0c2d62f7b27b2342f",
+        "src/embodiedforge/workflows/supermimic_backflip.py": "49a812dac43bede1262639427ecafbe2a9870cd59b40dc76bb14f4e8d425214a",
+        "src/embodiedforge/workflows/supermimic_reference_evaluate.py": "6bd58b1970d34151f3102922be3d2fa83fe01ca48f03963d7e57124408389f98",
+        "src/embodiedforge/workflows/recipe_validation.py": "56b692dac40b445173aab67dd7746c51fd2d21d23370a87be144afbe02222030",
+        "src/embodiedforge/workflows/__init__.py": "60fb3d9f7d42647a215f2be0bf621f6eb07938a68e40697e4e14e992019781b1",
+        "src/embodiedforge/workflows/supermimic_backflip_quality.py": "003b56d39c9eddf51d376bbd3cc14f5d3cccfe3bbdd175f42e165ca55b1df9f2",
+        "src/embodiedforge/workflows/rlinf_artifacts.py": "80914298f80d9b8eebc1d553d69df4503e9032129ac8201d45075bacc7e67623",
+        "src/embodiedforge/workflows/recipe_catalog.py": "458890b4a75c4e57bc00e61ce1227e02096caff7c7a1209eb5080e2afec430ca",
+        "src/embodiedforge/workflows/supermimic_catalog.py": "5f5aff9ec0ea36f8b01c5c8b2e1b624aa96c68b863e43d938e7ad054758a8d6f",
+        "src/embodiedforge/workflows/go1_settings.py": "20773588df42f7049e7305ac8d2e6b67b79750fa2db47be96d31762e12ae9c16",
+        "src/embodiedforge/workflows/supermimic_reference.py": "c1f97138a2f11d8102954710d1b997c339068b277e3a0664eef774c050dab35b",
+        "src/embodiedforge/workflows/supermimic_reference_worker.py": "701a7abb1766612e427c51827963610f2f8c1b731199e6309a766ca9466a6960",
+        "src/embodiedforge/workflows/supermimic_contacts.py": "1a00324f3c9e25c4cd298c0b8e687375308d65e7040bcb2750e1ea60e23e71f9",
+        "src/embodiedforge/workflows/recipe_artifacts.py": "beaeec23c86757884a69c0de4cf824449c12f0edbec2be95f59b8e832f271ae1",
+        "src/embodiedforge/workflows/LICENSE.supermimic-backflip": "a0ddc0cc40bd93e92f9bcc7b03a6778b6b27f76f70f9dd44c8d504c3b0445c37",
+        "src/embodiedforge/viewers/web.html": "7d5a8c6727dc4e18c9da38169c8ae5b241c799cb7022775fd882cba4f752baea",
+        "src/embodiedforge/viewers/frames.py": "c3982a32ef06ae813106ed46fa9dbc44271d6437378034f9f095694d9896972e",
+        "src/embodiedforge/viewers/web.js": "454fabf7d98c8914f5aff7901c5b9e01de3e50e6e7aceeecfb0bc26cdfafd172",
+        "src/embodiedforge/viewers/newton.py": "d55e2514f06be3702e9e5f1ce55c724308afcf30b4756026c65735843ccfb259",
+        "src/embodiedforge/viewers/__init__.py": "5df57a38fcc577cfe5fb3bfefc41a4cd57441b0b0c2d136afb8d7616e0543383",
+        "src/embodiedforge/viewers/rtx.py": "4d0108d9f997429a46620995c4de810f335c749dcad04d61bd1129e03252e49c",
+        "src/embodiedforge/viewers/web.py": "c087cd064425ab6cb72e11fcc0d306995cfacb979b1c534b4d0c0bb439a7511f",
+        "src/embodiedforge/viewers/viser.py": "6e253b29bf3ca21dbd14eebf6ec0226cfc6499d859e7f9f95a39c75b16348f13",
+        "src/embodiedforge/viewers/robot.py": "c3b83ca63c5da31718b7976c8897ec9501c7dd3a30fd634098fd539182d9c4a9",
+        "src/embodiedforge/viewers/style.py": "a42c5a4114214a6934857818bb2bf745755da40f80fc7e36d8f6732435f4ba60",
+        "src/embodiedforge/viewers/dependencies.py": "68cfe76e444e624791e0cde332a8e0280a36bfb33b97841c8b10ce8d68ef5460",
+        "src/embodiedforge/viewers/timing.py": "53765d3b3dd7f3352415793dd63a60fcb1dd44bdb65b62de0a946af659a63416",
+        "src/embodiedforge/learning/__init__.py": "fc42e81d53edb034ce1130bdc217ecfa08f5f469062576ed9649570cbb9d7bb9",
+        "src/embodiedforge/learning/checkpoints.py": "583323bfc8f66e089791296a1cb217cae230c8a906fab6e09fbb9c963995efa4",
+        "src/embodiedforge/learning/advantages.py": "0fe9cc3f8b487b2f27c03fa9ca25dae92849560b1cc17e6dd983ca5d7541c6ab",
+        "src/embodiedforge/learning/parameters.py": "5947b5c682b98cfa533e4a3cc2a70a461aa7a20c2a62d98fdac330a27f14c46f",
+        "src/embodiedforge/locomotion/h1_native.py": "2469d9d6615ed83da5e81cc2fee492154344363a0a77fbacfcbfdca11b115ab2",
+        "src/embodiedforge/locomotion/go1_config.py": "8e0e6636ed0f8c88da31ad1091b1e4b8c779f71f761eb2d795bd1ee203c93549",
+        "src/embodiedforge/locomotion/articulation.py": "9d939816b55510e40c93f67e1d40304582c98f8f6a861be42038ad553f57ebc7",
+        "src/embodiedforge/locomotion/go1_ppo.py": "f83590e094d943480696e2e3ca5710bb3d3a2004a6238fd818d2b37248ecaa8b",
+        "src/embodiedforge/locomotion/h1_ppo.py": "ef0d691633658e3d01474e28a8c68933df87f7557a2724073a89d64a0ae20c15",
+        "src/embodiedforge/locomotion/__init__.py": "67e07baec885bd1353838c537f8c2df43fb405ebf341b6e9e60cc8f56ee37428",
+        "src/embodiedforge/locomotion/go1_light_loco.py": "ff71b15acee7f877cecbfc9f56f5e47b045730345459cc0fd40964fda1cfa77c",
+        "src/embodiedforge/locomotion/h1_config.py": "5e6be344733fa1792d8977b43a699f3385dfc77218a73f68f64453565c052bcf",
+        "src/embodiedforge/locomotion/LICENSE.mjbatch": "6dc9071a1ff8d5cd17702ebd6bd623c8271c4785333e014e184546adf855b891",
+        "src/embodiedforge/locomotion/go1_scene.xml": "6d4bf363f5694516d8f13098967a751317e27d6faf1890d62cc673b9ff2ae517",
+        "src/embodiedforge/locomotion/LICENSE.IsaacLab": "df351ebfa8af317bf5a9ad83df63a8b68e4f5c04b71f30767cdb27aa434eac62",
+        "src/embodiedforge/locomotion/go1.py": "fb4567b2f4512858b89b5114224d69b2fc8c56cc0b87fab0b5316b62f1c3094d",
+        "src/embodiedforge/locomotion/microduck/__init__.py": "7c93bc82c7bd846e18b67c918e136a2721d41e17737ffca2012dccb5c38c399c",
+        "src/embodiedforge/locomotion/microduck/checkpoint.py": "80a9555f5f96bb4d07da519346daa6c892c393cf7aa42a72adef44da31cbfeec",
+        "src/embodiedforge/locomotion/microduck/export.py": "3bac4b1626abd2b02e060decaabbd313e74ca507fe4e876a10ae536d7a90e7fe",
+        "src/embodiedforge/locomotion/microduck/UPSTREAM.json": "ed30ca75d1b5df8875f9e69973001e806c20eca86368fec6a8d548e8a5007349",
+        "src/embodiedforge/locomotion/microduck/NOTICE": "16bea5820eb8bb8454e84f4096d3f9c93d7848d8ad0f442c78692fafeb081917",
+        "src/embodiedforge/locomotion/microduck/LICENSE": "2d3fd9ffffa70a4307498ec630b14a6b4731e010f8ddda92686eaf65733c2dfe",
+        "src/embodiedforge/locomotion/microduck/requirements.txt": "d3204824d54a23156368cfc440b82b9140a48f31cc488a6e2de2eddd8156178a",
+        "src/embodiedforge/locomotion/microduck/actuator/friction_dr_bam.py": "03d0461caf973419bbd3f746f2cba73fe9464d00ae59ff3e8f8cd158d8f2e832",
+        "src/embodiedforge/locomotion/microduck/actuator/__init__.py": "b8a82f30822166f14e0bcd7730d67153908097c2353c4d0cdbf3c51d9ad475cc",
+        "src/embodiedforge/locomotion/microduck/tasks/mdp.py": "ff19aeb7ef5e4ea7d8bf7d6b32e913372454f4f00d0e1e177e606adddcbe3d06",
+        "src/embodiedforge/locomotion/microduck/tasks/symmetry.py": "f84f19cc1f93afa7cb1d6e98152a70dcf7f38d6df0720d8675ed8ea93c663941",
+        "src/embodiedforge/locomotion/microduck/tasks/microduck_velocity_env_cfg.py": "02ef1c12bef07fd591b8a9cdd85e46bd0de8fd674b82569528bb1c29de42945c",
+        "src/embodiedforge/locomotion/microduck/tasks/__init__.py": "0e8069547a5ad8b20307adc16a77825660cf3acc3cecf118b7293d5c88a1234d",
+        "src/embodiedforge/locomotion/microduck/robot/__init__.py": "26782f5a79ab0206de698956d9c4ca3879d99b3bbd8080654e773a2530f08181",
+        "src/embodiedforge/locomotion/microduck/robot/microduck_constants.py": "cbd2a8ed29a42b3eb7184ddab51df77f2bb0c8239e2450e1373465ff92f050e0",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/robot_walk.xml": "80fc4424ed71e430ec4919110dfdb5c714dc1c4e1138e1832a16865cf31eb8c8",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/ankle_left.stl": "2ec1bd89205b407efebaa9a8898ad9fea741389d87b80ecc5c96b21d1668119e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/sole_left.stl": "e028c8b09fecd4cb354d042bf7fd95a1a1bc2d524d760d62137fa8d74093fc23",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/yaw2roll.stl": "6c8f193ec7cb40be0f48eeb5fba81bce2c87f12e1aab3f77f1bc4981386e1495",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/top_head_shell.stl": "6d01f396f514c9d2185cf6b8250b1d8382ac3fa0702eb525bcb284f706196291",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/np_f970.stl": "0e55a48281331b3b7b1a363d2e93b6012f37c52045b6dc922a149ca7c1b38388",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/trunk_base.stl": "aa4f853ae555a8b765e585ce4519c0bbff325ce298ec15a1437792c52a0beac1",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/upper_leg_rigidity_plate.stl": "231b3e5f1e24d146d735dc158cbcfec0c95a0d0ca8c500f61f04d15d0b665652",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/seeed_bearing__configuration__22x16x4.stl": "295ee68ed9766c91fe06d3a2a49d39f7c2f56cc943395d293afdeb013123435e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/power_support.stl": "ee45e397d3f3422f34940a4b61156c3c11c7e8c2b240451ce5f9ddd1622a130e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/noenoeil.stl": "e1167b3d5ad7fbbe6e63296bcd0c6b61556611e6bc1367b15ecfd27e3abb72f5",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/bearing_roll.stl": "b5603a64b2d965ad75ea847767b5798130852e12a658fde7b5068fc457e2adcc",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/bottom_head_shell.stl": "1820f7cf96646b0fc0c431f07da87b91b13111bfa9857ab1bf2b1fc3388f8da2",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/lens.stl": "b1c717432ff7666398de58adec6a1b7e03a7e45aa155dbfe27a6152ef19663e5",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/jaw_soft.stl": "2d2ade4e86df4b37ce313bb9b96023109dd04bab39dba08b154e76d332fbce2e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/upper_leg_right.stl": "5caf996cc3e151b01f393cdc6a6a6a940c1d86179d8b7c7f5f85cf1f1ac2fb63",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/yaw_roll_motion.stl": "b0c9902dee19f06cdb7fa930292e0e1c91e2dc59baa971211495b58ff76c3c60",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/right_shell.stl": "3efba3e193cc6aa49d49a9c92cdded0504917397c9e2c5b8fe002a958e2f2d2b",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/elec_rpi_robot_hat_pcb.stl": "1a61582759d82b5b4df9b7d11099bf1bb3944fc77e6b74d3237adf24dd5d03d7",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/seeed_bearing__configuration_default.stl": "e815f3483a2e7b80844f3c0938a47e53db38b12faed9b2d364414c19e4322da4",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/foot_left.stl": "a1f5d43456d0f522bd60870153795f1e8112c1adf9b8b4373b59608d9545c044",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/neck.stl": "b6e86b886153be8a8a776c1cb219c074ee9e89c8bd431117662a2d9e504d7cb5",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/neck_pitch.stl": "a685ce65348ae4d0d49417c69a7a8871f8bbd54a6e3419362be9c334abd5d2ae",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/sole_right.stl": "3f5068872f3add10eb967327651445bdfca635f5a8a01befa0ef05e462b72b4c",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/upper_leg_left.stl": "8cb1c12dfa6d366a318bb1ec16f585427b9a185afeb7738d0a6f41f5db46a07d",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/ankle_right.stl": "f83f388ae00787415e76b8ecaab769f08f25b8c4e90c1937ff0fc4d68d81722e",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/jaw.stl": "45cdbd319a4583095d8daa0db07dee726522a743d59acb82d27d82ded500a1cf",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/banana_pcb_locker.stl": "42ddde9d01bf5d91f88b99847017f14d97d2537ee27383c6d41dd8bf30a51134",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/foot_right.stl": "54f97fa1f0e0e611d31329df9f3c3b17ffcca2d695c579d1d32cbe99e8a6c7ef",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/xl330.stl": "96238ed0d020ce0009cf1a5aa4b6926176c800840318ee65e4375be2298d2744",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/left_shell.stl": "2abde8e2b79c9b011cdb11957c67ab4287b45d7301affd4235ab81141118e331",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/pcb__raspberry_pi_zero_2_w.stl": "802cc66fc5447c67fc642d1339e55160df10f2ad04a65efd130e35fb7b2d3c90",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/leg.stl": "9a91cc1ae31ecd9e0c1ba93f3bb2ad8a12e29bff24ec27d1ac66c0c3037d9fcf",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/hip_l.stl": "e175896932d76dc7648cf939aa39cb7b1d188b783d91745adb9a4cec65e9052c",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/face_part.stl": "d0e89a173e7bdc8038c4d413f458140d8f42f1a2f098f67a887c2388eff31718",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/motor_support.stl": "ce0aa5bef82c7474512d302568c341b9769b3005e0bdb91a19c2eaaba6dad480",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/speaker.stl": "75a35f9bcf94cd8e52f99b3fd6ae667b48f52503f9075ee2f699eebe8e7b3ddf",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/soft_mouth_top.stl": "3c2b52b0b6e2ce944a1e1b5a0838e1216be1ad3a34c8cdf91be186e634aec57b",
+        "src/embodiedforge/locomotion/microduck/robot/microduck/assets/m12_lens_holder.stl": "031d5ffaf6247328cf6d020f6b6695ffb3f8d3f22cf923b85811351d89ecfd7c",
+        "tests/test_advantage_buffers.py": "a1fdb87a678613447f1f851a0848cec4843d4ab1560f88d4bc9e648b998a343b"
+      },
+      "sdist_frozen_files": 191,
+      "wheel_frozen_files": 190,
+      "scope": "All frozen package resources/modules and the new regression test are byte-identical to the reviewed candidate in the sdist; all package files also match the wheel."
+    },
+    "sustained": [
+      {
+        "name": "training",
+        "summary": {
+          "status": "complete",
+          "scope": "Short paired PPO updates on actual Core, H1 and Go1 environments; no skill claim.",
+          "requested_seconds": 8100.0,
+          "seconds": 8100.024094215012,
+          "started_at": "2026-11-02T02:14:49.447461+00:00",
+          "counts": {
+            "cycles": 35540,
+            "core_updates": 23694,
+            "h1_updates": 23694,
+            "go1_updates": 23692,
+            "rollout_comparisons": 71080,
+            "parameter_state_comparisons": 71080,
+            "gradient_comparisons": 1018816,
+            "optimizer_comparisons": 71080,
+            "rng_comparisons": 142160
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/baseline/src/embodiedforge/learning/advantages.py": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/baseline/src/embodiedforge/locomotion/go1_ppo.py": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/baseline/src/embodiedforge/training.py": "772d4e25afaf73c60abc5916569393228f17153abf0a6886a9dd6f7bb618f930",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/baseline/src/embodiedforge/locomotion/h1_ppo.py": "ef0d691633658e3d01474e28a8c68933df87f7557a2724073a89d64a0ae20c15",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/candidate/src/embodiedforge/learning/advantages.py": "0fe9cc3f8b487b2f27c03fa9ca25dae92849560b1cc17e6dd983ca5d7541c6ab",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/candidate/src/embodiedforge/locomotion/go1_ppo.py": "f83590e094d943480696e2e3ca5710bb3d3a2004a6238fd818d2b37248ecaa8b",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/candidate/src/embodiedforge/training.py": "772d4e25afaf73c60abc5916569393228f17153abf0a6886a9dd6f7bb618f930",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/candidate/src/embodiedforge/locomotion/h1_ppo.py": "ef0d691633658e3d01474e28a8c68933df87f7557a2724073a89d64a0ae20c15"
+          },
+          "numpy": "2.5.2",
+          "torch": "2.9.0+cu128",
+          "last_sample": {
+            "time": "2026-11-02T04:29:49.471523+00:00",
+            "seconds": 8100.024094215012,
+            "counts": {
+              "cycles": 35540,
+              "core_updates": 23694,
+              "h1_updates": 23694,
+              "go1_updates": 23692,
+              "rollout_comparisons": 71080,
+              "parameter_state_comparisons": 71080,
+              "gradient_comparisons": 1018816,
+              "optimizer_comparisons": 71080,
+              "rng_comparisons": 142160
+            }
+          },
+          "limits": "Fresh short two-update policies cycle through actual Core reference, H1 and Go1 environments. Compares complete collected batches, losses, raw parameter/Adam/gradient bytes and RNG, with identical random streams. No long-term learning or skill-quality improvement, and no existing weights or data are written."
+        },
+        "observed_process_exit": {
+          "command": [
+            ".cache/light-loco-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/training-parity-soak.py",
+            "--seconds",
+            "8100",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/training-soak"
+          ],
+          "launched_command": [
+            ".cache/light-loco-venv/bin/python",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/training-parity-soak.py",
+            "--seconds",
+            "8100",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/training-soak"
+          ],
+          "supervisor_pid": 3863423,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-02T02:14:48.681975+00:00",
+          "timeout": 8700.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3863424,
+          "seconds": 8101.313909722958,
+          "finished_at": "2026-11-02T04:29:49.995859+00:00"
+        }
+      },
+      {
+        "name": "numerical",
+        "summary": {
+          "status": "complete",
+          "scope": "GAE byte/ownership/gradient parity across dtype, layout and episode boundaries.",
+          "requested_seconds": 8100.0,
+          "seconds": 8100.003266404034,
+          "started_at": "2026-11-02T02:18:39.712805+00:00",
+          "numpy": "2.2.6",
+          "torch": "2.13.0+cu130",
+          "counts": {
+            "cycles": 913449,
+            "numpy_output_comparisons": 1826898,
+            "input_ownership_checks": 2740347,
+            "torch_output_comparisons": 1826898,
+            "gradient_comparisons": 2740347,
+            "masked_array_cases": 83041,
+            "empty_shape_cases": 304484
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/baseline/src/embodiedforge/learning/advantages.py": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/baseline/src/embodiedforge/locomotion/go1_ppo.py": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/candidate/src/embodiedforge/learning/advantages.py": "0fe9cc3f8b487b2f27c03fa9ca25dae92849560b1cc17e6dd983ca5d7541c6ab",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/candidate/src/embodiedforge/locomotion/go1_ppo.py": "f83590e094d943480696e2e3ca5710bb3d3a2004a6238fd818d2b37248ecaa8b"
+          },
+          "last_sample": {
+            "time": "2026-11-02T04:33:39.716053+00:00",
+            "seconds": 8100.003266404034,
+            "counts": {
+              "cycles": 913449,
+              "numpy_output_comparisons": 1826898,
+              "input_ownership_checks": 2740347,
+              "torch_output_comparisons": 1826898,
+              "gradient_comparisons": 2740347,
+              "masked_array_cases": 83041,
+              "empty_shape_cases": 304484
+            }
+          },
+          "limits": "Actual GAE function ASTs, with finite synthetic rollouts. NumPy candidate scratch is deliberately filled with NaN before the real loop. Covers empty/strided/read-only/masked inputs, mixed floating dtypes and exact Torch gradients; not physical simulation or a learning-quality result."
+        },
+        "observed_process_exit": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numerical-soak.py",
+            "--seconds",
+            "8100",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numerical-soak"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/xvla2/bin/python",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numerical-soak.py",
+            "--seconds",
+            "8100",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numerical-soak"
+          ],
+          "supervisor_pid": 3868115,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-02T02:18:38.932753+00:00",
+          "timeout": 8700.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3868116,
+          "seconds": 8101.124328011007,
+          "finished_at": "2026-11-02T04:33:40.057056+00:00"
+        }
+      },
+      {
+        "name": "numpy126",
+        "summary": {
+          "status": "complete",
+          "scope": "GAE byte/ownership/gradient parity across dtype, layout and episode boundaries.",
+          "requested_seconds": 8100.0,
+          "seconds": 8100.003236228018,
+          "started_at": "2026-11-02T02:18:40.198408+00:00",
+          "numpy": "1.26.4",
+          "torch": null,
+          "counts": {
+            "cycles": 1368896,
+            "numpy_output_comparisons": 2737792,
+            "input_ownership_checks": 4106688,
+            "torch_output_comparisons": 0,
+            "gradient_comparisons": 0,
+            "masked_array_cases": 124446,
+            "empty_shape_cases": 456300
+          },
+          "failures": [],
+          "source_hashes": {
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/baseline/src/embodiedforge/learning/advantages.py": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/baseline/src/embodiedforge/locomotion/go1_ppo.py": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/candidate/src/embodiedforge/learning/advantages.py": "0fe9cc3f8b487b2f27c03fa9ca25dae92849560b1cc17e6dd983ca5d7541c6ab",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/candidate/src/embodiedforge/locomotion/go1_ppo.py": "f83590e094d943480696e2e3ca5710bb3d3a2004a6238fd818d2b37248ecaa8b"
+          },
+          "last_sample": {
+            "time": "2026-11-02T04:33:40.201627+00:00",
+            "seconds": 8100.003236228018,
+            "counts": {
+              "cycles": 1368896,
+              "numpy_output_comparisons": 2737792,
+              "input_ownership_checks": 4106688,
+              "torch_output_comparisons": 0,
+              "gradient_comparisons": 0,
+              "masked_array_cases": 124446,
+              "empty_shape_cases": 456300
+            }
+          },
+          "limits": "Actual GAE function ASTs, with finite synthetic rollouts. NumPy candidate scratch is deliberately filled with NaN before the real loop. Covers empty/strided/read-only/masked inputs, mixed floating dtypes and exact Torch gradients; not physical simulation or a learning-quality result."
+        },
+        "observed_process_exit": {
+          "command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numerical-soak.py",
+            "--seconds",
+            "8100",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numpy126-soak",
+            "--numpy-only"
+          ],
+          "launched_command": [
+            "/home/ubuntu/miniconda3/envs/dp/bin/python",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numerical-soak.py",
+            "--seconds",
+            "8100",
+            "--output",
+            "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numpy126-soak",
+            "--numpy-only"
+          ],
+          "supervisor_pid": 3868155,
+          "supervisor_sha256": "4dee48994f8996aa9e78dd915a40bf85d6a12e15ae646b2bbd4b2ceeefeddd03",
+          "started_at": "2026-11-02T02:18:40.094945+00:00",
+          "timeout": 8700.0,
+          "grace": 5,
+          "trace": false,
+          "process_returncode": 0,
+          "termination_signal": null,
+          "timed_out": false,
+          "supervisor_signal": null,
+          "forced_stop": false,
+          "exit_observed": true,
+          "completed_successfully": true,
+          "pid": 3868156,
+          "seconds": 8100.146985316998,
+          "finished_at": "2026-11-02T04:33:40.241902+00:00"
+        }
+      }
+    ],
+    "worker_resources": {
+      "scope": "Combined validation-process resources over time, not separate old/new memory or training RSS.",
+      "samples": 204,
+      "workers": {
+        "training": {
+          "live_samples": 174,
+          "rss_first_kib": 1583284,
+          "rss_last_live_kib": 1583404,
+          "rss_min_kib": 1583284,
+          "rss_max_kib": 1583404,
+          "file_descriptor_values": [
+            17
+          ],
+          "thread_values": [
+            7
+          ]
+        },
+        "numerical": {
+          "live_samples": 179,
+          "rss_first_kib": 530408,
+          "rss_last_live_kib": 522740,
+          "rss_min_kib": 522604,
+          "rss_max_kib": 530684,
+          "file_descriptor_values": [
+            16
+          ],
+          "thread_values": [
+            34
+          ]
+        },
+        "numpy126": {
+          "live_samples": 179,
+          "rss_first_kib": 33740,
+          "rss_last_live_kib": 36644,
+          "rss_min_kib": 33740,
+          "rss_max_kib": 38428,
+          "file_descriptor_values": [
+            3
+          ],
+          "thread_values": [
+            32
+          ]
+        }
+      }
+    },
+    "continuous_sample_audit": {
+      "status": "passed",
+      "scope": "Each job progressed at every recorded interval, gaps below 60 seconds, counters consistent with actual work, source hashes unchanged, and child exit observed without timeout or signals.",
+      "workflows": [
+        {
+          "name": "training",
+          "samples": 270,
+          "max_sample_gap_seconds": 30.274719102017116,
+          "seconds": 8100.024094215012,
+          "cycles": 35540,
+          "actual_child_returncode": 0,
+          "source_identities_checked": 8
+        },
+        {
+          "name": "numerical",
+          "samples": 271,
+          "max_sample_gap_seconds": 30.026213460951112,
+          "seconds": 8100.003266404034,
+          "cycles": 913449,
+          "actual_child_returncode": 0,
+          "source_identities_checked": 4
+        },
+        {
+          "name": "numpy126",
+          "samples": 271,
+          "max_sample_gap_seconds": 30.012941327004228,
+          "seconds": 8100.003236228018,
+          "cycles": 1368896,
+          "actual_child_returncode": 0,
+          "source_identities_checked": 4
+        }
+      ]
+    }
+  },
+  "preserved_models": [
+    {
+      "path": "runs/supermimic/tasks/backflip/reference/current.json",
+      "sha256": "9ac2a144b086b9446c66a8cfe51cd7dbff675541e50b32c8f8d3ec78e5d1338c"
+    },
+    {
+      "path": "runs/resume-20261029-morphmimic-final-export/policy/policy.onnx",
+      "sha256": "1ce4245d501ecd9a34ef41799db26bd5ed1805f81e072c6a4fdee4ec67ef1856"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/g1/latest.pt",
+      "sha256": "75b7f9098a889a48492eeceebfba087b036d8103cfe3d92e1aeba72c178bb406"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/x2/latest.pt",
+      "sha256": "2678744a1aa853bd68efa51668a16f94db660e893ec26139713b9e3cabb0aed8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/resume-20261029-morphmimic-grounded/training/shared/t2/latest.pt",
+      "sha256": "6fa4a825296bcfa2097b82474c125e95e1b7526859e267a6658cc9e400b67df8"
+    },
+    {
+      "path": "runs/supermimic-backflip-20261027-fourhour/reference-seed138/logs/last.pt",
+      "sha256": "c5594e989604fcb07f582e519d379483ff823b9e1d9f7dc379e1a044c19527bf"
+    }
+  ],
+  "preserved_data": [
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/walk1_subject1.npz",
+      "sha256": "7c7ecef29a3c2cabc8e8717ab7f4ae66c4cfe1862523dae0596199601fc1fda8"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/run2_subject1.npz",
+      "sha256": "6a56035ccd6ee3ba1761f73caac2019ba8c835c26d65ed7c93ab772f03a2dd5b"
+    },
+    {
+      "robot": "g1",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/g1/dance1_subject1.npz",
+      "sha256": "aaf9c5fb26b3795bdddbb5d3680e88905b8f9da17c3d1deddbd31a21bea7b41c"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/walk1_subject1.npz",
+      "sha256": "43801ee92d2aec93b3c5af1faa1053a9c2874d2c60ad1137296e03602c6c74d3"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/run2_subject1.npz",
+      "sha256": "ccb65485bc88108689a485d5ceed052af687a455ec42b3c4996242d9952d4873"
+    },
+    {
+      "robot": "x2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/x2/dance1_subject1.npz",
+      "sha256": "0f6678cb70a8148e84ee10184b03df621df93ba62939b35c57f7d3616edf5341"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/walk1_subject1.npz",
+      "sha256": "63e8ff5daae7fb83af39110c0cf223b8162f2ebd19e5de6319edbb926356ebf8"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/run2_subject1.npz",
+      "sha256": "7cfbf91f013cafe02cdf1589728f719f94405e89d7f20bc89b324aed42379e4b"
+    },
+    {
+      "robot": "t2",
+      "path": "/home/ubuntu/workspace/chase/EmbodiedForge/runs/morphmimic-data-grounded-20261029/t2/dance1_subject1.npz",
+      "sha256": "3e4a0f2693960feede97692310f933e1b6c9d8b9db24e2ee861a2ed68af8ccaf"
+    }
+  ],
+  "source_frozen": true,
+  "frozen_at": "2026-11-02T02:08:46.915824+00:00",
+  "manifest_revision": 1,
+  "structural_audit": {
+    "status": "passed",
+    "production_modules": 141,
+    "unchanged_production_modules": 139,
+    "semantic_expression_replacements": 2,
+    "new_production_functions": 0,
+    "new_production_modules": 0,
+    "all_original_tests_unchanged": true,
+    "added_test_cases": 48,
+    "scope": "Only two output-scratch initialization calls change; all other production AST nodes, validation, arithmetic order, loop assignments and original test files are unchanged.",
+    "frozen_files": 191
+  },
+  "required_tests": {
+    "baseline-learning": 21,
+    "candidate-learning": 69,
+    "candidate-native": 67,
+    "candidate-full": 3648,
+    "release-native": 67,
+    "release-readers": 187
+  },
+  "required_tool_exits": [
+    "baseline-learning",
+    "candidate-learning",
+    "candidate-native",
+    "candidate-full",
+    "benchmark-main",
+    "benchmark-native",
+    "training-smoke",
+    "build",
+    "release-verification",
+    "release-content-check"
+  ],
+  "workflow_jobs": [
+    {
+      "name": "training",
+      "summary": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/training-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/training-supervisor",
+      "requested_seconds": 8100
+    },
+    {
+      "name": "numerical",
+      "summary": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numerical-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numerical-supervisor",
+      "requested_seconds": 8100
+    },
+    {
+      "name": "numpy126",
+      "summary": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numpy126-soak/summary.json",
+      "supervisor": "/tmp/embodiedforge-subtraction-20261102-015130-threehour/numpy126-supervisor",
+      "requested_seconds": 8100
+    }
+  ],
+  "generated_build_files": [
+    "src/embodiedforge.egg-info/SOURCES.txt"
+  ],
+  "generated_build_hashes": {
+    "src/embodiedforge.egg-info/SOURCES.txt": "0ae3a92d8b2d4622120735d578730a157e553dc154f2f01ec8ace68ed5ed8d96"
+  },
+  "metrics": {
+    "production_modules_before": 141,
+    "production_modules_after": 141,
+    "production_lines_before": 37843,
+    "production_lines_after": 37843,
+    "production_bytes_before": 1515360,
+    "production_bytes_after": 1515360,
+    "new_production_functions": 0,
+    "new_production_modules": 0,
+    "unchanged_production_modules": 139,
+    "semantic_expression_replacements": 2
+  },
+  "benchmarks": {
+    "gae-numpy226-torch213.json": {
+      "status": "passed",
+      "numpy": "2.2.6",
+      "torch": "2.13.0+cu130",
+      "scope": "Compare complete GAE and scratch initialization before editing production.",
+      "limits": "Paired AB/BA timings on a shared CPU host. Initialization is isolated separately; no full-training speed, RSS or allocation-peak claim. Source variants differ only in output scratch zero-fill versus empty allocation; every output row is overwritten.",
+      "source_sha256": {
+        "numpy": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+        "torch": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce"
+      },
+      "operators": {
+        "before": {
+          "aten::empty_like": 2,
+          "aten::zeros_like": 1,
+          "aten::zero_": 1
+        },
+        "after": {
+          "aten::empty_like": 2
+        }
+      },
+      "results": [
+        {
+          "kind": "numpy",
+          "horizon": 24,
+          "num_envs": 64,
+          "scratch_payload_bytes": 6144,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            2.568863371076683e-05,
+            2.533296744028727e-05,
+            2.534700130733351e-05,
+            2.5190366432070733e-05,
+            2.5814199276889363e-05,
+            2.5422799323375025e-05,
+            2.5736398917312424e-05,
+            2.56015007228901e-05,
+            2.556976784641544e-05,
+            2.5456866327052317e-05,
+            2.5419799688582618e-05
+          ],
+          "full_gae_seconds_after": [
+            2.4732499150559305e-05,
+            2.437816777577003e-05,
+            2.4634665654351313e-05,
+            2.4349432593832412e-05,
+            2.4856399977579714e-05,
+            2.4970966236044964e-05,
+            2.4662700404102604e-05,
+            2.4860400784139833e-05,
+            2.4624298869942626e-05,
+            2.471913273135821e-05,
+            2.4433932655180494e-05
+          ],
+          "full_gae_median_before": 2.5456866327052317e-05,
+          "full_gae_median_after": 2.4662700404102604e-05,
+          "initialization_median_before": 7.524329703301192e-07,
+          "initialization_median_after": 1.3593429078658423e-07
+        },
+        {
+          "kind": "torch",
+          "horizon": 24,
+          "num_envs": 64,
+          "scratch_payload_bytes": 6144,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.00013466766686178743,
+            0.0001338027010206133,
+            0.0001337262336164713,
+            0.00013374126671502988,
+            0.00013293936499394476,
+            0.00013361000067864856,
+            0.00013351246792202195,
+            0.00013368846654581527,
+            0.0001332546661918362,
+            0.0001370535329139481,
+            0.00013370319890479247
+          ],
+          "full_gae_seconds_after": [
+            0.00014792076738861699,
+            0.0001333655323833227,
+            0.00013432436583874126,
+            0.0001332126014555494,
+            0.0001441967343756308,
+            0.0001336831347240756,
+            0.0001333251343263934,
+            0.00013338290154933928,
+            0.00014315806523275873,
+            0.00013379303272813557,
+            0.00013328806768792372
+          ],
+          "full_gae_median_before": 0.00013370319890479247,
+          "full_gae_median_after": 0.0001336831347240756,
+          "initialization_median_before": 6.752651340017716e-07,
+          "initialization_median_after": 5.694319649289052e-07
+        },
+        {
+          "kind": "numpy",
+          "horizon": 128,
+          "num_envs": 256,
+          "scratch_payload_bytes": 131072,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.00016991540129917364,
+            0.0001572507666423917,
+            0.00015696889992492893,
+            0.00015851216739974915,
+            0.00015706306633849937,
+            0.00015652406533869605,
+            0.0001581167336553335,
+            0.00015746183344163002,
+            0.00015911763378729423,
+            0.00015458206762559713,
+            0.00015606986708007752
+          ],
+          "full_gae_seconds_after": [
+            0.0001596182332529376,
+            0.00015490766575870413,
+            0.00015457736638685066,
+            0.000154906998310859,
+            0.00016678916678453486,
+            0.00015494306765807171,
+            0.0001551591344953825,
+            0.0001641515002120286,
+            0.0001537250995170325,
+            0.00015204889932647349,
+            0.0001525535345232735
+          ],
+          "full_gae_median_before": 0.0001572507666423917,
+          "full_gae_median_after": 0.00015490766575870413,
+          "initialization_median_before": 2.2288993932306765e-06,
+          "initialization_median_after": 1.4593242667615413e-07
+        },
+        {
+          "kind": "torch",
+          "horizon": 128,
+          "num_envs": 256,
+          "scratch_payload_bytes": 131072,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.000657450599828735,
+            0.0006530212005600334,
+            0.0006557570673370113,
+            0.0006696663990927239,
+            0.0006605621330284824,
+            0.0006730798670711617,
+            0.000674488500226289,
+            0.000679441566656654,
+            0.0006765337001221875,
+            0.0006694930663798005,
+            0.0006706796334280322
+          ],
+          "full_gae_seconds_after": [
+            0.0006561190666009982,
+            0.0006538257002830505,
+            0.0006536053008555124,
+            0.0006591391012383004,
+            0.0006687710333305101,
+            0.0006634315669847031,
+            0.0006583573005627841,
+            0.000680350933301573,
+            0.0006695057323668152,
+            0.0006712523657673349,
+            0.0006690612334447603
+          ],
+          "full_gae_median_before": 0.0006696663990927239,
+          "full_gae_median_after": 0.0006634315669847031,
+          "initialization_median_before": 1.651132091258963e-06,
+          "initialization_median_after": 6.22833613306284e-07
+        },
+        {
+          "kind": "numpy",
+          "horizon": 128,
+          "num_envs": 4096,
+          "scratch_payload_bytes": 2097152,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.001613835998189946,
+            0.0013548356752532225,
+            0.0012915123370476067,
+            0.0013940900098532438,
+            0.0012048883363604546,
+            0.001207603335690995,
+            0.001271855008477966,
+            0.0013952083342398207,
+            0.0012320529979964097,
+            0.0012419450019175808,
+            0.0012147736658031743
+          ],
+          "full_gae_seconds_after": [
+            0.002070213668048382,
+            0.001259478332940489,
+            0.0011585170092682044,
+            0.0012461963342502713,
+            0.0011289343431902428,
+            0.0011785446549765766,
+            0.0010899773333221674,
+            0.0013125886519749959,
+            0.0011410136551906664,
+            0.0011269706689442198,
+            0.0010480243363417685
+          ],
+          "full_gae_median_before": 0.001271855008477966,
+          "full_gae_median_after": 0.0011585170092682044,
+          "initialization_median_before": 2.8776167891919612e-05,
+          "initialization_median_after": 2.6349831993381183e-07
+        },
+        {
+          "kind": "torch",
+          "horizon": 128,
+          "num_envs": 4096,
+          "scratch_payload_bytes": 2097152,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.0033317886603375277,
+            0.003627458664899071,
+            0.0035062123400469622,
+            0.004465057999671747,
+            0.004233413007265578,
+            0.004168787330854684,
+            0.004405211327442278,
+            0.004391311667859554,
+            0.004410671671697249,
+            0.0047871716669760644,
+            0.00509130066105475
+          ],
+          "full_gae_seconds_after": [
+            0.0042352500022388995,
+            0.003919251340751846,
+            0.0033975966701594493,
+            0.004359568682654451,
+            0.004069305335481961,
+            0.0041628360049799085,
+            0.004357203996429841,
+            0.004405899652435134,
+            0.004120809666346759,
+            0.004090585668260853,
+            0.004380564651607226
+          ],
+          "full_gae_median_before": 0.004391311667859554,
+          "full_gae_median_after": 0.0041628360049799085,
+          "initialization_median_before": 2.452410020244618e-05,
+          "initialization_median_after": 8.091990215082963e-07
+        },
+        {
+          "kind": "numpy",
+          "horizon": 512,
+          "num_envs": 4096,
+          "scratch_payload_bytes": 8388608,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.009044641512446105,
+            0.009033780981553718,
+            0.008331020479090512,
+            0.0073984694899991155,
+            0.0090900924988091,
+            0.008683798514539376,
+            0.00999647899880074,
+            0.008868968987371773,
+            0.009252109477529302,
+            0.009194365004077554,
+            0.008977835008408874
+          ],
+          "full_gae_seconds_after": [
+            0.009924096491886303,
+            0.008880160516127944,
+            0.008392977499170229,
+            0.009071612497791648,
+            0.00794153250171803,
+            0.008832515013637021,
+            0.008823813521303236,
+            0.007962382485857233,
+            0.0082789215084631,
+            0.007971289480337873,
+            0.0089620350045152
+          ],
+          "full_gae_median_before": 0.009033780981553718,
+          "full_gae_median_after": 0.008823813521303236,
+          "initialization_median_before": 0.00014910766622051598,
+          "initialization_median_after": 6.669336774696907e-07
+        },
+        {
+          "kind": "torch",
+          "horizon": 512,
+          "num_envs": 4096,
+          "scratch_payload_bytes": 8388608,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.022853725007735193,
+            0.022786332498071715,
+            0.025111033988650888,
+            0.02461156848585233,
+            0.023339504492469132,
+            0.027321634988766164,
+            0.02386761998059228,
+            0.019060587510466576,
+            0.017039590486092493,
+            0.018095595005434006,
+            0.017797284992411733
+          ],
+          "full_gae_seconds_after": [
+            0.02592375301173888,
+            0.022448206989793107,
+            0.02372853600536473,
+            0.023260124522494152,
+            0.02157177700428292,
+            0.02369146147975698,
+            0.02615205050096847,
+            0.0171606499934569,
+            0.020287259976612404,
+            0.01735774750704877,
+            0.01785955301602371
+          ],
+          "full_gae_median_before": 0.022853725007735193,
+          "full_gae_median_after": 0.022448206989793107,
+          "initialization_median_before": 0.00011875286581926048,
+          "initialization_median_after": 1.0035660428305468e-06
+        }
+      ]
+    },
+    "gae-numpy252-torch29.json": {
+      "status": "passed",
+      "numpy": "2.5.2",
+      "torch": "2.9.0+cu128",
+      "scope": "Compare complete GAE and scratch initialization before editing production.",
+      "limits": "Paired AB/BA timings on a shared CPU host. Initialization is isolated separately; no full-training speed, RSS or allocation-peak claim. Source variants differ only in output scratch zero-fill versus empty allocation; every output row is overwritten.",
+      "source_sha256": {
+        "numpy": "5612ee859bb9dfb70bb49db0a4d0145f35b008b0d13c2dc10cdc660adad7b17e",
+        "torch": "d2d9c47a0057a49e46ddec176cc7140f8864cf3713ef4615a5f9046fbd88a0ce"
+      },
+      "operators": {
+        "before": {
+          "aten::empty_like": 2,
+          "aten::zeros_like": 1,
+          "aten::zero_": 1
+        },
+        "after": {
+          "aten::empty_like": 2
+        }
+      },
+      "results": [
+        {
+          "kind": "numpy",
+          "horizon": 24,
+          "num_envs": 64,
+          "scratch_payload_bytes": 6144,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            2.508716618952652e-05,
+            2.502170003329714e-05,
+            2.501266620432337e-05,
+            2.5044100281472006e-05,
+            2.5025365175679326e-05,
+            2.5394066081692775e-05,
+            2.4986300074184933e-05,
+            2.5029365982239445e-05,
+            2.5020367077862225e-05,
+            2.507013462794324e-05,
+            2.5020365137606858e-05
+          ],
+          "full_gae_seconds_after": [
+            2.4562499796350797e-05,
+            2.449403206507365e-05,
+            2.4403534674396117e-05,
+            2.455450012348592e-05,
+            2.4377166604002316e-05,
+            2.4469998121882477e-05,
+            2.4238566402345897e-05,
+            2.446296663644413e-05,
+            2.4740867471943297e-05,
+            2.510053454898298e-05,
+            2.469273361687859e-05
+          ],
+          "full_gae_median_before": 2.5025365175679326e-05,
+          "full_gae_median_after": 2.449403206507365e-05,
+          "initialization_median_before": 6.632316702355941e-07,
+          "initialization_median_after": 1.2656673789024354e-07
+        },
+        {
+          "kind": "torch",
+          "horizon": 24,
+          "num_envs": 64,
+          "scratch_payload_bytes": 6144,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.00013424386658395331,
+            0.00013419043195123475,
+            0.0001332069009852906,
+            0.00013295073489037653,
+            0.00013342833456893763,
+            0.0001327059658554693,
+            0.00013283053219007948,
+            0.00013286423442574838,
+            0.0001327520333385716,
+            0.00013274203326242665,
+            0.0001340000657364726
+          ],
+          "full_gae_seconds_after": [
+            0.0001440544321667403,
+            0.00013352246799816687,
+            0.0001343440671917051,
+            0.00013278409993896882,
+            0.00013265553279779853,
+            0.00013301286574763556,
+            0.00013260743386733035,
+            0.0001331671335113545,
+            0.00013283586595207452,
+            0.00013269156528015932,
+            0.00013283820007927715
+          ],
+          "full_gae_median_before": 0.00013295073489037653,
+          "full_gae_median_after": 0.00013283820007927715,
+          "initialization_median_before": 7.09700786198179e-07,
+          "initialization_median_after": 6.115005817264318e-07
+        },
+        {
+          "kind": "numpy",
+          "horizon": 128,
+          "num_envs": 256,
+          "scratch_payload_bytes": 131072,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.00015514813324746986,
+            0.00015461176711445052,
+            0.00015451590103718142,
+            0.00015461176711445052,
+            0.00015404436659688752,
+            0.000154262431897223,
+            0.0001542033317188422,
+            0.00015525333389329414,
+            0.00015411783242598177,
+            0.00015393516708475847,
+            0.000154078765384232
+          ],
+          "full_gae_seconds_after": [
+            0.00015435996659410496,
+            0.00015280966569359105,
+            0.00015198879991658033,
+            0.00015180613263510168,
+            0.0001516578330968817,
+            0.00015207363370185097,
+            0.000151916667042921,
+            0.00015191700076684357,
+            0.0001520866663971295,
+            0.00015213273388023179,
+            0.00015280166796098152
+          ],
+          "full_gae_median_before": 0.000154262431897223,
+          "full_gae_median_after": 0.00015207363370185097,
+          "initialization_median_before": 2.16109910979867e-06,
+          "initialization_median_after": 1.3223422380785149e-07
+        },
+        {
+          "kind": "torch",
+          "horizon": 128,
+          "num_envs": 256,
+          "scratch_payload_bytes": 131072,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.0006661861320026219,
+            0.0006651278003118932,
+            0.0006565856010032196,
+            0.0006541149651942154,
+            0.0006522290331001083,
+            0.0006769595337876429,
+            0.0006649842000721643,
+            0.0006636352996186663,
+            0.0006707063662664344,
+            0.0006612711663668354,
+            0.0006603968329727649
+          ],
+          "full_gae_seconds_after": [
+            0.0006770797655917705,
+            0.0006670544331427664,
+            0.0006533835335479428,
+            0.0006511794015144309,
+            0.0006514071351072441,
+            0.0006584087328519672,
+            0.0006727341678924859,
+            0.0006617884675506503,
+            0.0006700317336556812,
+            0.0006577464674289028,
+            0.000663215833871315
+          ],
+          "full_gae_median_before": 0.0006636352996186663,
+          "full_gae_median_after": 0.0006617884675506503,
+          "initialization_median_before": 1.5856678752849499e-06,
+          "initialization_median_after": 6.579328328371048e-07
+        },
+        {
+          "kind": "numpy",
+          "horizon": 128,
+          "num_envs": 4096,
+          "scratch_payload_bytes": 2097152,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.0009107543349576493,
+            0.0007987289961117009,
+            0.0007885399973019958,
+            0.0008252360081921021,
+            0.0007975036666418115,
+            0.0008193450048565865,
+            0.0007892143330536783,
+            0.0008094693378855785,
+            0.0007718883377189437,
+            0.0008227213208253185,
+            0.0007791990065015852
+          ],
+          "full_gae_seconds_after": [
+            0.001292043326733013,
+            0.0007451713318005204,
+            0.0007469543294670681,
+            0.0008106983344381055,
+            0.0007463499981289109,
+            0.0007986186731917163,
+            0.0007570703358699878,
+            0.0007600793420958022,
+            0.0007441360115384062,
+            0.0007749006617814302,
+            0.000747829326428473
+          ],
+          "full_gae_median_before": 0.0007987289961117009,
+          "full_gae_median_after": 0.0007570703358699878,
+          "initialization_median_before": 2.6129801214362183e-05,
+          "initialization_median_after": 1.9203289411962032e-07
+        },
+        {
+          "kind": "torch",
+          "horizon": 128,
+          "num_envs": 4096,
+          "scratch_payload_bytes": 2097152,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.003231796338999023,
+            0.003288262989372015,
+            0.0032231999988046787,
+            0.003360616993935158,
+            0.0032832836732268333,
+            0.003172590668934087,
+            0.003993097653922935,
+            0.003969947322426985,
+            0.004141632331690441,
+            0.004263028987528135,
+            0.0036710279916102686
+          ],
+          "full_gae_seconds_after": [
+            0.0032728840014897287,
+            0.003305733009862403,
+            0.00314935667362685,
+            0.00331790599739179,
+            0.0031504020056066415,
+            0.003285838659697523,
+            0.0034328870048436024,
+            0.0041142506718946,
+            0.0038563923444598913,
+            0.00433742666306595,
+            0.003907218672490369
+          ],
+          "full_gae_median_before": 0.003360616993935158,
+          "full_gae_median_after": 0.00331790599739179,
+          "initialization_median_before": 1.875086648700138e-05,
+          "initialization_median_after": 7.597671356052161e-07
+        },
+        {
+          "kind": "numpy",
+          "horizon": 512,
+          "num_envs": 4096,
+          "scratch_payload_bytes": 8388608,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.007183918001828715,
+            0.006928499497007579,
+            0.008004917996004224,
+            0.007124600495444611,
+            0.007070763997035101,
+            0.007174239493906498,
+            0.006378347490681335,
+            0.006765655998606235,
+            0.008574902021791786,
+            0.007827096007531509,
+            0.008041091496124864
+          ],
+          "full_gae_seconds_after": [
+            0.007355021982220933,
+            0.006817609508289024,
+            0.006604220514418557,
+            0.006924526998773217,
+            0.006693589995848015,
+            0.006875764491269365,
+            0.005812456482090056,
+            0.006393751507857814,
+            0.007746553514152765,
+            0.007143251481465995,
+            0.007909597508842126
+          ],
+          "full_gae_median_before": 0.007174239493906498,
+          "full_gae_median_after": 0.006875764491269365,
+          "initialization_median_before": 0.00015275656672505042,
+          "initialization_median_after": 5.076328913370769e-07
+        },
+        {
+          "kind": "torch",
+          "horizon": 512,
+          "num_envs": 4096,
+          "scratch_payload_bytes": 8388608,
+          "outputs_byte_identical": true,
+          "full_gae_seconds_before": [
+            0.024002510006539524,
+            0.02518002499709837,
+            0.0221816175035201,
+            0.02179282600991428,
+            0.022006410523317754,
+            0.022019280004315078,
+            0.02554964998853393,
+            0.022979231987847015,
+            0.023171351000200957,
+            0.02423598201130517,
+            0.026333669491577893
+          ],
+          "full_gae_seconds_after": [
+            0.025662022992037237,
+            0.020989690005080774,
+            0.02142950298730284,
+            0.02391821550554596,
+            0.02240610698936507,
+            0.022170726500917226,
+            0.02213998799561523,
+            0.021845039998879656,
+            0.0218684695137199,
+            0.0207149549969472,
+            0.022790114482631907
+          ],
+          "full_gae_median_before": 0.023171351000200957,
+          "full_gae_median_after": 0.02213998799561523,
+          "initialization_median_before": 0.00015356609947048128,
+          "initialization_median_after": 1.0202658207466205e-06
+        }
+      ]
+    }
+  },
+  "removed_work": {
+    "operation": "Unused zero-fill of GAE output scratch before complete loop overwrite",
+    "implementations": 2,
+    "example_float32_elements": 524288,
+    "example_payload_bytes_not_zeroed_per_call": 2097152,
+    "peak_allocation_reduction_claimed": false
+  },
+  "integrity": {
+    "baseline_files_checked": 428,
+    "baseline_snapshot_files_checked": 428,
+    "frozen_files_checked": 191,
+    "historical_files_checked": 205,
+    "model_and_registry_files_checked": 6,
+    "reference_data_files_checked": 9,
+    "all_preserved": true
+  },
+  "elapsed_seconds": 10802.120239019394,
+  "last_updated_at": "2026-11-02T04:51:32.120239+00:00",
+  "requested_window_seconds": 10800,
+  "limits": [
+    "Measurements isolate GAE and its scratch initialization. Timings depend on shape, dtype, library and CPU; no whole-training speedup, peak-allocation or RSS reduction is claimed.",
+    "Three paired actual Core/H1/Go1 PPO environments compare two-update fresh policies with identical random streams. These are correctness probes, not learning-quality improvements.",
+    "Numerical jobs exercise actual GAE function ASTs across floating dtypes, mixed precision, layout, masks, empty inputs and Torch gradients. The NumPy 1.26 job does not execute Torch or physics.",
+    "Main/native/source-release suites overlap and are separate runs. Main skips optional dependencies unavailable in that interpreter.",
+    "The three-hour window includes investigation, implementation, profiling, packaging and three concurrent 2.25-hour workflows. Integrity monitoring begins after candidate freeze; existing model and dataset identities are preserved."
+  ],
+  "monitor": {
+    "status": "complete",
+    "started_at": "2026-11-02T02:20:03.972669+00:00",
+    "finished_at": "2026-11-02T04:51:31.090368+00:00",
+    "seconds": 9087.117702251999,
+    "samples": 203,
+    "last_sample": {
+      "time": "2026-11-02T04:51:31.090229+00:00",
+      "jobs": [
+        {
+          "name": "training",
+          "minutes": 135.0,
+          "units": 35540,
+          "status": "complete",
+          "observed_exit": 0
+        },
+        {
+          "name": "numerical",
+          "minutes": 135.0,
+          "units": 913449,
+          "status": "complete",
+          "observed_exit": 0
+        },
+        {
+          "name": "numpy126",
+          "minutes": 135.0,
+          "units": 1368896,
+          "status": "complete",
+          "observed_exit": 0
+        }
+      ],
+      "frozen_files_checked": 191,
+      "manifest_revision": 1,
+      "full_preservation_check": true,
+      "remaining_minutes": 0.0
+    }
+  },
+  "observed_window_processes": {
+    "started_at": "2026-11-02T02:20:03.950791+00:00",
+    "monitor_returncode": 0,
+    "finalization": [],
+    "monitor_exit_observed_at": "2026-11-02T04:51:31.094018+00:00"
+  },
+  "evidence_bundle": {
+    "path": "docs/experiments/assets/architecture-subtraction-20261102-015130-threehour-evidence.tar.gz",
+    "bytes": 1934650,
+    "sha256": "765f520ed8b6b1bb5ec53192dcf1d2a548ba9315214a174535c0503a7019388d",
+    "verified_members": 634,
+    "report_snapshot": "scratch/state.json",
+    "snapshot_note": "Report snapshot precedes insertion of the archive identity, avoiding self-reference."
+  }
+}

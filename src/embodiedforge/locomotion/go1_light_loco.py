@@ -4,13 +4,13 @@ Keeps Go1's mirrored network, action scaling, normalization, and checkpoint
 format. Multi-skill teachers, perception, and distillation are not enabled.
 """
 
-import hashlib
 from importlib import metadata
 from pathlib import Path
 
 import torch
 from torch import nn
 
+from ..runtime.hashing import file_sha256
 from . import go1_ppo as native
 
 REVISION = "963a6ec3b8b42eb29dd6b9dfed34ededd3c64c7b"
@@ -26,7 +26,7 @@ def verify_source():
 
     root = Path(light_loco_parkour.__file__).resolve().parent
     for name, expected in SOURCE_HASHES.items():
-        if hashlib.sha256((root / name).read_bytes()).hexdigest() != expected:
+        if file_sha256(root / name) != expected:
             raise ValueError(
                 f"Light Loco Parkour source differs from {REVISION}: {name}"
             )

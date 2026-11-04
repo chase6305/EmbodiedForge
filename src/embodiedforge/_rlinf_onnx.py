@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from time import perf_counter
 
-from .rlinf import REVISION
+from .workflows.rlinf_catalog import REVISION
 
 
 def load_policy(path, expected_sha256):

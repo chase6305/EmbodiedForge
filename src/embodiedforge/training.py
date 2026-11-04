@@ -3,10 +3,8 @@
 import hashlib
 import io
 import json
-import logging
 import math
-import sys
-import time
+from contextlib import ExitStack
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -16,13 +14,16 @@ import torch
 from torch import nn
 from torch.distributions import Normal
 
-from ._adam_checkpoint import validate_adam_checkpoint
 from ._core_run import publish_checkpoint, read_resume, write_json
-from ._microduck_process import termination_signals
-from ._ppo_parameters import bounded_log_std
-from ._training_runtime import record_training_runtime
 from .core import Array, Config, Observation
 from .env import VectorEnv
+from .envs.specs import validate_environment_spec
+from .learning.advantages import generalized_advantage as generalized_advantage
+from .learning.checkpoints import validate_adam_checkpoint
+from .learning.parameters import bounded_log_std, mlp
+from .runtime.implementation import record_training_runtime
+from .runtime.process import termination_signals
+from .runtime.records import run_identity, run_lifecycle
 
 
 @dataclass(frozen=True)
@@ -79,20 +80,8 @@ class ActorCritic(nn.Module):
         }
         self.action_scale = (action_high - action_low) / 2
         self.action_bias = (action_high + action_low) / 2
-        self.actor = nn.Sequential(
-            nn.Linear(proprio_dim, 64),
-            nn.Tanh(),
-            nn.Linear(64, 64),
-            nn.Tanh(),
-            nn.Linear(64, action_dim),
-        )
-        self.critic = nn.Sequential(
-            nn.Linear(proprio_dim, 64),
-            nn.Tanh(),
-            nn.Linear(64, 64),
-            nn.Tanh(),
-            nn.Linear(64, 1),
-        )
+        self.actor = mlp((proprio_dim, 64, 64, action_dim), nn.Tanh)
+        self.critic = mlp((proprio_dim, 64, 64, 1), nn.Tanh)
         self.log_std = nn.Parameter(torch.full((action_dim,), -0.5))
         nn.init.orthogonal_(self.actor[-1].weight, gain=0.01)
         nn.init.zeros_(self.actor[-1].bias)
@@ -114,27 +103,6 @@ class ActorCritic(nn.Module):
         return raw.tanh() * self.action_scale + self.action_bias
 
 
-def generalized_advantage(
-    reward: Array,
-    value: Array,
-    next_value: Array,
-    terminated: Array,
-    truncated: Array,
-    gamma: float,
-    gae_lambda: float,
-) -> tuple[Array, Array]:
-    """Bootstrap at time limits, but never propagate GAE through reset."""
-    advantage = np.zeros_like(reward)
-    carry = np.zeros(reward.shape[1], dtype=np.float32)
-    # Only the carry depends on time; batch the independent transition terms.
-    delta = reward + gamma * next_value * ~terminated - value
-    discount = gamma * gae_lambda * ~(terminated | truncated)
-    for t in reversed(range(len(reward))):
-        carry = delta[t] + discount[t] * carry
-        advantage[t] = carry
-    return advantage, advantage + value
-
-
 def _collect_rollout(
     env: VectorEnv, model: ActorCritic, observation: Observation, rollout_steps: int
 ) -> tuple[dict[str, Array], Observation, int, int]:
@@ -142,29 +110,30 @@ def _collect_rollout(
     if rollout_steps <= 0:
         raise ValueError("Rollout steps must be positive")
     buffer = {}
-    successes = completed = 0
-    value = None  # Local to this rollout: optimizer updates invalidate old values.
+    successful_episodes = completed_episodes = 0
+    # The policy stays fixed during collection, so continuing rows can reuse
+    # their previous bootstrap values. Reset rows need a fresh prediction.
+    value = None
     reset_ids = None
     for step in range(rollout_steps):
-        obs = torch.as_tensor(observation["proprio"])
+        proprio = torch.as_tensor(observation["proprio"])
         with torch.no_grad():
-            distribution = model.distribution(obs)
-            raw = distribution.sample()
+            distribution = model.distribution(proprio)
+            raw_action = distribution.sample()
             if value is None:
-                value = model.value(obs)
+                value = model.value(proprio)
             elif reset_ids is not None:
-                # Keep continuing rows' bootstrap values; only reset rows changed.
                 value = value.index_copy(
-                    0, torch.as_tensor(reset_ids), model.value(obs[reset_ids])
+                    0, torch.as_tensor(reset_ids), model.value(proprio[reset_ids])
                 )
-            logprob = distribution.log_prob(raw).sum(-1)
-        result = env.step(model.to_action(raw).numpy())
+            log_prob = distribution.log_prob(raw_action).sum(-1)
+        result = env.step(model.to_action(raw_action).numpy())
         with torch.no_grad():
             next_value = model.value(torch.as_tensor(result.observation["proprio"]))
         transition = {
-            "obs": obs.numpy(),
-            "raw": raw.numpy(),
-            "logprob": logprob.numpy(),
+            "obs": proprio.numpy(),
+            "raw": raw_action.numpy(),
+            "logprob": log_prob.numpy(),
             "reward": result.reward,
             "value": value.numpy(),
             "next_value": next_value.numpy(),
@@ -179,21 +148,21 @@ def _collect_rollout(
         for key, item in transition.items():
             buffer[key][step] = item
         done = result.terminated | result.truncated
-        completed += int(done.sum())
-        successes += int(result.info["success"].sum())
+        completed_episodes += int(done.sum())
+        successful_episodes += int(result.info["success"].sum())
         observation = result.observation
         value = next_value
         reset_ids = None
         if done.any():
-            ids = np.flatnonzero(done)
-            if ids.size == len(value):
+            done_ids = np.flatnonzero(done)
+            if done_ids.size == len(value):
                 value = None
             else:
-                reset_ids = ids
-            reset_observation = env.reset(ids)
+                reset_ids = done_ids
+            reset_observation = env.reset(done_ids)
             for key in observation:
-                observation[key][ids] = reset_observation[key]
-    return buffer, observation, successes, completed
+                observation[key][done_ids] = reset_observation[key]
+    return buffer, observation, successful_episodes, completed_episodes
 
 
 def _optimize_policy(
@@ -213,9 +182,12 @@ def _optimize_policy(
         config.gamma,
         config.gae_lambda,
     )
-    count = advantage.size
-    flat = {
-        k: torch.as_tensor(v.reshape(count, *v.shape[2:])) for k, v in rollout.items()
+    sample_count = advantage.size
+    flat_rollout = {
+        name: torch.as_tensor(
+            rollout[name].reshape(sample_count, *rollout[name].shape[2:])
+        )
+        for name in ("obs", "raw", "logprob")
     }
     advantages = torch.as_tensor(advantage.reshape(-1))
     advantages = (advantages - advantages.mean()) / (
@@ -224,20 +196,22 @@ def _optimize_policy(
     targets = torch.as_tensor(returns.reshape(-1))
     losses = []
     for _ in range(config.epochs):
-        order = rng.permutation(count)
-        for start in range(0, count, config.minibatch_size):
-            ids = order[start : start + config.minibatch_size]
-            observations = flat["obs"][ids]
-            minibatch_advantages = advantages[ids]
+        order = rng.permutation(sample_count)
+        for start in range(0, sample_count, config.minibatch_size):
+            minibatch_ids = order[start : start + config.minibatch_size]
+            observations = flat_rollout["obs"][minibatch_ids]
+            minibatch_advantages = advantages[minibatch_ids]
             distribution = model.distribution(observations)
             # The tanh Jacobian cancels in the old/new policy ratio.
-            logprob = distribution.log_prob(flat["raw"][ids]).sum(-1)
-            ratio = (logprob - flat["logprob"][ids]).exp()
+            log_prob = distribution.log_prob(flat_rollout["raw"][minibatch_ids]).sum(-1)
+            ratio = (log_prob - flat_rollout["logprob"][minibatch_ids]).exp()
             actor_loss = -torch.minimum(
                 ratio * minibatch_advantages,
                 ratio.clamp(1 - config.clip, 1 + config.clip) * minibatch_advantages,
             ).mean()
-            value_loss = (model.value(observations) - targets[ids]).square().mean()
+            value_loss = (
+                (model.value(observations) - targets[minibatch_ids]).square().mean()
+            )
             loss = actor_loss + 0.5 * value_loss
             if not torch.isfinite(loss):
                 raise FloatingPointError("Non-finite PPO loss")
@@ -250,8 +224,8 @@ def _optimize_policy(
                 if not torch.isfinite(model.log_std).all():
                     raise FloatingPointError("Non-finite PPO policy log_std")
                 model.log_std.clamp_(-5, 2)
-            losses.append(float(loss.detach()))
-    if any(not torch.isfinite(p).all() for p in model.parameters()):
+            losses.append(loss.item())
+    if any(not torch.isfinite(parameter).all() for parameter in model.parameters()):
         raise FloatingPointError("Non-finite PPO policy")
     return float(np.mean(losses))
 
@@ -286,9 +260,7 @@ def train_ppo(
     start = restored.updates if restored else 0
     torch.manual_seed(config.seed)
     rng = np.random.default_rng(config.seed)
-    metadata = None
-    began = time.monotonic()
-    try:
+    with ExitStack() as run:
         with VectorEnv(env_config) as env:
             spec = env.spec
             if restored:
@@ -314,6 +286,7 @@ def train_ppo(
             metadata = {
                 "schema_version": 1,
                 "kind": "core-ppo",
+                "run_contract": run_identity("core", "train", env_config.task),
                 "status": "running",
                 "initial_updates": start,
                 "requested_updates": config.updates,
@@ -329,7 +302,13 @@ def train_ppo(
                 ),
                 "resume_semantics": "policy+optimizer; environment and RNG reset",
             }
-            write_json(root / "run.json", metadata)
+            run.enter_context(
+                run_lifecycle(
+                    metadata,
+                    lambda record: write_json(root / "run.json", record),
+                    label=root / "run.json",
+                )
+            )
             write_json(
                 root / "config.json",
                 {"env": env_config.to_dict(), "ppo": asdict(config)},
@@ -370,9 +349,10 @@ def train_ppo(
                         "completed_episodes": completed,
                         "success_rate": successes / completed if completed else None,
                     }
-                    metrics.write(json.dumps(metric, allow_nan=False) + "\n")
+                    metric_json = json.dumps(metric, allow_nan=False)
+                    metrics.write(metric_json + "\n")
                     metrics.flush()
-                    print(json.dumps(metric, allow_nan=False), flush=True)
+                    print(metric_json, flush=True)
                     if (
                         update == start + 1
                         or update % checkpoint_interval == 0
@@ -394,26 +374,6 @@ def train_ppo(
                             metadata,
                         )
         metadata["status"] = "complete"
-    except BaseException as error:
-        if metadata is not None:
-            metadata["status"] = (
-                "interrupted" if isinstance(error, KeyboardInterrupt) else "failed"
-            )
-            metadata["error"] = f"{type(error).__name__}: {error}"
-        raise
-    finally:
-        if metadata is not None:
-            metadata["seconds"] = time.monotonic() - began
-            active_error = sys.exc_info()[0] is not None
-            try:
-                write_json(root / "run.json", metadata)
-            except Exception:
-                if not active_error:
-                    raise
-                logging.getLogger(__name__).exception(
-                    "Could not finalize core PPO run %s; preserving the training error",
-                    root,
-                )
     return model
 
 
@@ -428,6 +388,10 @@ class PolicyCheckpoint:
 
     def validate_environment(self, spec: dict) -> None:
         """Reject semantic/dimension changes; allow device count/backend changes."""
+        if "schema_version" in self.env_spec:
+            validate_environment_spec(self.env_spec)
+        if "schema_version" in spec:
+            validate_environment_spec(spec)
         for key in (
             "task",
             "scene",
@@ -461,6 +425,8 @@ def _policy_checkpoint(checkpoint: dict, checksum: str) -> PolicyCheckpoint:
     env_spec = checkpoint.get("env_spec", {})
     if not isinstance(env_spec, dict):
         raise ValueError("Checkpoint environment specification must be a mapping")
+    if "schema_version" in env_spec:
+        validate_environment_spec(env_spec)
     model = ActorCritic(**checkpoint.get("model_spec", {}))
     model.load_state_dict(checkpoint["model"])
     for name, parameter in model.named_parameters():

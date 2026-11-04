@@ -343,12 +343,12 @@ def test_invalid_worker_count_does_not_create_output(tmp_path, workers):
 def test_cli_rejects_invalid_background_options_before_building_env(
     monkeypatch, arguments
 ):
-    from embodiedforge import cli
+    from embodiedforge import cli, env
 
     def unexpected_env(*args):
         pytest.fail("Invalid CLI input must not construct an environment")
 
-    monkeypatch.setattr(cli, "VectorEnv", unexpected_env)
+    monkeypatch.setattr(env, "VectorEnv", unexpected_env)
     monkeypatch.setattr(sys, "argv", ["embodiedforge", *arguments])
     with pytest.raises(SystemExit) as error:
         cli.main()

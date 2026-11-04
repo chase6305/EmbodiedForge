@@ -13,7 +13,7 @@ def main():
     from embodiedforge._h1_metrics import BASIC_COMMANDS, FirstEpisodeMetrics
     from embodiedforge._h1_motion import MotionRecorder
     from embodiedforge._h1_worker import preflight
-    from embodiedforge.h1 import write_json
+    from embodiedforge.runtime.artifacts import write_json
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, required=True)
