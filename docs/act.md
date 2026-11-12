@@ -35,7 +35,9 @@ python -m embodiedforge act --python .cache/act-venv/bin/python doctor
 这是入口来源检查，不覆盖每一项间接依赖。
 `doctor` 返回的 `requested_scope` 与训练记录的 `runtime.requested_scope` 为 `training`，检查上述完整入口；
 `evaluate` / `benchmark` 使用 `inference` 范围，只记录策略和处理器，
-不会为生成来源报告额外加载训练器或数据集入口，也不声明训练环境完整。
+不再主动核验训练器和数据集入口，也不声明训练环境完整。
+范围只描述本仓库请求的入口；SDK 初始化仍可能引入其他组件。例如本地 LeRobot 0.6.2
+的策略工厂会经 GROOT 处理器加载数据集模块，因此 `inference` 报告不能证明可以移除数据集依赖。
 
 ### 是否需要移植
 

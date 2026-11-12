@@ -1,4 +1,4 @@
-"""Inference provenance must not require the SDK's trainer or dataset entry points."""
+"""ACT provenance inspects the requested SDK entry points for each operation."""
 
 import importlib.abc
 import json
@@ -88,7 +88,7 @@ def test_runtime_report_checks_only_requested_sdk_entries(sdk, training):
 
 
 @pytest.mark.parametrize("operation", ["evaluate", "benchmark"])
-def test_closed_loop_reports_need_only_inference_sdk_entries(
+def test_closed_loop_reports_request_inference_sdk_entries(
     tmp_path, monkeypatch, sdk, operation
 ):
     sdk(training=False)
