@@ -27,8 +27,8 @@ def main():
         snapshot_implementation,
         validate_snapshot,
     )
-    from embodiedforge.supermimic import source_identity
     from embodiedforge.workflows.supermimic_catalog import REFERENCES
+    from embodiedforge.workflows.supermimic_source import source_identity
 
     ref = REFERENCES["cuboi-reproduced"]
     required = ref["source_files"] + [

@@ -90,29 +90,32 @@ def _require_lerobot():
         ) from exc
 
 
-def runtime_report():
+def runtime_report(*, training=True):
     """Identify imported implementations and whether they live in the installed SDK.
 
-    This checks entry points, not every transitive import or checkpoint quality.
-    Local installation URLs describe build inputs, not runtime dependencies.
+    The default includes training and dataset entry points for doctor/training.
+    Inference callers request only policy/processors; their report does not
+    establish training availability. This checks entry points, not every
+    transitive import or checkpoint quality. Local installation URLs describe
+    build inputs, not runtime dependencies.
     """
     _require_lerobot()
-    from lerobot.datasets.lerobot_dataset import LeRobotDataset
     from lerobot.policies.act.modeling_act import ACTPolicy
     from lerobot.policies.factory import make_pre_post_processors
-    from lerobot.scripts import lerobot_train
 
     from .runtime.implementation import component
 
+    entry_points = {"policy": ACTPolicy}
+    if training:
+        from lerobot.datasets.lerobot_dataset import LeRobotDataset
+        from lerobot.scripts import lerobot_train
+
+        entry_points.update(trainer=lerobot_train, dataset=LeRobotDataset)
+    entry_points["processors"] = make_pre_post_processors
     package = distribution("lerobot")
     origin = json.loads(package.read_text("direct_url.json") or "null")
     installed_root = Path(package.locate_file("lerobot")).resolve()
-    components = {
-        "policy": component(ACTPolicy),
-        "trainer": component(lerobot_train),
-        "dataset": component(LeRobotDataset),
-        "processors": component(make_pre_post_processors),
-    }
+    components = {name: component(value) for name, value in entry_points.items()}
     installed = all(
         item["file"] is not None and Path(item["file"]).is_relative_to(installed_root)
         for item in components.values()
@@ -126,6 +129,7 @@ def runtime_report():
         "python": sys.executable,
         "python_version": sys.version.split()[0],
         "scope": "imported_entry_points_not_full_dependency_graph",
+        "requested_scope": "training" if training else "inference",
         "installation": {
             "version": package.version,
             "mode": "installed_package" if installed else "external_source",
@@ -679,7 +683,7 @@ def evaluate(args):
         "checkpoint_fingerprint": policy.checkpoint_fingerprint,
         "inference_settings": policy.inference_settings(),
         "clipped_action_fraction": policy.clipped_values / max(policy.total_values, 1),
-        "runtime": runtime_report(),
+        "runtime": runtime_report(training=False),
     }
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -770,7 +774,7 @@ def benchmark(args):
         "inference_settings": policy.inference_settings(),
         "clipped_predicted_action_fraction": policy.clipped_values
         / max(policy.total_values, 1),
-        "runtime": runtime_report(),
+        "runtime": runtime_report(training=False),
     }
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)

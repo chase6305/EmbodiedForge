@@ -40,9 +40,6 @@ def main(argv=None) -> None:
     # Dispatch metadata and SDK workflows before loading the core NumPy runtime.
     from .backends import PHYSICS, RENDER, execution_plan
     from .core import Config
-    from .data import EpisodeRecorder, read_episodes
-    from .env import VectorEnv
-    from .rollout import DemonstrationPolicy, run_rollout
 
     parser = argparse.ArgumentParser(
         description="EmbodiedForge CPU reference training platform"
@@ -178,6 +175,8 @@ def main(argv=None) -> None:
     if args.command == "inspect":
         if args.dataset is None:
             parser.error("inspect requires --dataset")
+        from .data import read_episodes
+
         lengths = [len(e["action"]) for e in read_episodes(args.dataset)]
         print(json.dumps({"episodes": len(lengths), "transitions": sum(lengths)}))
         return
@@ -202,6 +201,12 @@ def main(argv=None) -> None:
             checkpoint_interval=args.checkpoint_interval,
         )
         return
+    # Only rollout/evaluate compose simulation and recording. Metadata commands
+    # and training select their own dependencies above.
+    from .data import EpisodeRecorder
+    from .env import VectorEnv
+    from .rollout import DemonstrationPolicy, run_rollout
+
     policy = checkpoint.policy if checkpoint else None
     with VectorEnv(config) as env:
         if checkpoint:

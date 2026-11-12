@@ -1,6 +1,10 @@
-"""Shared tensor and Adam checkpoint checks, without eager learner imports."""
+"""Shared checkpoint validation and file publication, without eager learner imports."""
 
 import math
+from pathlib import Path
+from uuid import uuid4
+
+from ..runtime.artifacts import discard_partial
 
 
 def finite_tensors(value, *, check_scalars=False):
@@ -99,3 +103,21 @@ def validate_adam_checkpoint(optimizer, state, *, label="Adam optimizer"):
                 or (name == "exp_avg_sq" and (value < 0).any())
             ):
                 raise ValueError(f"Invalid {label} {name} for parameter {key}")
+
+
+def atomic_save(save, path, infos=None):
+    """Publish one local learner checkpoint after its save callback completes.
+
+    The callback receives a temporary filename and the unchanged opaque infos.
+    The caller owns directory creation, validation and any multi-file recovery
+    record. This provides atomic file replacement, not fsync durability or
+    coordination between concurrent writers.
+    """
+    target = Path(path)
+    temporary = target.with_name(f"{target.name}.{uuid4().hex}.tmp")
+    try:
+        save(str(temporary), infos)
+        temporary.replace(target)
+    except BaseException:
+        discard_partial(temporary, label="checkpoint")
+        raise

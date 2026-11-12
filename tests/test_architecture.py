@@ -22,6 +22,12 @@ def dependency_graph(root):
         ).removesuffix(".__init__"): path
         for path in root.rglob("*.py")
     }
+    # Some isolated workers are launched as repository scripts. Include their
+    # imports so moving a CLI dependency out of the package cannot hide it.
+    modules.update(
+        ("benchmarks." + path.stem, path)
+        for path in (root.parents[1] / "benchmarks").glob("supermimic_*.py")
+    )
     edges = {name: set() for name in modules}
     for name, path in modules.items():
         package = name if path.name == "__init__.py" else name.rsplit(".", 1)[0]
@@ -96,7 +102,36 @@ def test_explicit_module_dependencies_have_no_cycles():
         ),
         (
             "embodiedforge.data",
-            ("embodiedforge.core", "embodiedforge.envs", "embodiedforge.runtime"),
+            (
+                "embodiedforge._episode_archive",
+                "embodiedforge.core",
+                "embodiedforge.envs",
+                "embodiedforge.runtime",
+            ),
+        ),
+        (
+            "embodiedforge._episode_archive",
+            (
+                "embodiedforge.core",
+                "embodiedforge.envs.specs",
+                "embodiedforge.runtime.records",
+            ),
+        ),
+        (
+            "embodiedforge._weave_worker",
+            (
+                "embodiedforge._weave_evaluation",
+                "embodiedforge.learning",
+                "embodiedforge.runtime",
+            ),
+        ),
+        (
+            "embodiedforge._go1_training_viewer",
+            ("embodiedforge.viewers.training",),
+        ),
+        (
+            "embodiedforge._wuji_training_viewer",
+            ("embodiedforge.viewers.training",),
         ),
     ],
 )
@@ -117,6 +152,17 @@ def test_shared_layers_only_import_their_declared_dependencies(prefix, allowed):
 
 def test_runtime_consumers_do_not_import_command_entry_points():
     entry_points = {
+        "embodiedforge.cli",
+        "embodiedforge.act",
+        "embodiedforge.gmr",
+        "embodiedforge.sonic",
+        "embodiedforge.supermimic",
+        "embodiedforge.supermimic_run",
+        "embodiedforge.morphmimic",
+        "embodiedforge.motion",
+        "embodiedforge.go1_live",
+        "embodiedforge.robot_replay",
+        "embodiedforge.visualization",
         "embodiedforge.recipes",
         "embodiedforge.h1",
         "embodiedforge.native_h1",
@@ -138,6 +184,7 @@ def test_runtime_consumers_do_not_import_command_entry_points():
         (name, child)
         for name, children in GRAPH.items()
         if any(name == prefix or name.startswith(prefix + ".") for prefix in shared)
+        or name.startswith("benchmarks.supermimic_")
         for child in children
         if child in entry_points
     ]

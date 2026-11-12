@@ -5,12 +5,12 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from ._wuji_training_viewer import TrainingPreview
+from .viewers.training import MujocoTrainingPreview
 
 LOGGER = logging.getLogger(__name__)
 
 
-class Go1Preview(TrainingPreview):
+class Go1Preview(MujocoTrainingPreview):
     title = "Go1 training preview"
 
     def _initialize_renderer(self, env):

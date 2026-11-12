@@ -93,3 +93,45 @@ def test_live_viewer_and_workflow_helpers_do_not_import_recipe_cli():
         timeout=10,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_checkpoint_publication_and_weave_import_need_no_robot_domain_or_sdk(tmp_path):
+    script = textwrap.dedent("""
+        import importlib.abc
+        import sys
+        from pathlib import Path
+
+        forbidden = {'embodiedforge.locomotion', 'torch', 'numpy', 'mujoco',
+                     'mjlab', 'isaaclab', 'rsl_rl', 'g1_hoi_learning', 'warp'}
+        class Block(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path=None, target=None):
+                if any(fullname == name or fullname.startswith(name + '.')
+                       for name in forbidden):
+                    raise RuntimeError('Forbidden checkpoint dependency: ' + fullname)
+        blocker = Block()
+        sys.meta_path.insert(0, blocker)
+        from embodiedforge.learning.checkpoints import atomic_save
+        from embodiedforge import _weave_worker
+        assert _weave_worker.atomic_save is atomic_save
+        target = Path(sys.argv[1]) / 'model.pt'
+        infos = object()
+        def save(filename, metadata):
+            assert metadata is infos
+            Path(filename).write_bytes(b'complete checkpoint')
+        atomic_save(save, target, infos)
+        assert target.read_bytes() == b'complete checkpoint'
+        assert not forbidden & sys.modules.keys()
+
+        sys.meta_path.remove(blocker)
+        from embodiedforge.locomotion.microduck.checkpoint import atomic_save as legacy
+        assert legacy is atomic_save
+        assert not {'torch', 'mujoco', 'mjlab', 'rsl_rl'} & sys.modules.keys()
+    """)
+    result = subprocess.run(
+        [sys.executable, "-S", "-c", script, str(tmp_path)],
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr

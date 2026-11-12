@@ -1,12 +1,81 @@
-"""Microduck model handoff: resolve recorded checkpoints and freeze evaluation inputs."""
+"""Microduck run ownership, checkpoint discovery and frozen evaluation inputs."""
 
 import hashlib
 import json
+import os
 import re
+import socket
 from pathlib import Path
 
 from .runtime.hashing import copy_file_snapshot
 from .runtime.hashing import file_sha256 as checkpoint_digest
+
+
+def _process_state(pid):
+    # comm may contain spaces and parentheses; fields after its final ')' start
+    # at field 3. starttime is field 22, in kernel clock ticks since boot.
+    fields = (
+        Path(f"/proc/{pid}/stat").read_text(errors="replace").rsplit(")", 1)[1].split()
+    )
+    return fields[0], int(fields[19])
+
+
+def launcher_identity():
+    identity = {"pid": os.getpid(), "hostname": socket.gethostname()}
+    try:
+        identity["start_ticks"] = _process_state(identity["pid"])[1]
+        identity["boot_id"] = (
+            Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+        )
+    except (OSError, ValueError, IndexError):
+        pass
+    return identity
+
+
+def launcher_status(identity):
+    """Report local launcher liveness without mistaking a reused PID for the job."""
+    if not isinstance(identity, dict):
+        return {"alive": None, "reason": "not_recorded"}
+    if identity.get("hostname") != socket.gethostname():
+        return {"alive": None, "reason": "different_host"}
+    if (
+        type(identity.get("pid")) is not int
+        or identity["pid"] <= 0
+        or type(identity.get("start_ticks")) is not int
+        or not identity.get("boot_id")
+    ):
+        return {"alive": None, "reason": "incomplete_identity"}
+    try:
+        boot_id = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+        if boot_id != identity["boot_id"]:
+            return {"alive": False, "reason": "different_boot"}
+        state, start = _process_state(identity["pid"])
+    except FileNotFoundError:
+        if not Path("/proc/self/stat").exists():
+            return {"alive": None, "reason": "proc_unavailable"}
+        return {"alive": False, "reason": "exited"}
+    except (OSError, ValueError, IndexError):
+        return {"alive": None, "reason": "proc_unreadable"}
+    if start != identity["start_ticks"]:
+        return {"alive": False, "reason": "pid_reused"}
+    if state in ("Z", "X"):
+        return {"alive": False, "reason": "exited"}
+    return {"alive": True, "reason": "identity_matches"}
+
+
+def training_checkpoints(directory: Path) -> list[Path]:
+    """Find saved model files without loading them or including temporary files."""
+    directory = directory.resolve()
+    return sorted(
+        (
+            path
+            for path in directory.glob("logs/rsl_rl/microduck/*/model_*.pt")
+            if re.fullmatch(r"model_[0-9]+\.pt", path.name)
+            and path.is_file()
+            and path.resolve().is_relative_to(directory)
+        ),
+        key=lambda path: int(path.stem.removeprefix("model_")),
+    )
 
 
 def _checkpoint_relative(recorded):
@@ -52,8 +121,6 @@ def resolve_run_checkpoint(directory, identity, task, *, allow_incomplete=False)
         ):
             raise ValueError(f"Training run source differs: {key}")
     if recovery:
-        from ._microduck_worker import launcher_status
-
         if not report.get("finished_at"):
             raise ValueError("Recovery requires a recorded finish time")
         if launcher_status(report.get("launcher"))["alive"] is True:

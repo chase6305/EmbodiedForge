@@ -6,6 +6,7 @@ from urllib.request import urlopen
 import pytest
 
 from embodiedforge import recipes
+from embodiedforge._go1_training_viewer import Go1Preview
 from embodiedforge._wuji_training_viewer import TrainingPreview, training_preview
 
 
@@ -82,11 +83,15 @@ def test_unsupported_task_rejected_before_output_creation(tmp_path):
     assert not path.exists()
 
 
-def test_preview_http_wait_frame_and_shutdown():
-    preview = TrainingPreview(port=0)
+@pytest.mark.parametrize("preview_type", [TrainingPreview, Go1Preview])
+def test_preview_http_wait_frame_and_shutdown(preview_type):
+    preview = preview_type(port=0)
     root = f"http://127.0.0.1:{preview.server.server_port}"
     try:
-        assert b"environment 0" in urlopen(root, timeout=2).read()
+        page = urlopen(root, timeout=2).read()
+        assert b"environment 0" in page
+        assert preview.title.encode() in page and b"__TITLE__" not in page
+        assert preview.renderer is None
         with pytest.raises(HTTPError) as error:
             urlopen(root + "/frame.jpg", timeout=2)
         assert error.value.code == 503
@@ -95,7 +100,7 @@ def test_preview_http_wait_frame_and_shutdown():
             assert response.read() == b"jpeg-frame"
             assert response.headers["X-Rollout-Step"] == "42"
         with pytest.raises(OSError):
-            TrainingPreview(port=preview.server.server_port)
+            preview_type(port=preview.server.server_port)
     finally:
         preview.close()
     assert not preview.thread.is_alive()
@@ -168,7 +173,7 @@ def test_headless_training_never_imports_preview(monkeypatch):
 def test_preview_startup_failure_closes_bound_listener_and_started_thread(
     monkeypatch, failure_type, stage
 ):
-    from embodiedforge import _wuji_training_viewer as module
+    from embodiedforge.viewers import training as module
 
     failure = failure_type("preview startup failed")
     servers, threads = [], []
@@ -354,7 +359,7 @@ def test_preview_interrupted_server_close_still_releases_listener(
 def test_preview_startup_failure_releases_listener_if_server_close_is_interrupted(
     monkeypatch,
 ):
-    from embodiedforge import _wuji_training_viewer as module
+    from embodiedforge.viewers import training as module
 
     servers = []
     factory = module.ThreadingHTTPServer

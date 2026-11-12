@@ -7,6 +7,7 @@ import math
 import sys
 from pathlib import Path
 
+from .learning.checkpoints import atomic_save
 from .runtime.artifacts import write_json
 from .runtime.hashing import file_sha256 as sha256
 from .runtime.provenance import validate_snapshot
@@ -397,7 +398,6 @@ def execute(request, app):
     from rsl_rl.runners import OnPolicyRunner
 
     from ._weave_evaluation import ClipEvaluation
-    from .locomotion.microduck.checkpoint import atomic_save
 
     class Runner(OnPolicyRunner):
         def save(self, path, infos=None):

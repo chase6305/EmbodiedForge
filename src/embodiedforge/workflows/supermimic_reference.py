@@ -12,9 +12,9 @@ from embodiedforge.runtime.hashing import copy_file_snapshot, snapshot_file_hash
 from embodiedforge.runtime.process import run_process
 from embodiedforge.runtime.provenance import snapshot_implementation
 from embodiedforge.runtime.records import run_identity, run_lifecycle
-from embodiedforge.supermimic import source_identity
 from embodiedforge.workflows import supermimic_backflip as backflip
 from embodiedforge.workflows.supermimic_catalog import REFERENCES
+from embodiedforge.workflows.supermimic_source import source_identity
 
 
 def replace_once(source, old, new):
@@ -254,6 +254,7 @@ def launch(options, environment):
     sources = (
         "supermimic",
         "src/embodiedforge/supermimic_run.py",
+        "src/embodiedforge/workflows/supermimic_source.py",
         "src/embodiedforge/workflows/supermimic_backflip.py",
         "src/embodiedforge/workflows/supermimic_reference.py",
         "src/embodiedforge/workflows/supermimic_reference_mjlab.py",

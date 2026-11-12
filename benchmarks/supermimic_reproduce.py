@@ -56,13 +56,16 @@ def main():
         snapshot_implementation,
         validate_snapshot,
     )
-    from embodiedforge.supermimic import matches_version, source_identity
     from embodiedforge.workflows.supermimic_catalog import REFERENCES
     from embodiedforge.workflows.supermimic_inputs import (
         motion_manifest,
         smoke_training_clips,
         snapshot_motions,
         validate_motion_snapshot,
+    )
+    from embodiedforge.workflows.supermimic_source import (
+        matches_version,
+        source_identity,
     )
 
     reference = REFERENCES["cuboi-reproduced"]

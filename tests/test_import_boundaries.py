@@ -109,6 +109,55 @@ def test_public_exports_keep_identity_pickle_and_submodule_imports():
     assert result.returncode == 0, result.stderr
 
 
+@pytest.mark.parametrize("command", ["plan", "doctor", "inspect", "--help", "invalid"])
+def test_core_metadata_and_argument_parsing_do_not_import_execution_stack(
+    command, tmp_path
+):
+    (tmp_path / "run.json").write_text('{"schema_version": 1}')
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            textwrap.dedent("""
+                import importlib.abc
+                import sys
+                from embodiedforge.cli import main
+
+                command = sys.argv[1]
+                forbidden = {'embodiedforge.env',
+                             'embodiedforge.rollout', 'embodiedforge.training'}
+                if command != 'inspect':
+                    forbidden.add('embodiedforge.data')
+                class Block(importlib.abc.MetaPathFinder):
+                    def find_spec(self, fullname, path=None, target=None):
+                        if fullname in forbidden:
+                            raise RuntimeError('Unneeded execution dependency: ' + fullname)
+                sys.meta_path.insert(0, Block())
+                expected = 2 if command == 'invalid' else 0
+                try:
+                    arguments = [command]
+                    if command == 'inspect':
+                        arguments += ['--dataset', sys.argv[2]]
+                    main(arguments)
+                except SystemExit as error:
+                    assert error.code == expected
+                else:
+                    assert expected == 0
+                assert not forbidden & sys.modules.keys()
+            """),
+            command,
+            str(tmp_path),
+        ],
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    if command == "inspect":
+        assert json.loads(result.stdout) == {"episodes": 0, "transitions": 0}
+
+
 @pytest.mark.parametrize(
     "workflow", ["recipes", "h1", "rlinf", "microduck", "gmr", "sonic", "supermimic"]
 )
