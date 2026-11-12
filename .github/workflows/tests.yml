@@ -28,6 +28,9 @@ jobs:
     env:
       PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
       PYTHONPATH: src
+      # This job does not install the external H1 MJCF. Keep optional asset
+      # probes in a writable directory instead of a runner's unrelated home.
+      EF_H1_MODEL: ${{ runner.temp }}/embodiedforge-unconfigured-h1.xml
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:

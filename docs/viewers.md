@@ -106,7 +106,7 @@ HTTP 线程只校验并排队命令、发送已发布的不可变帧；主线程
 `IsolatedFrames` 保留公开的 `render(scene, observation, env_id, camera)` 接口，
 发送前对确切的内建快照类型及普通 NumPy 数组复制选中环境的一行，子进程以局部行零渲染，
 主线程的全局环境 ID 与原数组不变。点任务保留完整的单行 `StateSnapshot` 和 agent/target
-位置；仅 GL/RTX 点渲染需要额外的 `observation.time`，该时间与场景时间分别保留。
+位置；仅 GL/RTX 点渲染需要额外的 `observation["time"]`，该时间与场景时间分别保留。
 机器人快照只保留 qpos 和场景时间。未知快照类型、快照子类或所需字段中的自定义数组
 保留原快照、完整观测和原 ID。默认 Web 演示使用 `channels=()`；投影主要减少带训练
 图像观测或多环境调用中的无关传输。暂停缓存也仅针对已知快照与普通数组；自定义类型
