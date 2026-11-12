@@ -5,7 +5,7 @@ from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.tasks.registry import register_mjlab_task
 from rsl_rl.algorithms import PPO
 
-from ..checkpoint import atomic_save
+from ....learning.checkpoints import atomic_save
 from .microduck_velocity_env_cfg import MicroduckRlCfg, make_microduck_velocity_env_cfg
 
 
