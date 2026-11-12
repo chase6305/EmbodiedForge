@@ -87,6 +87,11 @@ def test_explicit_module_dependencies_have_no_cycles():
     "prefix,allowed",
     [
         ("embodiedforge.runtime", ("embodiedforge.runtime",)),
+        ("embodiedforge.viewers._frame_channel", ()),
+        (
+            "embodiedforge.viewers._frame_snapshot",
+            ("embodiedforge.core", "embodiedforge.viewers.robot"),
+        ),
         (
             "embodiedforge.learning",
             ("embodiedforge.learning", "embodiedforge.core", "embodiedforge.runtime"),
