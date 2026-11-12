@@ -50,6 +50,10 @@ jobs:
           ruff check src tests benchmarks examples
           ruff format --check src tests benchmarks examples
       - name: Run tests
+        env:
+          # This job does not install the external H1 MJCF. Keep optional asset
+          # probes in a writable directory instead of a runner's unrelated home.
+          EF_H1_MODEL: ${{ runner.temp }}/embodiedforge-unconfigured-h1.xml
         run: python -m pytest -q
       - name: Build distributions and verify source archive
         run: |

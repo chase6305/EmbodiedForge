@@ -627,6 +627,103 @@ def test_paused_robot_joint_and_time_changes_redraw(session, monkeypatch):
     assert len(calls) == 3
 
 
+@pytest.mark.parametrize("custom", ["scene", "state", "robot"])
+def test_paused_custom_snapshot_display_state_still_renders(
+    session, monkeypatch, custom
+):
+    from embodiedforge.core import SceneUpdate, StateSnapshot
+    from embodiedforge.viewers.robot import RobotSceneUpdate
+
+    class CustomScene(SceneUpdate):
+        display_value = 30
+
+    class CustomState(StateSnapshot):
+        display_value = 30
+
+    class CustomRobot(RobotSceneUpdate):
+        display_value = 30
+
+    env, viewer = session
+    viewer.paused = True
+    original = env.task.scene_update(env.physics.snapshot())
+    if custom == "scene":
+        scene = CustomScene(original.state, original.entities)
+        display_owner = scene
+    elif custom == "state":
+        state = CustomState(**vars(original.state))
+        scene = SceneUpdate(state, original.entities)
+        display_owner = state
+    else:
+        scene = CustomRobot(np.zeros((3, 19)), np.zeros(3))
+        display_owner = scene
+    calls = []
+
+    def render(*args):
+        calls.append(display_owner.display_value)
+        return np.full((64, 80, 3), display_owner.display_value, dtype=np.uint8)
+
+    monkeypatch.setattr(viewer.renderer, "render", render)
+    observation = env.observe()
+
+    def update():
+        viewer.update(
+            scene,
+            observation,
+            np.zeros(3),
+            display_state={"position": [0, 0, 0], "velocity": 0, "reward": 0},
+        )
+
+    update()
+    first_frame, first_id = viewer._frame, viewer._frame_id
+    # Only state belonging to the custom adapter changes; the built-in fields
+    # and environment identifiers remain byte-for-byte equal.
+    type(display_owner).display_value = 190
+    update()
+    assert calls == [30, 190]
+    assert viewer._frame_id == first_id + 1 and viewer._frame != first_frame
+    assert viewer._frame_key is None and not viewer._state["render_idle"]
+
+
+def test_paused_array_subclass_batch_display_changes_redraw_raster(
+    session, monkeypatch
+):
+    class DisplayPositions(np.ndarray):
+        def __array_finalize__(self, source):
+            self.shift = getattr(source, "shift", np.zeros(2))
+
+        def __getitem__(self, index):
+            selected = super().__getitem__(index)
+            if isinstance(index, np.ndarray) and index.dtype.kind in "iu":
+                # Raster selects rows with an array of IDs. Scalar indexing,
+                # as used by the old visual key, does not expose this state.
+                return np.asarray(selected) + self.shift
+            return selected
+
+    env, viewer = session
+    viewer.paused = True
+    scene = env.task.scene_update(env.physics.snapshot())
+    positions = np.tile([-0.5, 0.0], (3, 1)).view(DisplayPositions)
+    scene.entities["target"] = positions
+    observation = env.observe()
+    original_render = viewer.renderer.render
+    calls = []
+
+    def render(*args):
+        calls.append("render")
+        return original_render(*args)
+
+    monkeypatch.setattr(viewer.renderer, "render", render)
+    viewer.update(scene, observation, np.zeros(3))
+    first_frame, first_id = viewer._frame, viewer._frame_id
+    original_values = np.asarray(positions).copy()
+    positions.shift = np.array([1.0, 0.0])
+    np.testing.assert_array_equal(np.asarray(positions), original_values)
+    viewer.update(scene, observation, np.zeros(3))
+    assert calls == ["render", "render"]
+    assert viewer._frame_id == first_id + 1 and viewer._frame != first_frame
+    assert viewer._frame_key is None and not viewer._state["render_idle"]
+
+
 def test_paused_renderer_switch_and_failure_keep_cache_correct(session, monkeypatch):
     env, viewer = session
     viewer.paused = True

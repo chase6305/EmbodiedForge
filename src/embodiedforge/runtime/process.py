@@ -99,7 +99,7 @@ def _log_file(path, append):
 
 
 @contextmanager
-def _defer_process_signals(*, preserve_error=False):
+def defer_process_signals(*, preserve_error=False):
     """Deliver cancellation after acquiring or releasing owned process resources.
 
     Blocking signals with pthread_sigmask would also block them in the worker.
@@ -281,7 +281,7 @@ def run_process(
             try:
                 # Popen may be interrupted after fork/exec but before returning
                 # the handle. Replay cancellation only after cleanup owns it.
-                with _defer_process_signals():
+                with defer_process_signals():
                     process = resources.enter_context(
                         subprocess.Popen(
                             command,
@@ -356,7 +356,7 @@ def run_process(
             cleanup_interruption = None
             while not cleanup_finished:
                 try:
-                    with _defer_process_signals(
+                    with defer_process_signals(
                         preserve_error=active_error or cleanup_interruption is not None
                     ):
                         cleanup()

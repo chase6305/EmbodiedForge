@@ -470,22 +470,42 @@ class WebViewer:
     def _visual_key(self, scene, observation):
         """Own selected-row values: callers may reuse and mutate input arrays.
 
-        Cache only the two scene contracts supported here. Unknown scene types
-        keep rendering normally, so future adapters cannot silently go stale.
+        Cache exact built-in snapshots with plain arrays. Custom snapshots and
+        array subclasses keep rendering, so their display state cannot go stale.
         """
-        from embodiedforge.core import SceneUpdate
+        from embodiedforge.core import SceneUpdate, StateSnapshot
 
         from .robot import RobotSceneUpdate
 
         index = self.selected_env
+        if type(scene) is RobotSceneUpdate:
+            fields = (scene.qpos, scene.time)
+        elif type(scene) is SceneUpdate and type(scene.state) is StateSnapshot:
+            fields = (
+                *scene.entities.values(),
+                *(
+                    getattr(scene.state, name)
+                    for name in ("position", "velocity", "time", "version")
+                ),
+            )
+        else:
+            return None
+        if any(
+            type(value) is not np.ndarray
+            for value in (
+                *fields,
+                *(observation[name] for name in ("episode_id", "step_id", "time")),
+            )
+        ):
+            return None
 
         def row(value):
             array = np.asarray(value[index])
             return array.dtype.str, array.shape, array.tobytes()
 
-        if isinstance(scene, RobotSceneUpdate):
+        if type(scene) is RobotSceneUpdate:
             values = row(scene.qpos), row(scene.time)
-        elif isinstance(scene, SceneUpdate):
+        else:
             values = (
                 tuple(
                     (name, row(value)) for name, value in sorted(scene.entities.items())
@@ -495,8 +515,6 @@ class WebViewer:
                     for name in ("position", "velocity", "time", "version")
                 ),
             )
-        else:
-            return None
         return (
             self.backend,
             self.width,

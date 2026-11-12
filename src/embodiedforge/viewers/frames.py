@@ -9,14 +9,22 @@ import os
 import sys
 from dataclasses import dataclass, replace
 from importlib import metadata
+from time import monotonic
 from typing import Protocol
 
 import numpy as np
 
 from embodiedforge.core import Config, Observation, SceneSpec, SceneUpdate
 from embodiedforge.logging import get_logger
+from embodiedforge.runtime.process import defer_process_signals
+
+from ._frame_channel import FrameChannel, channel_pair
+from ._frame_snapshot import frame_snapshot
 
 FRAME_BACKENDS = ("raster", "mujoco", "gl", "rtx")
+STARTUP_TIMEOUT = 180
+RENDER_TIMEOUT = 180
+CLOSE_SEND_TIMEOUT = 0.25
 LOGGER = get_logger(__name__)
 
 
@@ -235,8 +243,9 @@ class NativeFrames:
         self.bridge.close()
 
 
-def _frame_worker(connection, name, scene, config, width, height):
+def _frame_worker(sock, name, scene, config, width, height):
     """Own all SDK calls on this process's main thread, including destruction."""
+    connection = FrameChannel(sock)
     renderer = None
     try:
         if sys.platform.startswith("linux"):
@@ -244,18 +253,28 @@ def _frame_worker(connection, name, scene, config, width, height):
         renderer = create_frame_renderer(
             name, scene, config, width, height, isolated=False
         )
-        connection.send((True, renderer.camera_control))
+        connection.send(
+            (True, renderer.camera_control), deadline=monotonic() + STARTUP_TIMEOUT
+        )
         while True:
-            command, arguments = connection.recv()
+            # An idle or paused viewer may wait indefinitely for its next step.
+            command, arguments = connection.receive(deadline=None)
             if command == "close":
                 break
-            connection.send((True, renderer.render(*arguments)))
+            connection.send(
+                (True, renderer.render(*arguments)),
+                deadline=monotonic() + RENDER_TIMEOUT,
+            )
     except (EOFError, BrokenPipeError):
         pass
     except BaseException as error:
         LOGGER.exception("Frame renderer worker failed (%s)", name)
         try:
-            connection.send((False, f"{type(error).__name__}: {error}"))
+            if not connection.closed and not connection.failed:
+                connection.send(
+                    (False, f"{type(error).__name__}: {error}"),
+                    deadline=monotonic() + CLOSE_SEND_TIMEOUT,
+                )
         except (EOFError, BrokenPipeError, OSError):
             pass
     finally:
@@ -269,37 +288,51 @@ def _frame_worker(connection, name, scene, config, width, height):
 class IsolatedFrames:
     """Isolate GL/EGL/Vulkan globals and native crashes from physics and HTTP.
 
-    Only public snapshots and owned RGB arrays cross the local pipe. Spawn is
+    Only display snapshots and owned RGB arrays cross the private socket. Spawn is
     deliberate: forking a process with an initialized GPU context is unsafe.
     """
 
     def __init__(self, name, scene, config, width, height):
-        context = multiprocessing.get_context("spawn")
-        self.connection, child = context.Pipe()
-        self.process = context.Process(
-            target=_frame_worker,
-            args=(child, name, scene, config, width, height),
-            name=f"embodiedforge-render-{name}",
-            daemon=True,
-        )
+        self.name = name
+        self.connection = None
+        self.process = None
         self.closed = False
+        child = None
+        deadline = monotonic() + STARTUP_TIMEOUT
         try:
-            self.process.start()
-            child.close()
-            self.camera_control = self._receive(180)
+            context = multiprocessing.get_context("spawn")
+            self.connection, child = channel_pair()
+            self.process = context.Process(
+                target=_frame_worker,
+                args=(child.socket, name, scene, config, width, height),
+                name=f"embodiedforge-render-{name}",
+                daemon=True,
+            )
+            # Publish the Process handle before a callable cancellation handler
+            # can interrupt spawn. Otherwise the OS child can exist while pid
+            # still reports None, leaving no owned handle for cleanup.
+            with defer_process_signals():
+                self.process.start()
+                child.close()
+            self.camera_control = self._receive(STARTUP_TIMEOUT, deadline=deadline)
         except BaseException:
             try:
-                child.close()
+                if child is not None:
+                    child.close()
             except BaseException:
                 LOGGER.exception("Failed to close renderer child connection")
             self._close_preserving_error()
             raise
 
-    def _receive(self, timeout):
-        if not self.connection.poll(timeout):
-            raise TimeoutError(f"Renderer did not respond within {timeout} seconds")
+    def _receive(self, timeout, *, deadline=None):
+        if deadline is None:
+            deadline = monotonic() + timeout
         try:
-            success, payload = self.connection.recv()
+            success, payload = self.connection.receive(deadline=deadline)
+        except TimeoutError as error:
+            raise TimeoutError(
+                f"Renderer did not respond within {timeout} seconds"
+            ) from error
         except (EOFError, OSError) as error:
             raise RuntimeError("Renderer process exited unexpectedly") from error
         if not success:
@@ -309,9 +342,18 @@ class IsolatedFrames:
     def render(self, scene, observation, env_id, camera):
         if self.closed:
             raise RuntimeError("Renderer is closed")
+        deadline = monotonic() + RENDER_TIMEOUT
         try:
-            self.connection.send(("render", (scene, observation, env_id, camera)))
-            return self._receive(180)  # Includes first-frame shader compilation.
+            selected_scene, selected_observation, selected_id = frame_snapshot(
+                scene, observation, env_id, self.name
+            )
+            self.connection.send(
+                ("render", (selected_scene, selected_observation, selected_id, camera)),
+                deadline=deadline,
+            )
+            # Sending and the complete response share one budget, including the
+            # first frame's shader compilation. Cleanup has a separate budget.
+            return self._receive(RENDER_TIMEOUT, deadline=deadline)
         except BaseException:
             self._close_preserving_error()
             raise
@@ -349,12 +391,20 @@ class IsolatedFrames:
             )
 
         try:
-            if self.process.pid is not None:
-                if alive():
+            if self.process is not None and self.process.pid is not None:
+                if (
+                    alive()
+                    and self.connection is not None
+                    and not self.connection.closed
+                    and not self.connection.failed
+                ):
 
                     def request_close():
                         try:
-                            self.connection.send(("close", ()))
+                            self.connection.send(
+                                ("close", ()),
+                                deadline=monotonic() + CLOSE_SEND_TIMEOUT,
+                            )
                         except (BrokenPipeError, EOFError, OSError):
                             pass
 
@@ -368,11 +418,18 @@ class IsolatedFrames:
                         attempt(self.process.kill)
                     attempt(lambda: self.process.join(timeout=2))
         finally:
-            if attempt(self.connection.close, default=failed) is failed:
+            if (
+                self.connection is not None
+                and attempt(self.connection.close, default=failed) is failed
+            ):
                 # These standard handles support repeated close; an interrupt
                 # may arrive before the descriptor release actually happens.
                 attempt(self.connection.close)
-            if self.process.pid is not None and not alive():
+            if (
+                self.process is not None
+                and self.process.pid is not None
+                and not alive()
+            ):
                 if attempt(self.process.close, default=failed) is failed:
                     attempt(self.process.close)
         if error is not None:
