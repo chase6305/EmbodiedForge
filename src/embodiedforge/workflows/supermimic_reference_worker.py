@@ -9,10 +9,10 @@ from pathlib import Path
 from embodiedforge.runtime.artifacts import write_json
 from embodiedforge.runtime.hashing import snapshot_file_hashes
 from embodiedforge.runtime.provenance import validate_snapshot
-from embodiedforge.supermimic import matches_version
 from embodiedforge.workflows import supermimic_backflip as backflip
 from embodiedforge.workflows.supermimic_catalog import REFERENCES
 from embodiedforge.workflows.supermimic_reference import freeze_reference
+from embodiedforge.workflows.supermimic_source import matches_version
 
 
 def main(config):

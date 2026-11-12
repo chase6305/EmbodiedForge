@@ -20,11 +20,11 @@ from ._microduck_export import ExportOperations
 from ._microduck_export import export_run as _export_run
 from ._microduck_native import native_command, snapshot_command, snapshot_runtime
 from ._microduck_run import (
+    launcher_identity,
     snapshot_inputs,
     verify_input_snapshot,
 )
-from ._microduck_worker import launcher_identity
-from ._microduck_worker import training_checkpoints as checkpoints
+from ._microduck_run import training_checkpoints as checkpoints
 from .logging import get_logger, setup_logging
 from .runtime.artifacts import write_json as write_json
 from .runtime.hashing import file_sha256

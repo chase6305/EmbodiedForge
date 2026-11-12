@@ -56,3 +56,75 @@ def test_rlinf_worker_and_policy_formats_do_not_import_cli_or_sdk():
         timeout=10,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_supermimic_source_consumers_do_not_import_preflight_cli_or_sdk():
+    script = textwrap.dedent("""
+        import importlib.abc
+        import sys
+
+        forbidden = {'embodiedforge.supermimic', 'torch', 'numpy', 'mujoco',
+                     'mjlab', 'isaaclab', 'supermimic'}
+        class Block(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path=None, target=None):
+                if fullname in forbidden:
+                    raise RuntimeError('Forbidden worker dependency: ' + fullname)
+        blocker = Block()
+        sys.meta_path.insert(0, blocker)
+        from embodiedforge import supermimic_run
+        from embodiedforge.workflows import (
+            supermimic_reference, supermimic_reference_worker, supermimic_source,
+        )
+        assert supermimic_run.source_identity is supermimic_source.source_identity
+        assert supermimic_reference.source_identity is supermimic_source.source_identity
+        assert supermimic_run.matches_version is supermimic_source.matches_version
+        assert supermimic_reference_worker.matches_version is supermimic_source.matches_version
+        assert not forbidden & sys.modules.keys()
+
+        sys.meta_path.remove(blocker)
+        from embodiedforge import supermimic
+        assert supermimic.source_identity is supermimic_source.source_identity
+        assert supermimic.matches_version is supermimic_source.matches_version
+    """)
+    result = subprocess.run(
+        [sys.executable, "-S", "-c", script],
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_microduck_host_tools_do_not_import_sdk_worker():
+    script = textwrap.dedent("""
+        import importlib.abc
+        import sys
+
+        forbidden = {'embodiedforge._microduck_worker', 'torch', 'numpy',
+                     'mujoco', 'mjlab', 'onnxruntime', 'tensorboard'}
+        class Block(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path=None, target=None):
+                if fullname in forbidden:
+                    raise RuntimeError('Forbidden host dependency: ' + fullname)
+        blocker = Block()
+        sys.meta_path.insert(0, blocker)
+        from embodiedforge import microduck, _microduck_run, _microduck_reports
+        assert microduck.launcher_identity is _microduck_run.launcher_identity
+        assert microduck.checkpoints is _microduck_run.training_checkpoints
+        assert not forbidden & sys.modules.keys()
+
+        sys.meta_path.remove(blocker)
+        from embodiedforge import _microduck_worker
+        assert _microduck_worker.launcher_identity is _microduck_run.launcher_identity
+        assert _microduck_worker.launcher_status is _microduck_run.launcher_status
+        assert _microduck_worker.training_checkpoints is _microduck_run.training_checkpoints
+    """)
+    result = subprocess.run(
+        [sys.executable, "-S", "-c", script],
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr

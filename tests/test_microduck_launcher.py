@@ -2,6 +2,7 @@
 
 import pytest
 
+from embodiedforge import _microduck_run as runs
 from embodiedforge import _microduck_worker as worker
 
 
@@ -31,7 +32,7 @@ def test_zombie_is_not_a_running_training_job(monkeypatch, state):
     if "boot_id" not in identity:
         pytest.skip("Requires Linux procfs")
     monkeypatch.setattr(
-        worker, "_process_state", lambda pid: (state, identity["start_ticks"])
+        runs, "_process_state", lambda pid: (state, identity["start_ticks"])
     )
     assert worker.launcher_status(identity) == {"alive": False, "reason": "exited"}
 
@@ -44,13 +45,13 @@ def test_missing_process_is_distinguished_from_permission_error(monkeypatch):
     def missing(pid):
         raise FileNotFoundError("gone")
 
-    monkeypatch.setattr(worker, "_process_state", missing)
+    monkeypatch.setattr(runs, "_process_state", missing)
     assert worker.launcher_status(identity) == {"alive": False, "reason": "exited"}
 
     def denied(pid):
         raise PermissionError("not readable")
 
-    monkeypatch.setattr(worker, "_process_state", denied)
+    monkeypatch.setattr(runs, "_process_state", denied)
     assert worker.launcher_status(identity) == {
         "alive": None,
         "reason": "proc_unreadable",

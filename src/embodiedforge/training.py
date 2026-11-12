@@ -1,4 +1,4 @@
-"""Small reference PPO trainer; imported only when training is requested."""
+"""Reference PPO policies, checkpoint loaders and opt-in environment training."""
 
 import hashlib
 import io
@@ -16,7 +16,7 @@ from torch.distributions import Normal
 
 from ._core_run import publish_checkpoint, read_resume, write_json
 from .core import Array, Config, Observation
-from .env import VectorEnv
+from .envs.base import BatchEnvironment
 from .envs.specs import validate_environment_spec
 from .learning.advantages import generalized_advantage as generalized_advantage
 from .learning.checkpoints import validate_adam_checkpoint
@@ -104,7 +104,10 @@ class ActorCritic(nn.Module):
 
 
 def _collect_rollout(
-    env: VectorEnv, model: ActorCritic, observation: Observation, rollout_steps: int
+    env: BatchEnvironment,
+    model: ActorCritic,
+    observation: Observation,
+    rollout_steps: int,
 ) -> tuple[dict[str, Array], Observation, int, int]:
     """Collect pre-reset transitions and separately refresh reset rows for acting."""
     if rollout_steps <= 0:
@@ -245,6 +248,8 @@ def train_ppo(
     The supplied PPOConfig defines this run's budget and hyperparameters; its
     learning rate replaces the saved Adam learning rate.
     """
+    from .env import VectorEnv
+
     if type(checkpoint_interval) is not int or checkpoint_interval <= 0:
         raise ValueError("checkpoint_interval must be a positive integer")
     root = Path(directory)

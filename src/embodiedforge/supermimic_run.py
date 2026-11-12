@@ -20,7 +20,6 @@ from embodiedforge.runtime.hashing import snapshot_file_hashes
 from embodiedforge.runtime.process import run_process
 from embodiedforge.runtime.provenance import snapshot_implementation, validate_snapshot
 from embodiedforge.runtime.records import run_identity, run_lifecycle
-from embodiedforge.supermimic import matches_version, source_identity
 from embodiedforge.workflows import supermimic_backflip as backflip
 from embodiedforge.workflows.supermimic_catalog import REFERENCES
 from embodiedforge.workflows.supermimic_inputs import (
@@ -28,6 +27,7 @@ from embodiedforge.workflows.supermimic_inputs import (
     snapshot_motions,
     validate_motion_snapshot,
 )
+from embodiedforge.workflows.supermimic_source import matches_version, source_identity
 
 WORKSPACE = Path(__file__).resolve().parents[2]
 BASELINE = "supermimic-reproduction-20261027-fourhour"
@@ -322,6 +322,7 @@ def launch(options):
             for name in (
                 "supermimic",
                 "src/embodiedforge/supermimic_run.py",
+                "src/embodiedforge/workflows/supermimic_source.py",
                 "src/embodiedforge/workflows/supermimic_inputs.py",
                 "src/embodiedforge/workflows/supermimic_backflip.py",
                 "benchmarks/supermimic_reproduce.py",

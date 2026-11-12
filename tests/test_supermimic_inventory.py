@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from embodiedforge import supermimic as sm
+from embodiedforge.workflows import supermimic_source
 
 
 @pytest.fixture
@@ -332,7 +333,7 @@ def test_source_change_during_hashing_is_rejected(checkout, monkeypatch):
         os.utime(path, ns=(previous.st_atime_ns, previous.st_mtime_ns))
         return digest
 
-    monkeypatch.setattr(sm, "_file_hashes", changing_hash)
+    monkeypatch.setattr(supermimic_source, "_file_hashes", changing_hash)
     with pytest.raises(ValueError, match="Source changed during inspection"):
         sm.source_identity(root, revision, ["required.py"])
 

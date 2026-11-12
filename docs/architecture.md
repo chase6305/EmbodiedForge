@@ -54,6 +54,8 @@ flowchart TB
 
 记录器在修改缓存前校验批次和 episode 的 schema、布局与数值类型。可选完整性路径在发布 NPZ 前校验 ZIP CRC，并在读回时使用完成标记中的 SHA256 核验压缩文件；配置与 I/O 成本见 [环境适配与评估](environment-adapters.md#可选归档完整性核验)。
 
+`data.py` 负责记录器状态、缓冲与写入线程、完成标记发布，以及数据目录的分片/投影/窗口迭代。私有 `_episode_archive.py` 解释单个 NPZ 的布局并校验 manifest、数值与连续性；它不反向依赖记录器或读选项对象。公开的 `EpisodeRecorder`、`RecordingMetadata`、`EpisodeReadOptions`、`read_episodes` 和 `action_windows` 仍从 `embodiedforge.data` 导入。compact 归档的相邻状态视图仅供内部窗口迭代使用，公开读取继续返回独立数组。
+
 运行记录、来源校验和 checkpoint 校验承担不同责任：运行记录描述状态与配置；来源校验追踪实现和资产；checkpoint 校验决定是否可以加载或恢复。运行状态为 `complete` 不代表策略达到验收阈值，也不能单独证明 checkpoint 兼容。
 
 实现快照、SuperMimic 预检和 ACT 指纹共用 `runtime.hashing.snapshot_file_hashes`，从同一个普通文件描述符进行有界读取和身份复核。实现快照把源文件复制与首次哈希合并，之后独立校验目标内容，并在全部复制完成后重新校验源清单；每个文件的逻辑内容读取由四遍减为三遍，这不等同于实测耗时降低。写入目标必须是新文件，失败时调用方负责处理未发布的部分输出。Go1 的已记录实现也使用同一复制工具，将源读取与首次哈希合并，随后独立校验目标；每文件的内容处理由三遍减为两遍，私有目标已存在时拒绝覆盖。通用 `file_sha256` / `stream_sha256` 继续保留读取至 EOF 的原有语义，运动库导入和加载复用同一个流哈希实现。身份检查不提供文件锁，也不保证祖先目录在并发替换时保持不变。
@@ -64,11 +66,15 @@ flowchart TB
 
 包入口按需加载 `Config`、`VectorEnv` 等公共导出；导入 `runtime` 工具或执行 `runs inspect` 只依赖标准库，不加载 NumPy 或核心环境。CLI 先分发元数据与 SDK 工作流，再为核心命令装配后端、环境、采集和策略模块。请求核心类型时继续返回原定义模块中的对象，序列化与原有导入形式保持兼容。
 
+核心 CLI 的 `plan`、`doctor` 和参数解析只加载所需的配置与注册信息，仿真、采集和 rollout 在执行相应命令时装配。核心策略与 checkpoint 加载器仍归属 `training.py`，环境构造延迟到 `train_ppo`；仅加载策略或解析续训输入不会导入环境、物理后端或传感器实现，但仍需要 NumPy 与 PyTorch。
+
 主机训练与 SDK 启动器共用 `runtime.process` 的进程组、取消转发和有界日志读取，以及 `runtime.records.run_lifecycle` 的终态发布。执行异常在收尾失败时保持为主错误，清理范围限定为启动器拥有的作业组。模型与产物的验证、发布和回滚继续由所属工作流解释；详细状态约定见 [公共运行记录](run-records.md)。
 
 `workflows` 包保存配方目录、Go1 设置继承、产物校验、结果验收和进度读取。`recipes.py` 负责 CLI 与执行编排；在线查看器直接使用产物校验模块，不反向导入命令入口。`recipes` 原有公共函数保留兼容导出。
 
 RLinf 的固定版本与 SAC checkpoint 布局校验分别由 `workflows.rlinf_catalog` 和 `workflows.rlinf_artifacts` 维护。主机启动器、SDK worker、导出器和 ONNX 评估器直接依赖这些轻量模块；SDK 侧不再通过 CLI 入口加载格式工具。
+
+SuperMimic 的固定来源与依赖版本校验归属 `workflows.supermimic_source`，预检入口、训练启动器和 reference worker 直接复用它，SDK 侧不导入预检 CLI。新工具模块列入两条训练路径的来源校验。Microduck 的进程身份、存活检查和 checkpoint 发现归属 `_microduck_run`，主机启动器不再为这些文件/进程操作导入 SDK worker；worker 保留原有函数导出，新的依赖随整个包进入已有实现快照。
 
 ## 预览与训练图像
 

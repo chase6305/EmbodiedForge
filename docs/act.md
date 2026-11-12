@@ -33,6 +33,9 @@ python -m embodiedforge act --python .cache/act-venv/bin/python doctor
 `external_source` 表示至少一个入口来自目录外，应检查 editable 安装或 `PYTHONPATH`。
 `build_origin` 中的本地 wheel 路径只代表构建输入，不是运行依赖。
 这是入口来源检查，不覆盖每一项间接依赖。
+`doctor` 返回的 `requested_scope` 与训练记录的 `runtime.requested_scope` 为 `training`，检查上述完整入口；
+`evaluate` / `benchmark` 使用 `inference` 范围，只记录策略和处理器，
+不会为生成来源报告额外加载训练器或数据集入口，也不声明训练环境完整。
 
 ### 是否需要移植
 
