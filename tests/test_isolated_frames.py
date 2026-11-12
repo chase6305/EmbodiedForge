@@ -326,23 +326,35 @@ def test_spawn_interrupt_before_popen_publication_still_reaps_owned_child(monkey
         )
         processes.append(value)
         launch, join = value._Popen, value.join
+        missing = object()
+        original_popen = value.__dict__.get("_Popen", missing)
 
         def interrupted_launch(process_obj):
             # Instance attributes are included in spawn's process pickle. Remove
             # this local injection before the real launch serializes that object.
-            del process_obj._Popen
-            popen = launch(process_obj)
-            popens.append(popen)
-            # Install this only after serialization; do not pickle a local lambda.
-            # Keep the real escalation waits while shortening the graceful wait.
-            monkeypatch.setattr(
-                value, "join", lambda timeout: join(0.1 if timeout == 5 else timeout)
-            )
-            assert value._popen is None and popen.pid is not None
-            signal.raise_signal(signal.SIGINT)
-            return popen
+            # Manage this dictionary entry locally: registering it with pytest's
+            # monkeypatch and then deleting it would make teardown delete it twice.
+            process_obj.__dict__.pop("_Popen")
+            try:
+                popen = launch(process_obj)
+                popens.append(popen)
+                # Install this only after serialization; do not pickle a local lambda.
+                # Keep the real escalation waits while shortening the graceful wait.
+                monkeypatch.setattr(
+                    value,
+                    "join",
+                    lambda timeout: join(0.1 if timeout == 5 else timeout),
+                )
+                assert value._popen is None and popen.pid is not None
+                signal.raise_signal(signal.SIGINT)
+                return popen
+            finally:
+                if original_popen is missing:
+                    process_obj.__dict__.pop("_Popen", None)
+                else:
+                    process_obj.__dict__["_Popen"] = original_popen
 
-        monkeypatch.setattr(value, "_Popen", interrupted_launch)
+        value.__dict__["_Popen"] = interrupted_launch
         return value
 
     def interrupt(signum, frame):
@@ -362,6 +374,7 @@ def test_spawn_interrupt_before_popen_publication_still_reaps_owned_child(monkey
         assert caught.value is primary
         assert interrupted_states == [(True, True)]
         assert len(popens) == len(processes) == 1
+        assert "_Popen" not in processes[0].__dict__
         assert parent.closed and child.closed
         assert popens[0].poll() is not None
         with pytest.raises(ValueError, match="closed"):

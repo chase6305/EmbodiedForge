@@ -46,15 +46,18 @@ def _owner(monkeypatch, mode):
         target=_stalled_worker, args=(child.socket, mode, prefix_ready)
     )
     join = owner.process.join
-    # Shorten only the initial graceful wait after the peer has deliberately
-    # stopped. Retain the termination/kill waits so a busy host can reap it.
-    monkeypatch.setattr(
-        owner.process, "join", lambda timeout: join(0.1 if timeout == 5 else timeout)
-    )
     monkeypatch.setattr(frames, "RENDER_TIMEOUT", 0.1)
     monkeypatch.setattr(frames, "CLOSE_SEND_TIMEOUT", 0.1)
     try:
         owner.process.start()
+        # Instance attributes are serialized by spawn. Install this local
+        # injection only after launch; keep the original join for final cleanup.
+        # Shorten only the graceful wait, retaining both escalation waits.
+        monkeypatch.setattr(
+            owner.process,
+            "join",
+            lambda timeout: join(0.1 if timeout == 5 else timeout),
+        )
         child.close()
         assert owner._receive(10) is False
         assert prefix_ready.wait(timeout=10), "Stopped peer did not finish setup"
