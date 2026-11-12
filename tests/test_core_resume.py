@@ -246,8 +246,7 @@ def test_invalid_resume_rejected_before_environment_or_output_creation(
     if target != source:
         torch.save(checkpoint, target)
     monkeypatch.setattr(
-        training,
-        "VectorEnv",
+        "embodiedforge.env.VectorEnv",
         lambda _: pytest.fail("Environment created before validation"),
     )
     with pytest.raises(ValueError):
