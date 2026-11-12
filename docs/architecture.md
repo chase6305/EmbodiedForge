@@ -62,6 +62,8 @@ flowchart TB
 
 核心 PPO、Go1、原生 H1、Microduck、运动文件和 JSON 发布共用 `runtime.artifacts.discard_partial` 清理失败操作拥有的临时文件；清理失败或再次中断单独记录，保留原始保存异常或中断。Go1 的恢复记录直接使用一次原子 JSON 发布，再更新便捷模型副本；恢复仍只认已提交记录引用的快照。
 
+Microduck 与 Weave 的 SDK runner 通过 `learning.checkpoints.atomic_save` 借用保存回调，先写唯一的同目录临时文件，成功后替换目标文件；Weave 无需导入 Microduck 任务包。该工具只负责一个 checkpoint 文件的发布，各工作流继续提交各自的运行记录与恢复指针。Microduck 原模块保留兼容导出。
+
 公共工具归属 `runtime` 包，新运行增加版本化 `run_contract`，可通过 `embodiedforge runs inspect --run ...` 查询；旧产物保持原格式。字段与兼容范围见 [公共运行记录](run-records.md)。
 
 包入口按需加载 `Config`、`VectorEnv` 等公共导出；导入 `runtime` 工具或执行 `runs inspect` 只依赖标准库，不加载 NumPy 或核心环境。CLI 先分发元数据与 SDK 工作流，再为核心命令装配后端、环境、采集和策略模块。请求核心类型时继续返回原定义模块中的对象，序列化与原有导入形式保持兼容。
@@ -79,6 +81,8 @@ SuperMimic 的固定来源与依赖版本校验归属 `workflows.supermimic_sour
 ## 预览与训练图像
 
 `viewers.WebViewer` 用 HTTP 线程接收命令并发送已发布画面，仿真、相机和渲染器生命周期在会话主线程处理。浏览器共享同一个会话，不是独立训练作业。
+
+Go1 与 Wuji 的只读训练预览使用 `viewers.training.MujocoTrainingPreview`，共享 HTTP/JPEG 发布、节流、MuJoCo 状态还原和资源收尾。它接收时间、qpos、qvel 与可选 mocap 姿态快照；机器人适配器分别提供模型装配、快照和相机目标。训练钩子仍由各工作流拥有，预览跟随实际训练步，不具备 WebViewer 的交互控制协议。
 
 Go1 在线模式在兼容 Python 环境中运行策略，通过有界消息通道传递状态；运动回放读取记录，不重新执行策略或物理。
 

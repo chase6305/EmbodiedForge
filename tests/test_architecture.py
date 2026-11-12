@@ -117,6 +117,22 @@ def test_explicit_module_dependencies_have_no_cycles():
                 "embodiedforge.runtime.records",
             ),
         ),
+        (
+            "embodiedforge._weave_worker",
+            (
+                "embodiedforge._weave_evaluation",
+                "embodiedforge.learning",
+                "embodiedforge.runtime",
+            ),
+        ),
+        (
+            "embodiedforge._go1_training_viewer",
+            ("embodiedforge.viewers.training",),
+        ),
+        (
+            "embodiedforge._wuji_training_viewer",
+            ("embodiedforge.viewers.training",),
+        ),
     ],
 )
 def test_shared_layers_only_import_their_declared_dependencies(prefix, allowed):
