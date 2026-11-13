@@ -219,3 +219,9 @@ __marimo__/
 
 # Local training runs and generated episode datasets
 /runs/
+
+# MuJoCo diagnostic log
+MUJOCO_LOG.TXT
+
+# Historical experiment evidence stays in the working copy, not in git
+/docs/experiments/
