@@ -17,9 +17,12 @@ from pathlib import Path
 
 import numpy as np
 
-from ._hashing import file_sha256
 from .core import Config
 from .data import read_episodes
+from .runtime.artifacts import write_json as _write_json
+from .runtime.hashing import file_sha256
+from .runtime.process import run_process
+from .runtime.records import run_identity, run_lifecycle
 
 DATA_MANIFEST = "embodiedforge.json"
 RUN_MANIFEST = "act-run.json"
@@ -68,17 +71,13 @@ def _resume_report(run):
             "complete",
             "failed",
             "running",
+            "interrupted",
+            "timed_out",
         ):
             raise ValueError("Resume requires a managed ACT run")
         if report["status"] == "running":
             report["status"] = "interrupted"
         return report
-
-
-def _write_json(path, data):
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(data, indent=2, allow_nan=False) + "\n")
-    temporary.replace(path)
 
 
 def _require_lerobot():
@@ -103,7 +102,7 @@ def runtime_report():
     from lerobot.policies.factory import make_pre_post_processors
     from lerobot.scripts import lerobot_train
 
-    from ._training_runtime import component
+    from .runtime.implementation import component
 
     package = distribution("lerobot")
     origin = json.loads(package.read_text("direct_url.json") or "null")
@@ -169,6 +168,8 @@ def export_dataset(source: Path, output: Path, repo_id: str, *, images=False):
     manifest = json.loads((source / "run.json").read_text())
     if manifest.get("status") != "closed":
         raise ValueError("Export requires a closed, successful recording run")
+    if manifest.get("environment_family", "core") != "core":
+        raise ValueError("ACT export currently requires a core environment recording")
     config = Config(**manifest["config"])
     state_key = "observation.state"
     # This LeRobot revision still reads OBS_STATE unconditionally inside ACT.
@@ -404,7 +405,7 @@ def _execute_training(
     _require_lerobot()
     from lerobot.policies.act.modeling_act import ACTPolicy
 
-    from ._training_runtime import component
+    from .runtime.implementation import component
 
     report = {
         "schema_version": 1,
@@ -426,6 +427,9 @@ def _execute_training(
             )
         },
         "status": "running",
+        "run_contract": run_identity(
+            "act", "resume" if resumed_from else "train", "act"
+        ),
         "resumed_from": resumed_from,
     }
     with _run_lock(output) as lock:
@@ -434,18 +438,20 @@ def _execute_training(
             raise FileExistsError(
                 f"ACT output or prior startup record already exists: {output}"
             )
-        _write_json(startup, report)
-        print(json.dumps({"command": command}), flush=True)
-        try:
-            subprocess.run(command, check=True, pass_fds=(lock.fileno(),))
-            report["status"] = "complete"
-        except BaseException:
-            report["status"] = "failed"
-            raise
-        finally:
-            _write_json(startup, report)
+
+        def publish(record):
+            _write_json(startup, record)
             if output.is_dir():
-                _write_json(output / RUN_MANIFEST, report)
+                _write_json(output / RUN_MANIFEST, record)
+
+        with run_lifecycle(report, publish, label=startup):
+            print(json.dumps({"command": command}), flush=True)
+            run_process(
+                command,
+                cwd=Path.cwd(),
+                env=os.environ.copy(),
+                pass_fds=(lock.fileno(),),
+            )
     return {"output": str(output), "status": report["status"]}
 
 
@@ -919,11 +925,15 @@ def main(argv=None):
         environment["PYTHONPATH"] = (
             source_root + os.pathsep + environment.get("PYTHONPATH", "")
         )
-        result = subprocess.run(
-            [executable, "-m", "embodiedforge.act", *forwarded],
-            env=environment,
-        )
-        raise SystemExit(result.returncode)
+        try:
+            run_process(
+                [executable, "-m", "embodiedforge.act", *forwarded],
+                cwd=Path.cwd(),
+                env=environment,
+            )
+        except subprocess.CalledProcessError as error:
+            raise SystemExit(error.returncode) from error
+        raise SystemExit(0)
     if args.command == "doctor":
         result = doctor()
         print(json.dumps(result, indent=2))

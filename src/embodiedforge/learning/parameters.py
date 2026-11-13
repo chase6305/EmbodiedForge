@@ -1,6 +1,9 @@
-"""Explicit PPO exploration bounds independent of clamp's boundary derivative."""
+"""Shared feedforward construction and explicit PPO exploration bounds."""
+
+from itertools import pairwise
 
 import torch
+from torch import nn
 
 
 def bounded_log_std(value: torch.Tensor) -> torch.Tensor:
@@ -12,3 +15,13 @@ def bounded_log_std(value: torch.Tensor) -> torch.Tensor:
     Comparisons also preserve NaN rather than silently replacing it with a bound.
     """
     return torch.where(value < -5.0, -5.0, torch.where(value > 2.0, 2.0, value))
+
+
+def mlp(widths, activation):
+    """Build hidden activations in linear-layer order, preserving state_dict keys."""
+    layers = []
+    for index, (before, after) in enumerate(pairwise(widths)):
+        layers.append(nn.Linear(before, after))
+        if index < len(widths) - 2:
+            layers.append(activation())
+    return nn.Sequential(*layers)

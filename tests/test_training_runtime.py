@@ -5,7 +5,7 @@ import json
 import math
 from pathlib import Path
 
-from embodiedforge._training_runtime import component, record_training_runtime
+from embodiedforge.runtime.implementation import component, record_training_runtime
 
 
 def test_component_records_the_loaded_source_and_native_module():

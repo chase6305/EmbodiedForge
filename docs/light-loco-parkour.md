@@ -98,7 +98,7 @@ python -m embodiedforge live --run runs/my-go1-light-loco-resumed \
 
 ## 实现与验收边界
 
-2000 次更新、1024 环境的实际训练对照见 [2026-09-25 实验记录](rl-training-study-20260925.md#go1原生-ppo-与-light-loco)：两个完整训练种子及三个评估种子，保留原生 PPO 默认值。
+2000 次更新、1024 环境的实际训练对照见 [2026-09-25 实验记录](experiments/rl-training-study-20260925.md#go1原生-ppo-与-light-loco)：两个完整训练种子及三个评估种子，保留原生 PPO 默认值。
 
 - `light-loco-source.json` 记录上游 revision、版本、实际路径和源码哈希。
 - `training-runtime.json` 标明实际使用 `go1_light_loco.update`，并记录关键算法依赖版本。
@@ -115,4 +115,4 @@ python -m embodiedforge live --run runs/my-go1-light-loco-resumed \
 
 同日去除重复 GAE 后，在相同 Torch 与 CPU 线程设置下，1024 个环境、24 步 rollout 的 GAE 耗时从约 0.92 ms 降到 0.65 ms；128 步从约 4.44 ms 降到 3.15 ms。计时包含输入校验，两种长度的优势和回报均与改动前逐值一致；收益仅对应 GAE 阶段。
 
-本地源码评估及后续多技能计划见 [接入评估](light-loco-parkour-assessment.md)。
+本地源码评估及后续多技能计划见 [接入评估](experiments/light-loco-parkour-assessment.md)。

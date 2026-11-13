@@ -6,20 +6,7 @@ import math
 import sys
 from pathlib import Path
 
-
-def finite_tensors(value):
-    import torch
-
-    count = 0
-    if isinstance(value, torch.Tensor):
-        if not torch.isfinite(value).all():
-            raise ValueError("Non-finite checkpoint tensor")
-        count = 1
-    elif isinstance(value, dict):
-        count = sum(finite_tensors(child) for child in value.values())
-    elif isinstance(value, (tuple, list)):
-        count = sum(finite_tensors(child) for child in value)
-    return count
+from .learning.checkpoints import finite_tensors as finite_tensors
 
 
 def verify_training(request):
@@ -200,7 +187,7 @@ def run(request):
     if len(result["diagnostics"]["trials"]) != request["num_trials"]:
         raise ValueError("Diagnostic trial count mismatch")
     result["acceptance"] = None
-    from embodiedforge.recipes import write_json
+    from embodiedforge.runtime.artifacts import write_json
 
     write_json(Path("evaluation.json"), result)
     return result

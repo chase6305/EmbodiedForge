@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -194,16 +195,19 @@ def test_invalid_motion_data_is_rejected(motion):
             import_weave(source, layout)
 
 
+@pytest.mark.parametrize(
+    "cleanup_error", [PermissionError, KeyboardInterrupt, SystemExit]
+)
 def test_failed_snapshot_cleanup_preserves_error_and_interruption(
-    motion, tmp_path, monkeypatch, caplog
+    motion, tmp_path, monkeypatch, caplog, cleanup_error
 ):
     source, layout, _ = motion
     library = import_weave(source, layout)
 
     def denied(*args, **kwargs):
-        raise PermissionError("snapshot cleanup denied")
+        raise cleanup_error("snapshot cleanup denied")
 
-    monkeypatch.setattr(Path, "unlink", denied)
+    monkeypatch.setattr(os, "unlink", denied)
     for error in (RuntimeError("snapshot write failed"), KeyboardInterrupt()):
         destination = tmp_path / f"{type(error).__name__}.npz"
 
@@ -217,6 +221,41 @@ def test_failed_snapshot_cleanup_preserves_error_and_interruption(
         assert caught.value is error
         assert destination.read_bytes() == b"partial snapshot"
         assert str(destination) in caplog.text and "cleanup denied" in caplog.text
+
+
+def test_snapshot_close_failure_removes_owned_file_and_allows_retry(
+    motion, tmp_path, monkeypatch
+):
+    source, layout, _ = motion
+    library = import_weave(source, layout)
+    destination = tmp_path / "close-failure.npz"
+    original_open = Path.open
+    failure = OSError("snapshot close failed")
+
+    class FailedClose:
+        def __init__(self, stream):
+            self.stream = stream
+
+        def __enter__(self):
+            return self.stream
+
+        def __exit__(self, *args):
+            self.stream.close()
+            raise failure
+
+    def open_with_close_error(path, *args, **kwargs):
+        stream = original_open(path, *args, **kwargs)
+        return FailedClose(stream) if path == destination else stream
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "open", open_with_close_error)
+        with pytest.raises(OSError) as caught:
+            library.save(destination)
+        assert caught.value is failure
+    assert not destination.exists()
+    library.save(destination)
+    loaded = MotionClips.load(destination)
+    assert np.array_equal(loaded.arrays["joint_pos"], library.arrays["joint_pos"])
 
 
 def test_weave_training_snapshots_and_control_rate(motion, tmp_path):

@@ -17,7 +17,7 @@ from embodiedforge._sonic_worker import episode_result, validate_clip
 @pytest.mark.parametrize("interrupt", [False, True], ids=["worker-error", "sigterm"])
 def test_motion_launch_finalizes_partial_results(tmp_path, monkeypatch, interrupt):
     from embodiedforge import _motion_sdk as sdk
-    from embodiedforge._microduck_process import ProcessInterrupted
+    from embodiedforge.runtime.process import ProcessInterrupted
 
     source = tmp_path / "embodiedforge"
     source.mkdir()
@@ -57,6 +57,46 @@ def test_motion_launch_finalizes_partial_results(tmp_path, monkeypatch, interrup
     assert result["clips"] == clips
     assert result["error"] == run["error"]
     assert "success_rate" not in result
+
+
+@pytest.mark.parametrize(
+    "cleanup", [OSError("disk full"), KeyboardInterrupt(), SystemExit(3)]
+)
+def test_partial_result_finalization_cannot_replace_the_worker_error(
+    tmp_path, monkeypatch, caplog, cleanup
+):
+    from embodiedforge import _motion_sdk as sdk
+
+    source = tmp_path / "embodiedforge"
+    source.mkdir()
+    (source / "__init__.py").write_text("")
+    (source / "_sonic_worker.py").write_text(
+        "from pathlib import Path\n"
+        "Path('result.json').write_text('{\"status\": \"running\"}')\n"
+        "raise SystemExit(7)\n"
+    )
+    original = sdk.write_json
+
+    def publish(path, record):
+        if path.name == "result.json":
+            raise cleanup
+        original(path, record)
+
+    monkeypatch.setattr(sdk, "__file__", str(source / "_motion_sdk.py"))
+    monkeypatch.setattr(sdk, "checkout", lambda *_: None)
+    monkeypatch.setattr(sdk, "write_json", publish)
+    output = tmp_path / "run"
+    with pytest.raises(subprocess.CalledProcessError) as caught:
+        sdk.launch(
+            "sonic",
+            SimpleNamespace(root=tmp_path, python=Path(sys.executable), output=output),
+            "pinned-revision",
+            {},
+            {},
+        )
+    assert caught.value.returncode == 7
+    assert json.loads((output / "run.json").read_text())["status"] == "failed"
+    assert "preserving its original error" in caplog.text
 
 
 def test_motion_launch_keeps_code_snapshot_and_rejects_tampering(tmp_path, monkeypatch):

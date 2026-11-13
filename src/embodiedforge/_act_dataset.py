@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from .runtime.hashing import snapshot_file_hashes
+
 _SCOPE = ["embodiedforge.json", "meta", "data", "images", "videos"]
 
 
@@ -39,24 +41,17 @@ def fingerprint_dataset(root):
     paths = _files(root)
     files = []
     for path in paths:
-        before = path.stat()
-        digest = hashlib.sha256()
-        with path.open("rb") as stream:
-            for block in iter(lambda: stream.read(1024 * 1024), b""):
-                digest.update(block)
-        after = path.stat()
-        if (before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (
-            after.st_ino,
-            after.st_size,
-            after.st_mtime_ns,
-            after.st_ctime_ns,
-        ):
-            raise ValueError(f"Dataset changed while computing fingerprint: {path}")
+        try:
+            digest, _, info = snapshot_file_hashes(path)
+        except ValueError as error:
+            raise ValueError(
+                f"Dataset changed while computing fingerprint: {path}"
+            ) from error
         files.append(
             {
                 "path": path.relative_to(root).as_posix(),
-                "size": after.st_size,
-                "sha256": digest.hexdigest(),
+                "size": info.st_size,
+                "sha256": digest,
             }
         )
     if paths != _files(root):

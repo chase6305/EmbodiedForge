@@ -1,11 +1,12 @@
 """Record the loaded training entry points without importing optional SDKs."""
 
-import hashlib
 import inspect
-import json
 import sys
 from importlib import metadata
 from pathlib import Path
+
+from .artifacts import write_json
+from .hashing import file_sha256
 
 
 def component(value):
@@ -25,9 +26,7 @@ def component(value):
         or name.startswith("embodiedforge."),
         "file": str(path) if path else None,
         "python_source_sha256": (
-            hashlib.sha256(path.read_bytes()).hexdigest()
-            if path and path.suffix == ".py"
-            else None
+            file_sha256(path) if path and path.suffix == ".py" else None
         ),
     }
 
@@ -65,7 +64,5 @@ def record_training_runtime(
         "versions": versions,
     }
     path = Path(directory) / "training-runtime.json"
-    temporary = path.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
-    temporary.replace(path)
+    write_json(path, report)
     return report

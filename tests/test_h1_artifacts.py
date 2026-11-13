@@ -1,6 +1,9 @@
 """Offline checks reject partial and non-finite training outputs."""
 
 import argparse
+import json
+import subprocess
+import sys
 
 import pytest
 
@@ -50,6 +53,65 @@ def test_verify_new_and_resumed_update_ranges(tmp_path, start):
     assert result["completed_updates"] == 3
     assert result["scalar_count"] == 9
     assert result["all_scalars_finite"]
+
+
+def test_isolated_worker_verifies_artifacts_without_installed_package(tmp_path):
+    from embodiedforge import _h1_worker
+
+    args, _, _ = make_run(tmp_path)
+    output = tmp_path / "verification.json"
+    subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            _h1_worker.__file__,
+            "verify",
+            "--run",
+            str(args.run),
+            "--start",
+            str(args.start),
+            "--updates",
+            str(args.updates),
+            "--output",
+            str(output),
+        ],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        timeout=30,
+    )
+    assert json.loads(output.read_text()) == verify(args)
+    assert not list(tmp_path.glob("verification.json*.tmp"))
+
+
+def test_verification_hash_matches_loaded_checkpoint_during_replacement(
+    tmp_path, monkeypatch
+):
+    torch = pytest.importorskip("torch")
+    args, checkpoint, state = make_run(tmp_path)
+    before = verify(args)
+    state["iter"] = 3
+    replacement = tmp_path / "replacement.pt"
+    torch.save(state, replacement)
+    load = torch.load
+
+    def load_then_publish(*args, **kwargs):
+        result = load(*args, **kwargs)
+        replacement.replace(checkpoint)
+        return result
+
+    monkeypatch.setattr(torch, "load", load_then_publish)
+    assert verify(args) == before
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), -float("inf")])
+def test_nonfinite_nested_checkpoint_metadata_is_rejected(tmp_path, invalid):
+    torch = pytest.importorskip("torch")
+    args, checkpoint, state = make_run(tmp_path)
+    state["metadata"] = {"nested": [(invalid,)]}
+    torch.save(state, checkpoint)
+    with pytest.raises(ValueError, match="Non-finite checkpoint scalar"):
+        verify(args)
 
 
 def test_existing_final_file_does_not_hide_missing_updates(tmp_path):

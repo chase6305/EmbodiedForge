@@ -8,7 +8,7 @@
 
 A modular platform for robot simulation, data collection, and training for RL and VLA experiments. Tasks, physics, rendering, sensors, and policies compose through separate interfaces. A shared Web viewer displays simulations, replays motion recordings, and controls live policies.
 
-The current implementation includes a CPU `VectorEnv` reference runtime, Go1 and native H1 task/PPO implementations maintained in this repository, a local Microduck walking task using mjlab, and isolated training entry points for IsaacLab H1, Wuji, and other tasks. The table below describes their scope; see the [architecture](docs/architecture.md) for the longer-term design.
+The current implementation includes a CPU `VectorEnv` reference runtime, Go1 and native H1 task/PPO implementations maintained in this repository, a local Microduck walking task using mjlab, and isolated training entry points for IsaacLab H1, Wuji, and other tasks. The table below describes their scope; see [architecture and module boundaries](docs/architecture.md) for their execution paths and scope.
 
 **Quick links:** [Quick start](#quick-start) · [Training and deployment commands](docs/training-deployment.en.md) · [Web controls](#web-viewer) · [Live Go1](#go1-live) · [Motion replay](#robot-replay) · [Robot training](#robot-training) · [Troubleshooting](#troubleshooting) · [Documentation](#documentation)
 
@@ -46,7 +46,9 @@ For environment and data APIs alone, install with `python -m pip install -e .`. 
 | VLA interfaces | Image, language, and proprioception data windows; action-chunk executor | No pretrained VLA model integration or fine-tuning trainer yet |
 | ACT imitation learning | LeRobot dataset export, ACT training, closed-loop evaluation, paired comparison, and portable inference bundles | Uses the installed LeRobot package; model/trainer are not ported. Separate Python 3.12+ environment. See the [ACT guide (Chinese)](docs/act.md) |
 | GMR motion retargeting | Headless BVH → robot reference NPZ and interactive replay | External GMR API; full Xsens clips validated on G1 / H1-2. [Guide (Chinese)](docs/humanoid-motion.md) |
-| SONIC / X2 Ultra | CPU ONNX motion tracking in headless MuJoCo | Pinned external player, model-specific controls and per-clip reports. [Guide](docs/humanoid-motion.md) and [study](docs/humanoid-integration-study-20260928.md) (Chinese) |
+| SONIC / X2 Ultra | CPU ONNX motion tracking in headless MuJoCo | Pinned external player, model-specific controls and per-clip reports. [Guide](docs/humanoid-motion.md) and [study](docs/experiments/humanoid-integration-study-20260928.md) (Chinese) |
+| SuperMimic / G1 | Source preflight plus G1 training, inference and evaluation in an independent SDK | `./supermimic play`, `eval`, `train`, and `doctor` select local SDK/model paths. [Guide (Chinese)](docs/supermimic.md) |
+| MorphMimic / G1, X2, T2 | Pinned author implementation with shared world-model, policy and five-point training on existing motions | `./morphmimic prepare`, `train`, `export`, `eval`; [scope and commands (Chinese)](docs/morphmimic.md) |
 | Weave / G1 HOI | NPZ motion library, external SDK training/resume, per-clip evaluation, and policy export | Headless by default; requires separate SDK, motions, and assets. Full simulation remains unvalidated. See [integration and commands (Chinese)](docs/weave-reference.md) |
 | RLinf / PickCube SAC | External SDK training, full SAC state resume, standalone evaluation, CPU ONNX export and closed-loop evaluation, and metrics reports | Single node/GPU, headless, pinned upstream revision. GPU training, checkpoint recovery, and evaluation validated on PickCube. See [integration and commands (Chinese)](docs/rlinf.md) |
 
@@ -193,21 +195,21 @@ Multi-skill parkour, teacher training, and distillation are not included in this
 
 See the [training and deployment command guide](docs/training-deployment.en.md) for task-specific setup, training, resume, evaluation, model export, and remote Web execution. It covers reach/hold, Go1, Microduck, H1, Wuji/Light, Cartpole MPC, and arm CEM, with the execution and deployment modes actually supported by each task.
 
-The [2026-09-27 study (Chinese)](docs/rl-factorial-study-20260927.md) reports Microduck reward ablations, SAC training-seed comparisons, model sizes, and measured CPU ONNX deployment results.
+The [2026-09-27 study (Chinese)](docs/experiments/rl-factorial-study-20260927.md) reports Microduck reward ablations, SAC training-seed comparisons, model sizes, and measured CPU ONNX deployment results.
 
-The [2026-09-28 restart study (Chinese)](docs/rl-resume-study-20260928.md) compares continuous SAC training with full-state restart across two training seeds, reports 4,800 independent evaluation trajectories and artifact sizes, and validates the `rlinf evaluate --onnx` closed-loop command. It also measures the size and success-rate tradeoff of dynamic INT8 quantization.
+The [2026-09-28 restart study (Chinese)](docs/experiments/rl-resume-study-20260928.md) compares continuous SAC training with full-state restart across two training seeds, reports 4,800 independent evaluation trajectories and artifact sizes, and validates the `rlinf evaluate --onnx` closed-loop command. It also measures the size and success-rate tradeoff of dynamic INT8 quantization.
 
-The [2026-09-28 compression and post-training study (Chinese)](docs/rl-compression-study-20260928.md) compares FP16/INT8 weight storage, layer-wise dynamic quantization, QAT, and inference batch effects in closed-loop evaluation. Export supports `--weight-storage float16` or `int8`, and ONNX evaluation records CPU inference timing.
+The [2026-09-28 compression and post-training study (Chinese)](docs/experiments/rl-compression-study-20260928.md) compares FP16/INT8 weight storage, layer-wise dynamic quantization, QAT, and inference batch effects in closed-loop evaluation. Export supports `--weight-storage float16` or `int8`, and ONNX evaluation records CPU inference timing.
 
-The [2026-09-29 H1 checkpoint study (Chinese)](docs/h1-checkpoint-publication-20260929.md) reports three-seed training parity, recovery after an actual SIGTERM, input-weight provenance, exploratory post-training on one policy, and model sizes, including the resulting policies’ walking and turning limitations.
+The [2026-09-29 H1 checkpoint study (Chinese)](docs/experiments/h1-checkpoint-publication-20260929.md) reports three-seed training parity, recovery after an actual SIGTERM, input-weight provenance, exploratory post-training on one policy, and model sizes, including the resulting policies’ walking and turning limitations.
 
-The [2026-09-29 H1 turning and exploration study (Chinese)](docs/h1-turning-study-20260929.md) records command/reward ablations, randomized initial-state evaluation, the exploration-boundary fix for H1 and core PPO, model sizes, and complete training budgets. It includes improvements and regressions across training seeds; command-sampling and reward defaults remain unchanged.
+The [2026-09-29 H1 turning and exploration study (Chinese)](docs/experiments/h1-turning-study-20260929.md) records command/reward ablations, randomized initial-state evaluation, the exploration-boundary fix for H1 and core PPO, model sizes, and complete training budgets. It includes improvements and regressions across training seeds; command-sampling and reward defaults remain unchanged.
 
-The [2026-09-30 H1 command-sampling study (Chinese)](docs/h1-command-mixture-20260930.md) covers paired fresh training, continuation, and a four-arm ablation, with per-environment errors and selected-environment failure recording. Pure-turn sampling reduces mean turning error but lowers randomized-start survival, so the original sampling default is retained.
+The [2026-09-30 H1 command-sampling study (Chinese)](docs/experiments/h1-command-mixture-20260930.md) covers paired fresh training, continuation, and a four-arm ablation, with per-environment errors and selected-environment failure recording. Pure-turn sampling reduces mean turning error but lowers randomized-start survival, so the original sampling default is retained.
 
-The [2026-09-30 H1 termination-cost study (Chinese)](docs/h1-termination-cost-20260930.md) compares failure penalties and command sampling across four recipes, with fresh training, continuation, continuous commands, and per-environment termination reasons. Actuation and gradient diagnostics distinguish observations from causal hypotheses. Both doubled-cost candidates fail the screen, so the original sampler and −200 coefficient remain the default.
+The [2026-09-30 H1 termination-cost study (Chinese)](docs/experiments/h1-termination-cost-20260930.md) compares failure penalties and command sampling across four recipes, with fresh training, continuation, continuous commands, and per-environment termination reasons. Actuation and gradient diagnostics distinguish observations from causal hypotheses. Both doubled-cost candidates fail the screen, so the original sampler and −200 coefficient remain the default.
 
-The [2026-09-30 H1 entropy study (Chinese)](docs/h1-entropy-study-20260930.md) compares 0.01 / 0.001 entropy coefficients with full-budget fresh training and continuation, paired mean/sampled actions, clipping diagnostics, model sizes, and failure cases. Both candidates fail the robustness screen, so the original recipe remains the default.
+The [2026-09-30 H1 entropy study (Chinese)](docs/experiments/h1-entropy-study-20260930.md) compares 0.01 / 0.001 entropy coefficients with full-budget fresh training and continuation, paired mean/sampled actions, clipping diagnostics, model sizes, and failure cases. Both candidates fail the robustness screen, so the original recipe remains the default.
 
 Robot training SDKs use isolated environments to avoid conflicting Warp, Torch, and MuJoCo versions. Prepare source checkouts at the revisions specified in each task guide before setup. Those guides document local paths, caches, and GPU requirements.
 
@@ -219,6 +221,8 @@ Robot training SDKs use isolated environments to avoid conflicting Warp, Torch, 
 | `python -m embodiedforge h1` | H1 flat-ground walking training, resume, and multi-seed fixed-command evaluation | Isolated IsaacLab / Newton / MuJoCo-Warp recipe. [H1](docs/h1-isaaclab.md) |
 | `python -m embodiedforge gmr` | BVH retargeting and reference replay | External GMR SDK; no RL trainer. [Guide (Chinese)](docs/humanoid-motion.md) |
 | `python -m embodiedforge sonic` | Headless X2 policy evaluation | External SONIC bundle; simulation deployment only. [Guide (Chinese)](docs/humanoid-motion.md) |
+| `./supermimic train --task backflip` | Dedicated SuperMimic backflip training in mjlab | Starts from scratch, then resumes its own checkpoint; [data and evaluation limits](docs/supermimic.md). |
+| `python -m embodiedforge supermimic` | Source catalog and compatibility preflight | Does not load policies. [Guide (Chinese)](docs/supermimic.md) |
 | `python -m embodiedforge weave` | G1 interaction training, resume, per-clip evaluation and policy export | External Weave / IsaacLab SDK; full simulation remains unvalidated. [Weave](docs/weave-reference.md) |
 | `python -m embodiedforge rlinf` | PickCube MLP SAC training, full-state resume, evaluation, CPU ONNX export and closed-loop evaluation | External RLinf / ManiSkill SDK; GPU training, checkpoint recovery, and evaluation validated on PickCube. [RLinf](docs/rlinf.md) |
 
@@ -289,10 +293,12 @@ Detailed guides are currently mostly in Chinese. This English README covers the 
 | Topic | Documentation |
 | --- | --- |
 | Training and deployment commands | [Task-by-task guide](docs/training-deployment.en.md) · [简体中文](docs/training-deployment.md) |
-| Architecture and interfaces | [Target architecture](docs/architecture.md) · [Interfaces and modules](docs/interfaces.md) · [Implementation and extensions](docs/implementation.md) |
+| Architecture and interfaces | [Architecture and module boundaries](docs/architecture.md) · [Interfaces and modules](docs/interfaces.md) · [Implementation and extensions](docs/implementation.md) |
+| Shared run and evaluation tools | [Run records](docs/run-records.md) · [Environment adapters](docs/environment-adapters.md) |
+| Navigation and historical experiments | [Documentation index](docs/README.md) · [Experiment archive](docs/experiments/README.md) |
 | Viewers | [Installation and backends](docs/viewers.md) · [Robot replay](docs/robot-web-replay.md) · [Live Go1 control](docs/go1-live-web.md) |
 | Training entry points | [Task recipes](docs/recipes.md) · [Microduck](docs/microduck.md) · [IsaacLab H1](docs/h1-isaaclab.md) |
-| Go1 experiments | [Turning accuracy](docs/go1-yaw-study.md) · [Lateral motion and stopping](docs/go1-response-study.md) · [Compound commands](docs/go1-maneuver-study.md) · [Capability preservation](docs/go1-preservation-study.md) · [Response and compute optimization](docs/go1-fast-response-study.md) |
+| Go1 experiments | [Turning accuracy](docs/experiments/go1-yaw-study.md) · [Lateral motion and stopping](docs/experiments/go1-response-study.md) · [Compound commands](docs/experiments/go1-maneuver-study.md) · [Capability preservation](docs/experiments/go1-preservation-study.md) · [Response and compute optimization](docs/experiments/go1-fast-response-study.md) |
 | Engineering | [Newton compatibility](docs/newton.md) · [Logging design](docs/logging.md) |
 
 Dependencies, robot assets, and ported code retain their respective licenses. The Go1 port includes the [mjbatch license](src/embodiedforge/locomotion/LICENSE.mjbatch).

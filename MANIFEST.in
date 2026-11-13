@@ -1,6 +1,10 @@
 include README.md README.en.md
+include supermimic
+include morphmimic
 recursive-include configs *.json *.txt
-recursive-include docs *.md *.png
+recursive-include docs *.md *.png *.svg *.json *.py
+recursive-exclude docs/experiments *.tar.gz
 recursive-include examples *.py
 recursive-include benchmarks *.py
+recursive-include tests *.py
 include tests/web_camera.test.cjs

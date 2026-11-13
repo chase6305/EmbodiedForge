@@ -1,6 +1,23 @@
-"""Shared checks for Adam checkpoint state materialized on CPU."""
+"""Shared tensor and Adam checkpoint checks, without eager learner imports."""
 
 import math
+
+
+def finite_tensors(value, *, check_scalars=False):
+    """Count finite tensors, optionally rejecting nonfinite float metadata too."""
+    import torch
+
+    if isinstance(value, torch.Tensor):
+        if not torch.isfinite(value).all():
+            raise ValueError("Non-finite checkpoint tensor")
+        return 1
+    if isinstance(value, dict):
+        value = value.values()
+    elif not isinstance(value, (tuple, list)):
+        if check_scalars and isinstance(value, float) and not math.isfinite(value):
+            raise ValueError("Non-finite checkpoint scalar")
+        return 0
+    return sum(finite_tensors(child, check_scalars=check_scalars) for child in value)
 
 
 def validate_adam_checkpoint(optimizer, state, *, label="Adam optimizer"):

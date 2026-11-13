@@ -1,6 +1,7 @@
 """Large and strided episode fields preserve NumPy validation semantics."""
 
 import tracemalloc
+import warnings
 
 import numpy as np
 import pytest
@@ -52,6 +53,67 @@ def test_small_and_empty_validation_matches_numpy(shape):
     assert _array_equal(value, value) == np.array_equal(value, value)
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.bool_,
+        np.int8,
+        np.int64,
+        np.uint64,
+        np.float16,
+        np.float32,
+        np.float64,
+        np.longdouble,
+    ],
+)
+def test_scalar_continuity_matches_numpy_comparison(dtype):
+    values = [dtype(0), dtype(1)]
+    if np.issubdtype(dtype, np.integer):
+        values.extend([dtype(np.iinfo(dtype).min), dtype(np.iinfo(dtype).max)])
+    elif np.issubdtype(dtype, np.floating):
+        values.extend([dtype(-0.0), dtype(np.nan), dtype(np.inf), dtype(-np.inf)])
+    for first in values:
+        for second in values:
+            assert _array_equal(first, second) == np.array_equal(first, second)
+
+
+def test_scalar_continuity_retains_subclass_and_mixed_dtype_comparisons():
+    class Scalar(np.float64):
+        def __eq__(self, other):
+            return False
+
+    first, second = Scalar(1), Scalar(1)
+    assert not (first == second)
+    assert _array_equal(first, second) == np.array_equal(first, second) is True
+    for first, second in (
+        (np.uint64(2**63 + 1), np.int64(2**63 - 1)),
+        (np.uint64(2**64 - 1), np.float64(2**64)),
+        (np.int64(1), np.float32(1)),
+    ):
+        assert _array_equal(first, second) == np.array_equal(first, second)
+
+
+def test_scalar_continuity_respects_legacy_numpy_equal_override():
+    if not hasattr(np, "set_numeric_ops"):
+        pytest.skip("NumPy 2 removed legacy numeric-operation hooks")
+    calls = []
+
+    def unequal(first, second):
+        calls.append((first.shape, second.shape))
+        return np.zeros(np.broadcast_shapes(first.shape, second.shape), dtype=bool)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        previous = np.set_numeric_ops()
+        try:
+            np.set_numeric_ops(equal=unequal)
+            for dtype in (np.int64, np.float32, np.float64):
+                assert not _array_equal(dtype(1), dtype(1))
+        finally:
+            np.set_numeric_ops(**previous)
+    assert len(calls) == 3
+
+
 def test_large_validation_has_bounded_boolean_scratch():
     first = np.ones(8 * 1024 * 1024, dtype=np.uint8)
     second = first.copy()
@@ -75,6 +137,55 @@ def test_large_masked_numeric_fields_keep_numpy_finite_semantics():
     assert _all_finite(value) == bool(np.isfinite(value).all()) is True
     value.mask[-1] = False
     assert _all_finite(value) == bool(np.isfinite(value).all()) is False
+
+
+@pytest.mark.parametrize("layout", ["C", "F", "reverse"])
+@pytest.mark.parametrize("damage", ["first", "last"])
+def test_large_recorder_continuity_rejection_is_bounded_atomic_and_retryable(
+    tmp_path, layout, damage
+):
+    def image():
+        value = np.zeros(
+            (1, 3073, 2048),
+            dtype=np.uint8,
+            order=layout if layout != "reverse" else "C",
+        )
+        return value[:, :, ::-1] if layout == "reverse" else value
+
+    with VectorEnv(Config(num_envs=1, max_steps=3, seed=42)) as env:
+        with EpisodeRecorder(tmp_path / "run", env, episode_format="compact") as writer:
+            observation = env.observe()
+            first = env.step(np.zeros((1, 2)))
+            observation["large"] = image()
+            first.observation["large"] = image()
+            writer.append(observation, first)
+            second = env.step(np.zeros((1, 2)))
+            second.observation["large"] = image()
+            broken = dict(first.observation)
+            broken["large"] = image()
+            index = (0, 0, 0) if damage == "first" else (0, -1, -1)
+            broken["large"][index] = 1
+            retained = writer.buffered_bytes
+            tracemalloc.start()
+            try:
+                with pytest.raises(ValueError, match="continuity broken"):
+                    writer.append(broken, second)
+                peak = tracemalloc.get_traced_memory()[1]
+            finally:
+                tracemalloc.stop()
+            assert peak < 4 * 1024 * 1024
+            assert writer.buffered_bytes == retained
+            assert len(next(iter(writer.pending.values()))) == 1
+            assert writer.failure is None and not writer._writes
+            assert not list(writer.root.glob("*.npz"))
+            writer.append(first.observation, second)
+            third = env.step(np.zeros((1, 2)))
+            third.observation["large"] = image()
+            writer.append(second.observation, third)
+    (episode,) = read_episodes(writer.root)
+    assert len(episode["action"]) == 3
+    assert not episode["obs/large"].any()
+    assert not episode["next/large"].any()
 
 
 @pytest.mark.parametrize("damage", ["first", "last", "nonfinite"])

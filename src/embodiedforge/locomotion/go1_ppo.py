@@ -11,7 +11,9 @@ import numpy as np
 import torch
 from torch import nn
 
-from .go1 import REWARD
+from .go1_config import ACT_DIM as ACT_DIM
+from .go1_config import OBS_DIM as OBS_DIM
+from .go1_config import REWARD
 
 LEGS = np.array([3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8])
 LEG_SIGN = np.array([-1, 1, 1] * 4, np.float32)
@@ -24,7 +26,6 @@ SIGN = np.r_[
 GAMMA, LAMBDA, CLIP = 0.99, 0.95, 0.2
 LR, LR_END, LR_TO = 1e-3, 5e-4, 400
 EPOCHS, MINIBATCHES, ENT_COEF, LOG_STD, HIDDEN = 5, 4, 0.005, np.log(0.5), 128
-OBS_DIM, ACT_DIM = 50, 12
 
 
 def log_density(z, log_std):
@@ -66,8 +67,10 @@ class ActorCritic(nn.Module):
         self.count.add_(n)
 
     def _action_and_normalized_obs(self, obs):
-        """Average the net's answer with its answer on the mirrored observation mirrored back, so
-        the policy commutes with the mirror exactly and the gait cannot limp."""
+        """Average direct and mirrored actor means to enforce mirror equivariance.
+
+        Return that mean with the normalized observations used by the critic.
+        """
         scale = self.var.sqrt() + 1e-5
         flip = (obs[:, self.mirror] * self.sign - self.mean) / scale
         obs = (obs - self.mean) / scale
@@ -93,51 +96,68 @@ def rollout(actor, env, *, horizon=24, record_policy=False):
     if type(horizon) is not int or horizon <= 0:
         raise ValueError("Rollout horizon must be a positive integer")
 
-    def policy(obs):
-        return tuple(x.cpu().numpy() for x in actor(torch.as_tensor(obs)))
+    def evaluate_actor(observation):
+        return tuple(
+            value.cpu().numpy() for value in actor(torch.as_tensor(observation))
+        )
 
-    shapes = dict(obs=(OBS_DIM,), act=(ACT_DIM,), logp=(), val=(), rew=(), alive=())
+    field_shapes = dict(
+        obs=(OBS_DIM,), act=(ACT_DIM,), logp=(), val=(), rew=(), alive=()
+    )
     if record_policy:
-        shapes["policy_mean"] = (ACT_DIM,)
-    buf = {
-        k: np.empty((horizon, len(env.steps), *v), np.float32)
-        for k, v in shapes.items()
+        field_shapes["policy_mean"] = (ACT_DIM,)
+    buffers = {
+        name: np.empty((horizon, len(env.steps), *field_shape), np.float32)
+        for name, field_shape in field_shapes.items()
     }
-    means, falls, episodes = [], 0, 0
-    obs = env.obs()
-    # The policy is fixed during collection; refresh after each PPO update.
-    log_std = actor.log_std.cpu().numpy()
-    std = np.exp(log_std)
-    for t in range(horizon):
-        mean, val = policy(obs)
-        noise = env.rng.standard_normal(mean.shape, np.float32)
-        act, logp = mean + std * noise, log_density(noise, log_std)
-        reward, done, fell, terms = env.step(act)
-        next_obs = env.obs()
-        timeout = done & ~fell
-        if timeout.any():  # bootstrap
-            reward[timeout] += (
-                GAMMA * actor.value(torch.as_tensor(next_obs[timeout])).cpu().numpy()
+    reward_means = []
+    fallen_episodes = 0
+    completed_episodes = 0
+    observation = env.obs()
+    # The actor stays fixed during collection; sample from its current variance.
+    policy_log_std = actor.log_std.cpu().numpy()
+    action_std = np.exp(policy_log_std)
+    for step in range(horizon):
+        action_mean, value = evaluate_actor(observation)
+        standard_noise = env.rng.standard_normal(action_mean.shape, np.float32)
+        actions = action_mean + action_std * standard_noise
+        log_prob = log_density(standard_noise, policy_log_std)
+        reward, done, fell, reward_terms = env.step(actions)
+        next_observation = env.obs()
+        timed_out = done & ~fell
+        # Time limits bootstrap from the terminal observation; falls do not.
+        if timed_out.any():
+            reward[timed_out] += (
+                GAMMA
+                * actor.value(torch.as_tensor(next_observation[timed_out]))
+                .cpu()
+                .numpy()
             )
-        for k, v in dict(
-            obs=obs, act=act, logp=logp, val=val, rew=reward, alive=~done
+        for name, data in dict(
+            obs=observation,
+            act=actions,
+            logp=log_prob,
+            val=value,
+            rew=reward,
+            alive=~done,
         ).items():
-            buf[k][t] = v
+            buffers[name][step] = data
         if record_policy:
-            buf["policy_mean"][t] = mean
-        means.append([terms[k].mean() for k in REWARD])
-        ids = np.flatnonzero(done)
-        if ids.size:
-            episodes, falls = episodes + ids.size, falls + int(fell[ids].sum())
-            env.reset(ids)
-            next_obs = env.obs()
-        obs = next_obs
-    batch = {k: torch.as_tensor(v) for k, v in buf.items()}
+            buffers["policy_mean"][step] = action_mean
+        reward_means.append([reward_terms[name].mean() for name in REWARD])
+        done_ids = np.flatnonzero(done)
+        if done_ids.size:
+            completed_episodes = completed_episodes + done_ids.size
+            fallen_episodes = fallen_episodes + int(fell[done_ids].sum())
+            env.reset(done_ids)
+            next_observation = env.obs()
+        observation = next_observation
+    batch = {name: torch.as_tensor(data) for name, data in buffers.items()}
     if record_policy:
         batch["policy_log_std"] = actor.log_std.detach().clone()
-    batch["last_val"] = actor.value(torch.as_tensor(obs)).cpu()
-    stats = dict(zip(REWARD, np.mean(means, 0), strict=True))
-    stats["falls"] = falls / max(episodes, 1)
+    batch["last_val"] = actor.value(torch.as_tensor(observation)).cpu()
+    stats = dict(zip(REWARD, np.mean(reward_means, 0), strict=True))
+    stats["falls"] = fallen_episodes / max(completed_episodes, 1)
     return batch, stats
 
 
@@ -172,14 +192,19 @@ def validate_gae_batch(batch):
 
 def gae(batch):
     validate_gae_batch(batch)
-    vals = torch.cat([batch["val"], batch["last_val"][None]])
-    adv, carry = torch.zeros_like(batch["rew"]), 0.0
-    # Batch the independent transition terms; only the carry is sequential.
-    delta = batch["rew"] + GAMMA * batch["alive"] * vals[1:] - vals[:-1]
-    discount = GAMMA * LAMBDA * batch["alive"]
-    for t in reversed(range(len(batch["rew"]))):
-        adv[t] = carry = delta[t] + discount[t] * carry
-    return adv, adv + batch["val"]
+    values = torch.cat([batch["val"], batch["last_val"][None]])
+    advantages = torch.empty_like(batch["rew"])
+    carry = 0.0
+    # Rollout already bootstrapped time limits. Both kinds of done stop the carry.
+    temporal_difference = (
+        batch["rew"] + GAMMA * batch["alive"] * values[1:] - values[:-1]
+    )
+    continuation_discount = GAMMA * LAMBDA * batch["alive"]
+    for step in reversed(range(len(batch["rew"]))):
+        next_carry = temporal_difference[step] + continuation_discount[step] * carry
+        advantages[step] = next_carry
+        carry = next_carry
+    return advantages, advantages + batch["val"]
 
 
 @torch.no_grad()
@@ -194,109 +219,130 @@ def policy_kl(old_mean, old_log_std, new_mean, new_log_std):
 
 
 def update(net, opt, batch, adv, ret, *, diagnostics=False, loss_function=None):
-    shape = batch["obs"].shape
+    observation_shape = batch["obs"].shape
     if (
-        len(shape) != 3
-        or shape[2] != OBS_DIM
-        or shape[0] * shape[1] < 2 * MINIBATCHES
-        or (shape[0] * shape[1]) % MINIBATCHES
+        len(observation_shape) != 3
+        or observation_shape[2] != OBS_DIM
+        or observation_shape[0] * observation_shape[1] < 2 * MINIBATCHES
+        or (observation_shape[0] * observation_shape[1]) % MINIBATCHES
     ):
         raise ValueError(
             "Go1 PPO requires complete minibatches with at least two samples each"
         )
-    for name, value, expected in (
-        ("obs", batch["obs"], shape),
-        ("act", batch["act"], (*shape[:2], ACT_DIM)),
-        ("logp", batch["logp"], shape[:2]),
-        ("advantage", adv, shape[:2]),
-        ("return", ret, shape[:2]),
+    for name, value, expected_shape in (
+        ("obs", batch["obs"], observation_shape),
+        ("act", batch["act"], (*observation_shape[:2], ACT_DIM)),
+        ("logp", batch["logp"], observation_shape[:2]),
+        ("advantage", adv, observation_shape[:2]),
+        ("return", ret, observation_shape[:2]),
     ):
         if (
-            value.shape != expected
+            value.shape != expected_shape
             or value.dtype != torch.float32
             or value.device.type != "cpu"
             or not torch.isfinite(value).all()
         ):
             raise ValueError(
-                f"Invalid Go1 PPO {name}: expected finite CPU float32 with shape {tuple(expected)}"
+                f"Invalid Go1 PPO {name}: expected finite CPU float32 with shape {tuple(expected_shape)}"
             )
-    recorded = "policy_mean" in batch or "policy_log_std" in batch
-    if diagnostics and recorded:
-        for name, expected in (
-            ("policy_mean", (*shape[:2], ACT_DIM)),
+    has_recorded_policy = "policy_mean" in batch or "policy_log_std" in batch
+    if diagnostics and has_recorded_policy:
+        for name, expected_shape in (
+            ("policy_mean", (*observation_shape[:2], ACT_DIM)),
             ("policy_log_std", (ACT_DIM,)),
         ):
             value = batch.get(name)
             if (
                 value is None
-                or value.shape != expected
+                or value.shape != expected_shape
                 or value.dtype != torch.float32
                 or value.device.type != "cpu"
                 or not torch.isfinite(value).all()
             ):
                 raise ValueError(f"Invalid Go1 recorded policy distribution: {name}")
-    obs, act = batch["obs"].reshape(-1, OBS_DIM), batch["act"].reshape(-1, ACT_DIM)
-    logp_old, adv, ret = batch["logp"].reshape(-1), adv.reshape(-1), ret.reshape(-1)
-    adv = (adv - adv.mean()) / (adv.std() + 1e-8)
+    observations = batch["obs"].reshape(-1, OBS_DIM)
+    actions = batch["act"].reshape(-1, ACT_DIM)
+    old_log_prob = batch["logp"].reshape(-1)
+    advantages = adv.reshape(-1)
+    returns = ret.reshape(-1)
+    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
     if diagnostics:
         with torch.no_grad():
-            old_mean = (
+            rollout_mean = (
                 batch["policy_mean"].reshape(-1, ACT_DIM)
-                if recorded
-                else net.action_mean(obs)
+                if has_recorded_policy
+                else net.action_mean(observations)
             )
-            old_log_std = batch["policy_log_std"] if recorded else net.log_std.clone()
+            rollout_log_std = (
+                batch["policy_log_std"] if has_recorded_policy else net.log_std.clone()
+            )
         gradient_norms = []
     for _ in range(EPOCHS):
-        for i in torch.randperm(obs.shape[0]).chunk(MINIBATCHES):
+        for minibatch_ids in torch.randperm(observations.shape[0]).chunk(MINIBATCHES):
             if loss_function is None:
-                mean, val = net(obs[i])
-                logp = log_density((act[i] - mean) / net.log_std.exp(), net.log_std)
-                ratio = (logp - logp_old[i]).exp()
+                action_mean, predicted_value = net(observations[minibatch_ids])
+                log_prob = log_density(
+                    (actions[minibatch_ids] - action_mean) / net.log_std.exp(),
+                    net.log_std,
+                )
+                probability_ratio = (log_prob - old_log_prob[minibatch_ids]).exp()
                 surrogate = torch.min(
-                    ratio * adv[i], ratio.clamp(1 - CLIP, 1 + CLIP) * adv[i]
+                    probability_ratio * advantages[minibatch_ids],
+                    probability_ratio.clamp(1 - CLIP, 1 + CLIP)
+                    * advantages[minibatch_ids],
                 )
                 loss = (
                     -surrogate.mean()
-                    + 0.5 * (val - ret[i]).pow(2).mean()
+                    + 0.5 * (predicted_value - returns[minibatch_ids]).pow(2).mean()
                     - ENT_COEF * net.log_std.sum()
                 )
             else:
-                loss = loss_function(obs[i], act[i], logp_old[i], adv[i], ret[i])
+                loss = loss_function(
+                    observations[minibatch_ids],
+                    actions[minibatch_ids],
+                    old_log_prob[minibatch_ids],
+                    advantages[minibatch_ids],
+                    returns[minibatch_ids],
+                )
             if not torch.isfinite(loss):
                 raise ValueError("Non-finite Go1 PPO loss")
             opt.zero_grad(set_to_none=True)
             loss.backward()
-            norm = nn.utils.clip_grad_norm_(
+            gradient_norm = nn.utils.clip_grad_norm_(
                 net.parameters(), 1.0, error_if_nonfinite=True
             )
             if diagnostics:
-                gradient_norms.append(float(norm))
+                gradient_norms.append(float(gradient_norm))
             opt.step()
     if diagnostics:
         with torch.no_grad():
-            learned_mean = net.action_mean(obs)
-            learned_kl = policy_kl(old_mean, old_log_std, learned_mean, net.log_std)
-    net.absorb(
-        obs
-    )  # after the epochs: the batch was collected under the old statistics
+            # Isolate optimizer drift while rollout normalization is still fixed.
+            trained_mean = net.action_mean(observations)
+            training_kl = policy_kl(
+                rollout_mean, rollout_log_std, trained_mean, net.log_std
+            )
+    # Rollout probabilities used the old statistics throughout every PPO epoch.
+    net.absorb(observations)
     if diagnostics:
         with torch.no_grad():
-            final_mean = net.action_mean(obs)
-            final_kl = policy_kl(old_mean, old_log_std, final_mean, net.log_std)
+            final_mean = net.action_mean(observations)
+            final_kl = policy_kl(rollout_mean, rollout_log_std, final_mean, net.log_std)
+            # Holding the trained weights fixed isolates normalization drift.
             normalizer_kl = policy_kl(
-                learned_mean, net.log_std, final_mean, net.log_std
+                trained_mean, net.log_std, final_mean, net.log_std
             )
-            final_logp = log_density(
-                (act - final_mean) / net.log_std.exp(), net.log_std
+            final_log_prob = log_density(
+                (actions - final_mean) / net.log_std.exp(), net.log_std
             )
-            ratio = (final_logp - logp_old).exp()
+            probability_ratio = (final_log_prob - old_log_prob).exp()
             result = {
-                "ppo_kl_before_normalization": float(learned_kl.mean()),
+                "ppo_kl_before_normalization": float(training_kl.mean()),
                 "ppo_kl": float(final_kl.mean()),
                 "ppo_max_kl": float(final_kl.max()),
                 "ppo_normalizer_kl": float(normalizer_kl.mean()),
-                "ppo_clip_fraction": float(((ratio - 1).abs() > CLIP).float().mean()),
+                "ppo_clip_fraction": float(
+                    ((probability_ratio - 1).abs() > CLIP).float().mean()
+                ),
                 "ppo_mean_gradient_norm": float(np.mean(gradient_norms)),
                 "ppo_action_std": float(net.log_std.exp().mean()),
             }

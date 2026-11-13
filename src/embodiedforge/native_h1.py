@@ -5,20 +5,16 @@ import hashlib
 import io
 import json
 import logging
-import sys
 import time
 from pathlib import Path
 
-from ._adam_checkpoint import validate_adam_checkpoint
-from ._hashing import file_sha256
-from ._microduck_process import termination_signals
-from ._training_runtime import record_training_runtime
-
-
-def write_json(path, value):
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
-    temporary.replace(path)
+from .learning.checkpoints import finite_tensors, validate_adam_checkpoint
+from .runtime.artifacts import discard_partial
+from .runtime.artifacts import write_json as write_json
+from .runtime.hashing import file_sha256
+from .runtime.implementation import record_training_runtime
+from .runtime.process import termination_signals
+from .runtime.records import managed_run, run_identity, run_lifecycle
 
 
 def digest(path):
@@ -45,13 +41,9 @@ def save_checkpoint(root, checkpoint, optimizer, metadata):
         }
         write_json(root / "run.json", committed)
         metadata.update(committed)
-    finally:
-        try:
-            temporary.unlink(missing_ok=True)
-        except OSError:
-            logging.getLogger(__name__).exception(
-                "Could not remove partial H1 checkpoint %s", temporary
-            )
+    except BaseException:
+        discard_partial(temporary, label="H1 checkpoint")
+        raise
     # Keep the current and preceding committed files. An interrupted publication
     # may leave an unreferenced file, which is never selected by load_run.
     for old in root.glob("checkpoint-*.pt"):
@@ -70,21 +62,7 @@ def save_checkpoint(root, checkpoint, optimizer, metadata):
 
 
 def validate_tensors(value):
-    import math
-
-    import torch
-
-    if isinstance(value, torch.Tensor):
-        if not torch.isfinite(value).all():
-            raise ValueError("Non-finite checkpoint tensor")
-    elif isinstance(value, dict):
-        for child in value.values():
-            validate_tensors(child)
-    elif isinstance(value, (list, tuple)):
-        for child in value:
-            validate_tensors(child)
-    elif isinstance(value, float) and not math.isfinite(value):
-        raise ValueError("Non-finite checkpoint scalar")
+    finite_tensors(value, check_scalars=True)
 
 
 def load_run(directory):
@@ -182,12 +160,15 @@ def train(args):
     )
     for group in optimizer.param_groups:
         group["lr"] = learning_rate
+    versions = {
+        name: importlib.metadata.version(name)
+        for name in ("mujoco", "mjbatch", "torch")
+    }
     root = args.output
     root.mkdir(parents=True, exist_ok=False)
-    # Publish the actual loaded model, never re-read a mutable resume source.
-    mujoco.mj_saveModel(model, str(root / "model.mjb"))
     metadata = {
         "task": VERSION,
+        "run_contract": run_identity("h1-native", "train", VERSION),
         "status": "running",
         "updates": start,
         "requested_updates": args.updates,
@@ -197,23 +178,28 @@ def train(args):
         "seed": args.seed,
         "horizon": args.horizon,
         "learning_rate": learning_rate,
-        "model_sha256": digest(root / "model.mjb"),
+        "model_sha256": None,
         "resume": str(args.resume.resolve()) if args.resume else None,
         "resume_checkpoint_sha256": (
             previous["checkpoint_sha256"] if args.resume else None
         ),
-        "versions": {
-            name: importlib.metadata.version(name)
-            for name in ("mujoco", "mjbatch", "torch")
-        },
+        "versions": versions,
         "physics": "MuJoCo CPU / mjbatch",
         "learner": "EmbodiedForge PPO CPU",
         "headless": True,
         "resume_semantics": "policy+optimizer; environment and RNG reset",
     }
-    write_json(root / "run.json", metadata)
-    began = time.monotonic()
-    try:
+    with run_lifecycle(
+        metadata,
+        lambda record: write_json(root / "run.json", record),
+        label=root / "run.json",
+    ):
+        # Publish the actual loaded model, never re-read a mutable resume source.
+        # Model I/O is inside the lifecycle so a failed startup is inspectable.
+        mujoco.mj_saveModel(model, str(root / "model.mjb"))
+        metadata["model_sha256"] = digest(root / "model.mjb")
+        write_json(root / "run.json", metadata)
+        began = time.monotonic()
         env = H1(model, args.num_envs, seed=args.seed, threads=args.threads)
         record_training_runtime(
             root,
@@ -265,32 +251,14 @@ def train(args):
                         metadata,
                     )
         metadata["status"] = "complete"
-    except BaseException as error:
-        metadata["status"] = (
-            "interrupted" if isinstance(error, KeyboardInterrupt) else "failed"
-        )
-        metadata["error"] = f"{type(error).__name__}: {error}"
-        raise
-    finally:
-        active_error = sys.exc_info()[0] is not None
-        metadata["seconds"] = time.monotonic() - began
-        try:
-            write_json(root / "run.json", metadata)
-        except Exception:
-            if not active_error:
-                raise
-            logging.getLogger(__name__).exception(
-                "Could not finalize %s; preserving the original training error",
-                root / "run.json",
-            )
 
 
+@termination_signals()
 def evaluate(args):
     import numpy as np
     import torch
 
-    from ._h1_motion import MotionRecorder
-    from .locomotion.h1_native import ACT_DIM, ACTION_LIMIT, CTRL_DT, H1
+    from .locomotion.h1_native import H1
 
     torch.set_num_threads(args.threads)
     model, policy, _, metadata = load_run(args.run)
@@ -307,6 +275,33 @@ def evaluate(args):
     env.set_commands(np.tile(args.velocity, (args.num_envs, 1)))
     observation = env.obs()
     args.output.mkdir(parents=True, exist_ok=False)
+    with managed_run(
+        args.output,
+        run_identity("h1-native", "evaluate", metadata["task"]),
+        metadata={
+            "source_run": str(args.run.resolve()),
+            "checkpoint_sha256": metadata["checkpoint_sha256"],
+            "model_sha256": metadata["model_sha256"],
+        },
+        writer=write_json,
+    ) as record:
+        code = _evaluate_native(args, env, model, policy, metadata, observation)
+        record["result"] = {
+            "path": "evaluation.json",
+            "sha256": digest(args.output / "evaluation.json"),
+        }
+        record["status"] = "rejected" if code == 2 else "complete"
+        return code
+
+
+def _evaluate_native(args, env, model, policy, metadata, observation):
+    """Run the existing first-episode protocol inside a recorded lifecycle."""
+    import numpy as np
+    import torch
+
+    from ._h1_motion import MotionRecorder
+    from .locomotion.h1_native import ACT_DIM, ACTION_LIMIT, CTRL_DT
+
     alive = np.ones(args.num_envs, bool)
     termination_reasons = [[] for _ in range(args.num_envs)]
     clipped_actions = np.zeros(args.num_envs, dtype=np.int64)

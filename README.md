@@ -8,7 +8,7 @@
 
 面向 RL 与 VLA 实验的模块化机器人仿真、数据与训练平台。任务、物理、渲染、传感器和策略通过独立接口组合；统一 Web 页面用于查看仿真、回放运动记录和控制在线策略。
 
-当前包含 CPU `VectorEnv` 参考运行时、本仓库维护的 Go1 与原生 H1 任务及 PPO，基于 mjlab 的本地 Microduck 行走任务，以及 IsaacLab H1、Wuji 等任务的独立训练入口。各部分的实现范围见下表，长期设计见 [架构文档](docs/architecture.md)。
+当前包含 CPU `VectorEnv` 参考运行时、本仓库维护的 Go1 与原生 H1 任务及 PPO，基于 mjlab 的本地 Microduck 行走任务，以及 IsaacLab H1、Wuji 等任务的独立训练入口。各部分的实现范围见下表，实现边界见 [架构与模块边界](docs/architecture.md)。
 
 **快速导航：** [快速运行](#quick-start) · [训练与部署命令](docs/training-deployment.md) · [Web 交互](#web-viewer) · [Go1 在线](#go1-live) · [运动回放](#robot-replay) · [机器人训练](#robot-training) · [常见问题](#troubleshooting) · [文档索引](#documentation)
 
@@ -46,7 +46,9 @@ python -m embodiedforge.visualization --physics numpy --port 8080
 | VLA 接口 | 图像、语言、proprio 数据窗口及 action chunk 执行器 | 尚无预训练 VLA 模型接入或微调器 |
 | ACT 模仿学习 | LeRobot 数据导出、ACT 训练、闭环评估、实验比较与推理打包 | 依赖已安装的 LeRobot 包；模型/训练器未移植。独立 Python 3.12+ 环境，见 [ACT 指南](docs/act.md) |
 | GMR 动作重定向 | 无窗口 BVH → 机器人参考 NPZ 与交互回放 | 外部 GMR API；已用完整 Xsens 片段验证 G1 / H1-2，见[接入说明](docs/humanoid-motion.md) |
-| SONIC / X2 Ultra | CPU ONNX 在 headless MuJoCo 中跟踪动作 | 固定外部播放器、模型专用控制参数、逐片段报告，见[接入说明](docs/humanoid-motion.md)与[实测文章](docs/humanoid-integration-study-20260928.md) |
+| SONIC / X2 Ultra | CPU ONNX 在 headless MuJoCo 中跟踪动作 | 固定外部播放器、模型专用控制参数、逐片段报告，见[接入说明](docs/humanoid-motion.md)与[实测文章](docs/experiments/humanoid-integration-study-20260928.md) |
+| SuperMimic / G1 | 来源预检，以及独立 SDK 中的 G1 训练、推理与评测 | `./supermimic play`、`eval`、`train`、`doctor` 自动选择本地环境与模型；[运行说明](docs/supermimic.md) |
+| MorphMimic / G1、X2、T2 | 固定作者实现，现有动作数据上的共享世界模型、策略与五点接口训练 | `./morphmimic prepare`、`train`、`export`、`eval`；[复现范围与指令](docs/morphmimic.md) |
 | Weave / G1 HOI | NPZ 动作库、外部 SDK 训练/续训、逐片段评估、策略导出 | 默认 headless；需独立 SDK、动作与资产，完整仿真尚未实测，见 [接入与命令](docs/weave-reference.md) |
 | RLinf / PickCube SAC | 外部 SDK 训练、完整 SAC 状态续训、独立评估、CPU ONNX 导出及闭环评估与指标归档 | 单机单卡、默认 headless；固定上游提交，已实测 GPU 训练、恢复与评估，见 [接入与命令](docs/rlinf.md) |
 
@@ -194,21 +196,21 @@ Go1 新增 [Light Loco Parkour 实验性后端](docs/light-loco-parkour.md)：
 
 按任务复制安装、训练、续训、评估、模型导出和远程 Web 运行命令，见 [训练与部署命令手册](docs/training-deployment.md)。覆盖 reach/hold、Go1、Microduck、H1、Wuji/Light、Cartpole MPC 和机械臂 CEM；列明各任务实际支持的运行与部署方式。
 
-[2026-09-27 实验记录](docs/rl-factorial-study-20260927.md) 给出机械鸭四组合奖励消融、SAC 训练种子对照，以及模型大小和 CPU ONNX 部署实测。
+[2026-09-27 实验记录](docs/experiments/rl-factorial-study-20260927.md) 给出机械鸭四组合奖励消融、SAC 训练种子对照，以及模型大小和 CPU ONNX 部署实测。
 
-[2026-09-28 续训对照](docs/rl-resume-study-20260928.md) 比较两个种子的 SAC 连续训练与同保存点续训，记录 4800 条独立评估轨迹、模型与保存点大小，并验证正式的 `rlinf evaluate --onnx` 闭环入口；另实测动态 INT8 压缩的体积与成功率取舍。
+[2026-09-28 续训对照](docs/experiments/rl-resume-study-20260928.md) 比较两个种子的 SAC 连续训练与同保存点续训，记录 4800 条独立评估轨迹、模型与保存点大小，并验证正式的 `rlinf evaluate --onnx` 闭环入口；另实测动态 INT8 压缩的体积与成功率取舍。
 
-[2026-09-28 压缩与后训练实验](docs/rl-compression-study-20260928.md) 比较 FP16/INT8 权重存储、逐层动态量化与 QAT，并检查推理 batch 对闭环行为的影响；正式导出支持 `--weight-storage float16` 或 `int8`，ONNX 评估记录 CPU 推理耗时。
+[2026-09-28 压缩与后训练实验](docs/experiments/rl-compression-study-20260928.md) 比较 FP16/INT8 权重存储、逐层动态量化与 QAT，并检查推理 batch 对闭环行为的影响；正式导出支持 `--weight-storage float16` 或 `int8`，ONNX 评估记录 CPU 推理耗时。
 
-[2026-09-29 H1 保存与恢复实测](docs/h1-checkpoint-publication-20260929.md) 记录三种子的完整训练一致性、真实 SIGTERM 后续训、来源权重追溯、单模型探索性后训练及模型大小；同时保留行走与转向评估失败的结果。
+[2026-09-29 H1 保存与恢复实测](docs/experiments/h1-checkpoint-publication-20260929.md) 记录三种子的完整训练一致性、真实 SIGTERM 后续训、来源权重追溯、单模型探索性后训练及模型大小；同时保留行走与转向评估失败的结果。
 
-[2026-09-29 H1 转向与探索参数研究](docs/h1-turning-study-20260929.md) 记录指令/奖励消融、随机初始状态评估、H1 与核心 PPO 的探索参数边界修复，以及模型大小和完整训练预算。结果包含各训练种子的改善与退化，指令采样和奖励默认值保持不变。
+[2026-09-29 H1 转向与探索参数研究](docs/experiments/h1-turning-study-20260929.md) 记录指令/奖励消融、随机初始状态评估、H1 与核心 PPO 的探索参数边界修复，以及模型大小和完整训练预算。结果包含各训练种子的改善与退化，指令采样和奖励默认值保持不变。
 
-[2026-09-30 H1 指令采样研究](docs/h1-command-mixture-20260930.md) 补齐从零训练、续训与四组合消融，并记录逐环境误差和指定环境的失败回放。纯转向采样降低平均转向误差，但随机起点存活数下降，保留原采样默认值。
+[2026-09-30 H1 指令采样研究](docs/experiments/h1-command-mixture-20260930.md) 补齐从零训练、续训与四组合消融，并记录逐环境误差和指定环境的失败回放。纯转向采样降低平均转向误差，但随机起点存活数下降，保留原采样默认值。
 
-[2026-09-30 H1 终止惩罚研究](docs/h1-termination-cost-20260930.md) 对比终止惩罚与指令采样的四组合，覆盖从零训练、续训、连续指令和逐环境终止原因；同时记录动作轨迹与梯度诊断，区分实际观测和原因猜测。两项加倍惩罚候选均未通过筛选，保留原采样和 −200 系数。
+[2026-09-30 H1 终止惩罚研究](docs/experiments/h1-termination-cost-20260930.md) 对比终止惩罚与指令采样的四组合，覆盖从零训练、续训、连续指令和逐环境终止原因；同时记录动作轨迹与梯度诊断，区分实际观测和原因猜测。两项加倍惩罚候选均未通过筛选，保留原采样和 −200 系数。
 
-[2026-09-30 H1 探索熵研究](docs/h1-entropy-study-20260930.md) 完整比较 0.01 / 0.001 熵系数的从零训练与续训，并记录均值/随机动作差异、动作限幅、模型大小和失败案例。降熵改善部分跟踪指标，但候选均未通过稳定性筛选，保留原默认配方。
+[2026-09-30 H1 探索熵研究](docs/experiments/h1-entropy-study-20260930.md) 完整比较 0.01 / 0.001 熵系数的从零训练与续训，并记录均值/随机动作差异、动作限幅、模型大小和失败案例。降熵改善部分跟踪指标，但候选均未通过稳定性筛选，保留原默认配方。
 
 机器人训练 SDK 使用独立环境，避免不同 Warp、Torch、MuJoCo 版本相互覆盖。安装前按任务文档准备固定 revision 的源码检出；本机路径、缓存和 GPU 要求均在对应文档中说明。
 
@@ -220,6 +222,8 @@ Go1 新增 [Light Loco Parkour 实验性后端](docs/light-loco-parkour.md)：
 | `python -m embodiedforge h1` | H1 平地行走训练、续训、多种子固定指令评估 | 独立 IsaacLab / Newton / MuJoCo-Warp 配方。[H1](docs/h1-isaaclab.md) |
 | `python -m embodiedforge gmr` | BVH 重定向与参考动作回放 | 外部 GMR SDK，不执行 RL。[指令](docs/humanoid-motion.md) |
 | `python -m embodiedforge sonic` | X2 策略无窗口评估 | 外部 SONIC bundle，仅仿真部署。[指令](docs/humanoid-motion.md) |
+| `./supermimic train --task backflip` | SuperMimic后空翻专项训练，使用mjlab仿真 | 首次从零训练，后续继续专用检查点；[数据、评测与限制](docs/supermimic.md) |
+| `python -m embodiedforge supermimic` | 来源目录与兼容性预检 | 不加载策略；[接入规范](docs/supermimic.md) |
 | `python -m embodiedforge weave` | G1 动作交互训练、续训、逐片段评估和策略导出 | 外部 Weave / IsaacLab SDK，完整仿真尚未实测。[Weave](docs/weave-reference.md) |
 | `python -m embodiedforge rlinf` | PickCube MLP SAC 训练、完整状态续训、评估、CPU ONNX 导出及闭环评估 | 外部 RLinf / ManiSkill SDK，已实测 GPU 训练、恢复与评估。[RLinf](docs/rlinf.md) |
 
@@ -290,10 +294,12 @@ python -m ruff check src tests
 | 主题 | 文档 |
 | --- | --- |
 | 训练与部署命令 | [按任务运行手册](docs/training-deployment.md) · [English](docs/training-deployment.en.md) |
-| 架构与接口 | [目标架构](docs/architecture.md) · [接口与模块](docs/interfaces.md) · [实现与扩展](docs/implementation.md) |
+| 架构与接口 | [架构与模块边界](docs/architecture.md) · [接口与模块](docs/interfaces.md) · [实现与扩展](docs/implementation.md) |
+| 公共运行与评估 | [运行记录](docs/run-records.md) · [环境适配与评估](docs/environment-adapters.md) |
+| 导航与历史实验 | [文档导航](docs/README.md) · [实验归档](docs/experiments/README.md) |
 | 查看器 | [安装与后端](docs/viewers.md) · [机器人回放](docs/robot-web-replay.md) · [Go1 在线控制](docs/go1-live-web.md) |
-| 训练入口 | [任务配方](docs/recipes.md) · [Microduck](docs/microduck.md) · [机械鸭模型与实验](docs/microduck-model-training-ablation.md) · [IsaacLab H1](docs/h1-isaaclab.md) |
-| Go1 实验 | [转向精度](docs/go1-yaw-study.md) · [横移与急停](docs/go1-response-study.md) · [复合指令](docs/go1-maneuver-study.md) · [能力保留](docs/go1-preservation-study.md) · [响应与计算优化](docs/go1-fast-response-study.md) |
+| 训练入口 | [任务配方](docs/recipes.md) · [Microduck](docs/microduck.md) · [机械鸭模型与实验](docs/experiments/microduck-model-training-ablation.md) · [IsaacLab H1](docs/h1-isaaclab.md) |
+| Go1 实验 | [转向精度](docs/experiments/go1-yaw-study.md) · [横移与急停](docs/experiments/go1-response-study.md) · [复合指令](docs/experiments/go1-maneuver-study.md) · [能力保留](docs/experiments/go1-preservation-study.md) · [响应与计算优化](docs/experiments/go1-fast-response-study.md) |
 | 工程说明 | [Newton 兼容范围](docs/newton.md) · [日志设计](docs/logging.md) |
 
 依赖、机器人资产和移植代码遵循各自许可证；Go1 移植部分保留了 [mjbatch 许可证](src/embodiedforge/locomotion/LICENSE.mjbatch)。

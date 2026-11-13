@@ -66,7 +66,7 @@ def fake_worker(args, fail=None):
 
 
 def run_export(args, identity=None, env=None):
-    exporter.export_run(
+    microduck.export_run(
         args,
         Path("/isolated/python"),
         identity or {},
@@ -182,6 +182,28 @@ def test_changed_run_checkpoint_is_rejected_before_export(export_args, monkeypat
     assert not export_args.output.exists()
 
 
+def test_interruption_after_link_publication_rolls_back_own_outputs(
+    export_args, monkeypatch
+):
+    monkeypatch.setattr(microduck, "run", fake_worker(export_args))
+    publish = exporter.publish_export
+
+    def interrupted(*args):
+        publish(*args)
+        assert export_args.output.exists()
+        assert export_args.output.with_suffix(".validation.json").exists()
+        raise KeyboardInterrupt("cancelled immediately after publication")
+
+    monkeypatch.setattr(exporter, "publish_export", interrupted)
+    with pytest.raises(KeyboardInterrupt, match="immediately after publication"):
+        run_export(export_args)
+    assert not export_args.output.exists()
+    assert not export_args.output.with_suffix(".validation.json").exists()
+    manifest = json.loads((attempts(export_args)[0] / "run.json").read_text())
+    assert manifest["status"] == "interrupted"
+    assert manifest["failed_phase"] == "publish"
+
+
 @pytest.mark.parametrize("missing_parity", [False, True])
 def test_native_export_and_validation_use_frozen_code(
     export_args, monkeypatch, missing_parity
@@ -258,3 +280,77 @@ def test_publication_races_and_interruptions_do_not_overwrite_or_leave_own_files
         assert str(output) in caplog.text and "removal denied" in caplog.text
     else:
         assert not output.exists() and not validation.exists()
+
+
+@pytest.mark.parametrize("cleanup", [KeyboardInterrupt(), SystemExit(3)])
+def test_rollback_interruption_cleans_other_links_and_preserves_export_failure(
+    tmp_path, monkeypatch, cleanup
+):
+    model, report, output, validation = [
+        tmp_path / name
+        for name in ("staged.onnx", "staged.json", "final.onnx", "final.json")
+    ]
+    model.write_bytes(b"new model")
+    report.write_bytes(b"new report")
+    primary = OSError("model publication failed after linking")
+    link, unlink = os.link, Path.unlink
+
+    def publish(source, destination):
+        link(source, destination)
+        if destination == output:
+            raise primary
+
+    def remove(path, *args, **kwargs):
+        if path == output:
+            raise cleanup
+        return unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(exporter.os, "link", publish)
+    monkeypatch.setattr(Path, "unlink", remove)
+    with pytest.raises(OSError) as caught:
+        exporter.publish_export(model, report, output, validation)
+    assert caught.value is primary
+    assert not validation.exists()
+
+
+@pytest.mark.parametrize(
+    "cleanup",
+    [ValueError("invalid final metadata"), KeyboardInterrupt(), SystemExit(3)],
+)
+def test_export_finalization_cannot_replace_the_worker_failure(
+    export_args, monkeypatch, cleanup
+):
+    primary = RuntimeError("export worker failed")
+    write_json = microduck.write_json
+
+    def fail(*args, **kwargs):
+        raise primary
+
+    def publish(path, value):
+        if value.get("status") == "failed":
+            raise cleanup
+        write_json(path, value)
+
+    monkeypatch.setattr(microduck, "run", fail)
+    monkeypatch.setattr(microduck, "write_json", publish)
+    with pytest.raises(RuntimeError) as caught:
+        run_export(export_args)
+    assert caught.value is primary
+    assert not export_args.output.exists()
+    assert not export_args.output.with_suffix(".validation.json").exists()
+
+
+def test_export_worker_system_exit_is_recorded_as_a_failure(export_args, monkeypatch):
+    primary = SystemExit(3)
+
+    def fail(*args, **kwargs):
+        raise primary
+
+    monkeypatch.setattr(microduck, "run", fail)
+    with pytest.raises(SystemExit) as caught:
+        run_export(export_args)
+    assert caught.value is primary
+    record = json.loads((attempts(export_args)[0] / "run.json").read_text())
+    assert record["status"] == "failed"
+    assert record["failed_phase"] == "export"
+    assert "SystemExit" in record["error"]

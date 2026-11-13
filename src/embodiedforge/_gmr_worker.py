@@ -11,7 +11,8 @@ import numpy as np
 
 from ._h1_motion import MotionRecorder, render_motion
 from ._motion_sdk import load_request
-from .h1 import sha256, write_json
+from .runtime.artifacts import write_json
+from .runtime.hashing import file_sha256 as sha256
 
 
 def bvh_timing(path):

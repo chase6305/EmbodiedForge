@@ -18,6 +18,7 @@ from .core import (
     StepResult,
     Task,
 )
+from .envs.specs import ENVIRONMENT_SPEC_VERSION
 from .sensors import SensorPipeline
 from .tasks import make_task
 
@@ -80,6 +81,7 @@ class VectorEnv:
         """Serializable environment contract; dimensions and units come from TaskSpec."""
         task_spec = self.task.spec
         return {
+            "schema_version": ENVIRONMENT_SPEC_VERSION,
             "task": task_spec.id,
             "scene": asdict(self.task.scene),
             "num_envs": self.config.num_envs,
@@ -88,6 +90,7 @@ class VectorEnv:
             "action_units": task_spec.action_units,
             "proprio_shape": [task_spec.proprio_dim],
             "device": "cpu",
+            "done_handling": "freeze",
             "control_dt": 1 / self.config.control_hz,
             "instruction": task_spec.instruction,
         }
@@ -200,7 +203,7 @@ class VectorEnv:
         }
         sensors = self.sensors.observe(state.time, env_ids=env_ids)
         features = self.task.observe(state)
-        reserved = set(metadata) | set(sensors)
+        reserved = metadata.keys() | sensors.keys()
         if features.keys() & reserved:
             raise ValueError(
                 "Task observation must not overwrite runtime/sensor fields"

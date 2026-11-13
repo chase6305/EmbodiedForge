@@ -20,7 +20,7 @@ class Go1LiveRuntime:
         from ._go1_assets import verified_go1_assets
         from ._go1_checkpoint import load_go1_checkpoint
         from ._go1_implementation import load_go1_implementation
-        from .recipes import sha256
+        from .runtime.hashing import file_sha256 as sha256
 
         versions = {
             name: metadata.version(name)

@@ -10,6 +10,10 @@ weights instead of changing the meaning of an existing model's metadata.
 """
 
 # Original reward weights from mjbatch's Apache-2.0 Go1 joystick example.
+TIMESTEP, DECIMATION = 0.004, 5
+CTRL_DT, ACTION_SCALE = TIMESTEP * DECIMATION, 0.5
+OBS_DIM, ACT_DIM = 50, 12
+
 REWARD = {
     "track": 1.0,
     "turn": 0.5,

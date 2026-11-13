@@ -23,9 +23,9 @@ Deployment here means running policies in simulation, serving viewers, and expor
 
 ONNX evaluation serves different purposes across entry points. [Microduck's `evaluate --onnx`](microduck.md) also needs a checkpoint and compares actions on live observations while PyTorch drives the simulation. [RLinf's `evaluate --onnx`](rlinf.md) loads the exported policy alone and uses CPU ONNX actions to drive PickCube. [SONIC's `evaluate`](humanoid-motion.md) drives X2 MuJoCo using the pinned bundle's pretrained ONNX model and its matching control parameters.
 
-The [humanoid integration study (Chinese)](humanoid-integration-study-20260928.md) covers GMR reference replay and SONIC model sizes, control presets and force ablations.
+The [humanoid integration study (Chinese)](experiments/humanoid-integration-study-20260928.md) covers GMR reference replay and SONIC model sizes, control presets and force ablations.
 
-The [2026-09-28 restart study (Chinese)](rl-resume-study-20260928.md) provides RLinf training, full-state restart, and ONNX evaluation commands, with results for both training seeds and measured model and checkpoint sizes. The [compression and post-training study (Chinese)](rl-compression-study-20260928.md) adds FP16/INT8 storage export commands, layer-wise dynamic INT8 ablations, and inference batch comparisons.
+The [2026-09-28 restart study (Chinese)](experiments/rl-resume-study-20260928.md) provides RLinf training, full-state restart, and ONNX evaluation commands, with results for both training seeds and measured model and checkpoint sizes. The [compression and post-training study (Chinese)](experiments/rl-compression-study-20260928.md) adds FP16/INT8 storage export commands, layer-wise dynamic INT8 ablations, and inference batch comparisons.
 
 **Which implementation trains the policy?** `train` uses the core `VectorEnv`. Go1 and `h1-native` use robot environments and PPO maintained in this repository, but are not yet integrated into `VectorEnv`; MuJoCo/mjbatch remains the physics engine. Go1 supports `--standalone` with installed packages; its default mode retains the pinned mjbatch SDK checkout. The `h1` command uses IsaacLab, while `h1-native` does not. The shared Web viewer is a separate visualization path, not the training environment.
 
@@ -294,7 +294,7 @@ python -m embodiedforge h1-native evaluate --headless \
   --output runs/commands-h1-native-eval
 ```
 
-The 128-environment, 5000-update starting budget follows the [three-seed study](rl-training-study-20260925.md). More updates alone do not establish walking quality: apply the evaluation thresholds to every trained or resumed policy. The example covers forward walking; evaluate standing and turns separately with other `--velocity` values and new output directories. The smaller-batch [checkpoint study](h1-checkpoint-publication-20260929.md) checks software consistency and is not a deployment recipe.
+The 128-environment, 5000-update starting budget follows the [three-seed study](experiments/rl-training-study-20260925.md). More updates alone do not establish walking quality: apply the evaluation thresholds to every trained or resumed policy. The example covers forward walking; evaluate standing and turns separately with other `--velocity` values and new output directories. The smaller-batch [checkpoint study](experiments/h1-checkpoint-publication-20260929.md) checks software consistency and is not a deployment recipe.
 
 Evaluation defaults to the nominal initial state. Add `--randomized-reset --num-envs 32 --seed 9701` with a new output directory to sample initial states and physics from the training distribution while keeping fixed commands and observation noise disabled. See the [H1 evaluation guide](h1-native.en.md#evaluate-and-replay) for ranges and metric definitions.
 

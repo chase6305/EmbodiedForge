@@ -12,9 +12,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .h1 import write_json
-from .recipes import validate_snapshot
-from .rlinf import CONFIG, WEIGHTS, check_checkout, checkpoint_step, inventory
+from .runtime.artifacts import write_json
+from .runtime.provenance import validate_snapshot
+from .workflows.rlinf_artifacts import check_checkout, checkpoint_step, inventory
+from .workflows.rlinf_catalog import CONFIG, WEIGHTS
 
 
 def register():
@@ -159,7 +160,7 @@ def validate_sac_state(checkpoint):
     import torch.distributed.checkpoint as dcp
     from torch.distributed.checkpoint.metadata import TensorStorageMetadata
 
-    from ._adam_checkpoint import validate_adam_checkpoint
+    from .learning.checkpoints import validate_adam_checkpoint
 
     reference = torch.load(checkpoint / WEIGHTS, map_location="cpu", weights_only=True)
     validated = {}

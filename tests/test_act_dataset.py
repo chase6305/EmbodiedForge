@@ -2,6 +2,9 @@
 
 import os
 import shutil
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -94,3 +97,39 @@ def test_symlinked_data_cannot_escape_fingerprint(dataset, tmp_path):
     (dataset / "data/linked").symlink_to(target, target_is_directory=True)
     with pytest.raises(ValueError, match="symlinks"):
         fingerprint_dataset(dataset)
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="Named pipes require POSIX")
+def test_replaced_dataset_file_cannot_block_preflight(dataset):
+    from embodiedforge import _act_dataset
+
+    script = """
+import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from embodiedforge import _act_dataset as data
+root=Path(sys.argv[2]); files=data._files(root)
+target=root/'data/chunk-000/file-000.parquet'
+target.unlink(); os.mkfifo(target)
+data._files=lambda _: files
+try:
+    data.fingerprint_dataset(root)
+except ValueError as error:
+    assert 'Dataset changed while computing fingerprint' in str(error)
+else:
+    raise AssertionError('Substituted FIFO was accepted')
+"""
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-c",
+            script,
+            str(Path(_act_dataset.__file__).parents[1]),
+            str(dataset),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr

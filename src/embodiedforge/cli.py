@@ -5,103 +5,51 @@ import json
 import sys
 from contextlib import nullcontext
 from dataclasses import asdict, replace
+from importlib import import_module
 from pathlib import Path
 
-from .backends import PHYSICS, RENDER, execution_plan
-from .core import Config
-from .data import EpisodeRecorder, read_episodes
-from .env import VectorEnv
 from .logging import auto_configure_debug_logging, get_logger, setup_logging
-from .rollout import DemonstrationPolicy, run_rollout
+
+_WORKFLOWS = {
+    "runs": "runtime.records",
+    "microduck": "microduck",
+    "gmr": "gmr",
+    "sonic": "sonic",
+    "supermimic": "supermimic",
+    "morphmimic": "morphmimic",
+    "rlinf": "rlinf",
+    "weave": "weave",
+    "motion": "motion",
+    "act": "act",
+    "h1-native": "native_h1",
+    "live": "go1_live",
+    "replay": "robot_replay",
+    "recipes": "recipes",
+    "h1": "h1",
+}
+_CORE_COMMANDS = ("plan", "doctor", "rollout", "train", "evaluate", "inspect")
 
 
-def main() -> None:
+def main(argv=None) -> None:
     """Parse configuration, select a workflow and own its process-level resources."""
-    if sys.argv[1:2] == ["microduck"]:
-        from .microduck import main as microduck_main
-
-        microduck_main(sys.argv[2:])
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if arguments and arguments[0] in _WORKFLOWS:
+        module = import_module(f".{_WORKFLOWS[arguments[0]]}", __package__)
+        module.main(arguments[1:])
         return
-    if sys.argv[1:2] == ["gmr"]:
-        from .gmr import main as gmr_main
+    # Dispatch metadata and SDK workflows before loading the core NumPy runtime.
+    from .backends import PHYSICS, RENDER, execution_plan
+    from .core import Config
+    from .data import EpisodeRecorder, read_episodes
+    from .env import VectorEnv
+    from .rollout import DemonstrationPolicy, run_rollout
 
-        gmr_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["sonic"]:
-        from .sonic import main as sonic_main
-
-        sonic_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["rlinf"]:
-        from .rlinf import main as rlinf_main
-
-        rlinf_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["weave"]:
-        from .weave import main as weave_main
-
-        weave_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["motion"]:
-        from .motion import main as motion_main
-
-        motion_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["act"]:
-        from .act import main as act_main
-
-        act_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["h1-native"]:
-        from .native_h1 import main as native_h1_main
-
-        native_h1_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["live"]:
-        from .go1_live import main as live_main
-
-        live_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["replay"]:
-        from .robot_replay import main as replay_main
-
-        replay_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["recipes"]:
-        from .recipes import main as recipes_main
-
-        recipes_main(sys.argv[2:])
-        return
-    if sys.argv[1:2] == ["h1"]:
-        from .h1 import main as h1_main
-
-        h1_main(sys.argv[2:])
-        return
     parser = argparse.ArgumentParser(
         description="EmbodiedForge CPU reference training platform"
     )
     parser.add_argument(
         "command",
-        choices=[
-            "plan",
-            "doctor",
-            "rollout",
-            "train",
-            "evaluate",
-            "inspect",
-            "h1",
-            "h1-native",
-            "recipes",
-            "replay",
-            "live",
-            "act",
-            "microduck",
-            "motion",
-            "weave",
-            "rlinf",
-            "gmr",
-            "sonic",
-        ],
+        choices=[*_CORE_COMMANDS, *_WORKFLOWS],
     )
     parser.add_argument("--config", type=Path)
     parser.add_argument("--task", help="Registered task name, e.g. reach or hold")
@@ -150,7 +98,12 @@ def main() -> None:
     parser.add_argument(
         "--log-json", action="store_true", help="Structured logs on stderr"
     )
-    args = parser.parse_args()
+    args = parser.parse_args(arguments)
+    if args.command in _WORKFLOWS:
+        parser.error(
+            f"{args.command} must be the first argument; "
+            f"use 'embodiedforge {args.command} --help'"
+        )
     if args.graphics and args.command != "doctor":
         parser.error("--graphics is only supported by doctor")
     if args.resume and args.command != "train":

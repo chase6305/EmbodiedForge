@@ -9,12 +9,14 @@ import mujoco
 import numpy as np
 
 from .articulation import ArticulationBatch, finite_array, selected_ids
-
-OBS_DIM, ACT_DIM = 69, 19
-TIMESTEP, DECIMATION, ACTION_SCALE = 0.005, 4, 0.5
-ACTION_LIMIT = 5.0
-CTRL_DT = TIMESTEP * DECIMATION
-VERSION = "h1-mjbatch-flat-v1"
+from .h1_config import ACT_DIM as ACT_DIM
+from .h1_config import ACTION_LIMIT as ACTION_LIMIT
+from .h1_config import ACTION_SCALE as ACTION_SCALE
+from .h1_config import CTRL_DT as CTRL_DT
+from .h1_config import DECIMATION as DECIMATION
+from .h1_config import OBS_DIM as OBS_DIM
+from .h1_config import TIMESTEP as TIMESTEP
+from .h1_config import VERSION as VERSION
 
 
 def joint_defaults(name):
@@ -246,13 +248,11 @@ class H1:
         return observation.astype(np.float32)
 
     def step(self, actions):
-        actions = np.clip(
-            finite_array(actions, (self.num_envs, ACT_DIM), "Actions"),
-            -ACTION_LIMIT,
-            ACTION_LIMIT,
-        )
+        actions = finite_array(actions, (self.num_envs, ACT_DIM), "Actions")
+        # finite_array owns this buffer, so clipping preserves caller actions.
+        np.clip(actions, -ACTION_LIMIT, ACTION_LIMIT, out=actions)
         # Preserve C layout: changing it changes acceleration reduction rounding.
-        previous_velocity = self.robot.qvel[:, self.robot.vadr].copy()
+        previous_velocity = np.take(self.robot.qvel, self.robot.vadr, axis=1)
         self.robot.set_joint_position_targets(self.default + ACTION_SCALE * actions)
         self.robot.step(DECIMATION)
         self.steps += 1
@@ -267,16 +267,17 @@ class H1:
             * (np.linalg.norm(self.commands[:, :2], axis=1) > 0.1)
         )
         yaw = np.arctan2(self.rotation[:, 1, 0], self.rotation[:, 0, 0])
+        cos_yaw, sin_yaw = np.cos(yaw), np.sin(yaw)
         # MuJoCo root linear velocity is world-aligned; rewards use a yaw frame.
-        world_vel = self.robot.qvel[:, :3]
+        world_velocity = self.robot.qvel[:, :3]
         velocity = np.column_stack(
             (
-                np.cos(yaw) * world_vel[:, 0] + np.sin(yaw) * world_vel[:, 1],
-                -np.sin(yaw) * world_vel[:, 0] + np.cos(yaw) * world_vel[:, 1],
+                cos_yaw * world_velocity[:, 0] + sin_yaw * world_velocity[:, 1],
+                -sin_yaw * world_velocity[:, 0] + cos_yaw * world_velocity[:, 1],
             )
         )
-        world_gyro = np.einsum("nij,nj->ni", self.rotation, self.gyro)
-        self.measured_velocity = np.column_stack((velocity, world_gyro[:, 2]))
+        yaw_rate = np.einsum("nj,nj->n", self.rotation[:, 2, :], self.gyro)
+        self.measured_velocity = np.column_stack((velocity, yaw_rate))
         # Native safeguard also terminates a tipped/sub-floor base, including a
         # fall whose torso contact occurred between the sampled control ticks.
         self.termination_reasons = {
@@ -297,9 +298,7 @@ class H1:
             "track_linear": np.exp(
                 -np.sum((velocity - self.commands[:, :2]) ** 2, 1) / 0.25
             ),
-            "track_yaw": np.exp(
-                -((world_gyro[:, 2] - self.commands[:, 2]) ** 2) / 0.25
-            ),
+            "track_yaw": np.exp(-((yaw_rate - self.commands[:, 2]) ** 2) / 0.25),
             "air_time": air_reward,
             "slide": -0.25 * slide,
             "orientation": -np.sum(self.rotation[:, 2, :2] ** 2, 1),

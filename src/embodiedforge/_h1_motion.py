@@ -2,9 +2,13 @@
 
 import html
 import json
+import os
 from pathlib import Path
+from uuid import uuid4
 
 import numpy as np
+
+from .runtime.artifacts import discard_partial
 
 
 class MotionRecorder:
@@ -25,7 +29,7 @@ class MotionRecorder:
         if self.ended:
             return
         arrays = [
-            np.asarray(value, dtype=np.float32).copy()
+            np.array(value, dtype=np.float32, copy=True, order="C")
             for value in (positions, quaternions, joints)
         ]
         bodies = len(self.metadata["body_names"])
@@ -47,62 +51,86 @@ class MotionRecorder:
         self.ended = bool(terminated or truncated)
 
     def save(self, path: Path) -> None:
+        """Publish complete frames and clean up only this attempt's temporary file."""
         if not self.frames:
             raise ValueError("Cannot save an empty motion")
         # File handle prevents NumPy from silently adding another extension.
-        temporary = path.with_suffix(".npz.tmp")
-        with temporary.open("xb") as stream:
-            np.savez_compressed(
-                stream,
-                metadata=np.array(json.dumps(self.metadata)),
-                time=np.array([f[0] for f in self.frames]),
-                positions=np.stack([f[1] for f in self.frames]),
-                quaternions=np.stack([f[2] for f in self.frames]),
-                joints=np.stack([f[3] for f in self.frames]),
-                terminated=np.array([f[4] for f in self.frames]),
-                truncated=np.array([f[5] for f in self.frames]),
-            )
-        temporary.replace(path)
+        # String paths avoid retaining unique components in CPython 3.12 pathlib.
+        path = os.fspath(path)
+        parent, name = os.path.split(path)
+        temporary = os.path.join(parent, f"{name}.{uuid4().hex}.tmp")
+        created = False
+        try:
+            with open(temporary, "xb") as stream:
+                created = True
+                np.savez_compressed(
+                    stream,
+                    metadata=np.array(json.dumps(self.metadata)),
+                    time=np.array([frame[0] for frame in self.frames]),
+                    positions=np.stack([frame[1] for frame in self.frames]),
+                    quaternions=np.stack([frame[2] for frame in self.frames]),
+                    joints=np.stack([frame[3] for frame in self.frames]),
+                    terminated=np.array([frame[4] for frame in self.frames]),
+                    truncated=np.array([frame[5] for frame in self.frames]),
+                )
+            os.replace(temporary, path)
+        except BaseException:
+            if created:
+                discard_partial(temporary, label="H1 motion")
+            raise
 
 
-def load_motion(path: Path) -> dict:
-    with np.load(path, allow_pickle=False) as data:
-        metadata = json.loads(str(data["metadata"]))
-        times, positions = data["time"], data["positions"]
-        count, bodies = len(times), len(metadata["body_names"])
+def _read_motion_arrays(path: Path) -> tuple[dict, dict[str, np.ndarray]]:
+    """Share archive validation without constructing the JSON replay payload.
+
+    Each required member is read once. Returned arrays remain valid after the
+    archive closes; the caller chooses its own representation and copy policy.
+    """
+    with np.load(path, allow_pickle=False) as archive:
+        metadata = json.loads(str(archive["metadata"]))
+        timestamps, positions = archive["time"], archive["positions"]
+        frame_count, body_count = len(timestamps), len(metadata["body_names"])
         if (
-            not count
-            or times.shape != (count,)
-            or positions.shape != (count, bodies, 3)
+            not frame_count
+            or timestamps.shape != (frame_count,)
+            or positions.shape != (frame_count, body_count, 3)
         ):
             raise ValueError("Invalid motion dimensions")
         if (
-            not np.isfinite(times).all()
+            not np.isfinite(timestamps).all()
             or not np.isfinite(positions).all()
-            or times[0] <= 0
-            or (np.diff(times) <= 0).any()
+            or timestamps[0] <= 0
+            or (np.diff(timestamps) <= 0).any()
         ):
             raise ValueError("Invalid motion values or timestamps")
-        for key, shape in (
-            ("quaternions", (count, bodies, 4)),
-            ("joints", (count, len(metadata["joint_names"]))),
+        arrays = {"time": timestamps, "positions": positions}
+        for field_name, expected_shape in (
+            ("quaternions", (frame_count, body_count, 4)),
+            ("joints", (frame_count, len(metadata["joint_names"]))),
         ):
-            if data[key].shape != shape or not np.isfinite(data[key]).all():
-                raise ValueError(f"Invalid motion {key}")
-        for key in ("terminated", "truncated"):
+            field_values = archive[field_name]
             if (
-                data[key].shape != (count,)
-                or data[key].dtype != np.bool_
-                or data[key][:-1].any()
+                field_values.shape != expected_shape
+                or not np.isfinite(field_values).all()
+            ):
+                raise ValueError(f"Invalid motion {field_name}")
+            arrays[field_name] = field_values
+        for field_name in ("terminated", "truncated"):
+            field_values = archive[field_name]
+            if (
+                field_values.shape != (frame_count,)
+                or field_values.dtype != np.bool_
+                or field_values[:-1].any()
             ):
                 raise ValueError("Motion contains frames after a terminal state")
+            arrays[field_name] = field_values
         for edge in metadata["edges"]:
             if len(edge) != 2 or any(
-                type(i) is not int or not 0 <= i < bodies for i in edge
+                type(index) is not int or not 0 <= index < body_count for index in edge
             ):
                 raise ValueError("Invalid motion body connection")
         if "command_schedule" in metadata:
-            end = 0
+            previous_end = 0
             schedule = metadata["command_schedule"]
             if not schedule:
                 raise ValueError("Empty motion command schedule")
@@ -111,23 +139,31 @@ def load_motion(path: Path) -> dict:
                 if (
                     type(segment["start_step"]) is not int
                     or type(segment["end_step"]) is not int
-                    or segment["start_step"] != end
-                    or segment["end_step"] <= end
+                    or segment["start_step"] != previous_end
+                    or segment["end_step"] <= previous_end
                     or not isinstance(segment["segment"], str)
                     or command.shape != (3,)
                     or not np.isfinite(command).all()
                 ):
                     raise ValueError("Invalid motion command schedule")
-                end = segment["end_step"]
-            if end < count:
+                previous_end = segment["end_step"]
+            if previous_end < frame_count:
                 raise ValueError("Motion extends past its command schedule")
-        return {
-            "metadata": metadata,
-            "time": times.tolist(),
-            "positions": np.round(positions.astype(float), 5).tolist(),
-            "terminated": bool(data["terminated"][-1]),
-            "truncated": bool(data["truncated"][-1]),
-        }
+    return metadata, arrays
+
+
+def load_motion(path: Path) -> dict:
+    """Return the validated payload consumed by the offline HTML replay."""
+    metadata, arrays = _read_motion_arrays(path)
+    # JSON replay omits these fields; release validation-only arrays first.
+    del arrays["quaternions"], arrays["joints"]
+    return {
+        "metadata": metadata,
+        "time": arrays["time"].tolist(),
+        "positions": np.round(arrays["positions"].astype(float), 5).tolist(),
+        "terminated": bool(arrays["terminated"][-1]),
+        "truncated": bool(arrays["truncated"][-1]),
+    }
 
 
 def render_motion(path: Path, output: Path) -> None:
@@ -160,26 +196,152 @@ h1{font-size:24px;margin:0 0 8px}p{color:#a8b8cd;line-height:1.6}canvas{width:10
 <label><input id="follow" type="checkbox" checked>跟随</label><span id="info"></span></div>
 <small>拖动画布旋转，滚轮缩放。蓝色为左侧，橙色为右侧。线段连接模型的刚体原点及记录的末端点。回放使用文件中的时间戳，并显示已有的终止标记。</small></main>
 <script id="motion" type="application/json">__MOTION_DATA__</script><script>
-'use strict';const d=JSON.parse(document.getElementById('motion').textContent),m=d.metadata;
-const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d'),slider=document.getElementById('frame'),play=document.getElementById('play');
-const speed=document.getElementById('speed'),follow=document.getElementById('follow'),view=document.getElementById('view'),info=document.getElementById('info');
-const labels=[m.case??m.title??'动作回放'];if(m.seed!==undefined)labels.push(`seed ${m.seed}`);if(m.env_id!==undefined)labels.push(`环境 ${m.env_id}`);
-if(m.source_kind==='retargeted_reference')labels.push('重定向参考动作');else if(m.command_schedule)labels.push('分段指令');else if(Array.isArray(m.velocity_command))labels.push('指令 '+m.velocity_command.join(' / '));
-labels.push(`${d.time.length} 帧`);document.getElementById('title').textContent=labels.join(' · ');
-slider.max=d.time.length-1;let index=0,playing=false,last=null,elapsed=0,yaw=-0.8,elevation=0.28,scale=m.view_scale??145;
-function project(p,origin){let x=p[0]-origin[0],y=p[1]-origin[1],z=p[2]-origin[2],u=x*Math.cos(yaw)-y*Math.sin(yaw),depth=x*Math.sin(yaw)+y*Math.cos(yaw);return [canvas.width/2+scale*u,canvas.height*.55-scale*(z*Math.cos(elevation)-depth*Math.sin(elevation))];}
-function line(a,b,color,width=2){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();}
-function draw(){let box=canvas.getBoundingClientRect();if(canvas.width!==Math.round(box.width)||canvas.height!==Math.round(box.height)){canvas.width=Math.round(box.width);canvas.height=Math.round(box.height);}
-ctx.clearRect(0,0,canvas.width,canvas.height);const pts=d.positions[index],root=pts[0],initial=d.positions[0][0],height=m.view_height??.9,origin=follow.checked?[root[0],root[1],height]:[initial[0],initial[1],height];
-const gx=Math.floor(origin[0]),gy=Math.floor(origin[1]);for(let k=-8;k<=8;k++){line(project([gx+k,gy-8,0],origin),project([gx+k,gy+8,0],origin),'#28394f',1);line(project([gx-8,gy+k,0],origin),project([gx+8,gy+k,0],origin),'#28394f',1);}
-for(let j=Math.max(1,index-500);j<=index;j++){const a=d.positions[j-1][0],b=d.positions[j][0];line(project([a[0],a[1],.01],origin),project([b[0],b[1],.01],origin),'#5d7e65',2);}
-for(const [a,b] of m.edges){const name=m.body_names[b],color=/left|^FL|^RL/.test(name)?'#61c4ff':/right|^FR|^RR/.test(name)?'#ffb777':'#ecf3ff';line(project(pts[a],origin),project(pts[b],origin),color,5);}
-for(let k=0;k<pts.length;k++){let p=project(pts[k],origin);ctx.fillStyle='#e3efff';ctx.beginPath();ctx.arc(p[0],p[1],3,0,Math.PI*2);ctx.fill();}
-const segment=m.command_schedule?.find(s=>index>=s.start_step&&index<s.end_step);
-slider.value=index;info.textContent=`${d.time[index].toFixed(2)} / ${d.time.at(-1).toFixed(2)} s · ${segment?segment.segment+' · 指令 '+segment.command.join(' / ')+' · ':''}${index===d.time.length-1?(d.terminated?'终止':d.truncated?'截断':'记录结束'):''}`;}
-function tick(now){if(playing){if(last!==null)elapsed+=(now-last)/1000*Number(speed.value);while(index<d.time.length-1&&d.time[index+1]-d.time[index]<=elapsed){elapsed-=d.time[index+1]-d.time[index];index++;}if(index===d.time.length-1){playing=false;play.textContent='播放';}}last=now;draw();requestAnimationFrame(tick);}
-play.onclick=()=>{if(index===d.time.length-1){index=0;elapsed=0;}playing=!playing;last=null;play.textContent=playing?'暂停':'播放';};slider.oninput=()=>{index=Number(slider.value);elapsed=0;};
-view.onchange=()=>{[yaw,elevation]=({oblique:[-.8,.28],side:[0,0],front:[Math.PI/2,0],top:[0,Math.PI/2]})[view.value];};
-let drag=null;canvas.onpointerdown=e=>{drag=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId);};canvas.onpointerup=()=>drag=null;canvas.onpointermove=e=>{if(drag){yaw+=(e.clientX-drag[0])*.008;elevation=Math.max(-1.4,Math.min(1.57,elevation+(e.clientY-drag[1])*.008));drag=[e.clientX,e.clientY];}};
-canvas.addEventListener('wheel',e=>{e.preventDefault();scale=Math.max(25,Math.min(600,scale*Math.exp(-e.deltaY*.001)));},{passive:false});requestAnimationFrame(tick);
+'use strict';
+const motion = JSON.parse(document.getElementById('motion').textContent),
+  metadata = motion.metadata;
+const canvas = document.getElementById('canvas'),
+  context = canvas.getContext('2d'),
+  slider = document.getElementById('frame'),
+  play = document.getElementById('play');
+const speed = document.getElementById('speed'),
+  follow = document.getElementById('follow'),
+  view = document.getElementById('view'),
+  info = document.getElementById('info');
+const labels = [metadata.case ?? metadata.title ?? '动作回放'];
+if (metadata.seed !== undefined) labels.push(`seed ${metadata.seed}`);
+if (metadata.env_id !== undefined) labels.push(`环境 ${metadata.env_id}`);
+if (metadata.source_kind === 'retargeted_reference') labels.push('重定向参考动作');
+else if (metadata.command_schedule) labels.push('分段指令');
+else if (Array.isArray(metadata.velocity_command))
+  labels.push('指令 ' + metadata.velocity_command.join(' / '));
+labels.push(`${motion.time.length} 帧`);
+document.getElementById('title').textContent = labels.join(' · ');
+slider.max = motion.time.length - 1;
+let index = 0,
+  playing = false,
+  previousTickTime = null,
+  elapsed = 0,
+  yaw = -0.8,
+  elevation = 0.28,
+  scale = metadata.view_scale ?? 145;
+
+function project(p, origin) {
+  let x = p[0] - origin[0],
+    y = p[1] - origin[1],
+    z = p[2] - origin[2],
+    u = x * Math.cos(yaw) - y * Math.sin(yaw),
+    depth = x * Math.sin(yaw) + y * Math.cos(yaw);
+  return [
+    canvas.width / 2 + scale * u,
+    canvas.height * .55 - scale * (z * Math.cos(elevation) - depth * Math.sin(elevation))
+  ];
+}
+
+function line(a, b, color, width = 2) {
+  context.strokeStyle = color;
+  context.lineWidth = width;
+  context.beginPath();
+  context.moveTo(...a);
+  context.lineTo(...b);
+  context.stroke();
+}
+
+function draw() {
+  let box = canvas.getBoundingClientRect();
+  if (canvas.width !== Math.round(box.width) || canvas.height !== Math.round(box.height)) {
+    canvas.width = Math.round(box.width);
+    canvas.height = Math.round(box.height);
+  }
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  const pts = motion.positions[index],
+    root = pts[0],
+    initial = motion.positions[0][0],
+    height = metadata.view_height ?? .9,
+    origin = follow.checked
+      ? [root[0], root[1], height]
+      : [initial[0], initial[1], height];
+  const gx = Math.floor(origin[0]), gy = Math.floor(origin[1]);
+  for (let k = -8; k <= 8; k++) {
+    line(project([gx + k, gy - 8, 0], origin), project([gx + k, gy + 8, 0], origin), '#28394f', 1);
+    line(project([gx - 8, gy + k, 0], origin), project([gx + 8, gy + k, 0], origin), '#28394f', 1);
+  }
+  for (let j = Math.max(1, index - 500); j <= index; j++) {
+    const a = motion.positions[j - 1][0], b = motion.positions[j][0];
+    line(project([a[0], a[1], .01], origin), project([b[0], b[1], .01], origin), '#5d7e65', 2);
+  }
+  for (const [a, b] of metadata.edges) {
+    const name = metadata.body_names[b],
+      color = /left|^FL|^RL/.test(name)
+        ? '#61c4ff'
+        : /right|^FR|^RR/.test(name) ? '#ffb777' : '#ecf3ff';
+    line(project(pts[a], origin), project(pts[b], origin), color, 5);
+  }
+  for (let k = 0; k < pts.length; k++) {
+    let p = project(pts[k], origin);
+    context.fillStyle = '#e3efff';
+    context.beginPath();
+    context.arc(p[0], p[1], 3, 0, Math.PI * 2);
+    context.fill();
+  }
+  const segment = metadata.command_schedule?.find(s => index >= s.start_step && index < s.end_step);
+  slider.value = index;
+  info.textContent = `${motion.time[index].toFixed(2)} / ${motion.time.at(-1).toFixed(2)} s · ${segment?segment.segment+' · 指令 '+segment.command.join(' / ')+' · ':''}${index===motion.time.length-1?(motion.terminated?'终止':motion.truncated?'截断':'记录结束'):''}`;
+}
+
+function tick(now) {
+  if (playing) {
+    if (previousTickTime !== null) elapsed += (now - previousTickTime) / 1000 * Number(speed.value);
+    while (index < motion.time.length - 1 && motion.time[index + 1] - motion.time[index] <= elapsed) {
+      elapsed -= motion.time[index + 1] - motion.time[index];
+      index++;
+    }
+    if (index === motion.time.length - 1) {
+      playing = false;
+      play.textContent = '播放';
+    }
+  }
+  previousTickTime = now;
+  draw();
+  requestAnimationFrame(tick);
+}
+
+play.onclick = () => {
+  if (index === motion.time.length - 1) {
+    index = 0;
+    elapsed = 0;
+  }
+  playing = !playing;
+  previousTickTime = null;
+  play.textContent = playing ? '暂停' : '播放';
+};
+slider.oninput = () => {
+  index = Number(slider.value);
+  elapsed = 0;
+};
+view.onchange = () => {
+  [yaw, elevation] = ({
+    oblique: [-.8, .28],
+    side: [0, 0],
+    front: [Math.PI / 2, 0],
+    top: [0, Math.PI / 2]
+  })[view.value];
+};
+let drag = null;
+canvas.onpointerdown = e => {
+  drag = [e.clientX, e.clientY];
+  canvas.setPointerCapture(e.pointerId);
+};
+canvas.onpointerup = () => drag = null;
+canvas.onpointermove = e => {
+  if (drag) {
+    yaw += (e.clientX - drag[0]) * .008;
+    elevation = Math.max(-1.4, Math.min(1.57, elevation + (e.clientY - drag[1]) * .008));
+    drag = [e.clientX, e.clientY];
+  }
+};
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  scale = Math.max(25, Math.min(600, scale * Math.exp(-e.deltaY * .001)));
+}, {passive: false});
+requestAnimationFrame(tick);
 </script></html>"""

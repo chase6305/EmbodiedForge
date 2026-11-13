@@ -13,7 +13,8 @@ def main():
     request = json.loads(Path(sys.argv[1]).read_text())
     # Add the package parent, never the directory containing logging.py.
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from embodiedforge.recipes import sha256, write_json
+    from embodiedforge.runtime.artifacts import write_json
+    from embodiedforge.runtime.hashing import file_sha256 as sha256
 
     standalone = request.get("standalone", False)
     if standalone and request["task"] != "go1-joystick":

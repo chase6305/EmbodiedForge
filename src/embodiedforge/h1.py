@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
-import os
 import shutil
 import signal
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ._microduck_process import run_process as _run_process
 from .logging import get_logger, setup_logging
+from .runtime.artifacts import write_json as write_json
+from .runtime.environment import child_environment as child_environment
+from .runtime.hashing import file_sha256 as sha256
+from .runtime.process import run_process as _run_process
+from .runtime.records import run_identity, run_lifecycle
 
 REVISION = "2e44ddb2e19536579140496023b5ccb060bc4152"
 TASK = "Isaac-Velocity-Flat-H1-v0"
@@ -22,35 +24,6 @@ PHYSICS = "newton_mjwarp"
 WORKER = Path(__file__).with_name("_h1_worker.py")
 EVALUATOR = Path(__file__).with_name("_h1_evaluate.py")
 LOGGER = get_logger("h1")
-
-
-def write_json(path: Path, value: dict) -> None:
-    temporary = path.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
-    temporary.replace(path)
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def child_environment(environment: Path) -> dict[str, str]:
-    env = os.environ.copy()
-    for name in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV"):
-        env.pop(name, None)
-    env.update(
-        CONDA_PREFIX=str(environment),
-        PYTHONNOUSERSITE="1",
-        PYTHONDONTWRITEBYTECODE="1",
-        PYTHONUNBUFFERED="1",
-        WANDB_MODE="disabled",
-    )
-    env["PATH"] = str(environment / "bin") + os.pathsep + env.get("PATH", "")
-    return env
 
 
 def source_identity(repo: Path) -> dict:
@@ -125,6 +98,7 @@ def train(args: argparse.Namespace) -> None:
     manifest = {
         "schema": 1,
         "workflow": "h1_train",
+        "run_contract": run_identity("h1-isaaclab", "train", TASK),
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(),
         "source": source,
@@ -139,14 +113,17 @@ def train(args: argparse.Namespace) -> None:
         "timeout_seconds": args.timeout,
         "commands": [],
     }
-    write_json(output / "run.json", manifest)
 
     def execute(command: list[str], timeout: float | None) -> None:
         manifest["commands"].append(command)
         write_json(output / "run.json", manifest)
         run_process(command, cwd=output, env=env, timeout=timeout)
 
-    try:
+    with run_lifecycle(
+        manifest,
+        lambda record: write_json(output / "run.json", record),
+        label=output / "run.json",
+    ):
         checkpoint_args = []
         start_iteration = 0
         if previous:
@@ -236,18 +213,6 @@ def train(args: argparse.Namespace) -> None:
         manifest["result"] = json.loads((output / "verification.json").read_text())
         manifest["status"] = "complete"
         LOGGER.info("H1 training verified: %s", output)
-    except KeyboardInterrupt:
-        manifest["status"] = "interrupted"
-        raise
-    except subprocess.TimeoutExpired as exc:
-        manifest.update(status="timed_out", error=str(exc))
-        raise
-    except Exception as exc:
-        manifest.update(status="failed", error=str(exc))
-        raise
-    finally:
-        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-        write_json(output / "run.json", manifest)
 
 
 def positive_int(value: str) -> int:
@@ -280,6 +245,7 @@ def evaluate(args: argparse.Namespace) -> None:
     manifest = {
         "schema": 1,
         "workflow": "h1_evaluate",
+        "run_contract": run_identity("h1-isaaclab", "evaluate", TASK),
         "status": "running",
         "started_at": datetime.now(timezone.utc).isoformat(),
         "source": source,
@@ -302,8 +268,11 @@ def evaluate(args: argparse.Namespace) -> None:
         "commands": [],
         "reports": [],
     }
-    write_json(output / "run.json", manifest)
-    try:
+    with run_lifecycle(
+        manifest,
+        lambda record: write_json(output / "run.json", record),
+        label=output / "run.json",
+    ):
         target = output / "input.pt"
         shutil.copyfile(checkpoint, target)
         if sha256(target) != artifact["checkpoint_sha256"]:
@@ -414,18 +383,6 @@ def evaluate(args: argparse.Namespace) -> None:
             LOGGER.error(
                 "H1 policy missed acceptance criteria: %s", output / "acceptance.json"
             )
-    except KeyboardInterrupt:
-        manifest["status"] = "interrupted"
-        raise
-    except subprocess.TimeoutExpired as exc:
-        manifest.update(status="timed_out", error=str(exc))
-        raise
-    except Exception as exc:
-        manifest.update(status="failed", error=str(exc))
-        raise
-    finally:
-        manifest["finished_at"] = datetime.now(timezone.utc).isoformat()
-        write_json(output / "run.json", manifest)
     if manifest["status"] == "rejected":
         raise SystemExit(2)
 

@@ -112,6 +112,17 @@ def test_absent_legacy_snapshot_is_explicit(tmp_path):
     assert copy_go1_implementation(tmp_path, {}, tmp_path / "private") is None
 
 
+def test_private_snapshot_never_overwrites_existing_files(recorded, tmp_path):
+    run, _, manifest = recorded
+    destination = tmp_path / "private"
+    existing = destination / "locomotion/go1.py"
+    existing.parent.mkdir(parents=True)
+    existing.write_bytes(b"previous private source")
+    with pytest.raises(FileExistsError):
+        copy_go1_implementation(run, manifest, destination)
+    assert existing.read_bytes() == b"previous private source"
+
+
 def test_worker_rechecks_private_copy_before_import(recorded, tmp_path):
     run, _, manifest = recorded
     record = copy_go1_implementation(run, manifest, tmp_path / "private")

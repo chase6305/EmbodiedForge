@@ -2,10 +2,11 @@
 
 import hashlib
 import io
-import logging
+import os
 from pathlib import Path
 
-from ._adam_checkpoint import validate_adam_checkpoint
+from .learning.checkpoints import finite_tensors, validate_adam_checkpoint
+from .runtime.artifacts import discard_partial
 
 _PROFILES = {
     "learner_backend": "native",
@@ -18,8 +19,6 @@ _PROFILES = {
 
 def load_go1_checkpoint(path, *, sha256, contract):
     import torch
-
-    from ._wuji_recipe import finite_tensors
 
     # Hash the same bytes that torch deserializes, even if the file is replaced.
     payload = Path(path).read_bytes()
@@ -100,20 +99,13 @@ def save_go1_checkpoint(path, checkpoint, *, optimizer):
     """Publish only validated state; leave the last checkpoint intact on failure."""
     import torch
 
-    from ._wuji_recipe import finite_tensors
-
     validate_go1_optimizer(optimizer, checkpoint.get("optimizer_state_dict"))
     finite_tensors(checkpoint)
-    path = Path(path)
-    temporary = path.with_suffix(path.suffix + ".tmp")
+    path = os.fspath(path)
+    temporary = path + ".tmp"
     try:
         torch.save(checkpoint, temporary)
-        temporary.replace(path)
+        os.replace(temporary, path)
     except BaseException:
-        try:
-            temporary.unlink(missing_ok=True)
-        except OSError as exc:
-            logging.getLogger(__name__).warning(
-                "Could not remove partial checkpoint %s: %s", temporary, exc
-            )
+        discard_partial(temporary, label="checkpoint")
         raise

@@ -15,9 +15,9 @@
 
 ## 当前实现与目标架构的差异
 
-`docs/architecture.md` 是长期设计。当前实现有意限定在以下范围，并在能力解析时拒绝未支持的设备和场景：
+全平台三条执行路径和边界见 [架构说明](architecture.md)。本节描述核心参考运行时，并在能力解析时拒绝未支持的设备和场景：
 
-公共协议、模块/类职责及本轮接口迁移见 [interfaces.md](interfaces.md)。开发和验证使用 conda `ef` 环境。
+公共协议、模块/类职责及接口迁移见 [interfaces.md](interfaces.md)。按训练与后端依赖选择独立环境，见 [运行手册](training-deployment.md)。
 
 - 场景只有 `point_reach`：一个单位质量、受 XY 力控制的球体与一个目标点。不是机械臂训练环境。
 - `PhysicsBackend` 提供 reset/control/step/snapshot；`RenderBackend` 通过 sync/render 消费独立状态快照，两者不共享私有对象。
@@ -29,8 +29,8 @@
 - Newton 适配器固定兼容用户指定的 v1.6.0rc1 ZIP，使用 Warp CPU 与 SolverSemiImplicit，支持相同参考任务和独立渲染组合。版本细节及限制见 [newton.md](newton.md)。
 - `raster` 是独立正交俯视调试渲染器，输出 RGB、米制 depth、有效掩码和实体/语义标签，不支持 normal。它画的是平面圆盘，不模拟球体表面深度或真实相机光照。
 - 相机频率必须整除控制频率，控制频率必须整除物理频率。中间步保持最近图像并报告 frame_age，done/reset 强制采样。
-- Episode recorder 是同步、有容量上限的参考实现，压缩/写盘会阻塞采集。尚未实现异步写盘 worker。中途停止的 episode 不进入完整数据集，在 manifest 中列出。
-- PPO 使用 proprio，未实现视觉 PPO、SAC、分布式训练或精确断点续训。checkpoint 可恢复模型用于评估，并保存优化器状态，但没有训练恢复 CLI。
+- Episode recorder 有容量上限，默认同步写入，也支持后台压缩/写盘 worker；队列共享内存预算，需要时施加背压。中途停止的 episode 不进入完整数据集，在 manifest 中列出。
+- 核心 PPO 使用 proprio，支持从已提交 checkpoint 恢复模型、优化器与训练进度；新建环境开始采样，不恢复原仿真轨迹。核心尚未实现视觉 PPO、SAC 或分布式训练；外部 RLinf SAC 使用独立工作流。
 - checkpoint v2 保存模型维度与环境规格，兼容读取初版 v1；evaluate 默认恢复 checkpoint 配置，检查任务与动作语义是否兼容。
 - VLA 已有多模态数据窗口和策略 action chunk 接口，尚未接入 Transformers 或具体 VLA 模型。
 
@@ -76,7 +76,7 @@ PPO 对真正 terminated 的 transition 不 bootstrap，对时间限制 truncate
 
 `tests/` 覆盖解析失败、延迟 SDK 导入、参考受力运动、局部 reset 隔离、done 冻结、相机时序/坐标/深度、跨后端动力学与渲染、Episode 完整性、动作窗口、chunk reset、GAE 超时语义及 checkpoint 恢复。
 
-缺少 MuJoCo 或 PyTorch 时，相应测试使用显式 skip。完整验证环境必须安装 `.[mujoco,train,test]`，并确认没有 skip。训练可运行不等于策略收敛，学习效果应单独用固定评估种子对比训练前后奖励和成功率。
+缺少可选 SDK 时，相应测试使用显式 skip。核心验证至少安装 `.[mujoco,train,test]`；按实际后端另外配置依赖，并记录跳过项。机器人和图形 SDK 使用各自环境验证。学习效果单独用固定评估种子对比训练前后奖励和成功率。
 
 初版学习验证（本轮接口重构前）使用 Python 3.10、PyTorch 2.13.0，MuJoCo 集成测试使用 3.13.0。参考 PPO 用 NumPy 后端、32 个环境、100 次更新，共 409,600 个 transition。在三个未用于训练的固定评估种子上，每个种子运行 128 个 episode，得到：
 
