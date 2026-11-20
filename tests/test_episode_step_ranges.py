@@ -1,10 +1,12 @@
-"""Episode step references keep validation order, integer dtypes and owned output."""
+"""Episode boundaries and step IDs retain validation order and owned output."""
 
 import json
+import tracemalloc
 
 import numpy as np
 import pytest
 
+from embodiedforge._episode_archive import _validate_step_ids
 from embodiedforge.data import read_episodes
 
 
@@ -97,3 +99,45 @@ def test_invalid_step_ranges_keep_observation_before_next_error(
     with pytest.raises(ValueError) as raised:
         list(read_episodes(root))
     assert str(raised.value) == f"{expected}: {path}"
+
+
+def test_long_episode_step_ranges_bound_scratch_and_keep_error_order():
+    count = 1024 * 1024 + 1
+    observed = np.arange(count, dtype=np.uint64)
+    following = np.arange(1, count + 1, dtype=np.uint64)
+    tracemalloc.start()
+    try:
+        _validate_step_ids(observed, following, "long.npz")
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 2 * 1024 * 1024
+
+    following[0] = 3
+    observed[-1] = 0
+    with pytest.raises(ValueError, match="Nonconsecutive episode"):
+        _validate_step_ids(observed, following, "long.npz")
+    observed[-1] = count - 1
+    with pytest.raises(ValueError, match="Invalid next step IDs"):
+        _validate_step_ids(observed, following, "long.npz")
+
+
+@pytest.mark.parametrize(
+    "terminated,truncated,error",
+    [
+        ([True, False], [True, True], "Conflicting terminal flags"),
+        ([False, True], [False, True], "Conflicting terminal flags"),
+        ([True, False], [False, True], "Invalid episode boundary"),
+        ([False, False], [False, False], "Invalid episode boundary"),
+    ],
+)
+def test_invalid_episode_boundaries(tmp_path, terminated, truncated, error):
+    root = tmp_path / "episode"
+    path = episode_archive(root, 1, np.dtype("int32"), 2)
+    with np.load(path, allow_pickle=False) as archive:
+        arrays = {name: archive[name] for name in archive.files}
+    arrays["terminated"] = np.array(terminated)
+    arrays["truncated"] = np.array(truncated)
+    np.savez_compressed(path, **arrays)
+    with pytest.raises(ValueError, match=error):
+        list(read_episodes(root))

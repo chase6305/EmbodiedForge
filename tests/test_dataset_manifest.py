@@ -1,6 +1,7 @@
 """Dataset readers reject another workflow or a contradictory stored layout."""
 
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -87,6 +88,22 @@ def test_required_payload_layout_matches_run_spec_even_with_projection(
         )
 
 
+@pytest.mark.parametrize("reader", [read_episodes, action_windows, window_batches])
+def test_full_reads_report_missing_required_observations(dataset, reader):
+    path = next(dataset.glob("*.npz"))
+    with np.load(path, allow_pickle=False) as archive:
+        arrays = {
+            key: archive[key]
+            for key in archive.files
+            if key not in {"obs/proprio", "state/proprio"}
+        }
+    np.savez_compressed(path, **arrays)
+    with pytest.raises(
+        ValueError, match="Observation is missing required episode fields"
+    ):
+        list(reader(dataset))
+
+
 @pytest.mark.parametrize(
     "marker",
     [
@@ -113,7 +130,44 @@ def test_legacy_dataset_without_run_contract_remains_readable(dataset):
     assert len(list(action_windows(dataset))) == 1
 
 
+@pytest.mark.parametrize("reader", [action_windows, window_batches])
+def test_windows_use_one_manifest_for_instruction_and_layout(
+    dataset, reader, monkeypatch
+):
+    path = dataset / "run.json"
+    original = Path.read_text
+    manifest = json.loads(original(path))
+    instruction = manifest["env_spec"]["instruction"]
+
+    def read_text(self, *args, **kwargs):
+        contents = original(self, *args, **kwargs)
+        if self == path:
+            # An atomic run.json replacement must only affect a later reader.
+            manifest["env_spec"]["instruction"] = "different task"
+            manifest["env_spec"]["action_shape"][0] = 3
+            replacement = path.with_suffix(".tmp")
+            replacement.write_text(json.dumps(manifest))
+            replacement.replace(path)
+        return contents
+
+    monkeypatch.setattr(Path, "read_text", read_text)
+    (window,) = list(reader(dataset))
+    if reader is action_windows:
+        assert window["instruction"] == instruction
+    else:
+        assert window.instruction == (instruction,)
+    with pytest.raises(ValueError, match="layout differs"):
+        list(reader(dataset))
+
+
 @pytest.mark.parametrize("options", [0, False, {}, []])
-def test_options_are_checked_before_opening_any_run(tmp_path, options):
+@pytest.mark.parametrize("reader", [read_episodes, action_windows, window_batches])
+def test_options_are_checked_before_opening_any_run(tmp_path, options, reader):
     with pytest.raises(ValueError, match="EpisodeReadOptions"):
-        list(read_episodes(tmp_path / "missing", options=options))
+        list(reader(tmp_path / "missing", options=options))
+
+
+@pytest.mark.parametrize("batching", [False, {}, [], True])
+def test_invalid_batch_settings_are_checked_before_opening_any_run(tmp_path, batching):
+    with pytest.raises(ValueError, match="BatchOptions"):
+        list(window_batches(tmp_path / "missing", batching=batching))

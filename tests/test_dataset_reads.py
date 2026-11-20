@@ -1,5 +1,7 @@
 """Read partitions once and avoid decompressing unrequested camera payloads."""
 
+import weakref
+
 import numpy as np
 import pytest
 
@@ -149,6 +151,20 @@ def test_projected_windows_match_full_windows_and_own_arrays(dataset):
     assert np.any(full[0]["observation"]["rgb"])
 
 
+@pytest.mark.parametrize("copy_allowed", [False, True])
+def test_strided_window_views_bound_contiguous_scratch(monkeypatch, copy_allowed):
+    from embodiedforge import data
+
+    source = np.asfortranarray(np.arange(60, dtype=">i2").reshape(5, 4, 3))
+    cap = source.nbytes if copy_allowed else source.nbytes - 1
+    monkeypatch.setattr(data, "_MAX_CONTIGUOUS_WINDOW_COPY_BYTES", cap)
+    view = data._window_view(source, 3)
+    assert not view.flags.writeable
+    assert np.shares_memory(view, source) is not copy_allowed
+    for index, rows in enumerate(view):
+        np.testing.assert_array_equal(rows, source[index : index + 3], strict=True)
+
+
 def test_unknown_observation_rejected(dataset):
     with pytest.raises(ValueError, match="Missing requested observations"):
         next(
@@ -177,20 +193,45 @@ def test_invalid_read_options(kwargs):
 
 
 @pytest.mark.parametrize("field", ["proprio", "rgb"])
-def test_projection_validation_scope_is_explicit(dataset, field):
+@pytest.mark.parametrize("reader", [read_episodes, action_windows])
+def test_projection_validation_scope_is_explicit(dataset, field, reader):
     path = sorted(dataset.glob("*.npz"))[0]
     with np.load(path, allow_pickle=False) as archive:
         arrays = {key: archive[key] for key in archive.files}
     arrays[f"next/{field}"][0] = 0
     np.savez_compressed(path, **arrays)
     with pytest.raises(ValueError, match="continuity broken"):
-        list(read_episodes(dataset))
+        list(reader(dataset))
     options = EpisodeReadOptions(observation_keys=())
     if field == "proprio":
         with pytest.raises(ValueError, match="continuity broken"):
-            list(read_episodes(dataset, options=options))
+            list(reader(dataset, options=options))
     else:
-        assert list(read_episodes(dataset, options=options))
+        assert list(reader(dataset, options=options))
+
+
+def test_window_decoder_releases_each_following_camera_array_after_validation(
+    dataset, monkeypatch
+):
+    loaded = {}
+    getitem = np.lib.npyio.NpzFile.__getitem__
+
+    def read(archive, key):
+        if key in {"next/rgb", "next/depth"}:
+            assert all(array() is None for array in loaded.values())
+            value = getitem(archive, key)
+            loaded[key] = weakref.ref(value)
+            return value
+        return getitem(archive, key)
+
+    monkeypatch.setattr(np.lib.npyio.NpzFile, "__getitem__", read)
+    iterator = action_windows(dataset)
+    try:
+        assert {"rgb", "depth"} <= next(iterator)["observation"].keys()
+        assert loaded.keys() == {"next/rgb", "next/depth"}
+        assert all(array() is None for array in loaded.values())
+    finally:
+        iterator.close()
 
 
 def test_batches_reproducible_owned_and_epoch_changes_order(dataset):
@@ -268,22 +309,54 @@ def test_batch_shuffle_consumes_bounded_prefix(monkeypatch):
 
     consumed = []
 
-    def windows(*args, **kwargs):
+    def episodes(*args, **kwargs):
         for index in range(1000):
             consumed.append(index)
-            yield {
-                "observation": {"proprio": np.zeros((1, 2))},
-                "action": np.zeros((1, 2)),
-                "instruction": "hold",
-            }
+            yield {"proprio": np.zeros((1, 1, 2))}, np.zeros((1, 1, 2)), "hold"
 
-    monkeypatch.setattr(module, "action_windows", windows)
+    monkeypatch.setattr(module, "_episode_windows", episodes)
     iterator = module.window_batches(
         "unused", batching=module.BatchOptions(batch_size=3, shuffle_buffer=4)
     )
     assert len(next(iterator).action) == 3
     assert len(consumed) == 7
     iterator.close()
+
+
+@pytest.mark.parametrize("strided", [False, True])
+def test_shuffle_preserves_seeded_order_across_episode_boundaries(monkeypatch, strided):
+    from embodiedforge import batching as module
+
+    instructions = []
+
+    def episodes(*args, **kwargs):
+        start = 0
+        for index, count in enumerate((1, 9, 2, 6, 3)):
+            rows = np.arange(start, start + count).reshape(-1, 1, 1)
+            rows = np.broadcast_to(rows, (count, 2, 2))
+            rows = np.asfortranarray(rows) if strided else rows.copy()
+            text = f"episode {index}"
+            instructions.extend((text,) * count)
+            yield {"proprio": rows}, rows, text
+            start += count
+
+    monkeypatch.setattr(module, "_episode_windows", episodes)
+    batches = list(
+        module.window_batches(
+            "unused",
+            batching=module.BatchOptions(
+                batch_size=4, shuffle_buffer=3, seed=7, epoch=4
+            ),
+        )
+    )
+    # The replacement and final drain sequence both predate episode-aware copying.
+    order = [1, 3, 0, 2, 6, 4, 7, 8, 10, 9, 5, 12, 13, 14, 16, 15, 17, 19, 11, 20, 18]
+    assert [int(row) for batch in batches for row in batch.action[:, 0, 0]] == order
+    assert [text for batch in batches for text in batch.instruction] == [
+        instructions[index] for index in order
+    ]
+    for batch in batches:
+        np.testing.assert_array_equal(batch.observation["proprio"], batch.action)
 
 
 @pytest.mark.parametrize(
@@ -309,9 +382,6 @@ def test_batch_rejects_incompatible_samples(monkeypatch, fault, shuffle_buffer):
         second["observation"] = {"proprio": np.zeros((1, 3))}
     else:
         second["observation"] = {"proprio": np.zeros((1, 2), dtype=np.float32)}
-    monkeypatch.setattr(
-        module, "action_windows", lambda *a, **kw: iter([first, second])
-    )
     monkeypatch.setattr(
         module,
         "_episode_windows",

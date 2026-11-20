@@ -18,6 +18,7 @@ from .runtime.records import validate_run_identity
 _REQUIRED_OBSERVATIONS = frozenset(
     {"env_id", "episode_id", "step_id", "time", "proprio"}
 )
+_TRANSITION_FIELDS = frozenset({"action", "reward", "terminated", "truncated"})
 # NumPy 1.x can override ndarray equality globally; scalar equality bypasses it.
 _ALLOW_SCALAR_EQUALITY = not hasattr(np, "set_numeric_ops")
 
@@ -110,15 +111,7 @@ def _validate_observation(observation: Observation, count: int) -> None:
     if not _REQUIRED_OBSERVATIONS <= observation.keys():
         raise ValueError("Observation is missing required episode fields")
     for name, value in observation.items():
-        if (
-            not isinstance(value, np.ndarray)
-            or value.ndim < 1
-            or len(value) != count
-            or value.dtype.kind not in "biuf"
-            or value.dtype.kind == "f"
-            and not _all_finite(value)
-        ):
-            raise ValueError(f"Invalid numeric observation field: {name}")
+        _validate_observation_field(name, value, count)
     for name in ("env_id", "episode_id", "step_id"):
         value = observation[name]
         if value.shape != (count,) or value.dtype.kind not in "iu" or (value < 0).any():
@@ -127,12 +120,78 @@ def _validate_observation(observation: Observation, count: int) -> None:
         raise ValueError("time must have shape [N]")
 
 
+def _validate_observation_field(name: str, value: Array, count: int) -> None:
+    if (
+        not isinstance(value, np.ndarray)
+        or value.ndim < 1
+        or len(value) != count
+        or value.dtype.kind not in "biuf"
+        or value.dtype.kind == "f"
+        and not _all_finite(value)
+    ):
+        raise ValueError(f"Invalid numeric observation field: {name}")
+
+
+def _validate_continuity(name: str, current: Array, following: Array, path) -> None:
+    if (
+        current.shape != following.shape
+        or current.dtype != following.dtype
+        or not _array_equal(current[1:], following[:-1])
+    ):
+        raise ValueError(f"Observation continuity broken for {name}: {path}")
+
+
+def _read_legacy_window_fields(
+    archive, keys: list[str], count: int, path
+) -> Observation:
+    """Check following payloads individually before releasing their backing arrays."""
+    deferred = {
+        key: key[5:]
+        for key in keys
+        if key.startswith("next/") and key[5:] not in _REQUIRED_OBSERVATIONS
+    }
+    fields = {key: archive[key] for key in keys if key not in deferred}
+    for key, name in deferred.items():
+        current = fields[f"obs/{name}"]
+        following = archive[key]
+        if (
+            current.ndim < 1
+            or len(current) != count
+            or following.ndim < 1
+            or len(following) != count
+        ):
+            raise ValueError(f"Corrupt episode lengths: {path}")
+        _validate_observation_field(name, current, count)
+        _validate_observation_field(name, following, count)
+        _validate_continuity(name, current, following, path)
+        del following
+    return fields
+
+
+def _validate_step_ids(observed: Array, following: Array, path: str | Path) -> None:
+    # Keep the temporary reference range under roughly 1 MiB for long episodes.
+    block_size = 128 * 1024
+    next_ids_valid = True
+    for start in range(0, len(observed), block_size):
+        stop = min(start + block_size, len(observed))
+        expected = np.arange(start, stop + 1)
+        if not np.array_equal(observed[start:stop], expected[:-1]):
+            raise ValueError(f"Nonconsecutive episode: {path}")
+        if next_ids_valid:
+            next_ids_valid = np.array_equal(following[start:stop], expected[1:])
+        del expected
+    # Report a current-state error first even when an earlier next-state block
+    # was already invalid.
+    if not next_ids_valid:
+        raise ValueError(f"Invalid next step IDs: {path}")
+
+
 def _load_episode(
     path: str | Path,
     metadata: dict,
     observation_keys: tuple[str, ...] | None,
     *,
-    owned: bool,
+    for_windows: bool,
     spec: dict | None,
     source=None,
 ) -> Observation:
@@ -144,6 +203,7 @@ def _load_episode(
     step_count = metadata["steps"]
     if type(step_count) is not int or step_count < 1:
         raise ValueError(f"Corrupt episode lengths: {path}")
+    legacy_windows = schema == 1 and for_windows
     # Read selected payloads once, after checking the archive field names.
     with np.load(path if source is None else source, allow_pickle=False) as archive:
         archive_keys = archive.files
@@ -156,17 +216,23 @@ def _load_episode(
         if schema == 2:
             if any(
                 not field_key.startswith("state/")
-                and field_key not in {"action", "reward", "terminated", "truncated"}
+                and field_key not in _TRANSITION_FIELDS
                 for field_key in archive_keys
             ):
                 raise ValueError(f"Invalid compact episode fields: {path}")
-        elif observation_keys is not None:
+        elif observation_keys is not None or legacy_windows:
             next_observation_keys = {
                 field_key[5:]
                 for field_key in archive_keys
                 if field_key.startswith("next/")
             }
             if available_observation_keys != next_observation_keys:
+                shared_keys = available_observation_keys & next_observation_keys
+                if (
+                    observation_keys is None
+                    and not _REQUIRED_OBSERVATIONS <= shared_keys
+                ):
+                    raise ValueError("Observation is missing required episode fields")
                 raise ValueError(f"Observation schema changed: {path}")
         if observation_keys is not None:
             requested_keys = _REQUIRED_OBSERVATIONS | set(observation_keys)
@@ -178,14 +244,21 @@ def _load_episode(
             archive_keys = [
                 field_key
                 for field_key in archive_keys
-                if field_key in {"action", "reward", "terminated", "truncated"}
+                if field_key in _TRANSITION_FIELDS
                 or (
                     field_key.startswith(observation_prefix)
                     and field_key[len(observation_prefix) :] in requested_keys
                 )
                 or (field_key.startswith("next/") and field_key[5:] in requested_keys)
             ]
-        episode_fields = {field_key: archive[field_key] for field_key in archive_keys}
+        if legacy_windows:
+            episode_fields = _read_legacy_window_fields(
+                archive, archive_keys, step_count, path
+            )
+        else:
+            episode_fields = {
+                field_key: archive[field_key] for field_key in archive_keys
+            }
     if schema == 2:
         compact_states = {
             field_name[6:]: field_array
@@ -210,8 +283,7 @@ def _load_episode(
         for field_value in episode_fields.values()
     ):
         raise ValueError(f"Corrupt episode lengths: {path}")
-    required_transition_fields = {"action", "reward", "terminated", "truncated"}
-    if not required_transition_fields <= episode_fields.keys():
+    if not _TRANSITION_FIELDS <= episode_fields.keys():
         raise ValueError(f"Missing transition fields: {path}")
     observations = {
         field_key[4:]: field_value
@@ -226,9 +298,18 @@ def _load_episode(
     if schema == 2:
         _validate_observation(compact_states, step_count + 1)
     else:
-        _validate_observation(observations, step_count)
+        current = (
+            {
+                name: value
+                for name, value in observations.items()
+                if name in _REQUIRED_OBSERVATIONS
+            }
+            if legacy_windows
+            else observations
+        )
+        _validate_observation(current, step_count)
         _validate_observation(next_observations, step_count)
-    if observations.keys() != next_observations.keys():
+    if not legacy_windows and observations.keys() != next_observations.keys():
         raise ValueError(f"Observation schema changed: {path}")
     if spec is not None and (
         episode_fields["action"].shape != (step_count, spec["action_shape"][0])
@@ -238,33 +319,29 @@ def _load_episode(
         raise ValueError(
             f"Episode action/proprio layout differs from environment spec: {path}"
         )
-    for field_name in ("terminated", "truncated"):
-        if (
-            episode_fields[field_name].shape != (step_count,)
-            or episode_fields[field_name].dtype != bool
-        ):
+    terminated, truncated = episode_fields["terminated"], episode_fields["truncated"]
+    for field_name, flag in (("terminated", terminated), ("truncated", truncated)):
+        if flag.shape != (step_count,) or flag.dtype != bool:
             raise ValueError(f"Invalid {field_name}: {path}")
-    if (episode_fields["terminated"] & episode_fields["truncated"]).any():
+    premature_end = terminated[:-1].any() or truncated[:-1].any()
+    # Only an early flag needs an element-wise comparison to diagnose a conflict.
+    if (terminated[-1] and truncated[-1]) or (
+        premature_end and (terminated[:-1] & truncated[:-1]).any()
+    ):
         raise ValueError(f"Conflicting terminal flags: {path}")
+    action, reward = episode_fields["action"], episode_fields["reward"]
     if (
-        episode_fields["action"].ndim != 2
-        or episode_fields["action"].dtype.kind not in "fiu"
-        or (not _all_finite(episode_fields["action"]))
-        or (episode_fields["reward"].shape != (step_count,))
-        or (episode_fields["reward"].dtype.kind not in "fiu")
-        or (not _all_finite(episode_fields["reward"]))
+        action.ndim != 2
+        or action.dtype.kind not in "fiu"
+        or (action.dtype.kind == "f" and not _all_finite(action))
+        or reward.shape != (step_count,)
+        or reward.dtype.kind not in "fiu"
+        or (reward.dtype.kind == "f" and not _all_finite(reward))
     ):
         raise ValueError(f"Invalid action/reward: {path}")
-    completed_steps = episode_fields["terminated"] | episode_fields["truncated"]
-    if not completed_steps[-1] or completed_steps[:-1].any():
+    if premature_end or not (terminated[-1] or truncated[-1]):
         raise ValueError(f"Invalid episode boundary: {path}")
-    # Share the reference range and release it before allocating public copies.
-    expected_step_ids = np.arange(step_count + 1)
-    if not np.array_equal(episode_fields["obs/step_id"], expected_step_ids[:-1]):
-        raise ValueError(f"Nonconsecutive episode: {path}")
-    if not np.array_equal(next_observations["step_id"], expected_step_ids[1:]):
-        raise ValueError(f"Invalid next step IDs: {path}")
-    del expected_step_ids
+    _validate_step_ids(observations["step_id"], next_observations["step_id"], path)
     for field_name in ("env_id", "episode_id"):
         if not (
             metadata[field_name] <= np.iinfo(observations[field_name].dtype).max
@@ -279,16 +356,12 @@ def _load_episode(
     # Compact observations already share adjacent slices of the same state array.
     if schema == 1:
         for field_name, field_array in observations.items():
-            if (
-                field_array.shape != next_observations[field_name].shape
-                or field_array.dtype != next_observations[field_name].dtype
-                or not _array_equal(field_array[1:], next_observations[field_name][:-1])
-            ):
-                raise ValueError(
-                    f"Observation continuity broken for {field_name}: {path}"
+            if field_name in next_observations:
+                _validate_continuity(
+                    field_name, field_array, next_observations[field_name], path
                 )
     # Compact state views stay private; public observations own separate arrays.
-    if schema == 2 and owned:
+    if schema == 2 and not for_windows:
         for field_name in tuple(compact_states):
             episode_fields[f"obs/{field_name}"] = observations.pop(field_name).copy()
             episode_fields[f"next/{field_name}"] = next_observations.pop(

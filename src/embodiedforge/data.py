@@ -32,6 +32,7 @@ from .runtime.hashing import file_sha256, stream_sha256
 from .runtime.records import run_identity
 
 LOGGER = logging.getLogger(__name__)
+_MAX_CONTIGUOUS_WINDOW_COPY_BYTES = 16 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -680,21 +681,32 @@ def read_episodes(
     full observation key schema but validates only selected payloads plus the
     mandatory transition/state fields. Use the default for a full dataset audit.
     """
-    yield from _read_episodes(directory, options=options, owned=True)
+    options = _read_options(options)
+    root = Path(directory)
+    yield from _read_episodes(
+        root,
+        spec=_dataset_manifest(root).get("env_spec"),
+        options=options,
+        for_windows=False,
+    )
+
+
+def _read_options(options: EpisodeReadOptions | None) -> EpisodeReadOptions:
+    if options is None:
+        return EpisodeReadOptions()
+    if not isinstance(options, EpisodeReadOptions):
+        raise ValueError("options must be EpisodeReadOptions")
+    return options
 
 
 def _read_episodes(
-    directory: str | Path,
+    root: Path,
     *,
-    options: EpisodeReadOptions | None,
-    owned: bool,
+    spec: dict | None,
+    options: EpisodeReadOptions,
+    for_windows: bool,
 ) -> Iterator[Observation]:
-    """Internal compact views stay private; window results copy their slices."""
-    if options is not None and not isinstance(options, EpisodeReadOptions):
-        raise ValueError("options must be EpisodeReadOptions")
-    options = options or EpisodeReadOptions()
-    root = Path(directory)
-    manifest = _dataset_manifest(root)
+    """Decode one episode at a time, with private views for window readers."""
     completed_index = 0
     with os.scandir(root) as entries:
         paths = sorted(
@@ -703,9 +715,11 @@ def _read_episodes(
         )
     for path in paths:
         marker = os.path.splitext(path)[0] + ".json"
-        if not os.path.exists(marker):
+        try:
+            marker_stream = open(marker, encoding="utf-8")
+        except FileNotFoundError:
             continue
-        with open(marker, encoding="utf-8") as stream:
+        with marker_stream as stream:
             metadata = json.load(stream)
         if not isinstance(metadata, dict):
             raise ValueError(f"Episode marker must be a JSON object: {marker}")
@@ -720,38 +734,47 @@ def _read_episodes(
         completed_index += 1
         if not selected:
             continue
-        if options.verify_archive:
-            expected = metadata.get("archive_sha256")
-            if (
-                not isinstance(expected, str)
-                or len(expected) != 64
-                or any(
-                    character not in "0123456789abcdef"
-                    for character in expected.lower()
-                )
-            ):
-                raise ValueError(f"Archive SHA256 is missing or invalid: {path}")
-        try:
-            source = open(path, "rb") if options.verify_archive else nullcontext()
-            with source as stream:
-                if options.verify_archive:
-                    if stream_sha256(stream) != expected.lower():
-                        raise ValueError(f"Episode archive SHA256 mismatch: {path}")
-                    stream.seek(0)
-                episode = _load_episode(
-                    path,
-                    metadata,
-                    options.observation_keys,
-                    owned=owned,
-                    spec=manifest.get("env_spec"),
-                    source=stream,
-                )
-        except zipfile.BadZipFile as error:
-            raise zipfile.BadZipFile(
-                f"Corrupt episode archive: {path}: {error}"
-            ) from error
-        yield episode
-        del episode
+        # Transfer the episode without a local reference in this generator.
+        yield _read_completed_episode(
+            path, metadata, spec=spec, options=options, for_windows=for_windows
+        )
+
+
+def _read_completed_episode(
+    path: str,
+    metadata: dict,
+    *,
+    spec: dict | None,
+    options: EpisodeReadOptions,
+    for_windows: bool,
+) -> Observation:
+    if options.verify_archive:
+        expected = metadata.get("archive_sha256")
+        if (
+            not isinstance(expected, str)
+            or len(expected) != 64
+            or any(
+                character not in "0123456789abcdef" for character in expected.lower()
+            )
+        ):
+            raise ValueError(f"Archive SHA256 is missing or invalid: {path}")
+    try:
+        source = open(path, "rb") if options.verify_archive else nullcontext()
+        with source as stream:
+            if options.verify_archive:
+                if stream_sha256(stream) != expected.lower():
+                    raise ValueError(f"Episode archive SHA256 mismatch: {path}")
+                stream.seek(0)
+            return _load_episode(
+                path,
+                metadata,
+                options.observation_keys,
+                for_windows=for_windows,
+                spec=spec,
+                source=stream,
+            )
+    except zipfile.BadZipFile as error:
+        raise zipfile.BadZipFile(f"Corrupt episode archive: {path}: {error}") from error
 
 
 def action_windows(
@@ -770,14 +793,40 @@ def action_windows(
         directory, history, horizon, options=options
     ):
         for index in range(len(action)):
-            yield {
-                "observation": {
-                    key: value[index].copy() for key, value in observation.items()
-                },
-                "action": action[index].copy(),
-                "instruction": instruction,
-            }
+            yield _window_sample(observation, action, instruction, index, copy=True)
         del observation, action
+
+
+def _window_sample(
+    observation: Observation, action: Array, instruction: str, index: int, *, copy: bool
+) -> dict:
+    row = action[index]
+    return {
+        "observation": (
+            {key: value[index].copy() for key, value in observation.items()}
+            if copy
+            else {key: value[index] for key, value in observation.items()}
+        ),
+        "action": row.copy() if copy else row,
+        "instruction": instruction,
+    }
+
+
+def _window_view(value: Array, width: int) -> Array:
+    if width == 1:
+        windows = value[:, None]
+        windows.flags.writeable = False
+        return windows
+    if (
+        not value.flags.c_contiguous
+        and value.nbytes <= _MAX_CONTIGUOUS_WINDOW_COPY_BYTES
+    ):
+        # An overlapping window can otherwise copy the same strided frame
+        # many times. Bound the scratch allocation to one selected field.
+        value = np.ascontiguousarray(value)
+    return np.moveaxis(
+        np.lib.stride_tricks.sliding_window_view(value, width, axis=0), -1, 1
+    )
 
 
 def _episode_windows(
@@ -790,32 +839,30 @@ def _episode_windows(
     """Private read-only window views; consumers must copy before advancing."""
     if any(type(value) is not int or value <= 0 for value in (history, horizon)):
         raise ValueError("history and horizon must be positive integers")
-    manifest = _dataset_manifest(Path(directory))
-    instruction = manifest.get("env_spec", {}).get("instruction")
-    if not isinstance(instruction, str) or not instruction.strip():
+    options = _read_options(options)
+    root = Path(directory)
+    spec = _dataset_manifest(root).get("env_spec")
+    if spec is None:
         raise ValueError("Action windows require a recorded dataset instruction")
-    for episode in _read_episodes(directory, options=options, owned=False):
-        count = max(0, len(episode["action"]) - history - horizon + 2)
-        if count:
+    instruction = spec["instruction"]
+    for episode in _read_episodes(root, spec=spec, options=options, for_windows=True):
+        count = len(episode["action"]) - history - horizon + 2
+        if count > 0:
             observation = {
-                key[4:]: np.moveaxis(
-                    np.lib.stride_tricks.sliding_window_view(value, history, axis=0),
-                    -1,
-                    1,
-                )[:count]
+                key[4:]: value
                 for key, value in episode.items()
                 if key.startswith("obs/")
             }
-            action = np.moveaxis(
-                np.lib.stride_tricks.sliding_window_view(
-                    episode["action"], horizon, axis=0
-                ),
-                -1,
-                1,
-            )[history - 1 : history - 1 + count]
+            action = episode["action"]
             # Following/reward/terminal arrays were validated, but no longer
             # need to stay resident while consumers copy observation windows.
             del episode
+            observation_rows = count + history - 1
+            for key in observation:
+                observation[key] = _window_view(
+                    observation[key][:observation_rows], history
+                )
+            action = _window_view(action[history - 1 :], horizon)
             yield observation, action, instruction
             del observation, action
             continue

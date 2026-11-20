@@ -7,7 +7,7 @@ import pytest
 
 from embodiedforge import Config, VectorEnv
 from embodiedforge.batching import BatchOptions, window_batches
-from embodiedforge.data import EpisodeRecorder, read_episodes
+from embodiedforge.data import EpisodeRecorder, action_windows, read_episodes
 
 
 @pytest.fixture(params=["transitions", "compact"])
@@ -40,6 +40,7 @@ def dataset(tmp_path, request):
         prefixes = ("state/",) if request.param == "compact" else ("obs/", "next/")
         for prefix in prefixes:
             arrays[prefix + "action"] = arrays[prefix + "proprio"][:, :3].copy()
+            arrays[prefix + "depth"] = np.asfortranarray(arrays[prefix + "depth"])
         arrays = {
             key: value.astype(value.dtype.newbyteorder(">"))
             if value.dtype.kind == "f"
@@ -127,8 +128,9 @@ def test_mutating_an_ordered_batch_cannot_change_next_batch_or_dataset(dataset):
 
 
 @pytest.mark.parametrize("size", [2, 64])
-def test_cross_episode_tail_does_not_retain_whole_backing_arrays(
-    dataset, monkeypatch, size
+@pytest.mark.parametrize("shuffle_buffer", [0, 2])
+def test_batch_buffer_does_not_retain_whole_backing_arrays_between_episodes(
+    dataset, monkeypatch, size, shuffle_buffer
 ):
     loaded = []
     load, getitem = np.load, np.lib.npyio.NpzFile.__getitem__
@@ -149,12 +151,41 @@ def test_cross_episode_tail_does_not_retain_whole_backing_arrays(
     # for both completed crossing batches and an oversized final tail.
     batches = list(
         window_batches(
-            dataset, history=1, horizon=7, batching=BatchOptions(batch_size=size)
+            dataset,
+            history=1,
+            horizon=7,
+            batching=BatchOptions(batch_size=size, shuffle_buffer=shuffle_buffer),
         )
     )
     assert len(batches) == (6 + size - 1) // size
     assert sum(len(batch.action) for batch in batches) == 6
     assert all(array() is None for array in loaded)
+
+
+@pytest.mark.parametrize("reader", [action_windows, window_batches])
+def test_windows_release_validated_arrays_unused_by_windows(
+    dataset, monkeypatch, reader
+):
+    released = {}
+    getitem = np.lib.npyio.NpzFile.__getitem__
+
+    def read(archive, key):
+        value = getitem(archive, key)
+        if key in {"reward", "terminated", "truncated"} or key.startswith("next/"):
+            released[key] = weakref.ref(value)
+        return value
+
+    monkeypatch.setattr(np.lib.npyio.NpzFile, "__getitem__", read)
+    if reader is window_batches:
+        iterator = reader(dataset, batching=BatchOptions(batch_size=2))
+    else:
+        iterator = reader(dataset)
+    try:
+        next(iterator)
+        assert {"reward", "terminated", "truncated"} <= released.keys()
+        assert all(array() is None for array in released.values())
+    finally:
+        iterator.close()
 
 
 @pytest.mark.parametrize("byte_order", ["<", ">"])

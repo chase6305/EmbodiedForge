@@ -253,7 +253,7 @@ embodiedforge rollout --physics newton --render raster --num-envs 4 \
 
 `EpisodeRecorder(..., episode_format="compact")` 将 T 次转换的观测保存为 `state/*` 的 T+1 行序列，转换字段仍为 T 行。格式在构造后不可修改，确保缓存计数与磁盘布局一致。缓存中的相邻 obs/next 共享记录器持有的同一份观测，预算只计一次；调用者传入的数组仍被复制，连续性验证保留。默认 `episode_format="transitions"` 继续写原来的独立 obs/next 数组。
 
-`read_episodes` 支持两种格式，均返回独立的 `obs/*` 和 `next/*` 数组；`action_windows` 和数据导出方无需改变接口。投影读取时不解压未选择的 `state/rgb` 等载荷。紧凑状态先校验一次，再按需生成独立数组；窗口读取直接在内部状态上选取并复制窗口，避免复制整个 obs/next。窗口独立性与默认的完整载荷校验保持不变，解压下一段前释放上一段内部 episode。存储仍按完整 episode 堆叠、压缩和发布，预算不包含压缩/堆叠临时内存，也没有提供按帧磁盘映射。
+`read_episodes` 支持两种格式，均返回独立的 `obs/*` 和 `next/*` 数组；`action_windows` 和数据导出方无需改变接口。投影读取时不解压未选择的 `state/rgb` 等载荷。紧凑状态先校验一次，再按需生成独立数组；窗口读取直接在内部状态上选取并复制窗口，避免复制整个 obs/next。读取旧格式窗口时，逐个校验并释放窗口用不到的图像等 `next/*` 数组。窗口独立性与默认的完整载荷校验保持不变，解压下一段前释放上一段内部 episode。存储仍按完整 episode 堆叠、压缩和发布，预算不包含压缩/堆叠临时内存，也没有提供按帧磁盘映射。
 
 ```bash
 embodiedforge rollout --render raster --num-envs 4 \
@@ -337,7 +337,9 @@ for epoch in range(3):
 
 `shuffle_buffer=0` 保持原顺序；正值启用有限缓存打乱，不是全数据的均匀随机排列，除非缓存能容纳全部输入。缓存最多保留指定数量的窗口，处理时另有一个新输入、待拼接样本、输出批次和一个解压 episode；这不是 RSS 或字节预算。使用大图像时应降低容量或选择所需观测字段。
 
-有序模式直接从 episode 内部的只读窗口视图复制完整批次，避免逐窗口复制后再拼接；跨 episode 的尾部只复制实际需要的行，不保留前一段完整图像，也不按大 batch_size 预分配不足的尾批。跨段拼接直接校验动作与观测的 shape/dtype，避免为每个片段构造临时字典和字段名前缀；校验在字节序归一化之前完成。打乱模式继续缓存拥有数组的独立窗口；两条路径均保留原来的样本顺序/打乱规则、批次边界、字节序归一化和输入 shape/dtype 检查。
+多步窗口会给不超过 16 MiB 的非连续字段创建连续副本，减少重叠帧在组批时的跨步长读取。
+
+有序模式直接从 episode 内部的只读窗口视图复制完整批次，避免逐窗口复制后再拼接；跨 episode 的尾部只复制实际需要的行，不保留前一段完整图像，也不按大 batch_size 预分配不足的尾批。跨段拼接直接校验动作与观测的 shape/dtype，避免为每个片段构造临时字典和字段名前缀；校验在字节序归一化之前完成。打乱模式对当前 episode 的连续窗口使用索引缓存，跨段保留的窗口会复制成独立数组。非连续窗口按原始读取顺序复制。两条路径均保留原来的样本顺序/打乱规则、批次边界、字节序归一化和输入 shape/dtype 检查。
 
 `python benchmarks/ordered_batches.py --output /tmp/ordered-batches.json` 单独测量解码后的有序拼批，耗时、分配追踪和输出校验和分别采集；包含 NPZ 解压和校验的整体读取请使用 `benchmarks/dataset_reads.py`。[2026-10-16 测量记录](experiments/ordered-batches-optimization-20261016.json) 同时记录了最终校验优化和未采用的中间拷贝消除试验。拼批专项结果不能直接代表整体读取、训练吞吐或进程 RSS。
 

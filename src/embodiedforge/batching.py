@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from .core import Array, Observation
-from .data import EpisodeReadOptions, _episode_windows, action_windows
+from .data import EpisodeReadOptions, _episode_windows, _read_options, _window_sample
 
 
 @dataclass(frozen=True)
@@ -47,32 +47,6 @@ class WindowBatch:
     instruction: tuple[str, ...]
 
 
-def _shuffle(
-    samples: Iterator[dict],
-    capacity: int,
-    rng: np.random.Generator,
-) -> Iterator[dict]:
-    """Hold at most capacity buffered samples plus the incoming sample."""
-    if capacity == 0:
-        yield from samples
-        return
-    buffer = []
-    for sample in samples:
-        if len(buffer) < capacity:
-            buffer.append(sample)
-            continue
-        index = int(rng.integers(len(buffer)))
-        selected = buffer[index]
-        buffer[index] = sample
-        yield selected
-    while buffer:
-        index = int(rng.integers(len(buffer)))
-        selected = buffer[index]
-        buffer[index] = buffer[-1]
-        buffer.pop()
-        yield selected
-
-
 def _collate(samples: list[dict]) -> WindowBatch:
     """Reject incompatible layouts before stacking, including silent dtype casts."""
     first = samples[0]
@@ -89,27 +63,152 @@ def _collate(samples: list[dict]) -> WindowBatch:
                 raise ValueError(f"Cannot batch different shapes/dtypes for obs/{key}")
         if not isinstance(sample["instruction"], str):
             raise ValueError("Batch instructions must be strings")
+    # The layouts already match. Fill the leading batch axis directly using
+    # the native output byte order that np.stack used for these numeric arrays.
     return WindowBatch(
         observation={
-            key: np.stack([sample["observation"][key] for sample in samples])
-            for key in first["observation"]
+            key: np.array(
+                [sample["observation"][key] for sample in samples],
+                dtype=value.dtype.newbyteorder("="),
+                order="C",
+            )
+            for key, value in first_observation.items()
         },
-        action=np.stack([sample["action"] for sample in samples]),
+        action=np.array(
+            [sample["action"] for sample in samples],
+            dtype=first_action.dtype.newbyteorder("="),
+            order="C",
+        ),
         instruction=tuple(sample["instruction"] for sample in samples),
     )
 
 
-def _owned_chunk(
-    observation, action, instruction, start, count, *, normalize=True
+def _collate_episode_rows(
+    samples: list[int | dict], observation: Observation, action: Array, instruction: str
 ) -> WindowBatch:
-    if not isinstance(instruction, str):
-        raise ValueError("Batch instructions must be strings")
+    if all(type(row) is int for row in samples):
 
+        def gather(value):
+            return np.array(
+                [value[index] for index in samples],
+                dtype=value.dtype.newbyteorder("="),
+                order="C",
+            )
+
+        return WindowBatch(
+            {key: gather(value) for key, value in observation.items()},
+            gather(action),
+            (instruction,) * len(samples),
+        )
+
+    return _collate(
+        [
+            _window_sample(observation, action, instruction, row, copy=False)
+            if type(row) is int
+            else row
+            for row in samples
+        ]
+    )
+
+
+def _shuffled_batches(
+    episodes: Iterator[tuple[Observation, Array, str]],
+    capacity: int,
+    size: int,
+    drop_last: bool,
+    rng: np.random.Generator,
+) -> Iterator[WindowBatch]:
+    """Collate current rows directly and copy any survivors before advancing."""
+    # Integers refer to rows of the current episode. Samples from earlier
+    # episodes already own their arrays and occupy the same buffer slots.
+    buffer: list[int | dict] = []
+    pending: list[int | dict] = []
+    for observation, action, instruction in episodes:
+        if not isinstance(instruction, str):
+            raise ValueError("Batch instructions must be strings")
+        if len(buffer) + len(action) <= capacity:
+            buffer.extend(
+                _window_sample(observation, action, instruction, row, copy=True)
+                for row in range(len(action))
+            )
+            del observation, action
+            continue
+        # Copy distant strides in input order to reuse cache lines shared by
+        # neighboring windows. Contiguous rows can be gathered after shuffling.
+        defer_copy = action[0].flags.c_contiguous and all(
+            value[0].flags.c_contiguous for value in observation.values()
+        )
+        fill = capacity - len(buffer)
+        if defer_copy:
+            borrowed_slots = set(range(len(buffer), capacity))
+            buffer.extend(range(fill))
+        else:
+            buffer.extend(
+                _window_sample(observation, action, instruction, row, copy=True)
+                for row in range(fill)
+            )
+        pending_start = len(pending)
+        for row in range(fill, len(action)):
+            slot = int(rng.integers(capacity))
+            pending.append(buffer[slot])
+            if defer_copy:
+                buffer[slot] = row
+                borrowed_slots.add(slot)
+            else:
+                buffer[slot] = _window_sample(
+                    observation, action, instruction, row, copy=True
+                )
+            if len(pending) == size:
+                if defer_copy:
+                    yield _collate_episode_rows(
+                        pending, observation, action, instruction
+                    )
+                else:
+                    yield _collate(pending)
+                pending.clear()
+                pending_start = 0
+
+        if defer_copy:
+            for slot in borrowed_slots:
+                buffer[slot] = _window_sample(
+                    observation, action, instruction, buffer[slot], copy=True
+                )
+            # An unfilled batch can also contain rows from the current episode.
+            for slot in range(pending_start, len(pending)):
+                row = pending[slot]
+                if type(row) is int:
+                    pending[slot] = _window_sample(
+                        observation, action, instruction, row, copy=True
+                    )
+        del observation, action
+
+    while buffer:
+        slot = int(rng.integers(len(buffer)))
+        pending.append(buffer[slot])
+        buffer[slot] = buffer[-1]
+        buffer.pop()
+        if len(pending) == size:
+            yield _collate(pending)
+            pending.clear()
+    if pending and not drop_last:
+        yield _collate(pending)
+
+
+@dataclass(frozen=True)
+class _EpisodeChunk:
+    observation: Observation
+    action: Array
+    instruction: str
+
+
+def _owned_chunk(observation, action, instruction, start, count) -> WindowBatch:
     def owned(value):
-        # Preserve np.stack's native output byte order. Pending tails retain
-        # their original dtypes until the cross-episode layout check.
-        dtype = value.dtype.newbyteorder("=") if normalize else value.dtype
-        return np.array(value[start : start + count], dtype=dtype, copy=True, order="C")
+        return np.array(
+            value[start : start + count],
+            dtype=value.dtype.newbyteorder("="),
+            copy=True,
+            order="C",
+        )
 
     return WindowBatch(
         {key: owned(value) for key, value in observation.items()},
@@ -118,7 +217,23 @@ def _owned_chunk(
     )
 
 
-def _join_chunks(chunks: list[WindowBatch]) -> WindowBatch:
+def _slice_chunk(
+    observation, action, instruction, start, count, *, copy
+) -> _EpisodeChunk:
+    selection = slice(start, start + count)
+
+    def select(value):
+        part = value[selection]
+        return part.copy() if copy else part
+
+    return _EpisodeChunk(
+        {key: select(value) for key, value in observation.items()},
+        select(action),
+        instruction,
+    )
+
+
+def _join_chunks(chunks: list[_EpisodeChunk]) -> WindowBatch:
     first = chunks[0]
     for chunk in chunks[1:]:
         if chunk.observation.keys() != first.observation.keys():
@@ -144,33 +259,46 @@ def _join_chunks(chunks: list[WindowBatch]) -> WindowBatch:
         return WindowBatch(
             {key: native(value) for key, value in first.observation.items()},
             native(first.action),
-            first.instruction,
+            (first.instruction,) * len(first.action),
         )
+    size = sum(len(chunk.action) for chunk in chunks)
+
+    def join(values):
+        first_value = values[0]
+        # A chunk borrowed from the current episode can have arbitrary strides.
+        output = np.empty(
+            (size, *first_value.shape[1:]), dtype=first_value.dtype.newbyteorder("=")
+        )
+        return np.concatenate(values, out=output)
+
     return WindowBatch(
         {
-            key: np.concatenate([chunk.observation[key] for chunk in chunks])
+            key: join([chunk.observation[key] for chunk in chunks])
             for key in first.observation
         },
-        np.concatenate([chunk.action for chunk in chunks]),
-        tuple(text for chunk in chunks for text in chunk.instruction),
+        join([chunk.action for chunk in chunks]),
+        tuple(chunk.instruction for chunk in chunks for _ in range(len(chunk.action))),
     )
 
 
 def _ordered_batches(episodes, size, drop_last) -> Iterator[WindowBatch]:
-    """Copy full batches once; crossing-episode tails own only their used rows."""
+    """Copy pending tails before advancing and join directly from the last episode."""
     pending = []
     filled = 0
     for observation, action, instruction in episodes:
+        if not isinstance(instruction, str):
+            raise ValueError("Batch instructions must be strings")
         start, count = 0, len(action)
         if filled:
             take = min(size - filled, count)
+            filled += take
+            # Only a tail that outlives this episode needs a separate copy.
             pending.append(
-                _owned_chunk(
-                    observation, action, instruction, start, take, normalize=False
+                _slice_chunk(
+                    observation, action, instruction, start, take, copy=filled < size
                 )
             )
             start += take
-            filled += take
             if filled == size:
                 yield _join_chunks(pending)
                 pending.clear()
@@ -180,13 +308,13 @@ def _ordered_batches(episodes, size, drop_last) -> Iterator[WindowBatch]:
             start += size
         if start < count:
             pending.append(
-                _owned_chunk(
+                _slice_chunk(
                     observation,
                     action,
                     instruction,
                     start,
                     count - start,
-                    normalize=False,
+                    copy=True,
                 )
             )
             filled += count - start
@@ -212,14 +340,14 @@ def window_batches(
     buffer, pending samples and stacked output; this is not a byte/RSS limit.
     No tensors, device transfers, tokenization or padding are performed here.
     """
-    options = options or EpisodeReadOptions()
-    batching = batching or BatchOptions()
+    options = _read_options(options)
+    if batching is None:
+        batching = BatchOptions()
+    elif not isinstance(batching, BatchOptions):
+        raise ValueError("batching must be BatchOptions")
+    episodes = _episode_windows(directory, history, horizon, options=options)
     if batching.shuffle_buffer == 0:
-        yield from _ordered_batches(
-            _episode_windows(directory, history, horizon, options=options),
-            batching.batch_size,
-            batching.drop_last,
-        )
+        yield from _ordered_batches(episodes, batching.batch_size, batching.drop_last)
         return
     rng = np.random.default_rng(
         np.random.SeedSequence(
@@ -231,12 +359,10 @@ def window_batches(
             ]
         )
     )
-    samples = action_windows(directory, history, horizon, options=options)
-    pending = []
-    for sample in _shuffle(samples, batching.shuffle_buffer, rng):
-        pending.append(sample)
-        if len(pending) == batching.batch_size:
-            yield _collate(pending)
-            pending.clear()
-    if pending and not batching.drop_last:
-        yield _collate(pending)
+    yield from _shuffled_batches(
+        episodes,
+        batching.shuffle_buffer,
+        batching.batch_size,
+        batching.drop_last,
+        rng,
+    )
