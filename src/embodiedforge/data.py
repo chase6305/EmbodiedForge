@@ -680,21 +680,29 @@ def read_episodes(
     full observation key schema but validates only selected payloads plus the
     mandatory transition/state fields. Use the default for a full dataset audit.
     """
-    yield from _read_episodes(directory, options=options, owned=True)
+    options = _read_options(options)
+    root = Path(directory)
+    yield from _read_episodes(
+        root, spec=_dataset_manifest(root).get("env_spec"), options=options, owned=True
+    )
+
+
+def _read_options(options: EpisodeReadOptions | None) -> EpisodeReadOptions:
+    if options is None:
+        return EpisodeReadOptions()
+    if not isinstance(options, EpisodeReadOptions):
+        raise ValueError("options must be EpisodeReadOptions")
+    return options
 
 
 def _read_episodes(
-    directory: str | Path,
+    root: Path,
     *,
-    options: EpisodeReadOptions | None,
+    spec: dict | None,
+    options: EpisodeReadOptions,
     owned: bool,
 ) -> Iterator[Observation]:
     """Internal compact views stay private; window results copy their slices."""
-    if options is not None and not isinstance(options, EpisodeReadOptions):
-        raise ValueError("options must be EpisodeReadOptions")
-    options = options or EpisodeReadOptions()
-    root = Path(directory)
-    manifest = _dataset_manifest(root)
     completed_index = 0
     with os.scandir(root) as entries:
         paths = sorted(
@@ -703,9 +711,11 @@ def _read_episodes(
         )
     for path in paths:
         marker = os.path.splitext(path)[0] + ".json"
-        if not os.path.exists(marker):
+        try:
+            marker_stream = open(marker, encoding="utf-8")
+        except FileNotFoundError:
             continue
-        with open(marker, encoding="utf-8") as stream:
+        with marker_stream as stream:
             metadata = json.load(stream)
         if not isinstance(metadata, dict):
             raise ValueError(f"Episode marker must be a JSON object: {marker}")
@@ -743,7 +753,7 @@ def _read_episodes(
                     metadata,
                     options.observation_keys,
                     owned=owned,
-                    spec=manifest.get("env_spec"),
+                    spec=spec,
                     source=stream,
                 )
         except zipfile.BadZipFile as error:
@@ -790,11 +800,13 @@ def _episode_windows(
     """Private read-only window views; consumers must copy before advancing."""
     if any(type(value) is not int or value <= 0 for value in (history, horizon)):
         raise ValueError("history and horizon must be positive integers")
-    manifest = _dataset_manifest(Path(directory))
-    instruction = manifest.get("env_spec", {}).get("instruction")
-    if not isinstance(instruction, str) or not instruction.strip():
+    options = _read_options(options)
+    root = Path(directory)
+    spec = _dataset_manifest(root).get("env_spec")
+    if spec is None:
         raise ValueError("Action windows require a recorded dataset instruction")
-    for episode in _read_episodes(directory, options=options, owned=False):
+    instruction = spec["instruction"]
+    for episode in _read_episodes(root, spec=spec, options=options, owned=False):
         count = max(0, len(episode["action"]) - history - horizon + 2)
         if count:
             observation = {
