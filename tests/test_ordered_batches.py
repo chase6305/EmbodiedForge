@@ -40,6 +40,7 @@ def dataset(tmp_path, request):
         prefixes = ("state/",) if request.param == "compact" else ("obs/", "next/")
         for prefix in prefixes:
             arrays[prefix + "action"] = arrays[prefix + "proprio"][:, :3].copy()
+            arrays[prefix + "depth"] = np.asfortranarray(arrays[prefix + "depth"])
         arrays = {
             key: value.astype(value.dtype.newbyteorder(">"))
             if value.dtype.kind == "f"

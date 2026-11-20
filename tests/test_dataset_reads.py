@@ -151,6 +151,20 @@ def test_projected_windows_match_full_windows_and_own_arrays(dataset):
     assert np.any(full[0]["observation"]["rgb"])
 
 
+@pytest.mark.parametrize("copy_allowed", [False, True])
+def test_strided_window_views_bound_contiguous_scratch(monkeypatch, copy_allowed):
+    from embodiedforge import data
+
+    source = np.asfortranarray(np.arange(60, dtype=">i2").reshape(5, 4, 3))
+    cap = source.nbytes if copy_allowed else source.nbytes - 1
+    monkeypatch.setattr(data, "_MAX_CONTIGUOUS_WINDOW_COPY_BYTES", cap)
+    view = data._window_view(source, 3)
+    assert not view.flags.writeable
+    assert np.shares_memory(view, source) is not copy_allowed
+    for index, rows in enumerate(view):
+        np.testing.assert_array_equal(rows, source[index : index + 3], strict=True)
+
+
 def test_unknown_observation_rejected(dataset):
     with pytest.raises(ValueError, match="Missing requested observations"):
         next(

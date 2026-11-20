@@ -32,6 +32,7 @@ from .runtime.hashing import file_sha256, stream_sha256
 from .runtime.records import run_identity
 
 LOGGER = logging.getLogger(__name__)
+_MAX_CONTIGUOUS_WINDOW_COPY_BYTES = 16 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -816,6 +817,13 @@ def _window_view(value: Array, width: int) -> Array:
         windows = value[:, None]
         windows.flags.writeable = False
         return windows
+    if (
+        not value.flags.c_contiguous
+        and value.nbytes <= _MAX_CONTIGUOUS_WINDOW_COPY_BYTES
+    ):
+        # An overlapping window can otherwise copy the same strided frame
+        # many times. Bound the scratch allocation to one selected field.
+        value = np.ascontiguousarray(value)
     return np.moveaxis(
         np.lib.stride_tricks.sliding_window_view(value, width, axis=0), -1, 1
     )
@@ -841,14 +849,20 @@ def _episode_windows(
         count = len(episode["action"]) - history - horizon + 2
         if count > 0:
             observation = {
-                key[4:]: _window_view(value, history)[:count]
+                key[4:]: value
                 for key, value in episode.items()
                 if key.startswith("obs/")
             }
-            action = _window_view(episode["action"][history - 1 :], horizon)
+            action = episode["action"]
             # Following/reward/terminal arrays were validated, but no longer
             # need to stay resident while consumers copy observation windows.
             del episode
+            observation_rows = count + history - 1
+            for key in observation:
+                observation[key] = _window_view(
+                    observation[key][:observation_rows], history
+                )
+            action = _window_view(action[history - 1 :], horizon)
             yield observation, action, instruction
             del observation, action
             continue
