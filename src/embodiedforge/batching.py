@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from .core import Array, Observation
-from .data import EpisodeReadOptions, _episode_windows, action_windows
+from .data import EpisodeReadOptions, _episode_windows, _read_options, action_windows
 
 
 @dataclass(frozen=True)
@@ -89,12 +89,22 @@ def _collate(samples: list[dict]) -> WindowBatch:
                 raise ValueError(f"Cannot batch different shapes/dtypes for obs/{key}")
         if not isinstance(sample["instruction"], str):
             raise ValueError("Batch instructions must be strings")
+    # The layouts already match. Fill the leading batch axis directly using
+    # the native output byte order that np.stack used for these numeric arrays.
     return WindowBatch(
         observation={
-            key: np.stack([sample["observation"][key] for sample in samples])
-            for key in first["observation"]
+            key: np.array(
+                [sample["observation"][key] for sample in samples],
+                dtype=value.dtype.newbyteorder("="),
+                order="C",
+            )
+            for key, value in first_observation.items()
         },
-        action=np.stack([sample["action"] for sample in samples]),
+        action=np.array(
+            [sample["action"] for sample in samples],
+            dtype=first_action.dtype.newbyteorder("="),
+            order="C",
+        ),
         instruction=tuple(sample["instruction"] for sample in samples),
     )
 
@@ -245,8 +255,11 @@ def window_batches(
     buffer, pending samples and stacked output; this is not a byte/RSS limit.
     No tensors, device transfers, tokenization or padding are performed here.
     """
-    options = options or EpisodeReadOptions()
-    batching = batching or BatchOptions()
+    options = _read_options(options)
+    if batching is None:
+        batching = BatchOptions()
+    elif not isinstance(batching, BatchOptions):
+        raise ValueError("batching must be BatchOptions")
     if batching.shuffle_buffer == 0:
         yield from _ordered_batches(
             _episode_windows(directory, history, horizon, options=options),

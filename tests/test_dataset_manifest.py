@@ -145,7 +145,13 @@ def test_windows_use_one_manifest_for_instruction_and_layout(
 
 
 @pytest.mark.parametrize("options", [0, False, {}, []])
-@pytest.mark.parametrize("reader", [read_episodes, action_windows])
+@pytest.mark.parametrize("reader", [read_episodes, action_windows, window_batches])
 def test_options_are_checked_before_opening_any_run(tmp_path, options, reader):
     with pytest.raises(ValueError, match="EpisodeReadOptions"):
         list(reader(tmp_path / "missing", options=options))
+
+
+@pytest.mark.parametrize("batching", [False, {}, [], True])
+def test_invalid_batch_settings_are_checked_before_opening_any_run(tmp_path, batching):
+    with pytest.raises(ValueError, match="BatchOptions"):
+        list(window_batches(tmp_path / "missing", batching=batching))
