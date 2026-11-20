@@ -1,5 +1,7 @@
 """Read partitions once and avoid decompressing unrequested camera payloads."""
 
+import weakref
+
 import numpy as np
 import pytest
 
@@ -177,20 +179,45 @@ def test_invalid_read_options(kwargs):
 
 
 @pytest.mark.parametrize("field", ["proprio", "rgb"])
-def test_projection_validation_scope_is_explicit(dataset, field):
+@pytest.mark.parametrize("reader", [read_episodes, action_windows])
+def test_projection_validation_scope_is_explicit(dataset, field, reader):
     path = sorted(dataset.glob("*.npz"))[0]
     with np.load(path, allow_pickle=False) as archive:
         arrays = {key: archive[key] for key in archive.files}
     arrays[f"next/{field}"][0] = 0
     np.savez_compressed(path, **arrays)
     with pytest.raises(ValueError, match="continuity broken"):
-        list(read_episodes(dataset))
+        list(reader(dataset))
     options = EpisodeReadOptions(observation_keys=())
     if field == "proprio":
         with pytest.raises(ValueError, match="continuity broken"):
-            list(read_episodes(dataset, options=options))
+            list(reader(dataset, options=options))
     else:
-        assert list(read_episodes(dataset, options=options))
+        assert list(reader(dataset, options=options))
+
+
+def test_window_decoder_releases_each_following_camera_array_after_validation(
+    dataset, monkeypatch
+):
+    loaded = {}
+    getitem = np.lib.npyio.NpzFile.__getitem__
+
+    def read(archive, key):
+        if key in {"next/rgb", "next/depth"}:
+            assert all(array() is None for array in loaded.values())
+            value = getitem(archive, key)
+            loaded[key] = weakref.ref(value)
+            return value
+        return getitem(archive, key)
+
+    monkeypatch.setattr(np.lib.npyio.NpzFile, "__getitem__", read)
+    iterator = action_windows(dataset)
+    try:
+        assert {"rgb", "depth"} <= next(iterator)["observation"].keys()
+        assert loaded.keys() == {"next/rgb", "next/depth"}
+        assert all(array() is None for array in loaded.values())
+    finally:
+        iterator.close()
 
 
 def test_batches_reproducible_owned_and_epoch_changes_order(dataset):
