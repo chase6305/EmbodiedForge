@@ -683,7 +683,10 @@ def read_episodes(
     options = _read_options(options)
     root = Path(directory)
     yield from _read_episodes(
-        root, spec=_dataset_manifest(root).get("env_spec"), options=options, owned=True
+        root,
+        spec=_dataset_manifest(root).get("env_spec"),
+        options=options,
+        for_windows=False,
     )
 
 
@@ -700,9 +703,9 @@ def _read_episodes(
     *,
     spec: dict | None,
     options: EpisodeReadOptions,
-    owned: bool,
+    for_windows: bool,
 ) -> Iterator[Observation]:
-    """Internal compact views stay private; window results copy their slices."""
+    """Decode one episode at a time, with private views for window readers."""
     completed_index = 0
     with os.scandir(root) as entries:
         paths = sorted(
@@ -732,7 +735,7 @@ def _read_episodes(
             continue
         # Transfer the episode without a local reference in this generator.
         yield _read_completed_episode(
-            path, metadata, spec=spec, options=options, owned=owned
+            path, metadata, spec=spec, options=options, for_windows=for_windows
         )
 
 
@@ -742,7 +745,7 @@ def _read_completed_episode(
     *,
     spec: dict | None,
     options: EpisodeReadOptions,
-    owned: bool,
+    for_windows: bool,
 ) -> Observation:
     if options.verify_archive:
         expected = metadata.get("archive_sha256")
@@ -765,7 +768,7 @@ def _read_completed_episode(
                 path,
                 metadata,
                 options.observation_keys,
-                owned=owned,
+                for_windows=for_windows,
                 spec=spec,
                 source=stream,
             )
@@ -834,7 +837,7 @@ def _episode_windows(
     if spec is None:
         raise ValueError("Action windows require a recorded dataset instruction")
     instruction = spec["instruction"]
-    for episode in _read_episodes(root, spec=spec, options=options, owned=False):
+    for episode in _read_episodes(root, spec=spec, options=options, for_windows=True):
         count = len(episode["action"]) - history - horizon + 2
         if count > 0:
             observation = {
