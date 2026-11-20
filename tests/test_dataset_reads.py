@@ -323,7 +323,8 @@ def test_batch_shuffle_consumes_bounded_prefix(monkeypatch):
     iterator.close()
 
 
-def test_shuffle_preserves_seeded_order_across_episode_boundaries(monkeypatch):
+@pytest.mark.parametrize("strided", [False, True])
+def test_shuffle_preserves_seeded_order_across_episode_boundaries(monkeypatch, strided):
     from embodiedforge import batching as module
 
     instructions = []
@@ -332,6 +333,8 @@ def test_shuffle_preserves_seeded_order_across_episode_boundaries(monkeypatch):
         start = 0
         for index, count in enumerate((1, 9, 2, 6, 3)):
             rows = np.arange(start, start + count).reshape(-1, 1, 1)
+            rows = np.broadcast_to(rows, (count, 2, 2))
+            rows = np.asfortranarray(rows) if strided else rows.copy()
             text = f"episode {index}"
             instructions.extend((text,) * count)
             yield {"proprio": rows}, rows, text
@@ -352,6 +355,8 @@ def test_shuffle_preserves_seeded_order_across_episode_boundaries(monkeypatch):
     assert [text for batch in batches for text in batch.instruction] == [
         instructions[index] for index in order
     ]
+    for batch in batches:
+        np.testing.assert_array_equal(batch.observation["proprio"], batch.action)
 
 
 @pytest.mark.parametrize(

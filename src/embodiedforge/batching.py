@@ -133,33 +133,53 @@ def _shuffled_batches(
             )
             del observation, action
             continue
-        borrowed_slots = set()
+        # Copy distant strides in input order to reuse cache lines shared by
+        # neighboring windows. Contiguous rows can be gathered after shuffling.
+        defer_copy = action[0].flags.c_contiguous and all(
+            value[0].flags.c_contiguous for value in observation.values()
+        )
+        fill = capacity - len(buffer)
+        if defer_copy:
+            borrowed_slots = set(range(len(buffer), capacity))
+            buffer.extend(range(fill))
+        else:
+            buffer.extend(
+                _window_sample(observation, action, instruction, row, copy=True)
+                for row in range(fill)
+            )
         pending_start = len(pending)
-        for row in range(len(action)):
-            if len(buffer) < capacity:
-                borrowed_slots.add(len(buffer))
-                buffer.append(row)
-                continue
-            slot = int(rng.integers(len(buffer)))
+        for row in range(fill, len(action)):
+            slot = int(rng.integers(capacity))
             pending.append(buffer[slot])
-            buffer[slot] = row
-            borrowed_slots.add(slot)
+            if defer_copy:
+                buffer[slot] = row
+                borrowed_slots.add(slot)
+            else:
+                buffer[slot] = _window_sample(
+                    observation, action, instruction, row, copy=True
+                )
             if len(pending) == size:
-                yield _collate_episode_rows(pending, observation, action, instruction)
+                if defer_copy:
+                    yield _collate_episode_rows(
+                        pending, observation, action, instruction
+                    )
+                else:
+                    yield _collate(pending)
                 pending.clear()
                 pending_start = 0
 
-        for slot in borrowed_slots:
-            buffer[slot] = _window_sample(
-                observation, action, instruction, buffer[slot], copy=True
-            )
-        # An unfilled batch can also contain rows from the current episode.
-        for slot in range(pending_start, len(pending)):
-            row = pending[slot]
-            if type(row) is int:
-                pending[slot] = _window_sample(
-                    observation, action, instruction, row, copy=True
+        if defer_copy:
+            for slot in borrowed_slots:
+                buffer[slot] = _window_sample(
+                    observation, action, instruction, buffer[slot], copy=True
                 )
+            # An unfilled batch can also contain rows from the current episode.
+            for slot in range(pending_start, len(pending)):
+                row = pending[slot]
+                if type(row) is int:
+                    pending[slot] = _window_sample(
+                        observation, action, instruction, row, copy=True
+                    )
         del observation, action
 
     while buffer:
