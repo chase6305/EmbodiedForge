@@ -799,6 +799,16 @@ def action_windows(
         del observation, action
 
 
+def _window_view(value: Array, width: int) -> Array:
+    if width == 1:
+        windows = value[:, None]
+        windows.flags.writeable = False
+        return windows
+    return np.moveaxis(
+        np.lib.stride_tricks.sliding_window_view(value, width, axis=0), -1, 1
+    )
+
+
 def _episode_windows(
     directory: str | Path,
     history: int,
@@ -816,24 +826,14 @@ def _episode_windows(
         raise ValueError("Action windows require a recorded dataset instruction")
     instruction = spec["instruction"]
     for episode in _read_episodes(root, spec=spec, options=options, owned=False):
-        count = max(0, len(episode["action"]) - history - horizon + 2)
-        if count:
+        count = len(episode["action"]) - history - horizon + 2
+        if count > 0:
             observation = {
-                key[4:]: np.moveaxis(
-                    np.lib.stride_tricks.sliding_window_view(value, history, axis=0),
-                    -1,
-                    1,
-                )[:count]
+                key[4:]: _window_view(value, history)[:count]
                 for key, value in episode.items()
                 if key.startswith("obs/")
             }
-            action = np.moveaxis(
-                np.lib.stride_tricks.sliding_window_view(
-                    episode["action"], horizon, axis=0
-                ),
-                -1,
-                1,
-            )[history - 1 : history - 1 + count]
+            action = _window_view(episode["action"][history - 1 :], horizon)
             # Following/reward/terminal arrays were validated, but no longer
             # need to stay resident while consumers copy observation windows.
             del episode
