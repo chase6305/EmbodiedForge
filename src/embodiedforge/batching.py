@@ -99,17 +99,21 @@ def _collate(samples: list[dict]) -> WindowBatch:
     )
 
 
-def _owned_chunk(
-    observation, action, instruction, start, count, *, normalize=True
-) -> WindowBatch:
-    if not isinstance(instruction, str):
-        raise ValueError("Batch instructions must be strings")
+@dataclass(frozen=True)
+class _EpisodeChunk:
+    observation: Observation
+    action: Array
+    instruction: str
 
+
+def _owned_chunk(observation, action, instruction, start, count) -> WindowBatch:
     def owned(value):
-        # Preserve np.stack's native output byte order. Pending tails retain
-        # their original dtypes until the cross-episode layout check.
-        dtype = value.dtype.newbyteorder("=") if normalize else value.dtype
-        return np.array(value[start : start + count], dtype=dtype, copy=True, order="C")
+        return np.array(
+            value[start : start + count],
+            dtype=value.dtype.newbyteorder("="),
+            copy=True,
+            order="C",
+        )
 
     return WindowBatch(
         {key: owned(value) for key, value in observation.items()},
@@ -118,7 +122,23 @@ def _owned_chunk(
     )
 
 
-def _join_chunks(chunks: list[WindowBatch]) -> WindowBatch:
+def _slice_chunk(
+    observation, action, instruction, start, count, *, copy
+) -> _EpisodeChunk:
+    selection = slice(start, start + count)
+
+    def select(value):
+        part = value[selection]
+        return part.copy() if copy else part
+
+    return _EpisodeChunk(
+        {key: select(value) for key, value in observation.items()},
+        select(action),
+        instruction,
+    )
+
+
+def _join_chunks(chunks: list[_EpisodeChunk]) -> WindowBatch:
     first = chunks[0]
     for chunk in chunks[1:]:
         if chunk.observation.keys() != first.observation.keys():
@@ -144,33 +164,46 @@ def _join_chunks(chunks: list[WindowBatch]) -> WindowBatch:
         return WindowBatch(
             {key: native(value) for key, value in first.observation.items()},
             native(first.action),
-            first.instruction,
+            (first.instruction,) * len(first.action),
         )
+    size = sum(len(chunk.action) for chunk in chunks)
+
+    def join(values):
+        first_value = values[0]
+        # A chunk borrowed from the current episode can have arbitrary strides.
+        output = np.empty(
+            (size, *first_value.shape[1:]), dtype=first_value.dtype.newbyteorder("=")
+        )
+        return np.concatenate(values, out=output)
+
     return WindowBatch(
         {
-            key: np.concatenate([chunk.observation[key] for chunk in chunks])
+            key: join([chunk.observation[key] for chunk in chunks])
             for key in first.observation
         },
-        np.concatenate([chunk.action for chunk in chunks]),
-        tuple(text for chunk in chunks for text in chunk.instruction),
+        join([chunk.action for chunk in chunks]),
+        tuple(chunk.instruction for chunk in chunks for _ in range(len(chunk.action))),
     )
 
 
 def _ordered_batches(episodes, size, drop_last) -> Iterator[WindowBatch]:
-    """Copy full batches once; crossing-episode tails own only their used rows."""
+    """Copy pending tails before advancing and join directly from the last episode."""
     pending = []
     filled = 0
     for observation, action, instruction in episodes:
+        if not isinstance(instruction, str):
+            raise ValueError("Batch instructions must be strings")
         start, count = 0, len(action)
         if filled:
             take = min(size - filled, count)
+            filled += take
+            # Only a tail that outlives this episode needs a separate copy.
             pending.append(
-                _owned_chunk(
-                    observation, action, instruction, start, take, normalize=False
+                _slice_chunk(
+                    observation, action, instruction, start, take, copy=filled < size
                 )
             )
             start += take
-            filled += take
             if filled == size:
                 yield _join_chunks(pending)
                 pending.clear()
@@ -180,13 +213,13 @@ def _ordered_batches(episodes, size, drop_last) -> Iterator[WindowBatch]:
             start += size
         if start < count:
             pending.append(
-                _owned_chunk(
+                _slice_chunk(
                     observation,
                     action,
                     instruction,
                     start,
                     count - start,
-                    normalize=False,
+                    copy=True,
                 )
             )
             filled += count - start
