@@ -730,38 +730,47 @@ def _read_episodes(
         completed_index += 1
         if not selected:
             continue
-        if options.verify_archive:
-            expected = metadata.get("archive_sha256")
-            if (
-                not isinstance(expected, str)
-                or len(expected) != 64
-                or any(
-                    character not in "0123456789abcdef"
-                    for character in expected.lower()
-                )
-            ):
-                raise ValueError(f"Archive SHA256 is missing or invalid: {path}")
-        try:
-            source = open(path, "rb") if options.verify_archive else nullcontext()
-            with source as stream:
-                if options.verify_archive:
-                    if stream_sha256(stream) != expected.lower():
-                        raise ValueError(f"Episode archive SHA256 mismatch: {path}")
-                    stream.seek(0)
-                episode = _load_episode(
-                    path,
-                    metadata,
-                    options.observation_keys,
-                    owned=owned,
-                    spec=spec,
-                    source=stream,
-                )
-        except zipfile.BadZipFile as error:
-            raise zipfile.BadZipFile(
-                f"Corrupt episode archive: {path}: {error}"
-            ) from error
-        yield episode
-        del episode
+        # Transfer the episode without a local reference in this generator.
+        yield _read_completed_episode(
+            path, metadata, spec=spec, options=options, owned=owned
+        )
+
+
+def _read_completed_episode(
+    path: str,
+    metadata: dict,
+    *,
+    spec: dict | None,
+    options: EpisodeReadOptions,
+    owned: bool,
+) -> Observation:
+    if options.verify_archive:
+        expected = metadata.get("archive_sha256")
+        if (
+            not isinstance(expected, str)
+            or len(expected) != 64
+            or any(
+                character not in "0123456789abcdef" for character in expected.lower()
+            )
+        ):
+            raise ValueError(f"Archive SHA256 is missing or invalid: {path}")
+    try:
+        source = open(path, "rb") if options.verify_archive else nullcontext()
+        with source as stream:
+            if options.verify_archive:
+                if stream_sha256(stream) != expected.lower():
+                    raise ValueError(f"Episode archive SHA256 mismatch: {path}")
+                stream.seek(0)
+            return _load_episode(
+                path,
+                metadata,
+                options.observation_keys,
+                owned=owned,
+                spec=spec,
+                source=stream,
+            )
+    except zipfile.BadZipFile as error:
+        raise zipfile.BadZipFile(f"Corrupt episode archive: {path}: {error}") from error
 
 
 def action_windows(

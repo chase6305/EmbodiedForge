@@ -7,7 +7,7 @@ import pytest
 
 from embodiedforge import Config, VectorEnv
 from embodiedforge.batching import BatchOptions, window_batches
-from embodiedforge.data import EpisodeRecorder, read_episodes
+from embodiedforge.data import EpisodeRecorder, action_windows, read_episodes
 
 
 @pytest.fixture(params=["transitions", "compact"])
@@ -155,6 +155,32 @@ def test_cross_episode_tail_does_not_retain_whole_backing_arrays(
     assert len(batches) == (6 + size - 1) // size
     assert sum(len(batch.action) for batch in batches) == 6
     assert all(array() is None for array in loaded)
+
+
+@pytest.mark.parametrize("reader", [action_windows, window_batches])
+def test_windows_release_validated_arrays_unused_by_windows(
+    dataset, monkeypatch, reader
+):
+    released = {}
+    getitem = np.lib.npyio.NpzFile.__getitem__
+
+    def read(archive, key):
+        value = getitem(archive, key)
+        if key in {"reward", "terminated", "truncated"} or key.startswith("next/"):
+            released[key] = weakref.ref(value)
+        return value
+
+    monkeypatch.setattr(np.lib.npyio.NpzFile, "__getitem__", read)
+    if reader is window_batches:
+        iterator = reader(dataset, batching=BatchOptions(batch_size=2))
+    else:
+        iterator = reader(dataset)
+    try:
+        next(iterator)
+        assert {"reward", "terminated", "truncated"} <= released.keys()
+        assert all(array() is None for array in released.values())
+    finally:
+        iterator.close()
 
 
 @pytest.mark.parametrize("byte_order", ["<", ">"])
