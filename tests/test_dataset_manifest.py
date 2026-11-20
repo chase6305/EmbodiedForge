@@ -88,6 +88,22 @@ def test_required_payload_layout_matches_run_spec_even_with_projection(
         )
 
 
+@pytest.mark.parametrize("reader", [read_episodes, action_windows, window_batches])
+def test_full_reads_report_missing_required_observations(dataset, reader):
+    path = next(dataset.glob("*.npz"))
+    with np.load(path, allow_pickle=False) as archive:
+        arrays = {
+            key: archive[key]
+            for key in archive.files
+            if key not in {"obs/proprio", "state/proprio"}
+        }
+    np.savez_compressed(path, **arrays)
+    with pytest.raises(
+        ValueError, match="Observation is missing required episode fields"
+    ):
+        list(reader(dataset))
+
+
 @pytest.mark.parametrize(
     "marker",
     [

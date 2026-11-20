@@ -227,6 +227,12 @@ def _load_episode(
                 if field_key.startswith("next/")
             }
             if available_observation_keys != next_observation_keys:
+                shared_keys = available_observation_keys & next_observation_keys
+                if (
+                    observation_keys is None
+                    and not _REQUIRED_OBSERVATIONS <= shared_keys
+                ):
+                    raise ValueError("Observation is missing required episode fields")
                 raise ValueError(f"Observation schema changed: {path}")
         if observation_keys is not None:
             requested_keys = _REQUIRED_OBSERVATIONS | set(observation_keys)
