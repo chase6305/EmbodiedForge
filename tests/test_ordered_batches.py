@@ -127,8 +127,9 @@ def test_mutating_an_ordered_batch_cannot_change_next_batch_or_dataset(dataset):
 
 
 @pytest.mark.parametrize("size", [2, 64])
-def test_cross_episode_tail_does_not_retain_whole_backing_arrays(
-    dataset, monkeypatch, size
+@pytest.mark.parametrize("shuffle_buffer", [0, 2])
+def test_batch_buffer_does_not_retain_whole_backing_arrays_between_episodes(
+    dataset, monkeypatch, size, shuffle_buffer
 ):
     loaded = []
     load, getitem = np.load, np.lib.npyio.NpzFile.__getitem__
@@ -149,7 +150,10 @@ def test_cross_episode_tail_does_not_retain_whole_backing_arrays(
     # for both completed crossing batches and an oversized final tail.
     batches = list(
         window_batches(
-            dataset, history=1, horizon=7, batching=BatchOptions(batch_size=size)
+            dataset,
+            history=1,
+            horizon=7,
+            batching=BatchOptions(batch_size=size, shuffle_buffer=shuffle_buffer),
         )
     )
     assert len(batches) == (6 + size - 1) // size

@@ -295,22 +295,49 @@ def test_batch_shuffle_consumes_bounded_prefix(monkeypatch):
 
     consumed = []
 
-    def windows(*args, **kwargs):
+    def episodes(*args, **kwargs):
         for index in range(1000):
             consumed.append(index)
-            yield {
-                "observation": {"proprio": np.zeros((1, 2))},
-                "action": np.zeros((1, 2)),
-                "instruction": "hold",
-            }
+            yield {"proprio": np.zeros((1, 1, 2))}, np.zeros((1, 1, 2)), "hold"
 
-    monkeypatch.setattr(module, "action_windows", windows)
+    monkeypatch.setattr(module, "_episode_windows", episodes)
     iterator = module.window_batches(
         "unused", batching=module.BatchOptions(batch_size=3, shuffle_buffer=4)
     )
     assert len(next(iterator).action) == 3
     assert len(consumed) == 7
     iterator.close()
+
+
+def test_shuffle_preserves_seeded_order_across_episode_boundaries(monkeypatch):
+    from embodiedforge import batching as module
+
+    instructions = []
+
+    def episodes(*args, **kwargs):
+        start = 0
+        for index, count in enumerate((1, 9, 2, 6, 3)):
+            rows = np.arange(start, start + count).reshape(-1, 1, 1)
+            text = f"episode {index}"
+            instructions.extend((text,) * count)
+            yield {"proprio": rows}, rows, text
+            start += count
+
+    monkeypatch.setattr(module, "_episode_windows", episodes)
+    batches = list(
+        module.window_batches(
+            "unused",
+            batching=module.BatchOptions(
+                batch_size=4, shuffle_buffer=3, seed=7, epoch=4
+            ),
+        )
+    )
+    # The replacement and final drain sequence both predate episode-aware copying.
+    order = [1, 3, 0, 2, 6, 4, 7, 8, 10, 9, 5, 12, 13, 14, 16, 15, 17, 19, 11, 20, 18]
+    assert [int(row) for batch in batches for row in batch.action[:, 0, 0]] == order
+    assert [text for batch in batches for text in batch.instruction] == [
+        instructions[index] for index in order
+    ]
 
 
 @pytest.mark.parametrize(
@@ -336,9 +363,6 @@ def test_batch_rejects_incompatible_samples(monkeypatch, fault, shuffle_buffer):
         second["observation"] = {"proprio": np.zeros((1, 3))}
     else:
         second["observation"] = {"proprio": np.zeros((1, 2), dtype=np.float32)}
-    monkeypatch.setattr(
-        module, "action_windows", lambda *a, **kw: iter([first, second])
-    )
     monkeypatch.setattr(
         module,
         "_episode_windows",

@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 
 from .core import Array, Observation
-from .data import EpisodeReadOptions, _episode_windows, _read_options, action_windows
+from .data import EpisodeReadOptions, _episode_windows, _read_options, _window_sample
 
 
 @dataclass(frozen=True)
@@ -47,32 +47,6 @@ class WindowBatch:
     instruction: tuple[str, ...]
 
 
-def _shuffle(
-    samples: Iterator[dict],
-    capacity: int,
-    rng: np.random.Generator,
-) -> Iterator[dict]:
-    """Hold at most capacity buffered samples plus the incoming sample."""
-    if capacity == 0:
-        yield from samples
-        return
-    buffer = []
-    for sample in samples:
-        if len(buffer) < capacity:
-            buffer.append(sample)
-            continue
-        index = int(rng.integers(len(buffer)))
-        selected = buffer[index]
-        buffer[index] = sample
-        yield selected
-    while buffer:
-        index = int(rng.integers(len(buffer)))
-        selected = buffer[index]
-        buffer[index] = buffer[-1]
-        buffer.pop()
-        yield selected
-
-
 def _collate(samples: list[dict]) -> WindowBatch:
     """Reject incompatible layouts before stacking, including silent dtype casts."""
     first = samples[0]
@@ -107,6 +81,97 @@ def _collate(samples: list[dict]) -> WindowBatch:
         ),
         instruction=tuple(sample["instruction"] for sample in samples),
     )
+
+
+def _collate_episode_rows(
+    samples: list[int | dict], observation: Observation, action: Array, instruction: str
+) -> WindowBatch:
+    if all(type(row) is int for row in samples):
+
+        def gather(value):
+            return np.array(
+                [value[index] for index in samples],
+                dtype=value.dtype.newbyteorder("="),
+                order="C",
+            )
+
+        return WindowBatch(
+            {key: gather(value) for key, value in observation.items()},
+            gather(action),
+            (instruction,) * len(samples),
+        )
+
+    return _collate(
+        [
+            _window_sample(observation, action, instruction, row, copy=False)
+            if type(row) is int
+            else row
+            for row in samples
+        ]
+    )
+
+
+def _shuffled_batches(
+    episodes: Iterator[tuple[Observation, Array, str]],
+    capacity: int,
+    size: int,
+    drop_last: bool,
+    rng: np.random.Generator,
+) -> Iterator[WindowBatch]:
+    """Collate current rows directly and copy any survivors before advancing."""
+    # Integers refer to rows of the current episode. Samples from earlier
+    # episodes already own their arrays and occupy the same buffer slots.
+    buffer: list[int | dict] = []
+    pending: list[int | dict] = []
+    for observation, action, instruction in episodes:
+        if not isinstance(instruction, str):
+            raise ValueError("Batch instructions must be strings")
+        if len(buffer) + len(action) <= capacity:
+            buffer.extend(
+                _window_sample(observation, action, instruction, row, copy=True)
+                for row in range(len(action))
+            )
+            del observation, action
+            continue
+        borrowed_slots = set()
+        pending_start = len(pending)
+        for row in range(len(action)):
+            if len(buffer) < capacity:
+                borrowed_slots.add(len(buffer))
+                buffer.append(row)
+                continue
+            slot = int(rng.integers(len(buffer)))
+            pending.append(buffer[slot])
+            buffer[slot] = row
+            borrowed_slots.add(slot)
+            if len(pending) == size:
+                yield _collate_episode_rows(pending, observation, action, instruction)
+                pending.clear()
+                pending_start = 0
+
+        for slot in borrowed_slots:
+            buffer[slot] = _window_sample(
+                observation, action, instruction, buffer[slot], copy=True
+            )
+        # An unfilled batch can also contain rows from the current episode.
+        for slot in range(pending_start, len(pending)):
+            row = pending[slot]
+            if type(row) is int:
+                pending[slot] = _window_sample(
+                    observation, action, instruction, row, copy=True
+                )
+        del observation, action
+
+    while buffer:
+        slot = int(rng.integers(len(buffer)))
+        pending.append(buffer[slot])
+        buffer[slot] = buffer[-1]
+        buffer.pop()
+        if len(pending) == size:
+            yield _collate(pending)
+            pending.clear()
+    if pending and not drop_last:
+        yield _collate(pending)
 
 
 @dataclass(frozen=True)
@@ -260,12 +325,9 @@ def window_batches(
         batching = BatchOptions()
     elif not isinstance(batching, BatchOptions):
         raise ValueError("batching must be BatchOptions")
+    episodes = _episode_windows(directory, history, horizon, options=options)
     if batching.shuffle_buffer == 0:
-        yield from _ordered_batches(
-            _episode_windows(directory, history, horizon, options=options),
-            batching.batch_size,
-            batching.drop_last,
-        )
+        yield from _ordered_batches(episodes, batching.batch_size, batching.drop_last)
         return
     rng = np.random.default_rng(
         np.random.SeedSequence(
@@ -277,12 +339,10 @@ def window_batches(
             ]
         )
     )
-    samples = action_windows(directory, history, horizon, options=options)
-    pending = []
-    for sample in _shuffle(samples, batching.shuffle_buffer, rng):
-        pending.append(sample)
-        if len(pending) == batching.batch_size:
-            yield _collate(pending)
-            pending.clear()
-    if pending and not batching.drop_last:
-        yield _collate(pending)
+    yield from _shuffled_batches(
+        episodes,
+        batching.shuffle_buffer,
+        batching.batch_size,
+        batching.drop_last,
+        rng,
+    )

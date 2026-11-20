@@ -789,14 +789,23 @@ def action_windows(
         directory, history, horizon, options=options
     ):
         for index in range(len(action)):
-            yield {
-                "observation": {
-                    key: value[index].copy() for key, value in observation.items()
-                },
-                "action": action[index].copy(),
-                "instruction": instruction,
-            }
+            yield _window_sample(observation, action, instruction, index, copy=True)
         del observation, action
+
+
+def _window_sample(
+    observation: Observation, action: Array, instruction: str, index: int, *, copy: bool
+) -> dict:
+    row = action[index]
+    return {
+        "observation": (
+            {key: value[index].copy() for key, value in observation.items()}
+            if copy
+            else {key: value[index] for key, value in observation.items()}
+        ),
+        "action": row.copy() if copy else row,
+        "instruction": instruction,
+    }
 
 
 def _window_view(value: Array, width: int) -> Array:
